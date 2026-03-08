@@ -1024,7 +1024,7 @@ def serve_file(file_id):
     file_record = submission or course_content or resource or resource_preview or pdf_doc
     
     if not file_record:
-        return jsonify({'error': 'File not found'}), 404
+        return redirect(url_for('main.index', error='file_not_found'))
     
     # Determine ownership and permissions
     is_owner = False
@@ -1050,7 +1050,7 @@ def serve_file(file_id):
         pass
     elif not is_public:
         if not (is_owner or is_admin or is_teacher):
-            return jsonify({'error': 'This file is private and you do not have permission to view it'}), 403
+            return redirect(url_for('main.index', error='auth_required'))
     else:
         # For public course content, check enrollment
         if course_content:
@@ -1060,9 +1060,9 @@ def serve_file(file_id):
                 is_enrolled = course and current_user in course.users
                 
                 if not (is_owner or is_admin or is_teacher or is_enrolled):
-                    return jsonify({'error': 'You must be enrolled in this course to view this file'}), 403
+                    return redirect(url_for('main.index', error='auth_required'))
             else:
-                return jsonify({'error': 'You must be logged in to view course content'}), 403
+                return redirect(url_for('main.index', error='auth_required'))
     
     # For course content files, use the embedded viewer (no download)
     if course_content:

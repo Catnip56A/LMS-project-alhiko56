@@ -125,7 +125,8 @@ def logout():
     """Handle user logout"""
     logging.info(f"User {current_user.username} logged out")
     logout_user()
-    return redirect(url_for('main.index'))
+    # Redirect with cache-busting parameter to ensure fresh session check
+    return redirect(url_for('main.index', logout_time=int(datetime.utcnow().timestamp())))
 
 # Removed: Google OAuth login route - using link account for logged-in users only
 # @auth_bp.route('/login/google')

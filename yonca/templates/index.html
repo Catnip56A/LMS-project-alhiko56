@@ -1245,12 +1245,12 @@
         }
 
         .contact-btn {
-            background: #71A839;
+            background: #5eb04d;
         }
 
         .contact-btn:hover {
-            background: #5f9630;
-            border-color: #5f9630;
+            background: #4a9d3a;
+            border-color: #4a9d3a;
         }
 
         /* Courses Carousel */
@@ -2065,6 +2065,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/gallery-popup.css') }}">
 </head>
 <body>
+    <!-- Notification Container -->
+    <div id="notification-container" style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 10000; max-width: 500px; font-size: 1rem;">
+    </div>
+
     <header>
         <div class="container">
             <div class="header-content">
@@ -2986,6 +2990,43 @@
             }
         ];
 
+        // In-memory cache for courses
+        let cachedCoursesEnglish = null;
+        let cachedCoursesLocalized = null;
+        let courseCacheLoading = false;
+
+        async function initCoursesCache() {
+            if (courseCacheLoading || cachedCoursesEnglish) {
+                return; // Already loading or already cached
+            }
+            
+            courseCacheLoading = true;
+            
+            try {
+                // Load courses in both English and current language
+                const [englishResponse, localizedResponse] = await Promise.all([
+                    fetch(`${API_BASE}/api/courses?lang=en`, { credentials: 'include' }),
+                    fetch(`${API_BASE}/api/courses`, { credentials: 'include' })
+                ]);
+                
+                if (englishResponse.ok && localizedResponse.ok) {
+                    const englishData = await englishResponse.json();
+                    const localizedData = await localizedResponse.json();
+                    
+                    cachedCoursesEnglish = Array.isArray(englishData) ? englishData : (englishData.courses || []);
+                    cachedCoursesLocalized = Array.isArray(localizedData) ? localizedData : (localizedData.courses || []);
+                    
+                    console.log('Courses cache initialized:', cachedCoursesEnglish.length, 'courses');
+                } else {
+                    console.warn('Failed to initialize courses cache');
+                }
+            } catch (error) {
+                console.error('Error initializing courses cache:', error);
+            } finally {
+                courseCacheLoading = false;
+            }
+        }
+
         function updateCourseSlide(index) {
             const carousel = document.getElementById('coursesCarousel');
             const title = document.getElementById('courses-title');
@@ -2997,70 +3038,76 @@
                 subtitle.textContent = courseSlides[index].subtitle;
             }
             
-            // Load featured courses for this slide
+            // Load featured courses for this slide (from cache or fetch)
             loadFeaturedCourses(courseSlides[index].tag);
         }
 
         function loadFeaturedCourses(tag) {
             const grid = document.getElementById('featured-courses-grid');
-            const titleElement = document.getElementById('featured-courses-title');
             
             if (!grid) return;
             
-            // Show loading message
+            // If cache is loaded, use it immediately
+            if (cachedCoursesEnglish && cachedCoursesLocalized) {
+                displayFeaturedCourses(grid, tag);
+                return;
+            }
+            
+            // If cache is loading, wait for it
+            if (courseCacheLoading) {
+                grid.innerHTML = '<p style="text-align: center; color: #6b7280; font-style: italic;">{{ _("Loading courses...") }}</p>';
+                
+                // Poll until cache is ready
+                const checkCache = setInterval(() => {
+                    if (cachedCoursesEnglish && cachedCoursesLocalized) {
+                        clearInterval(checkCache);
+                        displayFeaturedCourses(grid, tag);
+                    }
+                }, 100);
+                
+                return;
+            }
+            
+            // Cache not loaded yet, show loading message
             grid.innerHTML = '<p style="text-align: center; color: #6b7280; font-style: italic;">{{ _("Loading courses...") }}</p>';
             
-            // Step 1: Fetch in English to identify matching courses by tag
-            fetch(`${API_BASE}/api/courses?lang=en`, { cache: 'no-store', credentials: 'include' })
-                .then(response => response.json())
-                .then(coursesEnglish => {
-                    // Ensure courses is an array
-                    const coursesArray = Array.isArray(coursesEnglish) ? coursesEnglish : (coursesEnglish.courses || []);
-                    
-                    if (!Array.isArray(coursesArray)) {
-                        grid.innerHTML = '<p style="text-align: center; color: #dc2626;">{{ _("Error loading courses") }}</p>';
-                        return;
-                    }
-                    
-                    // Filter courses by tag (using English tags for comparison)
-                    const matchingCourseIds = coursesArray
-                        .filter(course => {
-                            if (!course.tags) return false;
-                            const tags = typeof course.tags === 'string' ? course.tags.split(',') : course.tags;
-                            return tags.map(t => t.trim().toLowerCase()).includes(tag.toLowerCase());
-                        })
-                        .map(course => course.id);
-                    
-                    if (matchingCourseIds.length === 0) {
-                        grid.innerHTML = '<p style="text-align: center; color: #6b7280;">{{ _("No courses available for this category.") }}</p>';
-                        return;
-                    }
-                    
-                    // Step 2: Fetch in current language to display localized content
-                    fetch(`${API_BASE}/api/courses`, { cache: 'no-store', credentials: 'include' })
-                        .then(response => response.json())
-                        .then(coursesLocalized => {
-                            const localizedArray = Array.isArray(coursesLocalized) ? coursesLocalized : (coursesLocalized.courses || []);
-                            
-                            // Filter localized courses to only show the ones matching the tag
-                            const filteredCourses = localizedArray.filter(course => matchingCourseIds.includes(course.id));
-                            
-                            // Clear the grid and populate with localized course cards
-                            grid.innerHTML = '';
-                            filteredCourses.forEach(course => {
-                                const courseCard = createCourseCard(course, false); // false = not enrolled
-                                grid.appendChild(courseCard);
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error loading localized courses:', error);
-                            grid.innerHTML = '<p style="text-align: center; color: #dc2626;">{{ _("Error loading courses") }}</p>';
-                        });
+            // Initialize cache and retry
+            initCoursesCache().then(() => {
+                displayFeaturedCourses(grid, tag);
+            });
+        }
+
+        function displayFeaturedCourses(grid, tag) {
+            if (!cachedCoursesEnglish || !cachedCoursesLocalized) {
+                grid.innerHTML = '<p style="text-align: center; color: #dc2626;">{{ _("Error loading courses") }}</p>';
+                return;
+            }
+            
+            // Filter courses by tag (using English tags for comparison)
+            const matchingCourseIds = cachedCoursesEnglish
+                .filter(course => {
+                    if (!course.tags) return false;
+                    const tags = typeof course.tags === 'string' ? course.tags.split(',') : course.tags;
+                    return tags.map(t => t.trim().toLowerCase()).includes(tag.toLowerCase());
                 })
-                .catch(error => {
-                    console.error('Error loading courses:', error);
-                    grid.innerHTML = '<p style="text-align: center; color: #dc2626;">{{ _("Error loading courses") }}</p>';
-                });
+                .map(course => course.id);
+            
+            if (matchingCourseIds.length === 0) {
+                grid.innerHTML = '<p style="text-align: center; color: #6b7280;">{{ _("No courses available for this category.") }}</p>';
+                return;
+            }
+            
+            // Filter localized courses to only show the ones matching the tag
+            const filteredCourses = cachedCoursesLocalized.filter(course => matchingCourseIds.includes(course.id));
+            
+            // Clear the grid and populate with localized course cards
+            grid.innerHTML = '';
+            filteredCourses.forEach(course => {
+                // Check enrollment status for authenticated users
+                const isEnrolled = window.currentUser ? (course.is_enrolled || false) : false;
+                const courseCard = createCourseCard(course, isEnrolled);
+                grid.appendChild(courseCard);
+            });
         }
 
         function isHeroContainerScrolledOff() {
@@ -3105,6 +3152,97 @@
             startCourseCarousel();
         }
         // ===== End Courses Carousel Setup =====
+
+        // Notification System
+        function showNotification(messageKey, durationMs = 15000) {
+            const notificationContainer = document.getElementById('notification-container');
+            if (!notificationContainer) return;
+            
+            // Define messages in different languages
+            const messages = {
+                'auth_required': {
+                    'en': '🔒 Authentication required to access this file',
+                    'az': '🔒 Bu faylə dəişmək üçün autentifikasiya tələb olunur',
+                    'ru': '🔒 Для доступа к этому файлу требуется аутентификация'
+                },
+                'file_not_found': {
+                    'en': '❌ File not found',
+                    'az': '❌ Fayl tapılmadı',
+                    'ru': '❌ Файл не найден'
+                }
+            };
+            
+            const currentLang = document.documentElement.lang || 'en';
+            const message = (messages[messageKey] && messages[messageKey][currentLang]) || messages[messageKey]?.['en'] || 'An error occurred';
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                animation: slideDown 0.3s ease-out;
+                font-weight: 500;
+                border-left: 4px solid #a93226;
+            `;
+            notification.textContent = message;
+            
+            // Add animation styles
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideDown {
+                    from {
+                        transform: translateY(-20px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+                @keyframes slideUp {
+                    from {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                    to {
+                        transform: translateY(-20px);
+                        opacity: 0;
+                    }
+                }
+            `;
+            if (!document.querySelector('style[data-notification-anim]')) {
+                style.setAttribute('data-notification-anim', 'true');
+                document.head.appendChild(style);
+            }
+            
+            notificationContainer.innerHTML = '';
+            notificationContainer.appendChild(notification);
+            
+            // Auto-hide after duration
+            setTimeout(() => {
+                notification.style.animation = 'slideUp 0.3s ease-out';
+                setTimeout(() => {
+                    notificationContainer.innerHTML = '';
+                }, 300);
+            }, durationMs);
+        }
+        
+        // Check for error parameter and show notification
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            
+            if (error) {
+                // Show the notification
+                showNotification(error, 15000);
+                
+                // Clean up the URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
 
         // Current page management
         function showPage(pageId, event) {
@@ -4891,6 +5029,26 @@
             checkUser();
             // Don't load forum messages here - let checkUser handle it after determining auth status
 
+            // Set up periodic session validation (every 45 seconds)
+            setInterval(() => {
+                console.log('Periodic session check...');
+                checkUser();
+            }, 30000);
+
+            // Check session when tab/window regains focus
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    console.log('Page regained focus, checking session...');
+                    checkUser();
+                }
+            });
+
+            // Also check session when window regains focus
+            window.addEventListener('focus', function() {
+                console.log('Window regained focus, checking session...');
+                checkUser();
+            });
+
             // Handle hash changes (when user manually changes URL or uses back/forward)
             window.addEventListener('hashchange', function() {
                 const hash = window.location.hash.substring(1); // Remove the '#'
@@ -5137,6 +5295,9 @@
 
             // Start carousel when page loads
             startCourseCarousel();
+            
+            // Initialize courses cache for featured courses carousel
+            initCoursesCache();
             
             // Load initial featured courses
             loadFeaturedCourses(courseSlides[0].tag);
