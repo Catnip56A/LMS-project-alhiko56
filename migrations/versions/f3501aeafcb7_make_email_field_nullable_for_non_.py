@@ -1,7 +1,7 @@
 """Make email field nullable for non-Google users
 
 Revision ID: f3501aeafcb7
-Revises: d4f3b2c9f0a1
+Revises: 2b9425c43d10
 Create Date: 2026-01-21 12:19:38.348731
 
 """

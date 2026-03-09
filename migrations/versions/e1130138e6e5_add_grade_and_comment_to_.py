@@ -1,7 +1,7 @@
 """Add grade and comment to CourseAssignmentSubmission
 
 Revision ID: e1130138e6e5
-Revises: d4f3b2c9f0a1
+Revises: 975d518e8069
 Create Date: 2026-01-10 15:35:00.516118
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'e1130138e6e5'
-down_revision = 'd4f3b2c9f0a1'
+down_revision = '975d518e8069'
 branch_labels = None
 depends_on = None
 
