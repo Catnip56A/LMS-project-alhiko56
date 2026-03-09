@@ -1,7 +1,7 @@
 """Remove course tab label fields
 
 Revision ID: 2b9425c43d10
-Revises: b510be4dc5b3
+Revises: f3501aeafcb7
 Create Date: 2026-01-19 17:16:44.463156
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '2b9425c43d10'
-down_revision = 'b510be4dc5b3'
+down_revision = 'f3501aeafcb7'
 branch_labels = None
 depends_on = None
 

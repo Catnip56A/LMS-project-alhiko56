@@ -1,7 +1,7 @@
 """Add course tab label fields for translation
 
 Revision ID: b510be4dc5b3
-Revises: 312c4937cc2e
+Revises: 2b9425c43d10
 Create Date: 2026-01-19 17:07:49.340829
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'b510be4dc5b3'
-down_revision = '312c4937cc2e'
+down_revision = '2b9425c43d10'
 branch_labels = None
 depends_on = None
 
