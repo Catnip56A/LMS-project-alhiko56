@@ -1,7 +1,7 @@
 """Add grade and comment to CourseAssignmentSubmission
 
 Revision ID: e1130138e6e5
-Revises: 
+Revises: d4f3b2c9f0a1
 Create Date: 2026-01-10 15:35:00.516118
 
 """
