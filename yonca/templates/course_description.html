@@ -189,23 +189,34 @@
 
 <div class="container" style="margin-top:20px;">
 <section class="course-marketing" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #e5e7eb; padding: 2rem; margin-bottom: 2rem;">
-    <h1 style="font-size:2.2rem; font-weight:700; color:#337a2c;">{{ course.page_welcome_title or course.title }}</h1>
-    {% if course.page_subtitle %}
-    <h2 style="font-size:1.3rem; color:#374151; margin-top:0.5rem;">{{ course.page_subtitle }}</h2>
+    <h1 style="font-size:2.2rem; font-weight:700; color:#337a2c;">{{ translated_title or course.page_welcome_title or course.title }}</h1>
+    {% if translated_subtitle or course.page_subtitle %}
+    <h2 style="font-size:1.3rem; color:#374151; margin-top:0.5rem;">{{ translated_subtitle or course.page_subtitle }}</h2>
     {% endif %}
-{% if course.page_description %}
-    <div style="margin-top:1.2rem; font-size:1.1rem; color:#444; font-family: inherit; line-height:1.6;">
-        {% set paragraphs = course.page_description.split('\n') %}
-        {% for paragraph in paragraphs %}
-        {% if paragraph.strip() %}
-        <p style="margin-bottom:1rem;">{{ paragraph | parse_buttons | safe }}</p>
-        {% endif %}
-        {% endfor %}
-    </div>
+    
+    {# Check for page builder content first #}
+    {% if course.page_builder_data and course.page_builder_data|length > 0 %}
+        <div style="margin-top:1.2rem;">
+            {# Use translated data if available, otherwise use original #}
+            {% set page_data = page_builder_data_translated or course.page_builder_data %}
+            {{ render_page_builder_blocks(page_data) | safe }}
+        </div>
+    {% elif course.page_description %}
+        {# Fallback to plain text description #}
+        <div style="margin-top:1.2rem; font-size:1.1rem; color:#444; font-family: inherit; line-height:1.6;">
+            {% set paragraphs = course.page_description.split('\n') %}
+            {% for paragraph in paragraphs %}
+            {% if paragraph.strip() %}
+            <p style="margin-bottom:1rem;">{{ paragraph | parse_buttons | safe }}</p>
+            {% endif %}
+            {% endfor %}
+        </div>
     {% endif %}
-    {% if course.page_features %}
+
+    {% if translated_page_features or course.page_features %}
     <div class="row" style="margin-top:2rem;">
-        {% for feature in course.page_features %}
+        {% set features_to_display = translated_page_features or course.page_features %}
+        {% for feature in features_to_display %}
         <div class="col-md-4" style="margin-bottom:1.5rem;">
             <div style="background:#f3f4f6; border-radius:8px; padding:1rem; height:100%;">
                 {% if feature.image %}

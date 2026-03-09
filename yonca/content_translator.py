@@ -17,7 +17,7 @@ TARGET_LANGUAGES = ['az', 'ru']
 
 # Fields to translate for each content type
 TRANSLATABLE_FIELDS = {
-    'course': ['title', 'description', 'page_welcome_title', 'page_subtitle', 'page_description', 'tags'],
+    'course': ['title', 'description', 'page_welcome_title', 'page_subtitle', 'page_description', 'page_features', 'tags'],
     'resource': ['title', 'description'],
     'home_content': [
         'welcome_title', 'subtitle', 'get_started_text',
@@ -95,8 +95,8 @@ def translate_content(content_type, content_id, field_name, text, source_languag
             continue
             
         try:
-            # Check if content contains HTML
-            is_html = bool(re.search(r'<[^>]+>', text))
+            # Check if content contains HTML (both actual tags and entities)
+            is_html = bool(re.search(r'<[^>]+>|&lt;|&gt;|&amp;', text))
             
             if is_html:
                 # Use HTML-aware translation
@@ -335,20 +335,33 @@ def get_translated_content(content_type, content_id, field_name, original_text, 
     Returns:
         Translated text or original text if translation not found
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if not target_language:
         return original_text
     
-    translation = ContentTranslation.query.filter_by(
-        content_type=content_type,
-        content_id=content_id,
-        field_name=field_name,
-        target_language=target_language
-    ).first()
+    # Skip English
+    if target_language == 'en':
+        return original_text
     
-    if translation:
-        return translation.translated_text
-    
-    return original_text
+    try:
+        translation = ContentTranslation.query.filter_by(
+            content_type=content_type,
+            content_id=content_id,
+            field_name=field_name,
+            target_language=target_language
+        ).first()
+        
+        if translation:
+            logger.warning(f"  🔍 FOUND: {field_name} -> {target_language}")
+            return translation.translated_text
+        else:
+            logger.warning(f"  ✗ NOT FOUND: {field_name} -> {target_language}")
+            return original_text
+    except Exception as e:
+        logger.error(f"  ✗ ERROR querying translations: {str(e)}")
+        return original_text
 
 
 def get_translated_json_array(content_type, content_id, field_name, json_array, target_language):
@@ -447,3 +460,209 @@ def get_translated_string_array(content_type, content_id, field_name, string_arr
             translated_array.append(item)
     
     return translated_array
+
+
+def auto_translate_page_builder(course, session=None):
+    """
+    Automatically translate all translatable content from page builder blocks.
+    
+    This function extracts text fields from page builder blocks and translates them
+    using the standard translation system.
+    
+    Args:
+        course: Course object with page_builder_data
+        session: SQLAlchemy session to use (if None, uses db.session)
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    if not course or not course.page_builder_data:
+        logger.warning(f"⚠️  No page_builder_data to translate for course {course.id if course else 'None'}")
+        return
+    
+    if session is None:
+        from yonca.models import db
+        session = db.session
+    
+    page_builder_data = course.page_builder_data
+    logger.warning(f"✓ PAGE BUILDER TRANSLATION: Starting for course {course.id}, blocks: {len(page_builder_data)}")
+    
+    for i, block in enumerate(page_builder_data):
+        block_type = block.get('type', '')
+        block_id = block.get('id', '')
+        settings = block.get('settings', {})
+        
+        logger.warning(f"  Block {i}: type={block_type}, id={block_id}")
+        
+        try:
+            if block_type == 'plain-text':
+                # Translate plain text content
+                if settings.get('text'):
+                    field_name = f'page_builder[{block_id}].text'
+                    text_content = settings['text'][:100] + '...' if len(settings['text']) > 100 else settings['text']
+                    logger.warning(f"    → Translating plain-text: {text_content}")
+                    translate_content('course', course.id, field_name, settings['text'], session=session)
+            
+            elif block_type == 'hero':
+                # Translate hero title and subtitle
+                if settings.get('title'):
+                    field_name = f'page_builder[{block_id}].title'
+                    logger.warning(f"    → Translating hero title: {settings['title']}")
+                    translate_content('course', course.id, field_name, settings['title'], session=session)
+                if settings.get('subtitle'):
+                    field_name = f'page_builder[{block_id}].subtitle'
+                    logger.warning(f"    → Translating hero subtitle: {settings['subtitle']}")
+                    translate_content('course', course.id, field_name, settings['subtitle'], session=session)
+            
+            elif block_type == 'text-image':
+                # Translate text + image content
+                if settings.get('text'):
+                    field_name = f'page_builder[{block_id}].text'
+                    text_content = settings['text'][:100] + '...' if len(settings['text']) > 100 else settings['text']
+                    logger.warning(f"    → Translating text-image: {text_content}")
+                    translate_content('course', course.id, field_name, settings['text'], session=session)
+            
+            elif block_type == 'buttons':
+                # Translate button texts
+                buttons = settings.get('buttons', [])
+                if buttons:
+                    logger.warning(f"    → Translating {len(buttons)} button texts")
+                    translate_json_array('course', course.id, f'page_builder[{block_id}].buttons', buttons, 'text', session=session)
+            
+            elif block_type == 'youtube':
+                # YouTube blocks don't need translation (only have embed info)
+                logger.warning(f"    ⊘ Skipping youtube block")
+            
+            elif block_type == 'carousel':
+                # Translate carousel items (titles and descriptions)
+                items = settings.get('items', [])
+                if items:
+                    logger.warning(f"    → Translating {len(items)} carousel items")
+                    translate_json_array('course', course.id, f'page_builder[{block_id}].items', items, session=session)
+        except Exception as e:
+            logger.error(f"  ✗ ERROR translating block {i}: {str(e)}")
+    
+    # Make sure all translations are flushed to database
+    try:
+        session.flush()
+        logger.warning(f"✓ PAGE BUILDER TRANSLATION: Flushed to DB for course {course.id}")
+    except Exception as e:
+        logger.error(f"✗ ERROR flushing page builder translations: {str(e)}")
+    
+    logger.warning(f"✓ PAGE BUILDER TRANSLATION: Complete for course {course.id}")
+
+
+def get_translated_page_builder_data(course, target_language):
+    """
+    Get page builder data with translated content.
+    
+    Args:
+        course: Course object with page_builder_data
+        target_language: Target language code (can be string or Locale object)
+    
+    Returns:
+        page_builder_data with translated content
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    if not course or not course.page_builder_data or not target_language:
+        logger.warning(f"⚠️  No data to translate: course={course}, data={bool(course.page_builder_data if course else None)}, lang={target_language}")
+        return course.page_builder_data or [] if course else []
+    
+    # Normalize language code
+    lang_code = str(target_language)
+    logger.warning(f"📖 RAW target_language: {repr(target_language)} (type: {type(target_language).__name__})")
+    
+    # Handle Locale objects: Locale('az') -> 'az', or 'az_AZ' -> 'az'
+    if hasattr(target_language, 'language'):
+        # It's a Flask-Babel Locale object
+        lang_code = target_language.language
+        logger.warning(f"📖 Detected Locale object, language: {lang_code}")
+    else:
+        # It's a string, extract just the language part
+        lang_code = lang_code.split('_')[0].lower()
+        logger.warning(f"📖 Detected string, language: {lang_code}")
+    
+    if lang_code == 'en':
+        logger.warning(f"📖 Language is English, returning original")
+        return course.page_builder_data or []
+    
+    logger.warning(f"🔄 PAGE BUILDER RENDER: Getting translated data for course {course.id}, language: {lang_code}")
+    
+    import copy
+    translated_data = copy.deepcopy(course.page_builder_data)
+    blocks_with_translations = 0
+    
+    for block_idx, block in enumerate(translated_data):
+        block_type = block.get('type', '')
+        block_id = block.get('id', '')
+        settings = block.get('settings', {})
+        
+        try:
+            if block_type == 'plain-text':
+                # Get translated text
+                if settings.get('text'):
+                    field_name = f'page_builder[{block_id}].text'
+                    original_text = settings['text']
+                    translated_text = get_translated_content('course', course.id, field_name, original_text, lang_code)
+                    if translated_text != original_text:
+                        logger.warning(f"  ✓ Found translation for plain-text block")
+                        settings['text'] = translated_text
+                        blocks_with_translations += 1
+            
+            elif block_type == 'hero':
+                # Get translated title and subtitle
+                if settings.get('title'):
+                    field_name = f'page_builder[{block_id}].title'
+                    original_title = settings['title']
+                    translated_title = get_translated_content('course', course.id, field_name, original_title, lang_code)
+                    if translated_title != original_title:
+                        logger.warning(f"  ✓ Found translation for hero title")
+                        settings['title'] = translated_title
+                        blocks_with_translations += 1
+                
+                if settings.get('subtitle'):
+                    field_name = f'page_builder[{block_id}].subtitle'
+                    original_subtitle = settings['subtitle']
+                    translated_subtitle = get_translated_content('course', course.id, field_name, original_subtitle, lang_code)
+                    if translated_subtitle != original_subtitle:
+                        logger.warning(f"  ✓ Found translation for hero subtitle")
+                        settings['subtitle'] = translated_subtitle
+            
+            elif block_type == 'text-image':
+                # Get translated text content
+                if settings.get('text'):
+                    field_name = f'page_builder[{block_id}].text'
+                    original_text = settings['text']
+                    translated_text = get_translated_content('course', course.id, field_name, original_text, lang_code)
+                    if translated_text != original_text:
+                        logger.warning(f"  ✓ Found translation for text-image block")
+                        settings['text'] = translated_text
+                        blocks_with_translations += 1
+            
+            elif block_type == 'buttons':
+                # Get translated button texts
+                buttons = settings.get('buttons', [])
+                if buttons:
+                    translated_buttons = get_translated_json_array('course', course.id, f'page_builder[{block_id}].buttons', buttons, lang_code)
+                    settings['buttons'] = translated_buttons
+            
+            elif block_type == 'youtube':
+                # YouTube blocks don't have translatable content
+                pass
+            
+            elif block_type == 'carousel':
+                # Get translated carousel items
+                items = settings.get('items', [])
+                if items:
+                    translated_items = get_translated_json_array('course', course.id, f'page_builder[{block_id}].items', items, lang_code)
+                    settings['items'] = translated_items
+        except Exception as e:
+            logger.error(f"  ✗ ERROR processing block {block_idx}: {str(e)}")
+    
+    if blocks_with_translations == 0:
+        logger.warning(f"⚠️  NO translations found! Check if language code '{lang_code}' is correct.")
+    
+    logger.warning(f"🔄 PAGE BUILDER RENDER: Complete ({blocks_with_translations} blocks translated)")
+    return translated_data

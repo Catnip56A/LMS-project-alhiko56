@@ -82,6 +82,7 @@ class Course(db.Model):
     page_welcome_title = db.Column(db.String(200), default="")
     page_subtitle = db.Column(db.String(500), default="")
     page_description = db.Column(db.Text, default="")
+    page_builder_data = db.Column(db.JSON, default=[])
     page_features = db.Column(db.JSON, default=[
         {"title": "Interactive Learning", "description": "Engage with dynamic course content and interactive exercises.", "image": ""},
         {"title": "Expert Guidance", "description": "Learn from industry professionals and experienced educators.", "image": ""},

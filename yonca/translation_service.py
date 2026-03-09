@@ -401,117 +401,40 @@ class TranslationService:
         """
         if not html_content or not html_content.strip():
             return html_content
-            
-        if not BS4_AVAILABLE:
-            current_app.logger.warning("BeautifulSoup not available, falling back to plain text translation")
-            return self.get_translation(html_content, target_language, source_language)
         
         try:
-            # Split content into lines to preserve line structure
-            lines = html_content.replace('\r\n', '\n').split('\n')
-            translated_lines = []
+            # Use a placeholder approach: protect HTML tags, translate content, then restore tags
+            import re as re_module
             
-            for line in lines:
-                if line.strip():  # Only translate non-empty lines
-                    # Check if this line contains button syntax
-                    if '<button:' in line and '</button>' in line:
-                        # This is a button line - translate the button text but keep HTML structure
-                        button_pattern = r'<button:\s*\[([^\]]+)\]\s*>\s*([^<\s]+)\s*</button>'
-                        def translate_button(match):
-                            button_text = match.group(1).strip()
-                            url = match.group(2).strip()
-                            translated_button_text = self.get_translation(button_text, target_language, source_language)
-                            return f"<button: [{translated_button_text}] > {url} </button>"
-                        
-                        translated_line = re.sub(button_pattern, translate_button, line, flags=re.IGNORECASE)
-                        translated_lines.append(translated_line)
-                        continue  # Skip BeautifulSoup processing for button lines
-                    else:
-                        # This is regular HTML - parse and translate
-                        # Protect any button syntax in this line first
-                        button_pattern = r'<button:\s*\[([^\]]+)\]\s*>\s*([^<\s]+)\s*</button>'
-                        button_placeholders = []
-                        
-                        def protect_buttons(match):
-                            button_text = match.group(1).strip()
-                            url = match.group(2).strip()
-                            placeholder = f"__BUTTON_{len(button_placeholders)}__"
-                            button_placeholders.append((button_text, url))
-                            return placeholder
-                        
-                        protected_line = re.sub(button_pattern, protect_buttons, line, flags=re.IGNORECASE)
-                        
-                        # Parse and translate HTML for this line
-                        if protected_line.strip():
-                            soup = BeautifulSoup(protected_line, 'html.parser')
-                            
-                            # Find text nodes
-                            text_nodes = []
-                            def collect_text_nodes(element):
-                                if hasattr(element, 'attrs'):
-                                    for attr in ['alt', 'title', 'placeholder', 'value']:
-                                        if attr in element.attrs and element.attrs[attr]:
-                                            attr_text = element.attrs[attr].strip()
-                                            if attr_text and len(attr_text) > 0:
-                                                text_nodes.append((element, attr, attr_text))
-                                
-                                for child in element.children:
-                                    if child.name in ['script', 'style', 'code', 'pre']:
-                                        continue
-                                    elif isinstance(child, str):
-                                        text = child.strip()
-                                        if text and len(text) > 0:
-                                            text_nodes.append((child, text))
-                                    elif child.name:
-                                        collect_text_nodes(child)
-                            
-                            collect_text_nodes(soup)
-                            
-                            # Translate text nodes
-                            for item in text_nodes:
-                                try:
-                                    if len(item) == 2:
-                                        text_node, original_text = item
-                                        if not original_text.startswith('__BUTTON_'):
-                                            translated_text = self.get_translation(original_text, target_language, source_language)
-                                            if translated_text and translated_text != original_text:
-                                                text_node.replace_with(translated_text)
-                                    else:
-                                        element, attr, original_text = item
-                                        translated_text = self.get_translation(original_text, target_language, source_language)
-                                        if translated_text and translated_text != original_text:
-                                            element.attrs[attr] = translated_text
-                                except Exception as e:
-                                    current_app.logger.warning(f"Failed to translate '{original_text[:50]}...': {str(e)}")
-                            
-                            translated_line = str(soup)
-                            
-                            # Restore buttons
-                            for i, (button_text, url) in enumerate(button_placeholders):
-                                translated_button_text = self.get_translation(button_text, target_language, source_language)
-                                button_html = f"<button: [{translated_button_text}] > {url} </button>"
-                                translated_line = translated_line.replace(f"__BUTTON_{i}__", button_html)
-                        else:
-                            translated_line = protected_line
-                else:
-                    translated_line = line  # Preserve empty lines
-                
-                translated_lines.append(translated_line)
+            # Step 1: Find all HTML tags and replace with placeholders
+            tags = []
+            def protect_tags(match):
+                tag = match.group(0)
+                placeholder = f"__TAG_{len(tags)}__"
+                tags.append(tag)
+                return placeholder
             
-            # Join lines back
-            translated_html = '\n'.join(translated_lines)
+            # Protect all HTML tags (both opening and closing, including self-closing)
+            protected_content = re_module.sub(r'<[^>]+>', protect_tags, html_content)
             
-            # Add lang attribute - but skip if HTML contains custom button syntax
-            if target_language and target_language != 'en' and '<button:' not in translated_html:
-                try:
-                    final_soup = BeautifulSoup(translated_html, 'html.parser')
-                    if final_soup and hasattr(final_soup, 'attrs'):
-                        final_soup.attrs['lang'] = target_language
-                        translated_html = str(final_soup)
-                except Exception as e:
-                    current_app.logger.warning(f"Failed to add lang attribute: {str(e)}")
+            current_app.logger.warning(f"HTML TRANSLATION - After tag protection: {protected_content[:100]}")
+            current_app.logger.warning(f"HTML TRANSLATION - Extracted {len(tags)} tags")
             
-            return translated_html
+            # Step 2: Translate the content without tags
+            if protected_content.strip():
+                translated_content = self.get_translation(protected_content, target_language, source_language)
+                current_app.logger.warning(f"HTML TRANSLATION - After translation: {translated_content[:100]}")
+            else:
+                translated_content = protected_content
+            
+            # Step 3: Restore the HTML tags
+            for i, tag in enumerate(tags):
+                placeholder = f"__TAG_{i}__"
+                translated_content = translated_content.replace(placeholder, tag)
+            
+            current_app.logger.warning(f"HTML TRANSLATION - After tag restoration: {translated_content[:100]}")
+            
+            return translated_content
             
         except Exception as e:
             current_app.logger.error(f"HTML translation failed: {str(e)}")

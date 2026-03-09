@@ -5,6 +5,7 @@ from flask_babel import get_locale, force_locale
 from flask_login import current_user, login_required
 from yonca.models import HomeContent
 from werkzeug.utils import secure_filename
+from yonca.content_translator import get_translated_page_builder_data
 import os
 from datetime import datetime as dt
 
@@ -107,6 +108,7 @@ def index():
 def course_description_page(course_id):
     from yonca.models import Course, HomeContent, CourseReview
     from flask_login import current_user
+    from yonca.content_translator import get_translated_content, get_translated_json_array
 
     # Find course by id
     course = Course.query.get(course_id)
@@ -114,7 +116,24 @@ def course_description_page(course_id):
         abort(404)
     home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
     reviews = CourseReview.query.filter_by(course_id=course.id).order_by(CourseReview.created_at.desc()).all()
-    return render_template('course_description.html', course=course, home_content=home_content, reviews=reviews, is_authenticated=current_user.is_authenticated, current_user=current_user)
+    
+    # Get translated page builder data for current locale
+    current_locale = str(get_locale())  # Convert Locale object to string
+    page_builder_data_translated = None
+    try:
+        if course.page_builder_data:
+            page_builder_data_translated = get_translated_page_builder_data(course, current_locale)
+    except Exception as e:
+        print(f"[WARNING] Failed to get translated page builder data: {e}")
+    
+    # Get translated title and subtitle
+    translated_title = get_translated_content('course', course.id, 'page_welcome_title', course.page_welcome_title or course.title, current_locale)
+    translated_subtitle = get_translated_content('course', course.id, 'page_subtitle', course.page_subtitle, current_locale)
+    
+    # Get translated page features
+    translated_page_features = get_translated_json_array('course', course.id, 'page_features', course.page_features, current_locale) if course.page_features else None
+    
+    return render_template('course_description.html', course=course, home_content=home_content, reviews=reviews, is_authenticated=current_user.is_authenticated, current_user=current_user, page_builder_data_translated=page_builder_data_translated, translated_title=translated_title, translated_subtitle=translated_subtitle, translated_page_features=translated_page_features)
 
 
 
@@ -1239,6 +1258,23 @@ def course_page_enrolled(course_id):
     except Exception:
         passed_assignment_ids = set()
 
+    # Get translated page builder data for current locale
+    current_locale = str(get_locale())  # Convert Locale object to string
+    page_builder_data_translated = None
+    try:
+        if course.page_builder_data:
+            page_builder_data_translated = get_translated_page_builder_data(course, current_locale)
+    except Exception as e:
+        print(f"[WARNING] Failed to get translated page builder data: {e}")
+    
+    # Get translated title and subtitle
+    from yonca.content_translator import get_translated_content, get_translated_json_array
+    translated_title = get_translated_content('course', course.id, 'page_welcome_title', course.page_welcome_title or course.title, current_locale)
+    translated_subtitle = get_translated_content('course', course.id, 'page_subtitle', course.page_subtitle, current_locale)
+    
+    # Get translated page features
+    translated_page_features = get_translated_json_array('course', course.id, 'page_features', course.page_features, current_locale) if course.page_features else None
+
     return render_template('course_page_enrolled.html',
                           course=course,
                           home_content=home_content,
@@ -1253,6 +1289,10 @@ def course_page_enrolled(course_id):
                           current_user=current_user,
                           is_authenticated=current_user.is_authenticated,
                           passed_assignment_ids=passed_assignment_ids,
+                          page_builder_data_translated=page_builder_data_translated,
+                          translated_title=translated_title,
+                          translated_subtitle=translated_subtitle,
+                          translated_page_features=translated_page_features,
                           datetime=dt)
     if user:
         user.is_teacher = is_teacher

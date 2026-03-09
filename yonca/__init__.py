@@ -168,6 +168,15 @@ def create_app(config_name='development'):
     import re
     from markupsafe import Markup
     
+    # Make page builder rendering function available in all templates
+    @app.context_processor
+    def inject_render_functions():
+        """Make rendering functions available in templates"""
+        from yonca.page_builder_utils import render_page_builder_blocks
+        return {
+            'render_page_builder_blocks': render_page_builder_blocks,
+        }
+    
     @app.template_filter('parse_buttons')
     def parse_buttons(text):
         """Convert <button: [text]> url </button> syntax to HTML buttons"""

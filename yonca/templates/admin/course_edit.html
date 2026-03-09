@@ -99,9 +99,29 @@
 
         <div class="form-group">
             <label for="page_description">Page Description</label>
-            <textarea class="form-control" id="page_description" name="page_description" rows="8"
-                      placeholder="Detailed description of what students will learn in this course. Use double line breaks (press Enter twice) to create separate paragraphs.">{{ course.page_description if course and course.page_description else '' }}</textarea>
-            <small class="form-text text-muted">Press Enter twice between paragraphs. Use HTML for formatting: &lt;strong&gt;bold&lt;/strong&gt;, &lt;em&gt;italic&lt;/em&gt;, &lt;span style="color: red; font-family: Arial; font-size: 1.2em;"&gt;styled text&lt;/span&gt;. Available fonts: Arial, Georgia (default), 'Times New Roman', Verdana, Helvetica. Font sizes: 0.8em (smaller), 1em (normal), 1.2em (larger). <strong>Button syntax:</strong> &lt;button: [Button Text]&gt; https://example.com &lt;/button&gt; creates a clickable button that opens in a new tab.</small>
+            <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                <strong style="color: #1565c0;">✨ No-Code Page Builder</strong>
+                <p style="margin: 10px 0 0 0; color: #555;">Use our drag-and-drop builder to create beautiful course pages with:</p>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li>Plain Text blocks</li>
+                    <li>Hero sections with images</li>
+                    <li>Text + Image layouts</li>
+                    <li>Button blocks</li>
+                    <li>YouTube videos</li>
+                    <li>Adjustable sizes and spacing</li>
+                </ul>
+                {% if course %}
+                <a href="{{ url_for('course.page_builder', course_id=course.id) }}" class="btn btn-primary" target="_blank">
+                    <i class="fa fa-edit"></i> Open Page Builder
+                </a>
+                {% else %}
+                <p style="color: #d32f2f; margin: 10px 0 0 0;">💡 Save the course first, then use the page builder.</p>
+                {% endif %}
+            </div>
+            <p style="color: #666; font-size: 12px;"><strong>Legacy:</strong> You can still use the textarea below for plain text content if needed.</p>
+            <textarea class="form-control" id="page_description" name="page_description" rows="4"
+                      placeholder="(Optional) Plain text content. The page builder will override this."
+                      style="background: #f5f5f5;">{{ course.page_description if course and course.page_description else '' }}</textarea>
         </div>
 
         <h4>Course Features</h4>

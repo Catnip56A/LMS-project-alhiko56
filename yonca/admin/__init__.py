@@ -830,6 +830,84 @@ class CourseView(SecureModelView):
                          menu_items=[],
                          menu_item_count=0)
 
+    @expose('/page_builder/', methods=['GET', 'POST'])
+    def page_builder(self):
+        """Page builder for course descriptions"""
+        print("DEBUG PAGE_BUILDER: Route called")  # ADDED
+        if not current_user.is_authenticated or not current_user.is_admin:
+            return redirect(url_for('auth.login'))
+
+        course_id = request.args.get('course_id') or request.form.get('course_id')
+        print(f"DEBUG PAGE_BUILDER: course_id = {course_id}, request.method = {request.method}")  # ADDED
+        if not course_id:
+            flash('Course ID is required', 'error')
+            return redirect(url_for('admin.index'))
+
+        course = self.get_one(course_id)
+        if not course:
+            flash('Course not found', 'error')
+            return redirect(url_for('admin.index'))
+
+        if request.method == 'POST':
+            # Handle page builder save
+            print("DEBUG PAGE_BUILDER: Handling POST request")  # ADDED
+            try:
+                import json
+                from yonca.content_translator import auto_translate_page_builder
+                page_builder_data = request.form.get('page_builder_data', '[]')
+                print(f"DEBUG PAGE_BUILDER: Received page_builder_data: {page_builder_data[:100]}...")  # Debug log
+                
+                # Validate JSON
+                parsed_data = json.loads(page_builder_data)
+                print(f"DEBUG: Parsed JSON successfully, blocks count: {len(parsed_data)}")  # Debug log
+                print(f"DEBUG: Course ID: {course.id}, Current page_builder_data: {course.page_builder_data}")  # Debug
+                
+                # Update the course
+                course.page_builder_data = parsed_data
+                print(f"DEBUG: Updated course.page_builder_data to: {course.page_builder_data}")  # Debug
+                
+                # Make sure the session recognizes the change
+                db.session.add(course)
+                db.session.commit()
+                print(f"DEBUG: Committed to database")  # Debug log
+                
+                # Verify the save
+                db.session.refresh(course)
+                print(f"DEBUG: Refreshed course, page_builder_data now: {course.page_builder_data}")  # Debug
+                print(f"DEBUG: Type of page_builder_data: {type(course.page_builder_data)}")  # Debug type
+                print(f"DEBUG: Length of page_builder_data: {len(course.page_builder_data) if course.page_builder_data else 0}")  # Debug length
+                
+                # Auto-translate page builder content
+                print("DEBUG: Starting auto-translation for page builder content...")
+                auto_translate_page_builder(course, db.session)
+                db.session.commit()
+                print("DEBUG: Auto-translation complete and committed")
+                
+                flash('Page builder content saved and translated successfully!', 'success')
+                # Redirect back to page builder by refreshing the current page
+                return redirect(f'/admin/course/page_builder/?course_id={course_id}')
+                
+            except json.JSONDecodeError as e:
+                error_msg = f'Invalid JSON: {str(e)}'
+                print(f"DEBUG: JSON Error: {error_msg}")  # Debug log
+                flash(error_msg, 'error')
+                return redirect(f'/admin/course/page_builder/?course_id={course_id}')
+            except Exception as e:
+                import traceback
+                error_msg = f'Error saving page builder: {str(e)}'
+                print(f"DEBUG: Exception: {error_msg}")  # Debug log
+                print(f"DEBUG: Traceback: {traceback.format_exc()}")  # Full traceback
+                flash(error_msg, 'error')
+                return redirect(f'/admin/course/page_builder/?course_id={course_id}')
+
+        # Log what we're passing to the template
+        print(f"DEBUG PAGE_BUILDER: Rendering template with course.page_builder_data = {course.page_builder_data}")  # Debug
+        print(f"DEBUG PAGE_BUILDER: Type: {type(course.page_builder_data)}, Length: {len(course.page_builder_data) if course.page_builder_data else 0}")  # Debug
+        
+        return self.render('admin/page_builder.html',
+                         course=course,
+                         page_builder_data=course.page_builder_data or [])
+
 class ResourceForm(Form):
     """Custom form for resource creation with file upload"""
     title = StringField('Title', [DataRequired()])
