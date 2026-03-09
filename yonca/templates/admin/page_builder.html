@@ -1,0 +1,898 @@
+{% extends 'admin/master.html' %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    .builder-container {
+        display: flex; 
+        gap: 20px;
+        margin: 20px 0;
+    }
+    
+    .builder-sidebar {
+        flex: 0 0 250px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        height: fit-content;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .builder-main {
+        flex: 1;
+        background: white;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 30px;
+        min-height: 600px;
+    }
+    
+    .block-type-btn {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 8px;
+        background: #337a2c;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: grab;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .block-type-btn:hover {
+        background: #2d6824;
+        transform: translateY(-2px);
+    }
+    
+    .block-type-btn:active {
+        cursor: grabbing;
+    }
+    
+    .draggable-block {
+        background: white;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        cursor: grab;
+        transition: all 0.2s;
+        position: relative;
+    }
+    
+    .draggable-block:hover {
+        border-color: #337a2c;
+        box-shadow: 0 2px 8px rgba(51, 122, 44, 0.15);
+    }
+    
+    .draggable-block.dragging {
+        opacity: 0.5;
+        border-color: #337a2c;
+    }
+    
+    .draggable-block.drag-over {
+        border-color: #337a2c;
+        background: #f0f8f0;
+    }
+    
+    .block-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 5px;
+    }
+    
+    .block-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 5px 8px;
+        border-radius: 3px;
+        color: #666;
+        transition: all 0.2s;
+    }
+    
+    .block-btn:hover {
+        background: #e9ecef;
+        color: #000;
+    }
+    
+    .block-btn.delete:hover {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .block-header {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #337a2c;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .block-settings {
+        background: #f8f9fa;
+        padding: 12px;
+        border-radius: 5px;
+        margin-top: 10px;
+        display: none;
+    }
+    
+    .block-settings.show {
+        display: block;
+    }
+    
+    .size-control {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        font-size: 12px;
+    }
+    
+    .size-control label {
+        flex: 1;
+    }
+    
+    .size-control input {
+        width: 60px;
+        padding: 4px;
+        border: 1px solid #dee2e6;
+        border-radius: 3px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        color: #999;
+        padding: 40px 20px;
+    }
+    
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+    
+    .input-group-vertical {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .input-group-vertical label {
+        font-weight: 500;
+        font-size: 12px;
+    }
+    
+    .input-group-vertical input,
+    .input-group-vertical textarea,
+    .input-group-vertical select {
+        padding: 6px;
+        border: 2px solid #dee2e6;
+        border-radius: 3px;
+        font-size: 13px;
+        transition: border-color 0.3s ease;
+    }
+    
+    .input-group-vertical input:focus,
+    .input-group-vertical textarea:focus,
+    .input-group-vertical select:focus {
+        outline: none;
+        border-color: #337a2c;
+        box-shadow: 0 0 0 2px rgba(51, 122, 44, 0.1);
+    }
+    
+    .preview-toggle {
+        float: right;
+        background: #337a2c;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    
+    .preview-mode {
+        border: 2px dashed #17a2b8;
+    }
+    
+    .json-output {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 20px;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+        display: none;
+    }
+    
+    /* Custom button styling for page builder */
+    #builderForm .btn-primary {
+        background: #337a2c;
+        border-color: #337a2c;
+    }
+    
+    #builderForm .btn-primary:hover {
+        background: #1e5919;
+        border-color: #1e5919;
+    }
+    
+    #builderForm .btn-secondary {
+        background: #6c757d;
+        border-color: #6c757d;
+    }
+    
+    #builderForm .btn-secondary:hover {
+        background: #5a6268;
+        border-color: #5a6268;
+    }
+
+        
+        .builder-sidebar {
+            flex: 1;
+            max-height: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    <h2>Page Builder - Course Description</h2>
+    
+    <button class="preview-toggle" onclick="togglePreview()">📱 Preview Mode</button>
+    <button class="preview-toggle" onclick="toggleJSON()" style="background: #6c757d; margin-right: 10px;">{ } Show JSON</button>
+    
+    <div class="builder-container">
+        <!-- Sidebar with block types -->
+        <div class="builder-sidebar">
+            <h5>📦 Add Blocks</h5>
+            <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Drag blocks to the right panel to add them.</p>
+            
+            <button class="block-type-btn" draggable="true" data-block-type="plain-text">
+                <i class="fas fa-paragraph"></i> Plain Text
+            </button>
+            <button class="block-type-btn" draggable="true" data-block-type="hero">
+                <i class="fas fa-image"></i> Hero Section
+            </button>
+            <button class="block-type-btn" draggable="true" data-block-type="text-image">
+                <i class="fas fa-columns"></i> Text + Image
+            </button>
+            <button class="block-type-btn" draggable="true" data-block-type="buttons">
+                <i class="fas fa-mouse"></i> Buttons
+            </button>
+            <button class="block-type-btn" draggable="true" data-block-type="youtube">
+                <i class="fab fa-youtube"></i> YouTube Video
+            </button>
+            <button class="block-type-btn" draggable="true" data-block-type="carousel">
+                <i class="fas fa-images"></i> Carousel
+            </button>
+        </div>
+        
+        <!-- Main canvas -->
+        <div class="builder-main" id="canvas">
+            <div class="empty-state">
+                <i class="fas fa-plus-circle"></i>
+                <p>Drag blocks here to start building</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JSON Preview -->
+    <div class="json-output" id="json-output">
+        <strong>JSON Structure:</strong>
+        <pre id="json-content"></pre>
+    </div>
+    
+    <form method="POST" id="builderForm" style="margin-top: 30px;">
+        <!-- Hidden inputs for form submission - MUST be inside form -->
+        <input type="hidden" id="page_builder_data" name="page_builder_data" value="">
+        <input type="hidden" name="course_id" value="{{ course.id }}">
+        
+        <button type="button" class="btn btn-primary" onclick="console.log('TEST BUTTON CLICKED'); saveJSON(); document.getElementById('builderForm').submit(); return false;">Save Page Layout</button>
+        <a href="/admin/course/" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+<!-- Store initial page builder data in script to avoid HTML attribute escaping issues -->
+<script>
+    const INITIAL_PAGE_BUILDER_DATA = {{ (page_builder_data or []) | tojson }};
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+console.log('DEBUG: Page builder script starting...');
+
+// Display last saved data from localStorage
+const lastSave = localStorage.getItem('lastSaveBlocks');
+if (lastSave) {
+    try {
+        const saveData = JSON.parse(lastSave);
+        console.log('LAST SAVE (from localStorage):', saveData);
+        console.log(`Saved at: ${saveData.timestamp}`);
+        console.log(`Block count: ${saveData.blockCount}`);
+        if (saveData.blocks.length > 0) {
+            saveData.blocks.forEach((block, idx) => {
+                console.log(`Block ${idx}:`, block);
+            });
+        }
+    } catch (e) {
+        console.log('Error parsing lastSaveBlocks:', e);
+    }
+}
+
+// Global click handler to debug button clicks
+document.addEventListener('click', function(e) {
+    console.log('GLOBAL CLICK DETECTED:', e.target.tagName, e.target.className, e.target.id);
+}, true); // Use capture phase
+
+let blockIndex = 0;
+const canvas = document.getElementById('canvas');
+let blocks = [];
+
+// Load existing blocks from JSON
+function loadBlocks() {
+    // Use the JavaScript variable instead of HTML attribute to avoid escaping issues
+    const jsonData = INITIAL_PAGE_BUILDER_DATA;
+    console.log('DEBUG loadBlocks: Loading from INITIAL_PAGE_BUILDER_DATA:', jsonData);
+    try {
+        blocks = Array.isArray(jsonData) ? jsonData : (JSON.parse(jsonData) || []);
+        console.log('DEBUG loadBlocks: Parsed blocks:', blocks);
+        if (blocks.length > 0) {
+            console.log('DEBUG loadBlocks: Found', blocks.length, 'blocks, rendering...');
+            renderBlocks();
+            blockIndex = Math.max(...blocks.map(b => parseInt(b.id.split('-')[1]))) + 1;
+            console.log('DEBUG loadBlocks: Set blockIndex to:', blockIndex);
+        } else {
+            console.log('DEBUG loadBlocks: No blocks found in data');
+        }
+    } catch (e) {
+        console.log('DEBUG loadBlocks: Error parsing JSON:', e);
+        console.log('DEBUG loadBlocks: Error message:', e.message);
+        blocks = [];
+    }
+    
+    // Also populate the hidden input for form submission
+    document.getElementById('page_builder_data').value = JSON.stringify(blocks);
+}
+
+// Create a new block
+function createBlock(type) {
+    const id = `block-${blockIndex++}`;
+    const block = {
+        id: id,
+        type: type,
+        settings: getDefaultSettings(type)
+    };
+    
+    blocks.push(block);
+    renderBlocks();
+    saveJSON();
+}
+
+// Get default settings for block type
+function getDefaultSettings(type) {
+    const defaults = {
+        'plain-text': { text: 'Enter your text here...', padding: '20', width: '100', fontSize: '16', weight: 'normal', textAlign: 'left', color: '#333333', lineHeight: '1.6', italic: false, underline: false },
+        'hero': { title: 'Hero Title', titleFontSize: '48', titleWeight: 'bold', subtitle: 'Your subtitle here', subtitleFontSize: '24', subtitleColor: '#ffffff', image: '', padding: '40', width: '100' },
+        'text-image': { text: 'Enter text here...', image: '', imagePosition: 'right', padding: '20', width: '100' },
+        'buttons': { buttons: [{ text: 'Button 1', url: '#', style: 'primary' }], padding: '20', width: '100', buttonFontSize: '16', buttonFontWeight: 'bold' },
+        'youtube': { videoId: '', width: '100', height: '400' },
+        'carousel': { items: [{ image: '', title: 'Item 1', description: '' }], alignment: 'centered', padding: '20', width: '100', autoplay: false, interval: 3000, itemTitleFontSize: '24', itemTitleWeight: 'bold', itemDescriptionFontSize: '16' }
+    };
+    return defaults[type] || {};
+}
+
+// Render all blocks
+function renderBlocks() {
+    canvas.innerHTML = '';
+    
+    if (blocks.length === 0) {
+        canvas.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-plus-circle"></i>
+                <p>Drag blocks here to start building</p>
+            </div>
+        `;
+        return;
+    }
+    
+    blocks.forEach((block, index) => {
+        const blockEl = createBlockElement(block, index);
+        canvas.appendChild(blockEl);
+    });
+    
+    initializeSortable();
+}
+
+// Create a block element
+function createBlockElement(block, index) {
+    const div = document.createElement('div');
+    div.className = 'draggable-block';
+    div.draggable = true;
+    div.id = block.id;
+    div.innerHTML = `
+        <div class="block-header">
+            ${getBlockIcon(block.type)} ${getBlockLabel(block.type)}
+        </div>
+        <div class="block-controls">
+            <button class="block-btn settings" onclick="toggleSettings('${block.id}')" title="Settings">⚙️</button>
+            <button class="block-btn delete" onclick="deleteBlock('${block.id}')" title="Delete">🗑️</button>
+        </div>
+        ${renderBlockSettings(block)}
+        ${renderBlockPreview(block)}
+    `;
+    
+    // Auto-focus on textarea/input for new blocks (after a short delay to ensure DOM is rendered)
+    setTimeout(() => {
+        const textarea = div.querySelector('textarea');
+        const input = div.querySelector('input[type="text"]');
+        if (textarea) {
+            textarea.focus();
+            textarea.select();
+        } else if (input) {
+            input.focus();
+            input.select();
+        }
+    }, 50);
+    
+    return div;
+}
+
+// Render block settings
+function renderBlockSettings(block) {
+    let html = `<div class="block-settings" id="settings-${block.id}">`;
+    
+    switch(block.type) {
+        case 'plain-text':
+            html += `
+                <div class="input-group-vertical">
+                    <label>Text Content</label>
+                    <textarea onchange="updateBlock('${block.id}', 'text', this.value)" rows="4">${block.settings.text}</textarea>
+                </div>
+                <div class="input-group-vertical">
+                    <label>Font Size (px)</label>
+                    <input type="number" value="${block.settings.fontSize || 16}" onchange="updateBlock('${block.id}', 'fontSize', this.value)" min="10" max="100">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Font Weight</label>
+                    <select onchange="updateBlock('${block.id}', 'weight', this.value)">
+                        <option value="normal" ${block.settings.weight === 'normal' ? 'selected' : ''}>Normal</option>
+                        <option value="600" ${block.settings.weight === '600' ? 'selected' : ''}>Semi Bold</option>
+                        <option value="bold" ${block.settings.weight === 'bold' ? 'selected' : ''}>Bold (700)</option>
+                        <option value="800" ${block.settings.weight === '800' ? 'selected' : ''}>Extra Bold (800)</option>
+                    </select>
+                </div>
+                <div class="input-group-vertical">
+                    <label>Text Alignment</label>
+                    <select onchange="updateBlock('${block.id}', 'textAlign', this.value)">
+                        <option value="left" ${block.settings.textAlign === 'left' || !block.settings.textAlign ? 'selected' : ''}>Left</option>
+                        <option value="center" ${block.settings.textAlign === 'center' ? 'selected' : ''}>Center</option>
+                        <option value="right" ${block.settings.textAlign === 'right' ? 'selected' : ''}>Right</option>
+                        <option value="justify" ${block.settings.textAlign === 'justify' ? 'selected' : ''}>Justify</option>
+                    </select>
+                </div>
+                <div class="input-group-vertical">
+                    <label>Font Color</label>
+                    <input type="color" value="${block.settings.color || '#333333'}" onchange="updateBlock('${block.id}', 'color', this.value)">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Line Height (1-3)</label>
+                    <input type="number" value="${block.settings.lineHeight || 1.6}" onchange="updateBlock('${block.id}', 'lineHeight', this.value)" min="1" max="3" step="0.1">
+                </div>
+                <div class="input-group-vertical">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" ${block.settings.italic ? 'checked' : ''} onchange="updateBlock('${block.id}', 'italic', this.checked)">
+                        Italic
+                    </label>
+                </div>
+                <div class="input-group-vertical">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" ${block.settings.underline ? 'checked' : ''} onchange="updateBlock('${block.id}', 'underline', this.checked)">
+                        Underline
+                    </label>
+                </div>
+            `;
+            break;
+        case 'hero':
+            html += `
+                <div class="input-group-vertical">
+                    <label>Title</label>
+                    <input type="text" value="${block.settings.title}" onchange="updateBlock('${block.id}', 'title', this.value)">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Title Font Size (px)</label>
+                    <input type="number" value="${block.settings.titleFontSize || 48}" onchange="updateBlock('${block.id}', 'titleFontSize', this.value)" min="20" max="100">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Title Font Weight</label>
+                    <select onchange="updateBlock('${block.id}', 'titleWeight', this.value)">
+                        <option value="bold" ${block.settings.titleWeight === 'bold' || !block.settings.titleWeight ? 'selected' : ''}>Bold</option>
+                        <option value="800" ${block.settings.titleWeight === '800' ? 'selected' : ''}>Extra Bold (800)</option>
+                        <option value="normal" ${block.settings.titleWeight === 'normal' ? 'selected' : ''}>Normal</option>
+                    </select>
+                </div>
+                <div class="input-group-vertical">
+                    <label>Subtitle</label>
+                    <input type="text" value="${block.settings.subtitle}" onchange="updateBlock('${block.id}', 'subtitle', this.value)">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Subtitle Font Size (px)</label>
+                    <input type="number" value="${block.settings.subtitleFontSize || 24}" onchange="updateBlock('${block.id}', 'subtitleFontSize', this.value)" min="12" max="60">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Subtitle Color</label>
+                    <input type="color" value="${block.settings.subtitleColor || '#ffffff'}" onchange="updateBlock('${block.id}', 'subtitleColor', this.value)">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Image URL</label>
+                    <input type="text" value="${block.settings.image}" onchange="updateBlock('${block.id}', 'image', this.value)" placeholder="https://...">
+                </div>
+            `;
+            break;
+        case 'text-image':
+            html += `
+                <div class="input-group-vertical">
+                    <label>Text Content</label>
+                    <textarea onchange="updateBlock('${block.id}', 'text', this.value)" rows="3">${block.settings.text}</textarea>
+                </div>
+                <div class="input-group-vertical">
+                    <label>Image URL</label>
+                    <input type="text" value="${block.settings.image}" onchange="updateBlock('${block.id}', 'image', this.value)" placeholder="https://...">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Image Position</label>
+                    <select onchange="updateBlock('${block.id}', 'imagePosition', this.value)">
+                        <option value="left" ${block.settings.imagePosition === 'left' ? 'selected' : ''}>Left</option>
+                        <option value="right" ${block.settings.imagePosition === 'right' ? 'selected' : ''}>Right</option>
+                    </select>
+                </div>
+            `;
+            break;
+        case 'buttons':
+            html += `
+                <div class="input-group-vertical">
+                    <label>Button Font Size (px)</label>
+                    <input type="number" value="${block.settings.buttonFontSize || 16}" onchange="updateBlock('${block.id}', 'buttonFontSize', this.value)" min="10" max="40">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Button Font Weight</label>
+                    <select onchange="updateBlock('${block.id}', 'buttonFontWeight', this.value)">
+                        <option value="bold" ${block.settings.buttonFontWeight === 'bold' || !block.settings.buttonFontWeight ? 'selected' : ''}>Bold</option>
+                        <option value="600" ${block.settings.buttonFontWeight === '600' ? 'selected' : ''}>Semi Bold</option>
+                        <option value="normal" ${block.settings.buttonFontWeight === 'normal' ? 'selected' : ''}>Normal</option>
+                    </select>
+                </div>
+                <div class="input-group-vertical">
+                    <label>Buttons (JSON format)</label>
+                    <textarea onchange="updateBlock('${block.id}', 'buttons', JSON.parse(this.value))" rows="3">${JSON.stringify(block.settings.buttons, null, 2)}</textarea>
+                    <small>Format: [{"text": "Label", "url": "https://...", "style": "primary"}]</small>
+                </div>
+            `;
+            break;
+        case 'youtube':
+            html += `
+                <div class="input-group-vertical">
+                    <label>YouTube Video ID</label>
+                    <input type="text" value="${block.settings.videoId}" onchange="updateBlock('${block.id}', 'videoId', this.value)" placeholder="e.g., dQw4w9WgXcQ">
+                    <small>Find the ID in the URL: youtube.com/watch?v=<strong>dQw4w9WgXcQ</strong></small>
+                </div>
+                <div class="input-group-vertical">
+                    <label>Height (px)</label>
+                    <input type="number" value="${block.settings.height}" onchange="updateBlock('${block.id}', 'height', this.value)">
+                </div>
+            `;
+            break;
+        case 'carousel':
+            const carouselItems = block.settings.items || [{ image: '', title: '', description: '' }];
+            html += `
+                <div class="input-group-vertical">
+                    <label>Layout</label>
+                    <select onchange="updateBlock('${block.id}', 'alignment', this.value)">
+                        <option value="centered" ${block.settings.alignment === 'centered' ? 'selected' : ''}>Centered (Single Item)</option>
+                        <option value="left" ${block.settings.alignment === 'left' ? 'selected' : ''}>Left (Dual Layout)</option>
+                        <option value="right" ${block.settings.alignment === 'right' ? 'selected' : ''}>Right (Dual Layout)</option>
+                    </select>
+                </div>
+                <div class="input-group-vertical">
+                    <label><input type="checkbox" ${block.settings.autoplay ? 'checked' : ''} onchange="updateBlock('${block.id}', 'autoplay', this.checked)"> Autoplay</label>
+                </div>
+                <div class="input-group-vertical">
+                    <label>Interval (ms)</label>
+                    <input type="number" value="${block.settings.interval || 3000}" onchange="updateBlock('${block.id}', 'interval', parseInt(this.value))">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Item Title Font Size (px)</label>
+                    <input type="number" value="${block.settings.itemTitleFontSize || 24}" onchange="updateBlock('${block.id}', 'itemTitleFontSize', this.value)" min="12" max="60">
+                </div>
+                <div class="input-group-vertical">
+                    <label>Item Title Font Weight</label>
+                    <select onchange="updateBlock('${block.id}', 'itemTitleWeight', this.value)">
+                        <option value="bold" ${block.settings.itemTitleWeight === 'bold' || !block.settings.itemTitleWeight ? 'selected' : ''}>Bold</option>
+                        <option value="600" ${block.settings.itemTitleWeight === '600' ? 'selected' : ''}>Semi Bold</option>
+                        <option value="normal" ${block.settings.itemTitleWeight === 'normal' ? 'selected' : ''}>Normal</option>
+                    </select>
+                </div>
+                <div class="input-group-vertical">
+                    <label>Item Description Font Size (px)</label>
+                    <input type="number" value="${block.settings.itemDescriptionFontSize || 16}" onchange="updateBlock('${block.id}', 'itemDescriptionFontSize', this.value)" min="10" max="40">
+                </div>
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 10px;">Carousel Items:</label>
+                    ${carouselItems.map((item, idx) => `
+                        <div style="background: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                            <p style="margin: 0 0 5px 0; font-size: 12px; color: #666; font-weight: bold;">Item ${idx + 1}</p>
+                            <input type="text" placeholder="Image URL" value="${item.image || ''}" onchange="updateCarouselItem('${block.id}', ${idx}, 'image', this.value)" style="width: 100%; margin-bottom: 5px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
+                            <input type="text" placeholder="Title" value="${item.title || ''}" onchange="updateCarouselItem('${block.id}', ${idx}, 'title', this.value)" style="width: 100%; margin-bottom: 5px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
+                            <textarea placeholder="Description" onchange="updateCarouselItem('${block.id}', ${idx}, 'description', this.value)" style="width: 100%; height: 60px; margin-bottom: 5px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">${item.description || ''}</textarea>
+                            <button type="button" class="btn btn-sm" onclick="deleteCarouselItem('${block.id}', ${idx})" style="background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer;">Remove</button>
+                        </div>
+                    `).join('')}
+                    <button type="button" class="btn btn-sm" onclick="addCarouselItem('${block.id}')" style="background: #28a745; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; width: 100%; font-weight: bold;">+ Add Item</button>
+                </div>
+            `;
+            break;
+    }
+    
+    // Size controls for all blocks
+    if (block.type !== 'youtube') {
+        html += `
+            <div class="size-control">
+                <label>Padding: <input type="number" value="${block.settings.padding}" onchange="updateBlock('${block.id}', 'padding', this.value)">px</label>
+            </div>
+            <div class="size-control">
+                <label>Width: <input type="number" value="${block.settings.width}" max="100" onchange="updateBlock('${block.id}', 'width', this.value)">%</label>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+// Render block preview
+function renderBlockPreview(block) {
+    let preview = '<div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 12px;">';
+    
+    switch(block.type) {
+        case 'plain-text':
+            preview += `<p style="margin: 0;">${block.settings.text.substring(0, 50)}...</p>`;
+            break;
+        case 'hero':
+            preview += `<strong>${block.settings.title}</strong><br><small>${block.settings.subtitle}</small>`;
+            break;
+        case 'text-image':
+            preview += `📝 Text + 🖼️ Image (${block.settings.imagePosition})`;
+            break;
+        case 'buttons':
+            preview += `🔘 ${block.settings.buttons.length} button(s)`;
+            break;
+        case 'youtube':
+            preview += `▶️ YouTube Video (${block.settings.height}px height)`;
+            break;
+        case 'carousel':
+            const itemCount = block.settings.items ? block.settings.items.length : 0;
+            preview += `🎠 Carousel (${itemCount} items, ${block.settings.alignment})`;
+            break;
+    }
+    
+    preview += '</div>';
+    return preview;
+}
+
+// Get block icon
+function getBlockIcon(type) {
+    const icons = {
+        'plain-text': '📝',
+        'hero': '🎨',
+        'text-image': '📄',
+        'buttons': '🔘',
+        'youtube': '▶️',
+        'carousel': '🎠'
+    };
+    return icons[type] || '📦';
+}
+
+// Get block label
+function getBlockLabel(type) {
+    const labels = {
+        'plain-text': 'Plain Text',
+        'hero': 'Hero Section',
+        'text-image': 'Text + Image',
+        'buttons': 'Buttons',
+        'youtube': 'YouTube Video',
+        'carousel': 'Carousel'
+    };
+    return labels[type] || type;
+}
+
+// Toggle settings panel
+function toggleSettings(blockId) {
+    const settingsPanel = document.getElementById(`settings-${blockId}`);
+    settingsPanel.classList.toggle('show');
+}
+
+// Update block data
+function updateBlock(blockId, field, value) {
+    const block = blocks.find(b => b.id === blockId);
+    if (block) {
+        block.settings[field] = value;
+        renderBlocks();
+        saveJSON();
+    }
+}
+
+// Delete block
+function deleteBlock(blockId) {
+    blocks = blocks.filter(b => b.id !== blockId);
+    renderBlocks();
+    saveJSON();
+}
+
+// Add carousel item
+function addCarouselItem(blockId) {
+    const block = blocks.find(b => b.id === blockId);
+    if (block && block.type === 'carousel') {
+        if (!block.settings.items) {
+            block.settings.items = [];
+        }
+        block.settings.items.push({ image: '', title: '', description: '' });
+        renderBlocks();
+        saveJSON();
+    }
+}
+
+// Update carousel item
+function updateCarouselItem(blockId, itemIndex, field, value) {
+    const block = blocks.find(b => b.id === blockId);
+    if (block && block.type === 'carousel' && block.settings.items[itemIndex]) {
+        block.settings.items[itemIndex][field] = value;
+        renderBlocks();
+        saveJSON();
+    }
+}
+
+// Delete carousel item
+function deleteCarouselItem(blockId, itemIndex) {
+    const block = blocks.find(b => b.id === blockId);
+    if (block && block.type === 'carousel') {
+        block.settings.items.splice(itemIndex, 1);
+        if (block.settings.items.length === 0) {
+            block.settings.items.push({ image: '', title: '', description: '' });
+        }
+        renderBlocks();
+        saveJSON();
+    }
+}
+
+// Initialize sortable
+function initializeSortable() {
+    Sortable.create(canvas, {
+        animation: 150,
+        ghostClass: 'drag-over',
+        onEnd: function() {
+            // Update block order
+            const blockElements = canvas.querySelectorAll('.draggable-block');
+            blocks = Array.from(blockElements).map(el => 
+                blocks.find(b => b.id === el.id)
+            ).filter(b => b);
+            saveJSON();
+        }
+    });
+}
+
+// Save JSON to hidden input
+function saveJSON() {
+    const jsonData = JSON.stringify(blocks);
+    console.log('SAVE: Serializing blocks:', blocks);
+    console.log('SAVE: JSON string:', jsonData);
+    console.log('SAVE: Number of blocks:', blocks.length);
+    
+    // Store in localStorage so we can see it after reload
+    localStorage.setItem('lastSaveBlocks', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        blockCount: blocks.length,
+        blocks: blocks
+    }));
+    
+    document.getElementById('page_builder_data').value = jsonData;
+    console.log('SAVE: Set input value to:', document.getElementById('page_builder_data').value);
+    updateJSONPreview();
+}
+
+// Update JSON preview
+function updateJSONPreview() {
+    document.getElementById('json-content').textContent = JSON.stringify(blocks, null, 2);
+}
+
+// Toggle JSON preview
+function toggleJSON() {
+    const output = document.getElementById('json-output');
+    output.style.display = output.style.display === 'none' ? 'block' : 'none';
+}
+
+// Toggle preview mode
+function togglePreview() {
+    const canvas = document.getElementById('canvas');
+    canvas.classList.toggle('preview-mode');
+}
+
+// Handle drag from sidebar
+document.querySelectorAll('.block-type-btn').forEach(btn => {
+    // Handle drag
+    btn.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'copy';
+        e.dataTransfer.setData('blockType', btn.dataset.blockType);
+    });
+    
+    // Handle click - create block immediately when clicked
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        createBlock(btn.dataset.blockType);
+        // Auto-open settings for the newly created block
+        setTimeout(() => {
+            const lastBlock = blocks[blocks.length - 1];
+            if (lastBlock) {
+                document.querySelector(`#settings-${lastBlock.id}`)?.style.display === 'none' && 
+                toggleSettings(lastBlock.id);
+            }
+        }, 100);
+    });
+});
+
+// Handle drop on canvas
+canvas.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+});
+
+canvas.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const blockType = e.dataTransfer.getData('blockType');
+    if (blockType) {
+        createBlock(blockType);
+    }
+});
+
+// Initialize on page load
+loadBlocks();
+
+// Save form submission
+try {
+    const form = document.getElementById('builderForm');
+    console.log('DEBUG: Form element found:', form !== null);
+    
+    if (!form) {
+        console.error('ERROR: builderForm element not found!');
+    } else {
+        form.addEventListener('submit', (e) => {
+            console.log('DEBUG: Form submit event triggered');
+            e.preventDefault();
+            // Update hidden input with current blocks BEFORE submitting
+            saveJSON();
+            
+            // Debug: Log what we're about to send
+            const pageBuilderData = document.getElementById('page_builder_data').value;
+            const courseId = document.querySelector('input[name="course_id"]').value;
+            console.log('DEBUG: About to submit form');
+            console.log('Course ID:', courseId);
+            console.log('Page Builder Data:', pageBuilderData);
+            console.log('Data length:', pageBuilderData.length);
+            
+            // Now submit the form
+            form.submit();
+        });
+    }
+} catch(err) {
+    console.error('Error attaching form handler:', err);
+}
+</script>
+{% endblock %}
