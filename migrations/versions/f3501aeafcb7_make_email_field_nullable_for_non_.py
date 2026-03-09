@@ -1,7 +1,7 @@
 """Make email field nullable for non-Google users
 
 Revision ID: f3501aeafcb7
-Revises: 2b9425c43d10
+Revises: e1130138e6e5
 Create Date: 2026-01-21 12:19:38.348731
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'f3501aeafcb7'
-down_revision = '2b9425c43d10'
+down_revision = 'e1130138e6e5'
 branch_labels = None
 depends_on = None
 
