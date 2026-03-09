@@ -1,7 +1,7 @@
 """Add login rate limiting fields to User
 
 Revision ID: 03a1b3c908b2
-Revises: 88e571a01ac0
+Revises: 975d518e8069
 Create Date: 2026-01-31 14:13:48.276545
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '03a1b3c908b2'
-down_revision = 'd4f3b2c9f0a1'
+down_revision = '975d518e8069'
 branch_labels = None
 depends_on = None
 
