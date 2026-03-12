@@ -3,13 +3,12 @@
 # This file is distributed under the same license as the PROJECT project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-05 17:42+0400\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"POT-Creation-Date: 2026-03-12 12:28+0400\n"
+"PO-Revision-Date: 2026-03-12 12:31+0400\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: az <LL@li.org>\n"
 "Language: az\n"
@@ -377,9 +376,9 @@ msgstr "Faylı saxlamaq alınmadı: %(error)s"
 
 #: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1024
 #: yonca/templates/admin/about_company.html:258
-#: yonca/templates/course_page_enrolled.html:774
-#: yonca/templates/course_page_enrolled.html:1412
-#: yonca/templates/course_page_enrolled.html:1444
+#: yonca/templates/course_page_enrolled.html:786
+#: yonca/templates/course_page_enrolled.html:1424
+#: yonca/templates/course_page_enrolled.html:1456
 msgid "Upload File"
 msgstr "Fayl Yüklə"
 
@@ -862,153 +861,153 @@ msgstr "Etibarlı onluq dəyər deyil."
 msgid "Not a valid float value."
 msgstr "Etibarlı float dəyəri deyil."
 
-#: yonca/templates/course_description.html:242
-#: yonca/templates/course_page_enrolled.html:681
+#: yonca/templates/course_description.html:253
+#: yonca/templates/course_page_enrolled.html:693
 msgid "Course Features"
 msgstr "Kursun Xüsusiyyətləri"
 
 #: yonca/templates/components/navbar.html:24
-#: yonca/templates/course_description.html:247
-#: yonca/templates/course_page_enrolled.html:686
-#: yonca/templates/index.html:2079 yonca/templates/index.html:2132
+#: yonca/templates/course_description.html:258
+#: yonca/templates/course_page_enrolled.html:698
+#: yonca/templates/index.html:2088 yonca/templates/index.html:2141
 msgid "Forum"
 msgstr "Forum"
 
-#: yonca/templates/course_description.html:248
-#: yonca/templates/course_page_enrolled.html:687
+#: yonca/templates/course_description.html:259
+#: yonca/templates/course_page_enrolled.html:699
 msgid "Connect with fellow learners and get help from instructors."
 msgstr "Tələbə yoldaşları ilə əlaqə qurun və təlimatçılardan kömək alın."
 
-#: yonca/templates/course_description.html:249
-#: yonca/templates/course_page_enrolled.html:688
+#: yonca/templates/course_description.html:260
+#: yonca/templates/course_page_enrolled.html:700
 msgid "Access Forum"
 msgstr "Foruma daxil olun"
 
 #: yonca/templates/components/navbar.html:27
-#: yonca/templates/course_description.html:255
-#: yonca/templates/course_page_enrolled.html:694
-#: yonca/templates/index.html:2080 yonca/templates/index.html:2133
-#: yonca/templates/index.html:2411
+#: yonca/templates/course_description.html:266
+#: yonca/templates/course_page_enrolled.html:706
+#: yonca/templates/index.html:2089 yonca/templates/index.html:2142
+#: yonca/templates/index.html:2420
 msgid "Resources"
 msgstr "Resurslar"
 
-#: yonca/templates/course_description.html:256
-#: yonca/templates/course_page_enrolled.html:695
+#: yonca/templates/course_description.html:267
+#: yonca/templates/course_page_enrolled.html:707
 msgid "Access course materials, documents, and additional resources."
 msgstr "Kurs materiallarına, sənədlərə və əlavə resurslara daxil olun."
 
-#: yonca/templates/course_description.html:257
-#: yonca/templates/course_page_enrolled.html:696
+#: yonca/templates/course_description.html:268
+#: yonca/templates/course_page_enrolled.html:708
 msgid "Access Resources"
 msgstr "Resurslara giriş"
 
-#: yonca/templates/course_description.html:263
-#: yonca/templates/course_page_enrolled.html:364
-#: yonca/templates/course_page_enrolled.html:702
+#: yonca/templates/course_description.html:274
+#: yonca/templates/course_page_enrolled.html:366
+#: yonca/templates/course_page_enrolled.html:714
 msgid "Reviews"
 msgstr "Rəylər"
 
-#: yonca/templates/course_description.html:264
-#: yonca/templates/course_page_enrolled.html:703
+#: yonca/templates/course_description.html:275
+#: yonca/templates/course_page_enrolled.html:715
 msgid "Read reviews from other students and share your experience."
 msgstr "Digər tələbələrin rəylərini oxuyun və təcrübənizi paylaşın."
 
-#: yonca/templates/course_description.html:265
-#: yonca/templates/course_page_enrolled.html:704
+#: yonca/templates/course_description.html:276
+#: yonca/templates/course_page_enrolled.html:716
 msgid "View Reviews"
 msgstr "Rəylərə Baxın"
 
-#: yonca/templates/course_description.html:275
-#: yonca/templates/course_page_enrolled.html:714
-#: yonca/templates/course_page_enrolled.html:1242
+#: yonca/templates/course_description.html:286
+#: yonca/templates/course_page_enrolled.html:726
+#: yonca/templates/course_page_enrolled.html:1254
 msgid "Student Reviews"
 msgstr "Tələbə rəyləri"
 
-#: yonca/templates/course_description.html:276
-#: yonca/templates/course_page_enrolled.html:715
+#: yonca/templates/course_description.html:287
+#: yonca/templates/course_page_enrolled.html:727
 msgid "review"
 msgid_plural "reviews"
 msgstr[0] "nəzərdən keçirin"
 msgstr[1] "nəzərdən keçirin"
 
-#: yonca/templates/course_description.html:276
+#: yonca/templates/course_description.html:287
 msgid "reviews"
 msgstr "rəylər"
 
-#: yonca/templates/course_description.html:293
-#: yonca/templates/course_page_enrolled.html:732
+#: yonca/templates/course_description.html:304
+#: yonca/templates/course_page_enrolled.html:744
 msgid "Average Rating"
 msgstr "Orta Reytinq"
 
-#: yonca/templates/course_description.html:310
+#: yonca/templates/course_description.html:321
 msgid "By"
 msgstr "By"
 
-#: yonca/templates/course_description.html:324
-#: yonca/templates/course_page_enrolled.html:903
-#: yonca/templates/course_page_enrolled.html:1093
-#: yonca/templates/index.html:3470
+#: yonca/templates/course_description.html:335
+#: yonca/templates/course_page_enrolled.html:915
+#: yonca/templates/course_page_enrolled.html:1105
+#: yonca/templates/index.html:3613
 msgid "Login to Enroll"
 msgstr "Qeydiyyatdan keçmək üçün daxil olun"
 
-#: yonca/templates/course_description.html:326
+#: yonca/templates/course_description.html:337
 msgid "You are not enrolled in this course."
 msgstr "Siz bu kursa yazılmısınız."
 
 #: yonca/templates/course_editor.html:460
-#: yonca/templates/course_page_enrolled.html:1057
+#: yonca/templates/course_page_enrolled.html:1069
 msgid "Passed"
 msgstr "keçdi"
 
-#: yonca/templates/course_page_enrolled.html:342
+#: yonca/templates/course_page_enrolled.html:344
 msgid "Teacher/Admin Mode:"
 msgstr "Müəllim/Admin Rejimi:"
 
-#: yonca/templates/course_page_enrolled.html:342
+#: yonca/templates/course_page_enrolled.html:344
 msgid "You have editing privileges for this course."
 msgstr "Bu kurs üçün redaktə imtiyazlarınız var."
 
-#: yonca/templates/course_page_enrolled.html:347
+#: yonca/templates/course_page_enrolled.html:349
 msgid "Back to Courses"
 msgstr "Kurslara qayıt"
 
-#: yonca/templates/course_page_enrolled.html:352
+#: yonca/templates/course_page_enrolled.html:354
 msgid "Content"
 msgstr "Məzmun"
 
-#: yonca/templates/course_page_enrolled.html:355
-#: yonca/templates/course_page_enrolled.html:1391
-#: yonca/templates/course_page_enrolled.html:1430
-#: yonca/templates/course_page_enrolled.html:1527
+#: yonca/templates/course_page_enrolled.html:357
+#: yonca/templates/course_page_enrolled.html:1403
+#: yonca/templates/course_page_enrolled.html:1442
+#: yonca/templates/course_page_enrolled.html:1539
 msgid "Description"
 msgstr "Təsvir"
 
-#: yonca/templates/course_page_enrolled.html:358
-#: yonca/templates/course_page_enrolled.html:912
+#: yonca/templates/course_page_enrolled.html:360
+#: yonca/templates/course_page_enrolled.html:924
 msgid "Assignments"
 msgstr "Tapşırıqlar"
 
-#: yonca/templates/course_page_enrolled.html:361
-#: yonca/templates/course_page_enrolled.html:1138
+#: yonca/templates/course_page_enrolled.html:363
+#: yonca/templates/course_page_enrolled.html:1150
 msgid "Announcements"
 msgstr "Elanlar"
 
-#: yonca/templates/course_page_enrolled.html:375
+#: yonca/templates/course_page_enrolled.html:377
 msgid "Locked"
 msgstr "Bağlanıb"
 
-#: yonca/templates/course_page_enrolled.html:379
-#: yonca/templates/course_page_enrolled.html:1686
+#: yonca/templates/course_page_enrolled.html:381
+#: yonca/templates/course_page_enrolled.html:1698
 msgid "Edit Folder"
 msgstr "Qovluğu redaktə edin"
 
-#: yonca/templates/course_page_enrolled.html:382
-#: yonca/templates/course_page_enrolled.html:1654
-#: yonca/templates/course_page_enrolled.html:1674
+#: yonca/templates/course_page_enrolled.html:384
+#: yonca/templates/course_page_enrolled.html:1666
+#: yonca/templates/course_page_enrolled.html:1686
 msgid "Move Folder"
 msgstr "Qovluğu köçürün"
 
-#: yonca/templates/course_page_enrolled.html:384
+#: yonca/templates/course_page_enrolled.html:386
 msgid ""
 "Are you sure you want to delete this folder and ALL its contents? This "
 "cannot be undone."
@@ -1016,7 +1015,7 @@ msgstr ""
 "Bu qovluğu və onun bütün məzmununu silmək istədiyinizə əminsiniz? Bu geri "
 "qaytarıla bilməz."
 
-#: yonca/templates/course_page_enrolled.html:384
+#: yonca/templates/course_page_enrolled.html:386
 msgid ""
 "Are you sure you want to delete this folder? This will only work if the "
 "folder is empty."
@@ -1024,116 +1023,116 @@ msgstr ""
 "Bu qovluğu silmək istədiyinizə əminsiniz? Bu, yalnız qovluq boş olduqda "
 "işləyəcək."
 
-#: yonca/templates/course_page_enrolled.html:388
+#: yonca/templates/course_page_enrolled.html:390
 msgid "Delete with contents"
 msgstr "Məzmunu ilə silin"
 
-#: yonca/templates/course_page_enrolled.html:390
+#: yonca/templates/course_page_enrolled.html:392
 msgid "Delete Folder"
 msgstr "Qovluğu silin"
 
-#: yonca/templates/course_page_enrolled.html:399
+#: yonca/templates/course_page_enrolled.html:401
 msgid "This folder is locked until you complete the required assignment."
 msgstr "Siz tələb olunan tapşırığı tamamlayana qədər bu qovluq kilidlənir."
 
-#: yonca/templates/course_page_enrolled.html:440
 #: yonca/templates/course_page_enrolled.html:442
-#: yonca/templates/course_page_enrolled.html:861
-#: yonca/templates/course_page_enrolled.html:863
+#: yonca/templates/course_page_enrolled.html:444
+#: yonca/templates/course_page_enrolled.html:873
+#: yonca/templates/course_page_enrolled.html:875
 msgid "View File"
 msgstr "Fayla Baxın"
 
-#: yonca/templates/course_page_enrolled.html:446
-#: yonca/templates/course_page_enrolled.html:867
-#: yonca/templates/course_page_enrolled.html:1718
+#: yonca/templates/course_page_enrolled.html:448
+#: yonca/templates/course_page_enrolled.html:879
+#: yonca/templates/course_page_enrolled.html:1730
 msgid "Edit File"
 msgstr "Faylı redaktə et"
 
-#: yonca/templates/course_page_enrolled.html:449
-#: yonca/templates/course_page_enrolled.html:870
-#: yonca/templates/course_page_enrolled.html:1622
+#: yonca/templates/course_page_enrolled.html:451
+#: yonca/templates/course_page_enrolled.html:882
+#: yonca/templates/course_page_enrolled.html:1634
 msgid "Move File"
 msgstr "Faylı köçürün"
 
-#: yonca/templates/course_page_enrolled.html:456
+#: yonca/templates/course_page_enrolled.html:458
 msgid "Visible"
 msgstr "Görünən"
 
-#: yonca/templates/course_page_enrolled.html:456
+#: yonca/templates/course_page_enrolled.html:458
 msgid "Private"
 msgstr "Şəxsi"
 
-#: yonca/templates/course_page_enrolled.html:459
-#: yonca/templates/course_page_enrolled.html:880
+#: yonca/templates/course_page_enrolled.html:461
+#: yonca/templates/course_page_enrolled.html:892
 msgid "Are you sure you want to delete this file?"
 msgstr "Bu faylı silmək istədiyinizə əminsiniz?"
 
-#: yonca/templates/course_page_enrolled.html:462
-#: yonca/templates/course_page_enrolled.html:883
-#: yonca/templates/course_page_enrolled.html:1269
-#: yonca/templates/course_page_enrolled.html:2003
-#: yonca/templates/index.html:3717 yonca/templates/index.html:3740
-#: yonca/templates/index.html:3828
+#: yonca/templates/course_page_enrolled.html:464
+#: yonca/templates/course_page_enrolled.html:895
+#: yonca/templates/course_page_enrolled.html:1281
+#: yonca/templates/course_page_enrolled.html:2015
+#: yonca/templates/index.html:3860 yonca/templates/index.html:3883
+#: yonca/templates/index.html:3971
 msgid "Delete"
 msgstr "Sil"
 
-#: yonca/templates/course_page_enrolled.html:767
+#: yonca/templates/course_page_enrolled.html:779
 msgid "Course Content"
 msgstr "Kursun məzmunu"
 
-#: yonca/templates/course_page_enrolled.html:771
-#: yonca/templates/course_page_enrolled.html:1377
-#: yonca/templates/course_page_enrolled.html:1397
+#: yonca/templates/course_page_enrolled.html:783
+#: yonca/templates/course_page_enrolled.html:1389
+#: yonca/templates/course_page_enrolled.html:1409
 msgid "Create Folder"
 msgstr "Qovluq yaradın"
 
-#: yonca/templates/course_page_enrolled.html:777
+#: yonca/templates/course_page_enrolled.html:789
 msgid "Import from Drive"
 msgstr "Diskdən idxal edin"
 
-#: yonca/templates/course_page_enrolled.html:780
-#: yonca/templates/course_page_enrolled.html:1560
-#: yonca/templates/course_page_enrolled.html:1610
+#: yonca/templates/course_page_enrolled.html:792
+#: yonca/templates/course_page_enrolled.html:1572
+#: yonca/templates/course_page_enrolled.html:1622
 msgid "Import Assignment"
 msgstr "İdxal Təyinatı"
 
-#: yonca/templates/course_page_enrolled.html:792
+#: yonca/templates/course_page_enrolled.html:804
 msgid "Delete Selected"
 msgstr "Seçilmişi Sil"
 
-#: yonca/templates/course_page_enrolled.html:795
+#: yonca/templates/course_page_enrolled.html:807
 msgid "Move Selected"
 msgstr "Seçilmişi köçürün"
 
-#: yonca/templates/course_page_enrolled.html:798
+#: yonca/templates/course_page_enrolled.html:810
 msgid "Toggle Visibility"
 msgstr "Görünüşü dəyişin"
 
-#: yonca/templates/course_page_enrolled.html:801
+#: yonca/templates/course_page_enrolled.html:813
 msgid "Clear"
 msgstr "Təmiz"
 
-#: yonca/templates/course_page_enrolled.html:809
+#: yonca/templates/course_page_enrolled.html:821
 msgid "Unsorted"
 msgstr "Çeşidlənməmiş"
 
-#: yonca/templates/course_page_enrolled.html:816
+#: yonca/templates/course_page_enrolled.html:828
 msgid "Move to Folder"
 msgstr "Qovluğa köçürün"
 
-#: yonca/templates/course_page_enrolled.html:844
+#: yonca/templates/course_page_enrolled.html:856
 msgid "Unsorted Files"
 msgstr "Çeşidlənməmiş fayllar"
 
-#: yonca/templates/course_page_enrolled.html:859
+#: yonca/templates/course_page_enrolled.html:871
 msgid "View Assignment"
 msgstr "Tapşırığa baxın"
 
-#: yonca/templates/course_page_enrolled.html:900
+#: yonca/templates/course_page_enrolled.html:912
 msgid "Enroll to Access Course Content"
 msgstr "Kurs məzmununa daxil olmaq üçün qeydiyyatdan keçin"
 
-#: yonca/templates/course_page_enrolled.html:901
+#: yonca/templates/course_page_enrolled.html:913
 msgid ""
 "You need to be enrolled in this course to view the content, materials, and "
 "participate in activities."
@@ -1141,76 +1140,76 @@ msgstr ""
 "Məzmun, materiallara baxmaq və fəaliyyətlərdə iştirak etmək üçün bu kursa "
 "yazılmalısınız."
 
-#: yonca/templates/course_page_enrolled.html:915
-#: yonca/templates/course_page_enrolled.html:1516
-#: yonca/templates/course_page_enrolled.html:1545
+#: yonca/templates/course_page_enrolled.html:927
+#: yonca/templates/course_page_enrolled.html:1528
+#: yonca/templates/course_page_enrolled.html:1557
 msgid "Create Assignment"
 msgstr "Tapşırıq yaradın"
 
-#: yonca/templates/course_page_enrolled.html:930
+#: yonca/templates/course_page_enrolled.html:942
 msgid "Due:"
 msgstr "Müddəti:"
 
-#: yonca/templates/course_page_enrolled.html:930
+#: yonca/templates/course_page_enrolled.html:942
 msgid "Due: N/A"
 msgstr "İki: Yoxdur"
 
-#: yonca/templates/course_page_enrolled.html:931
+#: yonca/templates/course_page_enrolled.html:943
 msgid "pts"
 msgstr "xal"
 
-#: yonca/templates/course_page_enrolled.html:941
-#: yonca/templates/course_page_enrolled.html:984
-#: yonca/templates/course_page_enrolled.html:1036
+#: yonca/templates/course_page_enrolled.html:953
+#: yonca/templates/course_page_enrolled.html:996
+#: yonca/templates/course_page_enrolled.html:1048
 msgid "Late"
 msgstr "gec"
 
-#: yonca/templates/course_page_enrolled.html:943
-#: yonca/templates/course_page_enrolled.html:986
+#: yonca/templates/course_page_enrolled.html:955
+#: yonca/templates/course_page_enrolled.html:998
 msgid "Submitted"
 msgstr "Təqdim edildi"
 
-#: yonca/templates/course_page_enrolled.html:946
-#: yonca/templates/course_page_enrolled.html:990
-#: yonca/templates/course_page_enrolled.html:1066
+#: yonca/templates/course_page_enrolled.html:958
+#: yonca/templates/course_page_enrolled.html:1002
+#: yonca/templates/course_page_enrolled.html:1078
 msgid "Grade:"
 msgstr "Dərəcə:"
 
-#: yonca/templates/course_page_enrolled.html:950
-#: yonca/templates/course_page_enrolled.html:998
+#: yonca/templates/course_page_enrolled.html:962
+#: yonca/templates/course_page_enrolled.html:1010
 msgid "Overdue"
 msgstr "Vaxtı keçmiş"
 
-#: yonca/templates/course_page_enrolled.html:952
-#: yonca/templates/course_page_enrolled.html:1000
+#: yonca/templates/course_page_enrolled.html:964
+#: yonca/templates/course_page_enrolled.html:1012
 msgid "Not submitted"
 msgstr "Təqdim olunmayıb"
 
-#: yonca/templates/course_page_enrolled.html:957
+#: yonca/templates/course_page_enrolled.html:969
 msgid "submissions"
 msgstr "təqdimatlar"
 
-#: yonca/templates/course_page_enrolled.html:963
+#: yonca/templates/course_page_enrolled.html:975
 msgid "Published"
 msgstr "Nəşr edilmişdir"
 
-#: yonca/templates/course_page_enrolled.html:988
+#: yonca/templates/course_page_enrolled.html:1000
 msgid "View Your Submission"
 msgstr "Təqdimatınıza Baxın"
 
-#: yonca/templates/course_page_enrolled.html:993
+#: yonca/templates/course_page_enrolled.html:1005
 msgid "Feedback:"
 msgstr "Əlaqə:"
 
-#: yonca/templates/course_page_enrolled.html:1006
+#: yonca/templates/course_page_enrolled.html:1018
 msgid "Upload Your Work:"
 msgstr "İşinizi Yükləyin:"
 
-#: yonca/templates/course_page_enrolled.html:1009
+#: yonca/templates/course_page_enrolled.html:1021
 msgid "Submit Assignment"
 msgstr "Tapşırığı təqdim edin"
 
-#: yonca/templates/course_page_enrolled.html:1015
+#: yonca/templates/course_page_enrolled.html:1027
 msgid ""
 "Are you sure you want to delete this assignment? This will also delete all "
 "submissions."
@@ -1218,90 +1217,90 @@ msgstr ""
 "Bu tapşırığı silmək istədiyinizə əminsiniz? Bu, həmçinin bütün təqdimatları "
 "siləcək."
 
-#: yonca/templates/course_page_enrolled.html:1018
+#: yonca/templates/course_page_enrolled.html:1030
 msgid "Delete Assignment"
 msgstr "Tapşırığı silin"
 
-#: yonca/templates/course_page_enrolled.html:1023
+#: yonca/templates/course_page_enrolled.html:1035
 msgid "View Submissions"
 msgstr "Təqdimatlara baxın"
 
-#: yonca/templates/course_page_enrolled.html:1032
+#: yonca/templates/course_page_enrolled.html:1044
 msgid "On Time"
 msgstr "Vaxtında"
 
-#: yonca/templates/course_page_enrolled.html:1039
+#: yonca/templates/course_page_enrolled.html:1051
 msgid "Early"
 msgstr "Erkən"
 
-#: yonca/templates/course_page_enrolled.html:1044
+#: yonca/templates/course_page_enrolled.html:1056
 msgid "Submitted:"
 msgstr "Təqdim edildi:"
 
-#: yonca/templates/course_page_enrolled.html:1045
+#: yonca/templates/course_page_enrolled.html:1057
 msgid "View Submission"
-msgstr "Təqdimata baxın"
+msgstr "Təqdimata Baxın"
 
-#: yonca/templates/course_page_enrolled.html:1051
+#: yonca/templates/course_page_enrolled.html:1063
 msgid "Grade"
 msgstr "Dərəcə"
 
-#: yonca/templates/course_page_enrolled.html:1054
+#: yonca/templates/course_page_enrolled.html:1066
 msgid "Comment"
 msgstr "Şərh"
 
-#: yonca/templates/course_page_enrolled.html:1061
+#: yonca/templates/course_page_enrolled.html:1073
 msgid "Save Grade"
 msgstr "Qiyməti yadda saxla"
 
-#: yonca/templates/course_page_enrolled.html:1069
+#: yonca/templates/course_page_enrolled.html:1081
 msgid "Comment:"
 msgstr "Şərh:"
 
-#: yonca/templates/course_page_enrolled.html:1075
+#: yonca/templates/course_page_enrolled.html:1087
 msgid "No submissions yet."
 msgstr "Hələ təqdimat yoxdur."
 
-#: yonca/templates/course_page_enrolled.html:1085
+#: yonca/templates/course_page_enrolled.html:1097
 msgid "No assignments available."
 msgstr "Heç bir tapşırıq yoxdur."
 
-#: yonca/templates/course_page_enrolled.html:1090
+#: yonca/templates/course_page_enrolled.html:1102
 msgid "Enroll to Access Assignments"
 msgstr "Giriş tapşırıqlarına qeydiyyatdan keçin"
 
-#: yonca/templates/course_page_enrolled.html:1091
+#: yonca/templates/course_page_enrolled.html:1103
 msgid "You need to be enrolled in this course to view and submit assignments."
 msgstr ""
 "Tapşırıqlara baxmaq və təqdim etmək üçün bu kursda qeydiyyatdan "
 "keçməlisiniz."
 
-#: yonca/templates/course_page_enrolled.html:1107
-#: yonca/templates/course_page_enrolled.html:1163
+#: yonca/templates/course_page_enrolled.html:1119
+#: yonca/templates/course_page_enrolled.html:1175
 msgid "Reply"
 msgstr "Cavab verin"
 
-#: yonca/templates/course_page_enrolled.html:1117
-#: yonca/templates/course_page_enrolled.html:1172
+#: yonca/templates/course_page_enrolled.html:1129
+#: yonca/templates/course_page_enrolled.html:1184
 msgid "Write a reply..."
 msgstr "Cavab yazın..."
 
-#: yonca/templates/course_page_enrolled.html:1119
-#: yonca/templates/course_page_enrolled.html:1174
+#: yonca/templates/course_page_enrolled.html:1131
+#: yonca/templates/course_page_enrolled.html:1186
 msgid "Post Reply"
 msgstr "Cavab Göndər"
 
-#: yonca/templates/course_page_enrolled.html:1141
-#: yonca/templates/course_page_enrolled.html:1341
-#: yonca/templates/course_page_enrolled.html:1362
+#: yonca/templates/course_page_enrolled.html:1153
+#: yonca/templates/course_page_enrolled.html:1353
+#: yonca/templates/course_page_enrolled.html:1374
 msgid "Add Announcement"
 msgstr "Elan əlavə edin"
 
-#: yonca/templates/course_page_enrolled.html:1151
+#: yonca/templates/course_page_enrolled.html:1163
 msgid "Posted:"
 msgstr "Göndərilən:"
 
-#: yonca/templates/course_page_enrolled.html:1154
+#: yonca/templates/course_page_enrolled.html:1166
 msgid ""
 "Are you sure you want to delete this announcement? This will also delete all"
 " replies."
@@ -1309,264 +1308,264 @@ msgstr ""
 "Bu elanı silmək istədiyinizə əminsiniz? Bu, həmçinin bütün cavabları "
 "siləcək."
 
-#: yonca/templates/course_page_enrolled.html:1157
+#: yonca/templates/course_page_enrolled.html:1169
 msgid "Delete Announcement"
 msgstr "Elanı silin"
 
-#: yonca/templates/course_page_enrolled.html:1191
+#: yonca/templates/course_page_enrolled.html:1203
 msgid "No announcements yet."
 msgstr "Hələ heç bir elan yoxdur."
 
-#: yonca/templates/course_page_enrolled.html:1198
+#: yonca/templates/course_page_enrolled.html:1210
 msgid "Course Reviews"
 msgstr "Kurs rəyləri"
 
-#: yonca/templates/course_page_enrolled.html:1204
+#: yonca/templates/course_page_enrolled.html:1216
 msgid "Write Your Review"
 msgstr "Rəyinizi Yazın"
 
-#: yonca/templates/course_page_enrolled.html:1211
-#: yonca/templates/course_page_enrolled.html:1294
+#: yonca/templates/course_page_enrolled.html:1223
+#: yonca/templates/course_page_enrolled.html:1306
 msgid "Rating"
 msgstr "Reytinq"
 
-#: yonca/templates/course_page_enrolled.html:1220
+#: yonca/templates/course_page_enrolled.html:1232
 msgid "Click on a star to rate (1-5)"
 msgstr "Qiymətləndirmək üçün ulduza klikləyin (1-5)"
 
-#: yonca/templates/course_page_enrolled.html:1224
-#: yonca/templates/course_page_enrolled.html:1305
+#: yonca/templates/course_page_enrolled.html:1236
+#: yonca/templates/course_page_enrolled.html:1317
 msgid "Review Title"
 msgstr "Baxış Başlığı"
 
-#: yonca/templates/course_page_enrolled.html:1225
+#: yonca/templates/course_page_enrolled.html:1237
 msgid "Summarize your experience"
 msgstr "Təcrübənizi ümumiləşdirin"
 
-#: yonca/templates/course_page_enrolled.html:1229
-#: yonca/templates/course_page_enrolled.html:1309
+#: yonca/templates/course_page_enrolled.html:1241
+#: yonca/templates/course_page_enrolled.html:1321
 msgid "Your Review"
 msgstr "Rəyiniz"
 
-#: yonca/templates/course_page_enrolled.html:1230
+#: yonca/templates/course_page_enrolled.html:1242
 msgid "Share your thoughts about this course..."
 msgstr "Bu kurs haqqında fikirlərinizi bölüşün..."
 
-#: yonca/templates/course_page_enrolled.html:1234
+#: yonca/templates/course_page_enrolled.html:1246
 msgid "Submit Review"
 msgstr "Rəy göndərin"
 
-#: yonca/templates/course_page_enrolled.html:1263
+#: yonca/templates/course_page_enrolled.html:1275
 msgid "Edit"
 msgstr "Redaktə et"
 
-#: yonca/templates/course_page_enrolled.html:1265
+#: yonca/templates/course_page_enrolled.html:1277
 msgid "Are you sure you want to delete this review?"
 msgstr "Bu rəyi silmək istədiyinizə əminsiniz?"
 
-#: yonca/templates/course_page_enrolled.html:1287
+#: yonca/templates/course_page_enrolled.html:1299
 msgid "Edit Review"
 msgstr "Rəyi redaktə et"
 
-#: yonca/templates/course_page_enrolled.html:1315
+#: yonca/templates/course_page_enrolled.html:1327
 msgid "Update Review"
 msgstr "Yeniləmə Baxışı"
 
-#: yonca/templates/course_page_enrolled.html:1326
+#: yonca/templates/course_page_enrolled.html:1338
 msgid "No reviews yet. Be the first to review this course!"
-msgstr "Hələ rəy yoxdur. Bu kursu ilk nəzərdən keçirən siz olun!"
+msgstr "Hələ rəy yoxdur. Bu kursu nəzərdən keçirən ilk siz olun!"
 
-#: yonca/templates/course_page_enrolled.html:1348
-#: yonca/templates/course_page_enrolled.html:1426
-#: yonca/templates/course_page_enrolled.html:1523
+#: yonca/templates/course_page_enrolled.html:1360
+#: yonca/templates/course_page_enrolled.html:1438
+#: yonca/templates/course_page_enrolled.html:1535
 msgid "Title"
 msgstr "Başlıq"
 
-#: yonca/templates/course_page_enrolled.html:1352
+#: yonca/templates/course_page_enrolled.html:1364
 msgid "Message"
 msgstr "Mesaj"
 
-#: yonca/templates/course_page_enrolled.html:1357
-#: yonca/templates/course_page_enrolled.html:1435
-#: yonca/templates/course_page_enrolled.html:1493
-#: yonca/templates/course_page_enrolled.html:1540
-#: yonca/templates/course_page_enrolled.html:1605
+#: yonca/templates/course_page_enrolled.html:1369
+#: yonca/templates/course_page_enrolled.html:1447
+#: yonca/templates/course_page_enrolled.html:1505
+#: yonca/templates/course_page_enrolled.html:1552
+#: yonca/templates/course_page_enrolled.html:1617
 msgid "Publish immediately"
 msgstr "Dərhal dərc edin"
 
-#: yonca/templates/course_page_enrolled.html:1361
-#: yonca/templates/course_page_enrolled.html:1396
-#: yonca/templates/course_page_enrolled.html:1443
-#: yonca/templates/course_page_enrolled.html:1501
-#: yonca/templates/course_page_enrolled.html:1544
-#: yonca/templates/course_page_enrolled.html:1609
-#: yonca/templates/course_page_enrolled.html:1641
-#: yonca/templates/course_page_enrolled.html:1673
-#: yonca/templates/course_page_enrolled.html:1705
-#: yonca/templates/course_page_enrolled.html:1737
+#: yonca/templates/course_page_enrolled.html:1373
+#: yonca/templates/course_page_enrolled.html:1408
+#: yonca/templates/course_page_enrolled.html:1455
+#: yonca/templates/course_page_enrolled.html:1513
+#: yonca/templates/course_page_enrolled.html:1556
+#: yonca/templates/course_page_enrolled.html:1621
+#: yonca/templates/course_page_enrolled.html:1653
+#: yonca/templates/course_page_enrolled.html:1685
+#: yonca/templates/course_page_enrolled.html:1717
+#: yonca/templates/course_page_enrolled.html:1749
 msgid "Cancel"
 msgstr "Ləğv et"
 
-#: yonca/templates/course_page_enrolled.html:1384
+#: yonca/templates/course_page_enrolled.html:1396
 msgid "Parent:"
 msgstr "Valideyn:"
 
-#: yonca/templates/course_page_enrolled.html:1384
-#: yonca/templates/course_page_enrolled.html:1419
-#: yonca/templates/course_page_enrolled.html:1466
-#: yonca/templates/course_page_enrolled.html:1567
-#: yonca/templates/course_page_enrolled.html:1633
-#: yonca/templates/course_page_enrolled.html:1665
+#: yonca/templates/course_page_enrolled.html:1396
+#: yonca/templates/course_page_enrolled.html:1431
+#: yonca/templates/course_page_enrolled.html:1478
+#: yonca/templates/course_page_enrolled.html:1579
+#: yonca/templates/course_page_enrolled.html:1645
+#: yonca/templates/course_page_enrolled.html:1677
 msgid "Root"
 msgstr "Kök"
 
-#: yonca/templates/course_page_enrolled.html:1387
-#: yonca/templates/course_page_enrolled.html:1696
+#: yonca/templates/course_page_enrolled.html:1399
+#: yonca/templates/course_page_enrolled.html:1708
 msgid "Folder Name"
 msgstr "Qovluq Adı"
 
-#: yonca/templates/course_page_enrolled.html:1419
+#: yonca/templates/course_page_enrolled.html:1431
 msgid "Upload to:"
 msgstr "Yüklə:"
 
-#: yonca/templates/course_page_enrolled.html:1422
+#: yonca/templates/course_page_enrolled.html:1434
 msgid "File"
 msgstr "Fayl"
 
-#: yonca/templates/course_page_enrolled.html:1439
+#: yonca/templates/course_page_enrolled.html:1451
 msgid "Allow students to view this file"
 msgstr "Tələbələrə bu fayla baxmağa icazə verin"
 
-#: yonca/templates/course_page_enrolled.html:1459
+#: yonca/templates/course_page_enrolled.html:1471
 msgid "Import from Google Drive"
 msgstr "Google Diskdən idxal edin"
 
-#: yonca/templates/course_page_enrolled.html:1466
-#: yonca/templates/course_page_enrolled.html:1567
+#: yonca/templates/course_page_enrolled.html:1478
+#: yonca/templates/course_page_enrolled.html:1579
 msgid "Import to:"
 msgstr "İdxal edin:"
 
-#: yonca/templates/course_page_enrolled.html:1469
+#: yonca/templates/course_page_enrolled.html:1481
 msgid "Import Type"
 msgstr "İdxal növü"
 
-#: yonca/templates/course_page_enrolled.html:1472
+#: yonca/templates/course_page_enrolled.html:1484
 msgid "Single File"
 msgstr "Tək Fayl"
 
-#: yonca/templates/course_page_enrolled.html:1476
+#: yonca/templates/course_page_enrolled.html:1488
 msgid "Entire Folder (includes all subfolders and files)"
 msgstr "Bütün Qovluq (bütün alt qovluqlar və fayllar daxildir)"
 
-#: yonca/templates/course_page_enrolled.html:1480
+#: yonca/templates/course_page_enrolled.html:1492
 msgid "Google Drive URL or File/Folder ID"
 msgstr "Google Disk URL və ya Fayl/Qovluq ID"
 
-#: yonca/templates/course_page_enrolled.html:1483
+#: yonca/templates/course_page_enrolled.html:1495
 msgid "Paste the sharing link from Google Drive or just the file/folder ID"
 msgstr ""
 "Google Diskdən paylaşma linkini və ya sadəcə fayl/qovluq ID-sini yapışdırın"
 
-#: yonca/templates/course_page_enrolled.html:1484
+#: yonca/templates/course_page_enrolled.html:1496
 msgid "Check linked Google account"
 msgstr "Əlaqədar Google hesabını yoxlayın"
 
-#: yonca/templates/course_page_enrolled.html:1488
+#: yonca/templates/course_page_enrolled.html:1500
 msgid "Title (Optional)"
 msgstr "Başlıq (İstəyə görə)"
 
-#: yonca/templates/course_page_enrolled.html:1489
+#: yonca/templates/course_page_enrolled.html:1501
 msgid "Leave empty to use original filename"
 msgstr "Orijinal fayl adından istifadə etmək üçün boş buraxın"
 
-#: yonca/templates/course_page_enrolled.html:1497
+#: yonca/templates/course_page_enrolled.html:1509
 msgid "Allow students to view"
 msgstr "Tələbələrə baxmağa icazə verin"
 
-#: yonca/templates/course_page_enrolled.html:1502
+#: yonca/templates/course_page_enrolled.html:1514
 msgid "Import"
 msgstr "İdxal"
 
-#: yonca/templates/course_page_enrolled.html:1531
+#: yonca/templates/course_page_enrolled.html:1543
 msgid "Due Date"
 msgstr "İki Tarix"
 
-#: yonca/templates/course_page_enrolled.html:1535
+#: yonca/templates/course_page_enrolled.html:1547
 msgid "Points"
 msgstr "Xallar"
 
-#: yonca/templates/course_page_enrolled.html:1570
+#: yonca/templates/course_page_enrolled.html:1582
 msgid "Select Assignment"
 msgstr "Tapşırığı seçin"
 
-#: yonca/templates/course_page_enrolled.html:1577
+#: yonca/templates/course_page_enrolled.html:1589
 msgid "No assignments available"
 msgstr "Heç bir tapşırıq yoxdur"
 
-#: yonca/templates/course_page_enrolled.html:1582
+#: yonca/templates/course_page_enrolled.html:1594
 msgid "Lock other folders until completed (optional)"
 msgstr "Tamamlanana qədər digər qovluqları kilidləyin (isteğe bağlı)"
 
-#: yonca/templates/course_page_enrolled.html:1584
+#: yonca/templates/course_page_enrolled.html:1596
 msgid "None"
 msgstr "Heç biri"
 
-#: yonca/templates/course_page_enrolled.html:1593
+#: yonca/templates/course_page_enrolled.html:1605
 msgid "Or choose specific folders to lock (optional)"
 msgstr "Və ya kilidləmək üçün xüsusi qovluqları seçin (isteğe bağlı)"
 
-#: yonca/templates/course_page_enrolled.html:1601
+#: yonca/templates/course_page_enrolled.html:1613
 msgid "Hold Ctrl (or Cmd) to select multiple folders."
 msgstr ""
 "Birdən çox qovluq seçmək üçün Ctrl (və ya Cmd) düyməsini basıb saxlayın."
 
-#: yonca/templates/course_page_enrolled.html:1631
+#: yonca/templates/course_page_enrolled.html:1643
 msgid "Select Destination Folder"
 msgstr "Təyinat Qovluğunu seçin"
 
-#: yonca/templates/course_page_enrolled.html:1642
+#: yonca/templates/course_page_enrolled.html:1654
 msgid "Move"
 msgstr "Hərəkət edin"
 
-#: yonca/templates/course_page_enrolled.html:1663
+#: yonca/templates/course_page_enrolled.html:1675
 msgid "Select New Parent Folder"
 msgstr "Yeni Ana Qovluğu seçin"
 
-#: yonca/templates/course_page_enrolled.html:1700
+#: yonca/templates/course_page_enrolled.html:1712
 msgid "Folder Description"
 msgstr "Qovluq Təsviri"
 
 #: yonca/templates/admin/about_company.html:239
-#: yonca/templates/course_page_enrolled.html:1706
-#: yonca/templates/course_page_enrolled.html:1738
+#: yonca/templates/course_page_enrolled.html:1718
+#: yonca/templates/course_page_enrolled.html:1750
 msgid "Save Changes"
 msgstr "Dəyişiklikləri Saxla"
 
-#: yonca/templates/course_page_enrolled.html:1728
+#: yonca/templates/course_page_enrolled.html:1740
 msgid "File Name"
 msgstr "Fayl adı"
 
-#: yonca/templates/course_page_enrolled.html:1732
+#: yonca/templates/course_page_enrolled.html:1744
 msgid "File Description"
 msgstr "Fayl təsviri"
 
-#: yonca/templates/course_page_enrolled.html:1858
+#: yonca/templates/course_page_enrolled.html:1870
 msgid "Move File:"
 msgstr "Faylı köçürün:"
 
-#: yonca/templates/course_page_enrolled.html:1869
+#: yonca/templates/course_page_enrolled.html:1881
 msgid "Move Folder:"
 msgstr "Qovluğu köçürün:"
 
-#: yonca/templates/course_page_enrolled.html:1883
+#: yonca/templates/course_page_enrolled.html:1895
 msgid "Edit Folder:"
 msgstr "Qovluğu redaktə edin:"
 
-#: yonca/templates/course_page_enrolled.html:1897
+#: yonca/templates/course_page_enrolled.html:1909
 msgid "Edit File:"
 msgstr "Faylı redaktə edin:"
 
-#: yonca/templates/course_page_enrolled.html:2003
+#: yonca/templates/course_page_enrolled.html:2015
 msgid "selected items? This action cannot be undone."
 msgstr "seçilmiş maddələr? Bu əməliyyat geri qaytarıla bilməz."
 
@@ -1574,56 +1573,56 @@ msgstr "seçilmiş maddələr? Bu əməliyyat geri qaytarıla bilməz."
 msgid "Yonca - Learning Platform"
 msgstr "Yonca - Öyrənmə Platforması"
 
-#: yonca/templates/components/navbar.html:18 yonca/templates/index.html:2077
-#: yonca/templates/index.html:2130
+#: yonca/templates/components/navbar.html:18 yonca/templates/index.html:2086
+#: yonca/templates/index.html:2139
 msgid "Home"
 msgstr "Ev"
 
-#: yonca/templates/components/navbar.html:21 yonca/templates/index.html:2078
-#: yonca/templates/index.html:2131 yonca/templates/index.html:2313
+#: yonca/templates/components/navbar.html:21 yonca/templates/index.html:2087
+#: yonca/templates/index.html:2140 yonca/templates/index.html:2322
 msgid "Courses"
 msgstr "Kurslar"
 
-#: yonca/templates/components/navbar.html:30 yonca/templates/index.html:2081
-#: yonca/templates/index.html:2134 yonca/templates/index.html:2490
+#: yonca/templates/components/navbar.html:30 yonca/templates/index.html:2090
+#: yonca/templates/index.html:2143 yonca/templates/index.html:2499
 msgid "TAVI Test"
 msgstr "TAVI Testi"
 
 #: yonca/templates/admin/about_company.html:151
-#: yonca/templates/index.html:2082 yonca/templates/index.html:2135
+#: yonca/templates/index.html:2091 yonca/templates/index.html:2144
 msgid "About Company"
 msgstr "Şirkət haqqında"
 
-#: yonca/templates/components/navbar.html:59 yonca/templates/index.html:2094
-#: yonca/templates/index.html:2142 yonca/templates/login.html:250
+#: yonca/templates/components/navbar.html:59 yonca/templates/index.html:2103
+#: yonca/templates/index.html:2151 yonca/templates/login.html:250
 msgid "Login"
 msgstr "Daxil ol"
 
-#: yonca/templates/index.html:2102 yonca/templates/index.html:2145
+#: yonca/templates/index.html:2111 yonca/templates/index.html:2154
 msgid "Welcome"
 msgstr "Xoş gəldiniz"
 
-#: yonca/templates/index.html:2103 yonca/templates/index.html:2146
+#: yonca/templates/index.html:2112 yonca/templates/index.html:2155
 msgid "Admin"
 msgstr "Admin"
 
-#: yonca/templates/components/navbar.html:52 yonca/templates/index.html:2104
-#: yonca/templates/index.html:2147
+#: yonca/templates/components/navbar.html:52 yonca/templates/index.html:2113
+#: yonca/templates/index.html:2156
 msgid "Link Google Account"
 msgstr "Google Hesabını əlaqələndirin"
 
-#: yonca/templates/components/navbar.html:54 yonca/templates/index.html:2105
-#: yonca/templates/index.html:2148
+#: yonca/templates/components/navbar.html:54 yonca/templates/index.html:2114
+#: yonca/templates/index.html:2157
 msgid "Logout"
 msgstr "Çıxın"
 
 #: yonca/templates/admin/about_company.html:211
-#: yonca/templates/index.html:2158 yonca/templates/index.html:2676
+#: yonca/templates/index.html:2167 yonca/templates/index.html:2685
 msgid "What's New"
 msgstr "Yeniliklər"
 
 #: yonca/templates/admin/about_company.html:217
-#: yonca/templates/index.html:2159 yonca/templates/index.html:2677
+#: yonca/templates/index.html:2168 yonca/templates/index.html:2686
 msgid ""
 "Discover the latest updates, new features, and exciting developments in our "
 "learning platform."
@@ -1631,7 +1630,7 @@ msgstr ""
 "Öyrənmə platformamızda ən son yeniləmələri, yeni funksiyaları və maraqlı "
 "inkişafları kəşf edin."
 
-#: yonca/templates/index.html:2198
+#: yonca/templates/index.html:2207
 msgid ""
 "If video shows 'still being processed,' please wait 5-60 minutes for Google "
 "Drive to finish processing, then refresh the page."
@@ -1639,154 +1638,154 @@ msgstr ""
 "Video \"hələ emal olunur\" görünürsə, lütfən, Google Diskin işlənməsini "
 "tamamlaması üçün 5-60 dəqiqə gözləyin, sonra səhifəni yeniləyin."
 
-#: yonca/templates/index.html:2222
+#: yonca/templates/index.html:2231
 msgid "Learning Community"
 msgstr "Öyrənmə İcması"
 
-#: yonca/templates/index.html:2223
+#: yonca/templates/index.html:2232
 msgid "Our vibrant learning community"
 msgstr "Canlı öyrənmə icmamız"
 
-#: yonca/templates/index.html:2226 yonca/templates/index.html:2258
+#: yonca/templates/index.html:2235 yonca/templates/index.html:2267
 msgid "Interactive Courses"
 msgstr "İnteraktiv kurslar"
 
-#: yonca/templates/index.html:2227
+#: yonca/templates/index.html:2236
 msgid "Engage with interactive course content"
 msgstr "İnteraktiv kurs məzmunu ilə məşğul olun"
 
-#: yonca/templates/index.html:2230 yonca/templates/index.html:2262
+#: yonca/templates/index.html:2239 yonca/templates/index.html:2271
 msgid "Study Groups"
 msgstr "Tədris Qrupları"
 
-#: yonca/templates/index.html:2231
+#: yonca/templates/index.html:2240
 msgid "Collaborate in study groups"
 msgstr "Tədris qruplarında əməkdaşlıq edin"
 
 #: yonca/templates/admin/about_company.html:177
-#: yonca/templates/index.html:2242
+#: yonca/templates/index.html:2251
 msgid "Our Features"
 msgstr "Xüsusiyyətlərimiz"
 
 #: yonca/templates/admin/about_company.html:183
-#: yonca/templates/index.html:2243
+#: yonca/templates/index.html:2252
 msgid "Discover what makes our platform special."
 msgstr "Platformamızı nəyin xüsusi etdiyini kəşf edin."
 
-#: yonca/templates/index.html:2259
+#: yonca/templates/index.html:2268
 msgid "Engage with dynamic course content and interactive learning materials."
 msgstr ""
 "Dinamik kurs məzmunu və interaktiv təlim materialları ilə məşğul olun."
 
-#: yonca/templates/index.html:2263
+#: yonca/templates/index.html:2272
 msgid "Collaborate with fellow learners in our vibrant study communities."
-msgstr "Canlı təhsil icmalarımızda həmkarlarımızla əməkdaşlıq edin."
+msgstr "Canlı təhsil icmalarımızda tələbə yoldaşları ilə əməkdaşlıq edin."
 
-#: yonca/templates/index.html:2266
+#: yonca/templates/index.html:2275
 msgid "Expert Support"
 msgstr "Ekspert Dəstəyi"
 
-#: yonca/templates/index.html:2267
+#: yonca/templates/index.html:2276
 msgid "Get help from our team of educational experts and specialists."
-msgstr "Təhsil üzrə ekspertlər və mütəxəssislər komandamızdan kömək alın."
+msgstr "Təhsil ekspertləri və mütəxəssislər komandamızdan kömək alın."
 
-#: yonca/templates/index.html:2279 yonca/templates/index.html:2973
+#: yonca/templates/index.html:2288
 msgid "Professional Education and Training"
 msgstr "Peşəkar Təhsil və Təlim"
 
-#: yonca/templates/index.html:2280 yonca/templates/index.html:2974
+#: yonca/templates/index.html:2289 yonca/templates/index.html:2983
 msgid ""
 "Evidence-based training for psychologists, therapists, educators, and tutors"
 msgstr ""
 "Psixoloqlar, terapevtlər, pedaqoqlar və repetitorlar üçün sübuta əsaslanan "
 "təlim"
 
-#: yonca/templates/index.html:2282
+#: yonca/templates/index.html:2291
 msgid "View All Courses"
 msgstr "Bütün Kurslara Baxın"
 
-#: yonca/templates/index.html:2283 yonca/templates/index.html:2668
+#: yonca/templates/index.html:2292 yonca/templates/index.html:2677
 msgid "Contact Us"
 msgstr "Bizimlə əlaqə saxlayın"
 
-#: yonca/templates/index.html:2304
+#: yonca/templates/index.html:2313
 msgid "Featured Courses"
 msgstr "Seçilmiş Kurslar"
 
-#: yonca/templates/index.html:2306 yonca/templates/index.html:2341
+#: yonca/templates/index.html:2315 yonca/templates/index.html:2350
 msgid "Loading courses... (Try switching pages in case of delays)"
 msgstr ""
 "Kurslar yüklənir... (Gecikmələr zamanı səhifələri dəyişdirməyə cəhd edin)"
 
-#: yonca/templates/index.html:2314
+#: yonca/templates/index.html:2323
 msgid "Explore our available courses and start your learning journey."
 msgstr "Mövcud kurslarımızı araşdırın və öyrənmə səyahətinizə başlayın."
 
-#: yonca/templates/index.html:2318
+#: yonca/templates/index.html:2327
 msgid "Filter Courses"
 msgstr "Kursları süzün"
 
-#: yonca/templates/index.html:2321 yonca/templates/index.html:2430
-#: yonca/templates/index.html:2457
+#: yonca/templates/index.html:2330 yonca/templates/index.html:2439
+#: yonca/templates/index.html:2466
 msgid "Tags:"
 msgstr "Teqlər:"
 
-#: yonca/templates/index.html:2331
+#: yonca/templates/index.html:2340
 msgid "My Enrolled Courses"
 msgstr "Qeydiyyatdan Keçdiyim Kurslar"
 
-#: yonca/templates/index.html:2333
+#: yonca/templates/index.html:2342
 msgid "Loading enrolled courses... (Try switching pages in case of delays)"
 msgstr ""
-"Qeydiyyatdan keçmiş kurslar yüklənir... (Gecikmələr zamanı səhifələri "
-"dəyişdirməyə cəhd edin)"
+"Qeydiyyatdan keçmiş kurslar yüklənir... (Gecikmə halında səhifələri "
+"dəyişməyə cəhd edin)"
 
-#: yonca/templates/index.html:2339 yonca/templates/index.html:3214
-#: yonca/templates/index.html:3253
+#: yonca/templates/index.html:2348 yonca/templates/index.html:3357
+#: yonca/templates/index.html:3396
 msgid "Available Courses"
 msgstr "Mövcud Kurslar"
 
-#: yonca/templates/index.html:2348
+#: yonca/templates/index.html:2357
 msgid "Community Forum"
 msgstr "İcma Forumu"
 
-#: yonca/templates/index.html:2352
+#: yonca/templates/index.html:2361
 msgid "Authentication Required"
 msgstr "Doğrulama Tələb olunur"
 
-#: yonca/templates/index.html:2353
+#: yonca/templates/index.html:2362
 msgid "Please log in to participate in the community forum."
 msgstr "İcma forumunda iştirak etmək üçün daxil olun."
 
-#: yonca/templates/index.html:2354
+#: yonca/templates/index.html:2363
 msgid "You can still view messages without logging in."
 msgstr "Siz hələ də daxil olmadan mesajlara baxa bilərsiniz."
 
-#: yonca/templates/index.html:2366
+#: yonca/templates/index.html:2375
 msgid "Translation Settings"
 msgstr "Tərcümə Parametrləri"
 
-#: yonca/templates/index.html:2369
+#: yonca/templates/index.html:2378
 msgid "Language:"
 msgstr "Dil:"
 
-#: yonca/templates/index.html:2371
+#: yonca/templates/index.html:2380
 msgid "Don't translate"
 msgstr "Tərcümə etməyin"
 
-#: yonca/templates/index.html:2372
+#: yonca/templates/index.html:2381
 msgid "English"
 msgstr "İngilis dili"
 
-#: yonca/templates/index.html:2373
+#: yonca/templates/index.html:2382
 msgid "Russian"
 msgstr "rus"
 
-#: yonca/templates/index.html:2374
+#: yonca/templates/index.html:2383
 msgid "Azerbaijani"
 msgstr "Azərbaycan"
 
-#: yonca/templates/index.html:2378
+#: yonca/templates/index.html:2387
 msgid ""
 "Select a language to translate messages, or choose 'Don't translate' to view"
 " messages in their original language. Click individual messages to toggle "
@@ -1796,35 +1795,35 @@ msgstr ""
 "baxmaq üçün \"Tərcümə etməyin\" seçimini edin. Tərcüməni dəyişdirmək üçün "
 "fərdi mesajlara klikləyin."
 
-#: yonca/templates/index.html:2382
+#: yonca/templates/index.html:2391
 msgid "Post a New Message"
 msgstr "Yeni Mesaj Göndərin"
 
-#: yonca/templates/index.html:2385 yonca/templates/login.html:232
+#: yonca/templates/index.html:2394 yonca/templates/login.html:232
 msgid "Username:"
 msgstr "İstifadəçi adı:"
 
-#: yonca/templates/index.html:2389
+#: yonca/templates/index.html:2398
 msgid "Message:"
 msgstr "Mesaj:"
 
-#: yonca/templates/index.html:2390
+#: yonca/templates/index.html:2399
 msgid "Share your thoughts, ask questions, or help others..."
 msgstr "Fikirlərinizi bölüşün, suallar verin və ya başqalarına kömək edin..."
 
-#: yonca/templates/index.html:2392
+#: yonca/templates/index.html:2401
 msgid "Post Message"
 msgstr "Mesaj Göndər"
 
-#: yonca/templates/index.html:2397
+#: yonca/templates/index.html:2406
 msgid "General Discussion"
 msgstr "Ümumi müzakirə"
 
-#: yonca/templates/index.html:2400
+#: yonca/templates/index.html:2409
 msgid "Welcome to Yonca Forum!"
 msgstr "Yonca Foruma xoş gəlmisiniz!"
 
-#: yonca/templates/index.html:2401
+#: yonca/templates/index.html:2410
 msgid ""
 "This is where community members can connect, ask questions, and share "
 "knowledge."
@@ -1832,50 +1831,51 @@ msgstr ""
 "Burada icma üzvləri əlaqə saxlaya, suallar verə və biliklərini paylaşa "
 "bilərlər."
 
-#: yonca/templates/index.html:2402
+#: yonca/templates/index.html:2411
 msgid "Posted on December 8, 2025"
 msgstr "8 dekabr 2025-ci ildə dərc edilib"
 
-#: yonca/templates/index.html:2412
+#: yonca/templates/index.html:2421
 msgid "Download educational materials, documents, and access protected files."
 msgstr ""
 "Təhsil materiallarını, sənədləri yükləyin və qorunan fayllara daxil olun."
 
-#: yonca/templates/index.html:2416
+#: yonca/templates/index.html:2425
 msgid "Filter Learning Materials"
 msgstr "Tədris materiallarını süzün"
 
-#: yonca/templates/index.html:2420
+#: yonca/templates/index.html:2429
 msgid "Access Type:"
 msgstr "Giriş növü:"
 
-#: yonca/templates/index.html:2422 yonca/templates/index.html:3314
-#: yonca/templates/index.html:3631
+#: yonca/templates/index.html:2431 yonca/templates/index.html:3457
+#: yonca/templates/index.html:3774
 msgid "All"
 msgstr "Hamısı"
 
-#: yonca/templates/index.html:2423
+#: yonca/templates/index.html:2432
 msgid "PIN Protected"
 msgstr "PİN qorunur"
 
-#: yonca/templates/index.html:2424
+#: yonca/templates/index.html:2433
 msgid "Free Access"
 msgstr "Pulsuz Giriş"
 
-#: yonca/templates/index.html:2437
+#: yonca/templates/index.html:2446
 msgid "Learning Materials"
 msgstr "Tədris materialları"
 
-#: yonca/templates/index.html:2439
+#: yonca/templates/index.html:2448
 msgid "Loading materials... (Try switching pages in case of delays)"
 msgstr ""
-"Materiallar yüklənir... (Gecikmə halında səhifələri dəyişdirməyə çalışın)"
+"Materiallar yüklənir... (Gecikmələr zamanı səhifələri dəyişdirməyə cəhd "
+"edin)"
 
-#: yonca/templates/index.html:2445
+#: yonca/templates/index.html:2454
 msgid "Upload Learning Material"
 msgstr "Tədris materialını yükləyin"
 
-#: yonca/templates/index.html:2446
+#: yonca/templates/index.html:2455
 msgid ""
 "Upload documents, presentations, PDFs, or other materials. You can choose to"
 " enable PIN protection for security or allow free access."
@@ -1885,75 +1885,75 @@ msgstr ""
 "icazə verə bilərsiniz."
 
 #: yonca/templates/admin/about_company.html:253
-#: yonca/templates/index.html:2449
+#: yonca/templates/index.html:2458
 msgid "Title:"
 msgstr "Başlıq:"
 
 #: yonca/templates/admin/about_company.html:254
-#: yonca/templates/index.html:2453
+#: yonca/templates/index.html:2462
 msgid "Description:"
 msgstr "Təsvir:"
 
-#: yonca/templates/index.html:2458
+#: yonca/templates/index.html:2467
 msgid "Enter tags separated by spaces, e.g. Tag1 Tag2 Tag3"
 msgstr "Boşluqlarla ayrılmış etiketləri daxil edin, məsələn. Tag1 Tag2 Tag3"
 
-#: yonca/templates/index.html:2459
+#: yonca/templates/index.html:2468
 msgid "Tags will be displayed as hashtags"
 msgstr "Teqlər hashtag kimi göstəriləcək"
 
-#: yonca/templates/index.html:2462
+#: yonca/templates/index.html:2471
 msgid "Preview Image (optional):"
 msgstr "Şəklin önizləməsi (istəyə görə):"
 
-#: yonca/templates/index.html:2464
+#: yonca/templates/index.html:2473
 msgid "Upload an image to display as a preview for this resource"
 msgstr "Bu resurs üçün önizləmə kimi göstərmək üçün şəkil yükləyin"
 
-#: yonca/templates/index.html:2467
+#: yonca/templates/index.html:2476
 msgid "Choose file..."
 msgstr "Fayl seçin..."
 
-#: yonca/templates/index.html:2474
+#: yonca/templates/index.html:2483
 msgid "Enable PIN Protection"
 msgstr "PIN qorumasını aktivləşdirin"
 
-#: yonca/templates/index.html:2476
+#: yonca/templates/index.html:2485
 msgid "Check to require PIN access, uncheck for free access"
 msgstr "PIN girişi tələb etmək üçün yoxlayın, pulsuz giriş üçün işarəni silin"
 
-#: yonca/templates/index.html:2480
+#: yonca/templates/index.html:2489
 msgid ""
 "Access PIN will be auto-generated (6 characters, expires in 10 minutes)"
-msgstr "Giriş PIN avtomatik yaradılacaq (6 simvol, müddəti 10 dəqiqəyə bitir)"
+msgstr ""
+"Giriş PIN-i avtomatik yaradılacaq (6 simvol, müddəti 10 dəqiqə ərzində "
+"bitir)"
 
-#: yonca/templates/index.html:2482 yonca/templates/index.html:3983
+#: yonca/templates/index.html:2491 yonca/templates/index.html:4126
 msgid "Upload Material"
 msgstr "Materialı yükləyin"
 
-#: yonca/templates/index.html:2492
+#: yonca/templates/index.html:2501
 msgid "TAVI Test section is coming soon."
 msgstr "Tezliklə TAVI Test bölməsi gəlir."
 
-#: yonca/templates/index.html:2500
-#, fuzzy
+#: yonca/templates/index.html:2509
 msgid "Our Services"
 msgstr "Xidmətlərimiz"
 
-#: yonca/templates/index.html:2501
+#: yonca/templates/index.html:2510
 msgid "Explore the comprehensive services we offer."
 msgstr "Təklif etdiyimiz hərtərəfli xidmətləri araşdırın."
 
-#: yonca/templates/index.html:2511
+#: yonca/templates/index.html:2520
 msgid "Assessment icon"
 msgstr "Qiymətləndirmə nişanı"
 
-#: yonca/templates/index.html:2512 yonca/templates/index.html:2577
+#: yonca/templates/index.html:2521 yonca/templates/index.html:2586
 msgid "Assessment and Skill Evaluation"
 msgstr "Qiymətləndirmə və Bacarıqların Qiymətləndirilməsi"
 
-#: yonca/templates/index.html:2514
-#, fuzzy
+#: yonca/templates/index.html:2523
 msgid ""
 "Comprehensive assessment of a child's development and creation of an "
 "individualized support plan"
@@ -1961,73 +1961,74 @@ msgstr ""
 "Uşağın inkişafının hərtərəfli qiymətləndirilməsi və fərdi dəstək planının "
 "yaradılması"
 
-#: yonca/templates/index.html:2516 yonca/templates/index.html:2526
-#: yonca/templates/index.html:2536 yonca/templates/index.html:2546
-#: yonca/templates/index.html:2556 yonca/templates/index.html:2566
+#: yonca/templates/index.html:2525 yonca/templates/index.html:2535
+#: yonca/templates/index.html:2545 yonca/templates/index.html:2555
+#: yonca/templates/index.html:2565 yonca/templates/index.html:2575
+#: yonca/templates/index.html:2746
 msgid "Learn More"
 msgstr "Ətraflı məlumat əldə edin"
 
-#: yonca/templates/index.html:2521
+#: yonca/templates/index.html:2530
 msgid "Therapeutic sessions icon"
 msgstr "Terapevtik seanslar ikonası"
 
-#: yonca/templates/index.html:2522
+#: yonca/templates/index.html:2531
 msgid "Therapeutic Sessions"
 msgstr "Terapevtik seanslar"
 
-#: yonca/templates/index.html:2524
+#: yonca/templates/index.html:2533
 msgid "Individual work with the child and targeted skill development"
 msgstr "Uşaqla fərdi iş və məqsədyönlü bacarıqların inkişafı"
 
-#: yonca/templates/index.html:2531
+#: yonca/templates/index.html:2540
 msgid "School support icon"
 msgstr "Məktəb dəstəyi simvolu"
 
-#: yonca/templates/index.html:2532 yonca/templates/index.html:2615
+#: yonca/templates/index.html:2541 yonca/templates/index.html:2624
 msgid "School Support"
 msgstr "Məktəb dəstəyi"
 
-#: yonca/templates/index.html:2534
+#: yonca/templates/index.html:2543
 msgid "Tutoring support and assistance within the school environment"
 msgstr "Məktəb mühitində repetitor dəstəyi və yardımı"
 
-#: yonca/templates/index.html:2541
+#: yonca/templates/index.html:2550
 msgid "Psychological help icon"
 msgstr "Psixoloji yardım ikonu"
 
-#: yonca/templates/index.html:2542 yonca/templates/index.html:2633
+#: yonca/templates/index.html:2551 yonca/templates/index.html:2642
 msgid "Psychological Support"
 msgstr "Psixoloji Dəstək"
 
-#: yonca/templates/index.html:2544
+#: yonca/templates/index.html:2553
 msgid "Individual, group, and family therapy"
 msgstr "Fərdi, qrup və ailə terapiyası"
 
-#: yonca/templates/index.html:2551
+#: yonca/templates/index.html:2560
 msgid "Clubs icon"
 msgstr "Klublar ikonası"
 
-#: yonca/templates/index.html:2552 yonca/templates/index.html:2647
+#: yonca/templates/index.html:2561 yonca/templates/index.html:2656
 msgid "Clubs"
 msgstr "Klublar"
 
-#: yonca/templates/index.html:2554
+#: yonca/templates/index.html:2563
 msgid "Club for mothers and club for teenagers"
 msgstr "Analar üçün klub və yeniyetmələr üçün klub"
 
-#: yonca/templates/index.html:2561
+#: yonca/templates/index.html:2570
 msgid "Education icon"
 msgstr "Təhsil ikonu"
 
-#: yonca/templates/index.html:2562 yonca/templates/index.html:2659
+#: yonca/templates/index.html:2571 yonca/templates/index.html:2668
 msgid "Educational Programs"
 msgstr "Təhsil Proqramları"
 
-#: yonca/templates/index.html:2564
+#: yonca/templates/index.html:2573
 msgid "Courses for specialists and parents"
 msgstr "Mütəxəssislər və valideynlər üçün kurslar"
 
-#: yonca/templates/index.html:2578
+#: yonca/templates/index.html:2587
 msgid ""
 "Comprehensive assessment of a child's development to create an "
 "individualized support plan"
@@ -2035,31 +2036,31 @@ msgstr ""
 "Fərdi dəstək planı yaratmaq üçün uşağın inkişafının hərtərəfli "
 "qiymətləndirilməsi"
 
-#: yonca/templates/index.html:2580
+#: yonca/templates/index.html:2589
 msgid "Initial consultation with parents"
 msgstr "Valideynlərlə ilkin məsləhətləşmə"
 
-#: yonca/templates/index.html:2581
+#: yonca/templates/index.html:2590
 msgid "Assessment of speech, cognitive, and social skills"
 msgstr "Nitq, koqnitiv və sosial bacarıqların qiymətləndirilməsi"
 
-#: yonca/templates/index.html:2582
+#: yonca/templates/index.html:2591
 msgid "MOXO d-CPT (Profiler / MOXO 360)"
 msgstr "MOXO d-CPT (Profiler / MOXO 360)"
 
-#: yonca/templates/index.html:2583
+#: yonca/templates/index.html:2592
 msgid "ABLLS-R, AFLS, WebMAP"
 msgstr "ABLLS-R, AFLS, WebMAP"
 
-#: yonca/templates/index.html:2584
+#: yonca/templates/index.html:2593
 msgid "Neuropsychological assessment"
 msgstr "Neyropsikoloji qiymətləndirmə"
 
-#: yonca/templates/index.html:2585
+#: yonca/templates/index.html:2594
 msgid "Vineland Adaptive Behavior Scales"
 msgstr "Vineland Adaptiv Davranış Ölçüsü"
 
-#: yonca/templates/index.html:2587
+#: yonca/templates/index.html:2596
 msgid ""
 "Scientifically validated standardized methods help identify the child's "
 "strengths and areas for development."
@@ -2067,305 +2068,302 @@ msgstr ""
 "Elmi cəhətdən təsdiq edilmiş standart üsullar uşağın güclü tərəflərini və "
 "inkişaf sahələrini müəyyən etməyə kömək edir."
 
-#: yonca/templates/index.html:2595
-#, fuzzy
+#: yonca/templates/index.html:2604
 msgid "Therapeutic and Developmental Sessions"
 msgstr "Terapevtik və inkişaf seansları"
 
-#: yonca/templates/index.html:2596
+#: yonca/templates/index.html:2605
 msgid "Individualized development and intervention programs"
 msgstr "Fərdi inkişaf və müdaxilə proqramları"
 
-#: yonca/templates/index.html:2598
+#: yonca/templates/index.html:2607
 msgid "ABA therapy"
 msgstr "ABA terapiyası"
 
-#: yonca/templates/index.html:2599
+#: yonca/templates/index.html:2608
 msgid "Speech and communication development"
 msgstr "Nitqin və ünsiyyətin inkişafı"
 
-#: yonca/templates/index.html:2600
+#: yonca/templates/index.html:2609
 msgid "Sensory integration"
 msgstr "Sensor inteqrasiyası"
 
-#: yonca/templates/index.html:2601
+#: yonca/templates/index.html:2610
 msgid "Academic skills and school preparation"
 msgstr "Akademik bacarıqlar və məktəbə hazırlıq"
 
-#: yonca/templates/index.html:2602
+#: yonca/templates/index.html:2611
 msgid "Self-regulation and socialization"
 msgstr "Özünü tənzimləmə və sosiallaşma"
 
-#: yonca/templates/index.html:2603
+#: yonca/templates/index.html:2612
 msgid "Music and art therapy"
 msgstr "Musiqi və incəsənət terapiyası"
 
-#: yonca/templates/index.html:2604
+#: yonca/templates/index.html:2613
 msgid "Therapeutic physical training and adaptive physical education"
 msgstr "Müalicəvi bədən tərbiyəsi və adaptiv bədən tərbiyəsi"
 
-#: yonca/templates/index.html:2605
+#: yonca/templates/index.html:2614
 msgid "Self-defense"
 msgstr "Özünümüdafiə"
 
-#: yonca/templates/index.html:2606
+#: yonca/templates/index.html:2615
 msgid "Brazilian Jiu-Jitsu"
 msgstr "Braziliya Ciu-Citsu"
 
-#: yonca/templates/index.html:2616
+#: yonca/templates/index.html:2625
 msgid "Comprehensive support for a child in the educational environment"
 msgstr "Təhsil mühitində uşağa hərtərəfli dəstək"
 
-#: yonca/templates/index.html:2618
+#: yonca/templates/index.html:2627
 msgid "Support for learning difficulties (dyslexia, dysgraphia, dyscalculia)"
 msgstr "Öyrənmə çətinliklərinə dəstək (disleksiya, disqrafiya, diskalkuliya)"
 
-#: yonca/templates/index.html:2619
+#: yonca/templates/index.html:2628
 msgid "Individual academic programs"
 msgstr "Fərdi akademik proqramlar"
 
-#: yonca/templates/index.html:2620
+#: yonca/templates/index.html:2629
 msgid "Homework assistance"
 msgstr "Ev tapşırığına yardım"
 
-#: yonca/templates/index.html:2621
-#, fuzzy
+#: yonca/templates/index.html:2630
 msgid "Tutor support"
 msgstr "Tərbiyəçi dəstəyi"
 
-#: yonca/templates/index.html:2622
+#: yonca/templates/index.html:2631
 msgid "Adaptation to the school environment"
 msgstr "Məktəb mühitinə uyğunlaşma"
 
-#: yonca/templates/index.html:2623
+#: yonca/templates/index.html:2632
 msgid "Teacher consultations"
 msgstr "Müəllim məsləhətləşmələri"
 
-#: yonca/templates/index.html:2624
+#: yonca/templates/index.html:2633
 msgid "Professional supervision"
 msgstr "Peşəkar nəzarət"
 
-#: yonca/templates/index.html:2635
+#: yonca/templates/index.html:2644
 msgid "Psychological counseling"
 msgstr "Psixoloji məsləhət"
 
-#: yonca/templates/index.html:2636
+#: yonca/templates/index.html:2645
 msgid "Individual psychotherapy"
 msgstr "Fərdi psixoterapiya"
 
-#: yonca/templates/index.html:2637
+#: yonca/templates/index.html:2646
 msgid "Group therapy"
 msgstr "Qrup terapiyası"
 
-#: yonca/templates/index.html:2638
+#: yonca/templates/index.html:2647
 msgid "Family therapy and parental support"
 msgstr "Ailə terapiyası və valideyn dəstəyi"
 
-#: yonca/templates/index.html:2649
+#: yonca/templates/index.html:2658
 msgid "Mothers' club"
 msgstr "Analar klubu"
 
-#: yonca/templates/index.html:2650
+#: yonca/templates/index.html:2659
 msgid "Teenagers' club (social skills and emotional regulation)"
 msgstr "Yeniyetmələr klubu (sosial bacarıqlar və emosional tənzimləmə)"
 
-#: yonca/templates/index.html:2661
-#, fuzzy
+#: yonca/templates/index.html:2670
 msgid "Professional training courses"
 msgstr "Peşəkar təlim kursları"
 
-#: yonca/templates/index.html:2662
-#, fuzzy
+#: yonca/templates/index.html:2671
 msgid "Parent education courses"
 msgstr "Valideyn təhsili kursları"
 
-#: yonca/templates/index.html:2978
-msgid "Support and Development Courses"
-msgstr "Dəstək və İnkişaf Kursları"
+#: yonca/templates/index.html:2982
+msgid "Courses for specialists"
+msgstr "Mütəxəssislər üçün kurslar"
 
-#: yonca/templates/index.html:2979
+#: yonca/templates/index.html:2987
+msgid "Courses for parents"
+msgstr "Valideynlər üçün kurslar"
+
+#: yonca/templates/index.html:2988
 msgid ""
-"Support and Development courses provide guided learning to strengthen core "
-"skills, build confidence, and support steady progress."
+"Parental support and guidance for raising healthy, well-adjusted children"
 msgstr ""
-"Dəstək və İnkişaf kursları əsas bacarıqları gücləndirmək, özünə inam "
-"yaratmaq və davamlı tərəqqini dəstəkləmək üçün istiqamətləndirilmiş öyrənmə "
-"təmin edir."
+"Sağlam, yaxşı uyğunlaşdırılmış uşaq böyütmək üçün valideyn dəstəyi və "
+"rəhbərliyi"
 
-#: yonca/templates/index.html:3006
+#: yonca/templates/index.html:3058 yonca/templates/index.html:3072
 msgid "Loading courses..."
 msgstr "Kurslar yüklənir..."
 
-#: yonca/templates/index.html:3016 yonca/templates/index.html:3052
-#: yonca/templates/index.html:3057
+#: yonca/templates/index.html:3082
 msgid "Error loading courses"
 msgstr "Kursları yükləmə xətası"
 
-#: yonca/templates/index.html:3030
+#: yonca/templates/index.html:3096
 msgid "No courses available for this category."
 msgstr "Bu kateqoriya üçün kurs yoxdur."
 
-#: yonca/templates/index.html:3212
+#: yonca/templates/index.html:3355
 msgid "You're enrolled in all available courses!"
 msgstr "Siz bütün mövcud kurslara yazılmısınız!"
 
-#: yonca/templates/index.html:3213
+#: yonca/templates/index.html:3356
 msgid "Error loading courses. Please try again."
 msgstr "Kursları yükləmə xətası. Yenidən cəhd edin."
 
-#: yonca/templates/index.html:3234
+#: yonca/templates/index.html:3377
 msgid "No courses available at the moment."
 msgstr "Hazırda mövcud kurs yoxdur."
 
-#: yonca/templates/index.html:3250
+#: yonca/templates/index.html:3393
 msgid "Other Available Courses"
 msgstr "Digər Mövcud Kurslar"
 
-#: yonca/templates/index.html:3451
+#: yonca/templates/index.html:3594
 msgid "Loading... (Try switching pages in case of delays)"
 msgstr "Yüklənir... (Gecikmə halında səhifələri dəyişdirməyə cəhd edin)"
 
-#: yonca/templates/index.html:3452 yonca/templates/index.html:3464
-#: yonca/templates/index.html:3471
+#: yonca/templates/index.html:3595 yonca/templates/index.html:3607
+#: yonca/templates/index.html:3614
 msgid "View Details"
 msgstr "Ətraflı Baxın"
 
-#: yonca/templates/index.html:3463
+#: yonca/templates/index.html:3606
 msgid "Enroll Now"
 msgstr "İndi qeydiyyatdan keçin"
 
-#: yonca/templates/index.html:3526
+#: yonca/templates/index.html:3669
 msgid "Enrolling in"
-msgstr "Qeydiyyatdan keçirilir"
+msgstr "Qeydiyyat"
 
-#: yonca/templates/index.html:3608
+#: yonca/templates/index.html:3751
 msgid "No materials available at the moment."
 msgstr "Hazırda heç bir material yoxdur."
 
-#: yonca/templates/index.html:3655
+#: yonca/templates/index.html:3798
 msgid "No materials match the selected filter."
 msgstr "Seçilmiş filtrə uyğun material yoxdur."
 
-#: yonca/templates/index.html:3673
+#: yonca/templates/index.html:3816
 msgid "Log In to Access"
 msgstr "Access üçün daxil olun"
 
-#: yonca/templates/index.html:3676 yonca/templates/index.html:3696
-#: yonca/templates/index.html:3735
+#: yonca/templates/index.html:3819 yonca/templates/index.html:3839
+#: yonca/templates/index.html:3878
 msgid "View Resource"
 msgstr "Mənbəyə baxın"
 
-#: yonca/templates/index.html:3686
+#: yonca/templates/index.html:3829
 msgid "Expires in:"
 msgstr "Müddəti bitir:"
 
-#: yonca/templates/index.html:3686
+#: yonca/templates/index.html:3829
 msgid "minutes"
 msgstr "dəqiqə"
 
-#: yonca/templates/index.html:3688
+#: yonca/templates/index.html:3831
 msgid "PIN has expired"
 msgstr "PİN-in vaxtı keçib"
 
-#: yonca/templates/index.html:3692 yonca/templates/index.html:3807
+#: yonca/templates/index.html:3835 yonca/templates/index.html:3950
 msgid "Your Access PIN:"
 msgstr "Giriş PIN kodunuz:"
 
-#: yonca/templates/index.html:3694 yonca/templates/index.html:3809
+#: yonca/templates/index.html:3837 yonca/templates/index.html:3952
 msgid "Share this PIN with others to grant access"
 msgstr "Giriş icazəsi vermək üçün bu PIN kodu başqaları ilə paylaşın"
 
-#: yonca/templates/index.html:3699 yonca/templates/index.html:3814
+#: yonca/templates/index.html:3842 yonca/templates/index.html:3957
 msgid "Request Access"
 msgstr "Giriş sorğusu"
 
-#: yonca/templates/index.html:3707 yonca/templates/index.html:3730
-#: yonca/templates/index.html:3819
+#: yonca/templates/index.html:3850 yonca/templates/index.html:3873
+#: yonca/templates/index.html:3962
 msgid "No description available"
 msgstr "Təsvir mövcud deyil"
 
-#: yonca/templates/index.html:3710 yonca/templates/index.html:3733
-#: yonca/templates/index.html:3821
+#: yonca/templates/index.html:3853 yonca/templates/index.html:3876
+#: yonca/templates/index.html:3964
 msgid "Uploaded:"
 msgstr "Yükləndi:"
 
-#: yonca/templates/index.html:3714 yonca/templates/index.html:3737
+#: yonca/templates/index.html:3857 yonca/templates/index.html:3880
 msgid "Are you sure you want to delete this resource?"
 msgstr "Bu resursu silmək istədiyinizə əminsiniz?"
 
-#: yonca/templates/index.html:3754
+#: yonca/templates/index.html:3897
 msgid "Error loading materials. Please try again."
-msgstr "Materialların yüklənməsi xətası. Yenidən cəhd edin."
+msgstr "Materialları yükləmə xətası. Yenidən cəhd edin."
 
-#: yonca/templates/index.html:3790
+#: yonca/templates/index.html:3933
 msgid "No PDF documents available at the moment."
 msgstr "Hazırda heç bir PDF sənədi mövcud deyil."
 
-#: yonca/templates/index.html:3811
+#: yonca/templates/index.html:3954
 msgid "Access PDF"
 msgstr "PDF-ə daxil olun"
 
-#: yonca/templates/index.html:3825
+#: yonca/templates/index.html:3968
 msgid "Are you sure you want to delete this PDF?"
 msgstr "Bu PDF-i silmək istədiyinizə əminsiniz?"
 
-#: yonca/templates/index.html:3836
+#: yonca/templates/index.html:3979
 msgid "Error loading PDFs. Please try again."
 msgstr "PDF-ləri yükləmə xətası. Yenidən cəhd edin."
 
-#: yonca/templates/index.html:3842
+#: yonca/templates/index.html:3985
 msgid "Enter access PIN for:"
 msgstr "Giriş PIN kodunu daxil edin:"
 
-#: yonca/templates/index.html:3868
+#: yonca/templates/index.html:4011
 msgid "Invalid PIN or access denied."
 msgstr "Yanlış PIN və ya giriş rədd edildi."
 
-#: yonca/templates/index.html:3872
+#: yonca/templates/index.html:4015
 msgid "Error accessing resource. Please try again."
 msgstr "Mənbəyə daxil olma xətası. Yenidən cəhd edin."
 
-#: yonca/templates/index.html:3886 yonca/templates/index.html:3888
+#: yonca/templates/index.html:4029 yonca/templates/index.html:4031
 msgid "Uploading PDF..."
 msgstr "PDF yüklənir..."
 
-#: yonca/templates/index.html:3910
+#: yonca/templates/index.html:4053
 msgid "PDF uploaded successfully! Access PIN:"
 msgstr "PDF uğurla yükləndi! Giriş PIN kodu:"
 
-#: yonca/templates/index.html:3918 yonca/templates/index.html:3922
+#: yonca/templates/index.html:4061 yonca/templates/index.html:4065
 msgid "Error uploading PDF. Please try again."
 msgstr "PDF yükləmə xətası. Yenidən cəhd edin."
 
-#: yonca/templates/index.html:3925
+#: yonca/templates/index.html:4068
 msgid "Upload PDF"
 msgstr "PDF yükləyin"
 
-#: yonca/templates/index.html:3939
+#: yonca/templates/index.html:4082
 msgid "Uploading..."
 msgstr "Yüklənir..."
 
-#: yonca/templates/index.html:3941
+#: yonca/templates/index.html:4084
 msgid "Uploading resource..."
 msgstr "Resurs yüklənir..."
 
-#: yonca/templates/index.html:3963
+#: yonca/templates/index.html:4106
 msgid "Access PIN:"
 msgstr "Giriş PIN kodu:"
 
-#: yonca/templates/index.html:3963
+#: yonca/templates/index.html:4106
 msgid "Free access enabled"
 msgstr "Pulsuz giriş aktivləşdirildi"
 
-#: yonca/templates/index.html:3964
+#: yonca/templates/index.html:4107
 msgid "Material uploaded successfully!"
 msgstr "Material uğurla yükləndi!"
 
-#: yonca/templates/index.html:3976
+#: yonca/templates/index.html:4119
 msgid "Error uploading material. Please try again."
 msgstr "Materialı yükləyərkən xəta baş verdi. Yenidən cəhd edin."
 
-#: yonca/templates/index.html:3980
+#: yonca/templates/index.html:4123
 msgid "Error uploading resource. Please try again."
 msgstr "Mənbə yüklənərkən xəta baş verdi. Yenidən cəhd edin."
 
@@ -2412,7 +2410,9 @@ msgstr "xoş gəlmisiniz"
 
 #: yonca/templates/terms.html:83
 msgid "(the \"Service\", \"Platform\", \"Website\"), operated by"
-msgstr "(\"Xidmət\", \"Platforma\", \"Veb-sayt\"), tərəfindən idarə olunur"
+msgstr ""
+"Error 500 (Server Error)!!1500.That’s an error.There was an error. Please "
+"try again later.That’s all we know."
 
 #: yonca/templates/terms.html:83
 msgid ""
@@ -2852,8 +2852,8 @@ msgid ""
 "These Terms are governed by and construed in accordance with applicable "
 "laws, without regard to conflict of law principles."
 msgstr ""
-"Bu Şərtlər qanunların ziddiyyəti prinsiplərindən asılı olmayaraq, qüvvədə "
-"olan qanunlarla tənzimlənir və onlara uyğun şərh edilir."
+"Bu Şərtlər qanunun ziddiyyəti prinsiplərindən asılı olmayaraq, qüvvədə olan "
+"qanunlarla tənzimlənir və onlara uyğun şərh edilir."
 
 #: yonca/templates/terms.html:186
 msgid "14. Contact"
@@ -2864,7 +2864,7 @@ msgid ""
 "If you have questions about these Terms, please contact us through the Yonca"
 " website."
 msgstr ""
-"Bu Şərtlər haqqında suallarınız varsa, lütfən, Yonca vebsaytı vasitəsilə "
+"Bu Şərtlərlə bağlı suallarınız varsa, lütfən, Yonca vebsaytı vasitəsilə "
 "bizimlə əlaqə saxlayın."
 
 #: yonca/templates/terms.html:191
@@ -2880,17 +2880,14 @@ msgid "Back to Home"
 msgstr "Evə qayıt"
 
 #: yonca/templates/admin/about_company.html:132
-#, fuzzy
 msgid "About Company Configuration"
 msgstr "Şirkət Konfiqurasiyası haqqında"
 
 #: yonca/templates/admin/about_company.html:155
-#, fuzzy
 msgid "Welcome Title:"
 msgstr "Xoş gəldin Başlıq:"
 
 #: yonca/templates/admin/about_company.html:157
-#, fuzzy
 msgid "Welcome to Yonca"
 msgstr "Yonca-a xoş gəlmisiniz"
 
@@ -2899,7 +2896,6 @@ msgid "The main welcome title displayed on the About page"
 msgstr "Əsas salamlama başlığı Haqqında səhifəsində göstərilir"
 
 #: yonca/templates/admin/about_company.html:162
-#, fuzzy
 msgid "Subtitle:"
 msgstr "Altyazı:"
 
@@ -2916,7 +2912,6 @@ msgid "A brief description that appears below the welcome title"
 msgstr "Xoşlama başlığının altında görünən qısa təsvir"
 
 #: yonca/templates/admin/about_company.html:171
-#, fuzzy
 msgid "About Features Section"
 msgstr "Xüsusiyyətlər Bölməsi haqqında"
 
@@ -2937,12 +2932,10 @@ msgid "The subtitle that appears below the features title"
 msgstr "Xüsusiyyət başlığının altında görünən altyazı"
 
 #: yonca/templates/admin/about_company.html:191
-#, fuzzy
 msgid "About Features"
 msgstr "Xüsusiyyətlər haqqında"
 
 #: yonca/templates/admin/about_company.html:193
-#, fuzzy
 msgid "Add Feature"
 msgstr "Xüsusiyyət əlavə edin"
 
@@ -2951,7 +2944,6 @@ msgid "About Gallery Section"
 msgstr "Qalereya Bölməsi haqqında"
 
 #: yonca/templates/admin/about_company.html:209
-#, fuzzy
 msgid "Gallery Title:"
 msgstr "Qalereya Başlığı:"
 
@@ -2976,12 +2968,10 @@ msgid "Add Media"
 msgstr "Media əlavə edin"
 
 #: yonca/templates/admin/about_company.html:255
-#, fuzzy
 msgid "Feature title"
 msgstr "Xüsusiyyət başlığı"
 
 #: yonca/templates/admin/about_company.html:256
-#, fuzzy
 msgid "Feature description"
 msgstr "Xüsusiyyət təsviri"
 
@@ -2994,12 +2984,10 @@ msgid "Enter URL"
 msgstr "URL daxil edin"
 
 #: yonca/templates/admin/about_company.html:260
-#, fuzzy
 msgid "Media File:"
 msgstr "Media Faylı:"
 
 #: yonca/templates/admin/about_company.html:261
-#, fuzzy
 msgid "Media URL:"
 msgstr "Media URL:"
 
@@ -3016,17 +3004,14 @@ msgid "Alt Text:"
 msgstr "Alternativ Mətn:"
 
 #: yonca/templates/admin/about_company.html:264
-#, fuzzy
 msgid "Image description"
 msgstr "Şəklin təsviri"
 
 #: yonca/templates/admin/about_company.html:265
-#, fuzzy
 msgid "Caption:"
 msgstr "Başlıq:"
 
 #: yonca/templates/admin/about_company.html:266
-#, fuzzy
 msgid "Image caption"
 msgstr "Şəkil başlığı"
 
@@ -3043,22 +3028,18 @@ msgid "Translation completed and cached:"
 msgstr "Tərcümə tamamlandı və keşləndi:"
 
 #: yonca/templates/admin/about_company.html:270
-#, fuzzy
 msgid "Original"
 msgstr "Orijinal"
 
 #: yonca/templates/admin/about_company.html:271
-#, fuzzy
 msgid "Translation failed:"
 msgstr "Tərcümə alınmadı:"
 
 #: yonca/templates/admin/about_company.html:272
-#, fuzzy
 msgid "Translation error:"
 msgstr "Tərcümə xətası:"
 
 #: yonca/templates/admin/about_company.html:273
-#, fuzzy
 msgid "Unknown error"
 msgstr "Naməlum xəta"
 
@@ -3093,6 +3074,3 @@ msgstr "Haqqında"
 #: yonca/templates/components/navbar.html:49
 msgid "Admin Panel"
 msgstr "İdarəetmə Paneli"
-
-#~ msgid "Link Google"
-#~ msgstr "Google ilə əlaqə saxlayın"

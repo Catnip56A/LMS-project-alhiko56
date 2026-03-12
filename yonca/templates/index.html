@@ -591,10 +591,10 @@
         .service-card .service-btn {
             display: inline-block;
             margin-top: auto;
-            background: #71a839;
+            background: #63943e;
             color: #fff;
             padding: 0.5625rem 1.125rem;
-            border: 2px solid #71a839;
+            border: 2px solid #63943e;
             border-radius: 20px;
             text-decoration: none;
             font-weight: 600;
@@ -727,9 +727,9 @@
         }
 
         .gallery-learn-more-btn {
-            background: #5eb04d;
+            background: #63943e;
             color: white;
-            border: 2px solid #5eb04d;
+            border: 2px solid #63943e;
             padding: 0.5625rem 1.125rem;
             border-radius: 20px;
             cursor: pointer;
@@ -1217,9 +1217,9 @@
         }
 
         .courses-btn {
-            background: #5eb04d;
+            background: #63943e;
             color: white;
-            border: 2px solid #5eb04d;
+            border: 2px solid #63943e;
             padding: 0.75rem 1.5rem;
             border-radius: 20px;
             font-size: 1rem;
@@ -1236,7 +1236,7 @@
         }
 
         .view-all-btn {
-            background: #5eb04d;
+            background: #63943e;
         }
 
         .view-all-btn:hover {
@@ -1245,7 +1245,7 @@
         }
 
         .contact-btn {
-            background: #5eb04d;
+            background: #63943e;
         }
 
         .contact-btn:hover {
@@ -2979,14 +2979,14 @@
         let courseCurrentSlide = 0;
         const courseSlides = [
             {
-                title: '{{ _("Professional Education and Training") }}',
+                title: '{{ _("Courses for specialists") }}',
                 subtitle: '{{ _("Evidence-based training for psychologists, therapists, educators, and tutors") }}',
                 tag: 'Professional'
             },
             {
-                title: '{{ _("Support and Development Courses") }}',
-                subtitle: '{{ _("Support and Development courses provide guided learning to strengthen core skills, build confidence, and support steady progress.") }}',
-                tag: 'Self-development'
+                title: '{{ _("Courses for parents") }}',
+                subtitle: '{{ _("Parental support and guidance for raising healthy, well-adjusted children") }}',
+                tag: 'Parental'
             }
         ];
 
@@ -5293,6 +5293,9 @@
                 });
             }
 
+            // Initialize first slide text immediately (before carousel starts rotating)
+            updateCourseSlide(0);
+            
             // Start carousel when page loads
             startCourseCarousel();
             

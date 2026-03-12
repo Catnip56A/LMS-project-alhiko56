@@ -672,8 +672,8 @@ function addFeature(containerId, prefix) {
         </div>
         <div class="form-group-inline">
             <label for="${prefix}_button_url_${featureIndex}">Button URL:</label>
-            <input type="url" id="${prefix}_button_url_${featureIndex}" name="${prefix}_button_url_${featureIndex}" class="form-control feature-button-url"
-                   placeholder="/courses/1 or https://..." value="">
+            <input type="text" id="${prefix}_button_url_${featureIndex}" name="${prefix}_button_url_${featureIndex}" class="form-control feature-button-url"
+                   placeholder="/courses/1, /courses#, or https://..." value="">
         </div>
     `;
 
@@ -730,18 +730,8 @@ function addFeatureFromData(containerId, prefix, title, description, buttonText 
         </div>
         <div class="form-group-inline">
             <label for="${prefix}_button_url_${featureIndex}">Button URL:</label>
-            <input type="url" id="${prefix}_button_url_${featureIndex}" name="${prefix}_button_url_${featureIndex}" class="form-control feature-button-url"
-                   placeholder="/courses/1 or https://..." value="${escapedButtonUrl}">
-        </div>
-        <div class="form-group-inline">
-            <label for="${prefix}_button_text_${featureIndex}">Button Text:</label>
-            <input type="text" id="${prefix}_button_text_${featureIndex}" name="${prefix}_button_text_${featureIndex}" class="form-control feature-button-text"
-                   placeholder="e.g. Learn More" value="">
-        </div>
-        <div class="form-group-inline">
-            <label for="${prefix}_button_url_${featureIndex}">Button URL:</label>
-            <input type="url" id="${prefix}_button_url_${featureIndex}" name="${prefix}_button_url_${featureIndex}" class="form-control feature-button-url"
-                   placeholder="/courses/1 or https://..." value="">
+            <input type="text" id="${prefix}_button_url_${featureIndex}" name="${prefix}_button_url_${featureIndex}" class="form-control feature-button-url"
+                   placeholder="/courses/1, /courses#, or https://..." value="${escapedButtonUrl}">
         </div>
     `;
 
