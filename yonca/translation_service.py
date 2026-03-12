@@ -96,7 +96,7 @@ class TranslationService:
         protected_text = text
         
         for i, term in enumerate(self.protected_terms):
-            placeholder = f"__PROTECTED_{i}__"
+            placeholder = f"{{PROTECTED_{i}}}"
             # Case-insensitive replacement that preserves original case
             pattern = re.compile(re.escape(term), re.IGNORECASE)
             matches = pattern.finditer(protected_text)
@@ -410,7 +410,7 @@ class TranslationService:
             tags = []
             def protect_tags(match):
                 tag = match.group(0)
-                placeholder = f"__TAG_{len(tags)}__"
+                placeholder = f"{{TAG_{len(tags)}}}"
                 tags.append(tag)
                 return placeholder
             
@@ -429,7 +429,7 @@ class TranslationService:
             
             # Step 3: Restore the HTML tags
             for i, tag in enumerate(tags):
-                placeholder = f"__TAG_{i}__"
+                placeholder = f"{{TAG_{i}}}"
                 translated_content = translated_content.replace(placeholder, tag)
             
             current_app.logger.warning(f"HTML TRANSLATION - After tag restoration: {translated_content[:100]}")
