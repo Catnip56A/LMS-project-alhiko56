@@ -2626,7 +2626,7 @@ msgstr ""
 
 #: yonca/templates/terms.html:128
 msgid "Yonca"
-msgstr "__QORUNMALI_0__"
+msgstr "Yonca"
 
 #: yonca/templates/terms.html:128
 msgid "does not access, read, or modify"
@@ -2780,7 +2780,7 @@ msgstr "10. Zəmanətlərdən imtina"
 
 #: yonca/templates/terms.html:166
 msgid "Yonca is provided"
-msgstr "__QORUNMALI_0__ təmin edilir"
+msgstr "Yonca təmin edilir"
 
 #: yonca/templates/terms.html:166
 msgid "as is"
