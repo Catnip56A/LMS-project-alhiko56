@@ -2184,7 +2184,7 @@
                         {% set video_id = image.url.split('youtu.be/')[1].split('?')[0] %}
                     {% endif %}
                     <iframe width="100%" 
-                        src="https://www.youtube.com/embed/{{ video_id }}" 
+                        src="https://www.youtube.com/embed/{{ video_id }}?enablejsapi=1&rel=0" 
                         frameborder="0" allowfullscreen
                         style="border-radius: 8px; max-width: 100%;"></iframe>
                     {% elif 'vimeo.com' in image.url %}
@@ -2706,7 +2706,7 @@
                         {% set video_id = image.url.split('youtu.be/')[1].split('?')[0] %}
                     {% endif %}
                     <iframe width="100%" 
-                        src="https://www.youtube.com/embed/{{ video_id }}" 
+                        src="https://www.youtube.com/embed/{{ video_id }}?enablejsapi=1&rel=0" 
                         frameborder="0" allowfullscreen
                         style="border-radius: 8px; max-width: 100%;"></iframe>
                     {% elif 'vimeo.com' in image.url %}
@@ -5269,6 +5269,87 @@
             // Initialize
             goTo(0);
             startAuto();
+        });
+    </script>
+    <script>
+        // Auto-pause videos when they scroll out of view
+        document.addEventListener('DOMContentLoaded', function() {
+            // Select all videos and iframes in carousels and course cards
+            const allMediaElements = document.querySelectorAll('video, iframe');
+            
+            if (!allMediaElements.length) return;
+
+            // YouTube requires enablejsapi=1 for pause commands via postMessage.
+            allMediaElements.forEach(media => {
+                if (media.tagName !== 'IFRAME') return;
+                const src = media.getAttribute('src') || '';
+                if (!(src.includes('youtube.com/embed/') || src.includes('youtube-nocookie.com/embed/'))) return;
+
+                try {
+                    const url = new URL(src, window.location.origin);
+                    if (!url.searchParams.has('enablejsapi')) url.searchParams.set('enablejsapi', '1');
+                    if (!url.searchParams.has('origin')) url.searchParams.set('origin', window.location.origin);
+                    const updatedSrc = url.toString();
+                    if (updatedSrc !== src) {
+                        media.setAttribute('src', updatedSrc);
+                    }
+                } catch (e) {
+                    console.warn('Could not normalize YouTube iframe URL:', e);
+                }
+            });
+            
+            // Track pause state for each element to avoid redundant operations
+            const pausedState = new Map();
+            
+            // Function to check and update media visibility
+            function updateMediaVisibility() {
+                allMediaElements.forEach(media => {
+                    const rect = media.getBoundingClientRect();
+                    const windowHeight = window.innerHeight;
+                    const windowWidth = window.innerWidth;
+                    
+                    // Element is significantly visible if most of it is in viewport
+                    const isSignificantlyVisible = 
+                        rect.bottom > windowHeight * 0.25 &&  // Bottom is in upper 75% of screen
+                        rect.top < windowHeight * 0.75 &&     // Top is in lower 75% of screen
+                        rect.right > windowWidth * 0.1 &&     // Right edge is past 10% from left
+                        rect.left < windowWidth * 0.9;        // Left edge is before 90% from left
+                    
+                    const currentState = pausedState.get(media);
+                    
+                    if (!isSignificantlyVisible && currentState !== 'paused') {
+                        // Element should be paused
+                        if (media.tagName === 'VIDEO') {
+                            media.pause();
+                        } else if (media.tagName === 'IFRAME') {
+                            media.style.opacity = '0.5';
+                            media.style.pointerEvents = 'none';
+                            
+                            // Try to pause YouTube video
+                            if (media.src.includes('youtube.com') || media.src.includes('youtu.be')) {
+                                try {
+                                    const pauseCommand = JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] });
+                                    media.contentWindow.postMessage(pauseCommand, '*');
+                                } catch (e) {
+                                    console.warn('Could not pause YouTube video:', e);
+                                }
+                            }
+                        }
+                        pausedState.set(media, 'paused');
+                    } else if (isSignificantlyVisible && currentState !== 'playing') {
+                        // Element should be playing
+                        media.style.opacity = '1';
+                        media.style.pointerEvents = 'auto';
+                        pausedState.set(media, 'playing');
+                    }
+                });
+                
+                // Continue checking on next frame
+                requestAnimationFrame(updateMediaVisibility);
+            }
+            
+            // Start continuous checking
+            updateMediaVisibility();
         });
     </script>
     <script>

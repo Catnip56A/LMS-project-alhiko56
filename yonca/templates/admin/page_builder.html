@@ -336,6 +336,7 @@ document.addEventListener('click', function(e) {
 let blockIndex = 0;
 const canvas = document.getElementById('canvas');
 let blocks = [];
+let openSettingsBlockId = null;  // Track which settings panel is open
 
 // Load existing blocks from JSON
 function loadBlocks() {
@@ -380,12 +381,12 @@ function createBlock(type) {
 // Get default settings for block type
 function getDefaultSettings(type) {
     const defaults = {
-        'plain-text': { text: 'Enter your text here...', padding: '20', width: '100', fontSize: '16', weight: 'normal', textAlign: 'left', color: '#333333', lineHeight: '1.6', italic: false, underline: false },
-        'hero': { title: 'Hero Title', titleFontSize: '48', titleWeight: 'bold', subtitle: 'Your subtitle here', subtitleFontSize: '24', subtitleColor: '#ffffff', image: '', padding: '40', width: '100' },
-        'text-image': { text: 'Enter text here...', image: '', imagePosition: 'right', padding: '20', width: '100' },
-        'buttons': { buttons: [{ text: 'Button 1', url: '#', style: 'primary' }], padding: '20', width: '100', buttonFontSize: '16', buttonFontWeight: 'bold' },
-        'youtube': { videoId: '', width: '100', height: '400' },
-        'carousel': { items: [{ image: '', title: 'Item 1', description: '' }], alignment: 'centered', padding: '20', width: '100', autoplay: false, interval: 3000, itemTitleFontSize: '24', itemTitleWeight: 'bold', itemDescriptionFontSize: '16' }
+        'plain-text': { text: 'Enter your text here...', padding: '20', width: '100', fontSize: '16', weight: 'normal', textAlign: 'left', color: '#333333', lineHeight: '1.6', italic: false, underline: false, scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
+        'hero': { title: 'Hero Title', titleFontSize: '48', titleWeight: 'bold', subtitle: 'Your subtitle here', subtitleFontSize: '24', subtitleColor: '#ffffff', image: '', backgroundImage: '', padding: '40', width: '100', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
+        'text-image': { text: 'Enter text here...', image: '', padding: '20', width: '100', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
+        'buttons': { buttons: [{ text: 'Button 1', url: '#', style: 'primary' }], padding: '20', width: '100', buttonFontSize: '16', buttonFontWeight: 'bold', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
+        'youtube': { videoId: '', width: '100', height: '400', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
+        'carousel': { items: [{ image: '', title: 'Item 1', description: '' }], alignment: 'centered', padding: '20', width: '100', autoplay: false, interval: 3000, itemTitleFontSize: '24', itemTitleWeight: 'bold', itemDescriptionFontSize: '16', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false }
     };
     return defaults[type] || {};
 }
@@ -393,6 +394,9 @@ function getDefaultSettings(type) {
 // Render all blocks
 function renderBlocks() {
     canvas.innerHTML = '';
+    
+    // Store the currently open settings block ID
+    const wasOpenBlockId = openSettingsBlockId;  // Save which was open
     
     if (blocks.length === 0) {
         canvas.innerHTML = `
@@ -410,6 +414,14 @@ function renderBlocks() {
     });
     
     initializeSortable();
+    
+    // Restore the open settings panel after re-rendering
+    if (wasOpenBlockId) {
+        const settingsPanel = document.getElementById(`settings-${wasOpenBlockId}`);
+        if (settingsPanel) {
+            settingsPanel.classList.add('show');
+        }
+    }
 }
 
 // Create a block element
@@ -532,8 +544,14 @@ function renderBlockSettings(block) {
                     <input type="color" value="${block.settings.subtitleColor || '#ffffff'}" onchange="updateBlock('${block.id}', 'subtitleColor', this.value)">
                 </div>
                 <div class="input-group-vertical">
-                    <label>Image URL</label>
-                    <input type="text" value="${block.settings.image}" onchange="updateBlock('${block.id}', 'image', this.value)" placeholder="https://...">
+                    <label>Image URL or Google Drive Link</label>
+                    <input type="text" value="${block.settings.image}" onchange="updateBlock('${block.id}', 'image', this.value)" placeholder="https://... or Google Drive link/ID">
+                    <small style="display: block; margin-top: 5px; color: #666;">Paste: https://drive.google.com/file/d/FILE_ID/view or just the FILE_ID (make sure file is shared publicly or "Anyone with link")</small>
+                </div>
+                <div class="input-group-vertical">
+                    <label>Background Image URL or Google Drive Link</label>
+                    <input type="text" value="${block.settings.backgroundImage}" onchange="updateBlock('${block.id}', 'backgroundImage', this.value)" placeholder="https://... or Google Drive link/ID">
+                    <small style="display: block; margin-top: 5px; color: #666;">Paste: https://drive.google.com/file/d/FILE_ID/view or just the FILE_ID (make sure file is shared publicly or "Anyone with link")</small>
                 </div>
             `;
             break;
@@ -547,13 +565,7 @@ function renderBlockSettings(block) {
                     <label>Image URL</label>
                     <input type="text" value="${block.settings.image}" onchange="updateBlock('${block.id}', 'image', this.value)" placeholder="https://...">
                 </div>
-                <div class="input-group-vertical">
-                    <label>Image Position</label>
-                    <select onchange="updateBlock('${block.id}', 'imagePosition', this.value)">
-                        <option value="left" ${block.settings.imagePosition === 'left' ? 'selected' : ''}>Left</option>
-                        <option value="right" ${block.settings.imagePosition === 'right' ? 'selected' : ''}>Right</option>
-                    </select>
-                </div>
+
             `;
             break;
         case 'buttons':
@@ -653,6 +665,60 @@ function renderBlockSettings(block) {
         `;
     }
     
+    // Scale controls for all blocks
+    html += `
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+            <h4 style="margin: 10px 0;">Size</h4>
+            <div class="input-group-vertical">
+                <label>Size (Scale %)</label>
+                <input type="number" value="${block.settings.scale || 100}" max="200" min="50" onchange="updateBlock('${block.id}', 'scale', this.value)" step="10">
+                <small>50% to 200% of normal size</small>
+            </div>
+        </div>
+    `;
+    
+    // Position controls for all blocks
+    html += `
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+            <h4 style="margin: 10px 0;">Position</h4>
+            <div class="input-group-vertical">
+                <label><input type="checkbox" ${block.settings.useCustomPosition ? 'checked' : ''} onchange="updateBlock('${block.id}', 'useCustomPosition', this.checked)"> Use Custom Position (Absolute)</label>
+                <small style="color: #666;">Enable to position item using coordinates</small>
+            </div>
+            
+            ${block.settings.useCustomPosition ? `
+                <div style="background: #f0f0f0; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                    <h5 style="margin: 0 0 10px 0; color: #333;">Desktop Coordinates</h5>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div class="input-group-vertical">
+                            <label>X Position</label>
+                            <input type="text" value="${block.settings.posX || '0'}" onchange="updateBlock('${block.id}', 'posX', this.value)" placeholder="50 (px) or 50% (width)">
+                            <small style="color: #666;">Use: 50 for pixels or 50% for width</small>
+                        </div>
+                        <div class="input-group-vertical">
+                            <label>Y Position (px)</label>
+                            <input type="number" value="${block.settings.posY || 0}" onchange="updateBlock('${block.id}', 'posY', this.value)">
+                        </div>
+                    </div>
+                    
+                    <h5 style="margin: 15px 0 10px 0; color: #333;">Mobile Coordinates</h5>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div class="input-group-vertical">
+                            <label>X Position</label>
+                            <input type="text" value="${block.settings.posXMobile || '0'}" onchange="updateBlock('${block.id}', 'posXMobile', this.value)" placeholder="50 (px) or 50% (width)">
+                            <small style="color: #666;">Use: 50 for pixels or 50% for width</small>
+                        </div>
+                        <div class="input-group-vertical">
+                            <label>Y Position (px)</label>
+                            <input type="number" value="${block.settings.posYMobile || 0}" onchange="updateBlock('${block.id}', 'posYMobile', this.value)">
+                        </div>
+                    </div>
+                    <small style="display: block; margin-top: 10px; color: #666;"><strong>Tips:</strong> Enter "50%" in X field to set width to 50%, or "50" to position 50px from left</small>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
     html += '</div>';
     return html;
 }
@@ -669,7 +735,7 @@ function renderBlockPreview(block) {
             preview += `<strong>${block.settings.title}</strong><br><small>${block.settings.subtitle}</small>`;
             break;
         case 'text-image':
-            preview += `📝 Text + 🖼️ Image (${block.settings.imagePosition})`;
+            preview += `📝 Text + 🖼️ Image`;
             break;
         case 'buttons':
             preview += `🔘 ${block.settings.buttons.length} button(s)`;
@@ -715,8 +781,28 @@ function getBlockLabel(type) {
 
 // Toggle settings panel
 function toggleSettings(blockId) {
-    const settingsPanel = document.getElementById(`settings-${blockId}`);
-    settingsPanel.classList.toggle('show');
+    if (openSettingsBlockId === blockId) {
+        // Close the current panel
+        openSettingsBlockId = null;
+        const settingsPanel = document.getElementById(`settings-${blockId}`);
+        if (settingsPanel) {
+            settingsPanel.classList.remove('show');
+        }
+    } else {
+        // Close any other open panels
+        if (openSettingsBlockId) {
+            const prevPanel = document.getElementById(`settings-${openSettingsBlockId}`);
+            if (prevPanel) {
+                prevPanel.classList.remove('show');
+            }
+        }
+        // Open the new panel
+        openSettingsBlockId = blockId;
+        const settingsPanel = document.getElementById(`settings-${blockId}`);
+        if (settingsPanel) {
+            settingsPanel.classList.add('show');
+        }
+    }
 }
 
 // Update block data

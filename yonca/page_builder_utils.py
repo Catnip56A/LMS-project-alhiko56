@@ -1,6 +1,7 @@
 """Utilities for the no-code page builder"""
 import re
 import html
+import urllib.parse
 from markupsafe import Markup
 
 def extract_youtube_id(input_str):
@@ -38,6 +39,63 @@ def extract_youtube_id(input_str):
         return match.group(1)
     
     return input_str.strip()
+
+def extract_google_drive_id(input_str):
+    """
+    Extract Google Drive file ID from various URL formats or direct ID.
+    Converts to a public preview link that works WITHOUT authentication.
+    
+    Handles:
+    - Direct ID: 1a_B2c3D4e5F6g7H8i9J0k1L2m3N4o5P
+    - View URL: https://drive.google.com/file/d/FILE_ID/view
+    - View with sharing: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+    - Open URL: https://drive.google.com/open?id=FILE_ID
+    - Direct link: https://drive.google.com/uc?export=view&id=FILE_ID (already processed)
+    
+    Returns:
+    - Public preview URL: https://lh3.google.com/d/FILE_ID
+    - This URL works for publicly shared files WITHOUT requiring authentication
+    - The file must be shared with "Anyone with the link can view" or publicly shared
+    """
+    if not input_str:
+        return ""
+    
+    input_str = input_str.strip()
+    
+    # If it's already a preview link, return as is
+    if "lh3.google.com" in input_str:
+        return input_str
+    
+    file_id = None
+    
+    # Pattern 1: /file/d/{FILE_ID}/view or /file/d/{FILE_ID}/
+    match = re.search(r'drive\.google\.com/file/d/([a-zA-Z0-9_-]+)(?:/|[?&])', input_str)
+    if match:
+        file_id = match.group(1)
+    
+    # Pattern 2: /open?id={FILE_ID}
+    if not file_id:
+        match = re.search(r'drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)', input_str)
+        if match:
+            file_id = match.group(1)
+    
+    # Pattern 3: uc?export=view&id={FILE_ID}
+    if not file_id:
+        match = re.search(r'[?&]id=([a-zA-Z0-9_-]+)', input_str)
+        if match:
+            file_id = match.group(1)
+    
+    # Pattern 4: Maybe it's just the file ID directly (long alphanumeric string)
+    if not file_id and len(input_str) > 20 and re.match(r'^[a-zA-Z0-9_-]+$', input_str):
+        file_id = input_str
+    
+    if file_id:
+        # Return public preview URL that works WITHOUT authentication
+        # File must be shared with "Anyone with the link" or publicly shared
+        return f"https://lh3.google.com/d/{file_id}"
+    
+    # If we couldn't extract, return original string
+    return input_str
 
 def preserve_html_tags(text):
     """
@@ -86,8 +144,103 @@ def render_page_builder_blocks(blocks):
         padding = settings.get('padding', '20')
         width = settings.get('width', '100')
         
-        # Build container styles
-        container_style = f"padding: {padding}px; width: {width}%; margin: 0 auto; box-sizing: border-box;"
+        # Get scale setting
+        scale = settings.get('scale', '100')
+        
+        # Build container styles with alignment and scale.
+        # Keep positioning and scaling on different wrappers to avoid visual drift.
+        width = width or '100'
+        scale = scale or '100'
+
+        try:
+            width_value = float(width)
+        except (TypeError, ValueError):
+            width_value = 100.0
+        width_value = max(1.0, min(width_value, 100.0))
+
+        try:
+            scale_factor = float(scale) / 100
+        except (TypeError, ValueError):
+            scale_factor = 1.0
+        scale_factor = max(0.1, min(scale_factor, 3.0))
+
+        # Handle custom positioning
+        use_custom_position = settings.get('useCustomPosition', False)
+        
+        if use_custom_position:
+            # For absolute positioning, parse coordinates intelligently
+            # Desktop coordinates
+            pos_x_raw = str(settings.get('posX', '0')).strip()
+            pos_y_raw = str(settings.get('posY', '0')).strip()
+            
+            # Check if posX contains % (width) or just pixels
+            pos_width = None
+            pos_x = 0
+            
+            if '%' in pos_x_raw:
+                # It's a width percentage
+                try:
+                    pos_width = float(pos_x_raw.replace('%', '').strip())
+                    pos_width = max(1.0, min(pos_width, 100.0))
+                except (TypeError, ValueError):
+                    pos_width = 100
+            else:
+                # It's a pixel position
+                try:
+                    pos_x = int(pos_x_raw)
+                except (TypeError, ValueError):
+                    pos_x = 0
+            
+            # Y position is always pixels
+            try:
+                pos_y = int(pos_y_raw)
+            except (TypeError, ValueError):
+                pos_y = 0
+            
+            # Mobile coordinates with same logic
+            pos_x_mobile_raw = str(settings.get('posXMobile', '0')).strip()
+            pos_y_mobile_raw = str(settings.get('posYMobile', '0')).strip()
+            
+            pos_width_mobile = None
+            pos_x_mobile = 0
+            
+            if '%' in pos_x_mobile_raw:
+                # It's a width percentage
+                try:
+                    pos_width_mobile = float(pos_x_mobile_raw.replace('%', '').strip())
+                    pos_width_mobile = max(1.0, min(pos_width_mobile, 100.0))
+                except (TypeError, ValueError):
+                    pos_width_mobile = 100
+            else:
+                # It's a pixel position
+                try:
+                    pos_x_mobile = int(pos_x_mobile_raw)
+                except (TypeError, ValueError):
+                    pos_x_mobile = 0
+            
+            try:
+                pos_y_mobile = int(pos_y_mobile_raw)
+            except (TypeError, ValueError):
+                pos_y_mobile = 0
+            
+            # If width is set via %, use that; otherwise fall back to regular width setting
+            width_for_positioning = pos_width if pos_width is not None else width_value
+            width_for_positioning_mobile = pos_width_mobile if pos_width_mobile is not None else width_value
+            
+            # Desktop positioning style
+            position_style_desktop = f"position: absolute; left: {pos_x}px; top: {pos_y}px; width: {width_for_positioning}%;"
+            # Mobile positioning style (applied at breakpoint)
+            position_style_mobile = f"position: absolute; left: {pos_x_mobile}px; top: {pos_y_mobile}px; width: {width_for_positioning_mobile}%;"
+            
+            outer_style = f"{position_style_desktop} box-sizing: border-box;"
+            # Add a data attribute for mobile styles to be applied via CSS
+            shell_style = f"width: 100%; max-width: 100%; data-mobile-style='{position_style_mobile}'"
+        else:
+            outer_style = "display: flex; justify-content: center; box-sizing: border-box;"
+            shell_style = f"width: {width_value}%; max-width: 100%;"
+        
+        scale_style = f"transform: scale({scale_factor}); transform-origin: 50% 50%;"
+        inner_style = f"padding: {padding}px; box-sizing: border-box;"
         
         if block_type == 'plain-text':
             text = preserve_html_tags(settings.get('text', ''))
@@ -100,53 +253,61 @@ def render_page_builder_blocks(blocks):
             underline = 'underline' if settings.get('underline') else 'none'
             
             text_style = f"white-space: pre-wrap; font-size: {font_size}px; font-weight: {weight}; text-align: {text_align}; color: {color}; line-height: {line_height}; font-style: {italic}; text-decoration: {underline};"
-            html = f'<div style="{container_style}"><p style="{text_style}">{text}</p></div>'
+            html = f'<div style="{outer_style}"><div style="{shell_style}"><div style="{scale_style}"><div style="{inner_style}"><p style="{text_style}">{text}</p></div></div></div></div>'
             html_parts.append(html)
             print(f"DEBUG RENDER: Added plain-text block")  # Debug
             
         elif block_type == 'hero':
             title = preserve_html_tags(settings.get('title', ''))
             subtitle = preserve_html_tags(settings.get('subtitle', ''))
-            image_url = settings.get('image', '')
+            image_url = extract_google_drive_id(settings.get('image', ''))
+            background_image_url = extract_google_drive_id(settings.get('backgroundImage', ''))
             title_font_size = settings.get('titleFontSize', '48')
             title_weight = settings.get('titleWeight', 'bold')
             subtitle_font_size = settings.get('subtitleFontSize', '24')
             subtitle_color = settings.get('subtitleColor', '#ffffff')
             
-            image_html = f'<img src="{image_url}" style="width: 100%; height: auto; border-radius: 8px; margin-bottom: 20px;" />' if image_url else ''
+            # Create background image style if provided, properly encode URL
+            background_style = ''
+            if background_image_url:
+                # Properly encode URL for CSS context while preserving URL structure
+                safe_url = urllib.parse.quote(background_image_url, safe=':/?#[]@!$&\'()*+,;=.-_~')
+                background_style = f"background-image: url('{safe_url}'); background-size: cover; background-position: center; background-repeat: no-repeat;"
             
-            html = f'''<div style="{container_style}; text-align: center; background: linear-gradient(135deg, #1e5919 0%, #337a2c 100%); color: white; border-radius: 12px;">
-                <div style="padding: {padding}px;">
-                    {image_html}
-                    <h1 style="font-size: {title_font_size}px; font-weight: {title_weight}; margin: 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">{title}</h1>
-                    <p style="font-size: {subtitle_font_size}px; margin: 10px 0; opacity: 0.95; color: {subtitle_color};">{subtitle}</p>
+            # Create image HTML with fixed width
+            image_html = f'<img src="{image_url}" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px;" />' if image_url else ''
+            
+            # Start with minimum height for hero section visibility
+            hero_min_height = "min-height: 300px;" if background_image_url else ""
+            
+            html = f'''<div style="{outer_style}"><div style="{shell_style}"><div style="{scale_style}; {background_style} color: white; border-radius: 12px; {hero_min_height}">
+                <div style="{inner_style}; display: flex; align-items: center; gap: 40px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <h1 style="font-size: {title_font_size}px; font-weight: {title_weight}; margin: 0 0 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">{title}</h1>
+                        <p style="font-size: {subtitle_font_size}px; margin: 0; opacity: 0.95; color: {subtitle_color};">{subtitle}</p>
+                    </div>
+                    {f'<div style="flex: 1; min-width: 250px; display: flex; justify-content: center;">{image_html}</div>' if image_html else ''}
                 </div>
-            </div>'''
+            </div></div></div>'''
             html_parts.append(html)
             print(f"DEBUG RENDER: Added hero block")  # Debug
             
         elif block_type == 'text-image':
             text = preserve_html_tags(settings.get('text', ''))
             image_url = settings.get('image', '')
-            image_position = settings.get('imagePosition', 'right')
             
             if not image_url:
                 # Just show text if no image
-                html = f'<div style="{container_style}"><p style="white-space: pre-wrap; line-height: 1.6;">{text}</p></div>'
+                html = f'<div style="{outer_style}"><div style="{shell_style}"><div style="{scale_style}"><div style="{inner_style}"><p style="white-space: pre-wrap; line-height: 1.6;">{text}</p></div></div></div></div>'
             else:
-                image_html = f'<img src="{image_url}" style="width: 100%; height: auto; border-radius: 8px;" />'
+                image_html = f'<img src="{image_url}" style="width: 100%; height: auto; border-radius: 8px; margin-bottom: 20px;" />'
                 text_html = f'<p style="white-space: pre-wrap; line-height: 1.6;">{text}</p>'
-                
-                if image_position == 'left':
-                    html = f'''<div style="{container_style}; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: center;">
-                        <div>{image_html}</div>
-                        <div>{text_html}</div>
-                    </div>'''
-                else:  # right
-                    html = f'''<div style="{container_style}; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: center;">
-                        <div>{text_html}</div>
-                        <div>{image_html}</div>
-                    </div>'''
+                html = f'''<div style="{outer_style}"><div style="{shell_style}"><div style="{scale_style}; display: flex; flex-direction: column; align-items: center;">
+                    <div style="{inner_style}">
+                        {image_html}
+                        {text_html}
+                    </div>
+                </div></div></div>'''
             
             html_parts.append(html)
             
@@ -176,7 +337,7 @@ def render_page_builder_blocks(blocks):
                 </a>'''
             
             buttons_html += '</div>'
-            html = f'<div style="{container_style}">{buttons_html}</div>'
+            html = f'<div style="{outer_style}"><div style="{shell_style}"><div style="{scale_style}"><div style="{inner_style}">{buttons_html}</div></div></div></div>'
             html_parts.append(html)
             
         elif block_type == 'youtube':
@@ -199,26 +360,30 @@ def render_page_builder_blocks(blocks):
                     alt_embed_url = f"https://www.youtube-nocookie.com/embed/{video_id}?rel=0"
                     print(f"DEBUG YOUTUBE: Alternative embed URL: {alt_embed_url}")
                     
-                    html = f'''<div style="{container_style}">
-                        <iframe width="100%" height="{height}" src="{embed_url}" frameborder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowfullscreen style="border-radius: 8px;"></iframe>
-                        <!-- DEBUG: video_id={video_id}, embed_url={embed_url} -->
-                    </div>'''
+                    html = f'''<div style="{outer_style}"><div style="{shell_style}"><div style="{scale_style}">
+                        <div style="{inner_style}">
+                            <iframe width="100%" height="{height}" src="{embed_url}" frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen style="border-radius: 8px;"></iframe>
+                            <!-- DEBUG: video_id={video_id}, embed_url={embed_url} -->
+                        </div>
+                    </div></div></div>'''
                     html_parts.append(html)
                     print(f"DEBUG YOUTUBE: Iframe HTML generated successfully")
                 else:
                     # Invalid video ID format
                     print(f"DEBUG YOUTUBE: Invalid video ID - showing error message. video_id='{video_id}', len={len(video_id) if video_id else 0}")
-                    html = f'''<div style="{container_style}; background: #fff3cd; padding: 20px; border-radius: 8px; text-align: center;">
-                        <p style="color: #856404; margin: 0;">Invalid YouTube video ID format</p>
-                        <small style="color: #856404;">Please use: dQw4w9WgXcQ or https://youtube.com/watch?v=dQw4w9WgXcQ</small>
-                    </div>'''
+                    html = f'''<div style="{outer_style}"><div style="{shell_style}"><div style="{scale_style}; background: #fff3cd; border-radius: 8px; text-align: center;">
+                        <div style="{inner_style}">
+                            <p style="color: #856404; margin: 0;">Invalid YouTube video ID format</p>
+                            <small style="color: #856404;">Please use: dQw4w9WgXcQ or https://youtube.com/watch?v=dQw4w9WgXcQ</small>
+                        </div>
+                    </div></div></div>'''
                     html_parts.append(html)
                 
         elif block_type == 'carousel':
             items = settings.get('items', [])
-            alignment = settings.get('alignment', 'centered')
+            carousel_layout = settings.get('alignment', 'centered')  # This is the carousel layout (centered vs dual)
             autoplay = settings.get('autoplay', False)
             interval = settings.get('interval', 3000)
             item_title_font_size = settings.get('itemTitleFontSize', '24')
@@ -227,8 +392,8 @@ def render_page_builder_blocks(blocks):
             carousel_id = f"carousel_{block.get('id', 'default')}"
             
             if items:
-                # Determine layout based on alignment
-                if alignment == 'centered':
+                # Determine layout based on carousel_layout
+                if carousel_layout == 'centered':
                     # Single centered carousel with proper height constraint
                     items_html = ''
                     for idx, item in enumerate(items):
@@ -270,14 +435,16 @@ def render_page_builder_blocks(blocks):
                         </script>
                         '''
                     
-                    html = f'''<div style="{container_style}; position: relative; margin-bottom: 20px;">
-                        <div id="{carousel_id}" style="position: relative; min-height: 500px; overflow: hidden;">
-                            {items_html}
-                            {nav_html}
+                    html = f'''<div style="{outer_style}"><div style="{shell_style}"><div style="{scale_style}; position: relative; margin-bottom: 20px;">
+                        <div style="{inner_style}">
+                            <div id="{carousel_id}" style="position: relative; min-height: 500px; overflow: hidden;">
+                                {items_html}
+                                {nav_html}
+                            </div>
+                            {dots_html}
+                            {autoplay_script}
                         </div>
-                        {dots_html}
-                        {autoplay_script}
-                    </div>'''
+                    </div></div></div>'''
                     
                 else:
                     # Dual layout (left or right) - show 2 items side by side
@@ -304,16 +471,20 @@ def render_page_builder_blocks(blocks):
                         <p style="font-size: {item_description_font_size}px; color: #666; line-height: 1.6;">{item2_desc}</p>
                     </div>'''
                     
-                    if alignment == 'left':
-                        html = f'''<div style="{container_style}; display: flex; gap: 30px; align-items: flex-start; margin-bottom: 20px;">
-                            {item1_html}
-                            {item2_html}
-                        </div>'''
+                    if carousel_layout == 'left':
+                        html = f'''<div style="{outer_style}"><div style="{shell_style}"><div style="{scale_style}; display: flex; gap: 30px; align-items: flex-start; margin-bottom: 20px;">
+                            <div style="{inner_style}">
+                                {item1_html}
+                                {item2_html}
+                            </div>
+                        </div></div></div>'''
                     else:  # right
-                        html = f'''<div style="{container_style}; display: flex; gap: 30px; align-items: flex-start; flex-direction: row-reverse; margin-bottom: 20px;">
-                            {item1_html}
-                            {item2_html}
-                        </div>'''
+                        html = f'''<div style="{outer_style}"><div style="{shell_style}"><div style="{scale_style}; display: flex; gap: 30px; align-items: flex-start; flex-direction: row-reverse; margin-bottom: 20px;">
+                            <div style="{inner_style}">
+                                {item1_html}
+                                {item2_html}
+                            </div>
+                        </div></div></div>'''
                 
                 html_parts.append(html)
     
@@ -382,4 +553,9 @@ def render_page_builder_blocks(blocks):
     </script>
     '''
     
-    return '\n'.join(html_parts) + carousel_script
+    # Wrap all blocks in a positioned container so absolutely positioned elements
+    # are positioned relative to this container, not the window
+    content_html = '\n'.join(html_parts) + carousel_script
+    wrapped_html = f'<div style="position: relative; width: 100%; min-height: 600px;">{content_html}</div>'
+    
+    return wrapped_html

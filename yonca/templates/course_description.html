@@ -181,6 +181,19 @@
         color: #337a2c;
         font-weight: bold;
     }
+    
+    /* Page builder custom positioning for desktop */
+    [style*="position: absolute"] {
+        z-index: 10;
+    }
+    
+    /* Page builder custom positioning for mobile */
+    @media (max-width: 768px) {
+        /* Mobile responsive positioning - handled by JavaScript */
+        [data-mobile-style] {
+            position: absolute !important;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -196,7 +209,7 @@
     
     {# Check for page builder content first #}
     {% if course.page_builder_data and course.page_builder_data|length > 0 %}
-        <div style="margin-top:1.2rem;">
+        <div style="margin-top:1.2rem; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); box-sizing: border-box;">
             {# Use translated data if available, otherwise use original #}
             {% set page_data = page_builder_data_translated or course.page_builder_data %}
             {{ render_page_builder_blocks(page_data) | safe }}
@@ -342,4 +355,121 @@
 {% if course.page_show_footer %}
 {% include 'components/footer.html' %}
 {% endif %}
+
+<script>
+// Handle responsive positioning for page builder blocks
+function applyResponsivePositioning() {
+    const elements = document.querySelectorAll('[data-mobile-style]');
+    const isMobile = window.innerWidth <= 768;
+    
+    elements.forEach(element => {
+        if (isMobile) {
+            const mobileStyle = element.getAttribute('data-mobile-style');
+            // Parse and apply mobile styles
+            if (mobileStyle) {
+                const styles = mobileStyle.split(';').filter(s => s.trim());
+                styles.forEach(style => {
+                    const [prop, value] = style.split(':').map(s => s.trim());
+                    if (prop && value) {
+                        // Convert CSS property names to camelCase for JavaScript
+                        const jsProperty = prop.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+                        element.style[jsProperty] = value;
+                    }
+                });
+            }
+        }
+    });
+}
+
+// Apply on load and on resize
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyResponsivePositioning);
+} else {
+    applyResponsivePositioning();
+}
+
+window.addEventListener('resize', applyResponsivePositioning);
+</script>
+
+<script>
+// Auto-pause videos when they scroll out of view
+document.addEventListener('DOMContentLoaded', function() {
+    // Select all videos and iframes in page
+    const allMediaElements = document.querySelectorAll('video, iframe');
+    
+    if (!allMediaElements.length) return;
+
+    // YouTube requires enablejsapi=1 for pause commands via postMessage.
+    allMediaElements.forEach(media => {
+        if (media.tagName !== 'IFRAME') return;
+        const src = media.getAttribute('src') || '';
+        if (!(src.includes('youtube.com/embed/') || src.includes('youtube-nocookie.com/embed/'))) return;
+
+        try {
+            const url = new URL(src, window.location.origin);
+            if (!url.searchParams.has('enablejsapi')) url.searchParams.set('enablejsapi', '1');
+            if (!url.searchParams.has('origin')) url.searchParams.set('origin', window.location.origin);
+            const updatedSrc = url.toString();
+            if (updatedSrc !== src) {
+                media.setAttribute('src', updatedSrc);
+            }
+        } catch (e) {
+            console.warn('Could not normalize YouTube iframe URL:', e);
+        }
+    });
+    
+    // Track pause state for each element to avoid redundant operations
+    const pausedState = new Map();
+    
+    // Function to check and update media visibility
+    function updateMediaVisibility() {
+        allMediaElements.forEach(media => {
+            const rect = media.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            const windowWidth = window.innerWidth;
+            
+            // Element is significantly visible if most of it is in viewport
+            const isSignificantlyVisible = 
+                rect.bottom > windowHeight * 0.25 &&  // Bottom is in upper 75% of screen
+                rect.top < windowHeight * 0.75 &&     // Top is in lower 75% of screen
+                rect.right > windowWidth * 0.1 &&     // Right edge is past 10% from left
+                rect.left < windowWidth * 0.9;        // Left edge is before 90% from left
+            
+            const currentState = pausedState.get(media);
+            
+            if (!isSignificantlyVisible && currentState !== 'paused') {
+                // Element should be paused
+                if (media.tagName === 'VIDEO') {
+                    media.pause();
+                } else if (media.tagName === 'IFRAME') {
+                    media.style.opacity = '0.5';
+                    media.style.pointerEvents = 'none';
+                    
+                    // Try to pause YouTube video
+                    if (media.src.includes('youtube.com') || media.src.includes('youtu.be')) {
+                        try {
+                            const pauseCommand = JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] });
+                            media.contentWindow.postMessage(pauseCommand, '*');
+                        } catch (e) {
+                            console.warn('Could not pause YouTube video:', e);
+                        }
+                    }
+                }
+                pausedState.set(media, 'paused');
+            } else if (isSignificantlyVisible && currentState !== 'playing') {
+                // Element should be playing
+                media.style.opacity = '1';
+                media.style.pointerEvents = 'auto';
+                pausedState.set(media, 'playing');
+            }
+        });
+        
+        // Continue checking on next frame
+        requestAnimationFrame(updateMediaVisibility);
+    }
+    
+    // Start continuous checking
+    updateMediaVisibility();
+});
+</script>
 {% endblock %}

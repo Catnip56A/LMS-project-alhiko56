@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg">
+<nav class="navbar navbar-light navbar-expand-lg">
     <div class="container">
         <a class="navbar-brand" href="/">
             {% if home_content.site_logo_url %}
@@ -7,10 +7,6 @@
                 <span translate="no" style="color: #337a2c; font-weight: bold; font-size: 1.5rem;">{{ home_content.site_name or 'Yonca' }}</span>
             {% endif %}
         </a>
-
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
 
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
@@ -61,8 +57,47 @@
                 {% endif %}
             </ul>
         </div>
+
+        <div class="mobile-menu-container">
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                <span class="hamburger-icon">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+            </button>
+        </div>
     </div>
 </nav>
+
+<!-- Mobile Navigation Overlay -->
+<div class="mobile-nav-overlay" id="mobile-nav-overlay">
+    <div class="mobile-nav-menu" id="mobile-nav-menu">
+        <button class="mobile-nav-close" id="mobile-nav-close">
+            <i class="fas fa-times"></i>
+        </button>
+        <a href="javascript:void(0)" class="nav-link active" id="mobile-home-link">{{ _('Home') }}</a>
+        <a href="javascript:void(0)" class="nav-link" id="mobile-courses-link">{{ _('Courses') }}</a>
+        <a href="javascript:void(0)" class="nav-link" id="mobile-forum-link">{{ _('Forum') }}</a>
+        <a href="javascript:void(0)" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
+        <a href="javascript:void(0)" class="nav-link" id="mobile-tavi-link">{{ _('TAVI Test') }}</a>
+        <a href="javascript:void(0)" class="nav-link" id="mobile-about-link">{{ _('About Company') }}</a>
+        {% set lang_cycle = {'az': 'ru', 'ru': 'en', 'en': 'az'} %}
+        {% set lang_names = {'en': 'English', 'az': 'Azeri', 'ru': 'Russian'} %}
+        <a href="/set_language/{{ lang_cycle.get(current_locale, 'az') }}" class="nav-link" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'az'), 'English') }}">
+            🌐 {{ lang_names.get(current_locale, 'English') }}
+        </a>
+        <div id="mobile-auth-buttons" style="margin-top: 2rem; text-align: center;">
+            <button id="mobile-login-btn" onclick="window.location.href='/login'" style="width: 100%; margin-bottom: 0.5rem;">{{ _('Login') }}</button>
+        </div>
+        <div id="mobile-user-info" style="margin-top: 2rem; text-align: center; display: none;">
+            <p style="color: #353e45; margin-bottom: 1rem;">{{ _('Welcome') }}, <span id="mobile-user-name"></span>!</p>
+            <button id="mobile-admin-btn" onclick="window.location.href='/admin'" style="width: 100%; margin-bottom: 0.5rem; display: none;">{{ _('Admin') }}</button>
+            <a href="{{ url_for('auth.google_account_info') }}" style="display: block; width: 100%; margin-bottom: 0.5rem; background: #337A2C; color: white; text-decoration: none; padding: 0.75rem 1rem; border-radius: 4px; cursor: pointer; text-align: center;">{{ _('Link Google Account') }}</a>
+            <button onclick="window.location.href='/logout'" style="width: 100%;">{{ _('Logout') }}</button>
+        </div>
+    </div>
+</div>
 
 <style>
     .navbar {
@@ -109,17 +144,21 @@
         border-color: #337a2c !important;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
-    
+
     .navbar .dropdown-menu {
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         border: 1px solid #e0e0e0;
         margin-top: 0.5rem;
+        background-color: white;
+        padding: 0.5rem 0;
     }
     
     .navbar .dropdown-item {
-        padding: 0.5rem 1rem;
+        padding: 0.75rem 1rem;
         transition: all 0.3s ease;
+        color: #353e45;
+        font-weight: 500;
     }
     
     .navbar .dropdown-item:hover {
@@ -127,13 +166,278 @@
         color: #337a2c;
     }
     
-    .navbar-toggler {
-        border: 1px solid #e0e0e0;
-        border-radius: 4px;
-        padding: 0.5rem;
+    .navbar .dropdown-item.active,
+    .navbar .dropdown-item:active {
+        background-color: transparent;
+        color: #337a2c;
     }
     
-    .navbar-toggler-icon {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(51, 122, 44, 1)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    .navbar .dropdown-divider {
+        margin: 0.5rem 0;
+        border-color: #e0e0e0;
+    }
+
+    .mobile-menu-container {
+        display: none;
+    }
+
+    .mobile-menu-toggle {
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 0.5rem;
+        color: #353e45;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hamburger-icon {
+        width: 20px;
+        height: 14px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .hamburger-icon span {
+        display: block;
+        height: 2px;
+        width: 100%;
+        background-color: #353e45;
+        border-radius: 1px;
+        transition: all 0.3s ease;
+    }
+
+    .mobile-menu-toggle:hover .hamburger-icon span {
+        background-color: #337a2c;
+    }
+
+    .mobile-menu-toggle:hover {
+        background: #e5e7eb;
+        border-color: #337a2c;
+        transform: scale(1.05);
+    }
+
+    .mobile-nav-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+    }
+
+    .mobile-nav-overlay.active {
+        display: block;
+    }
+
+    .mobile-nav-menu {
+        position: fixed;
+        top: 0;
+        right: -300px;
+        width: 280px;
+        height: 100%;
+        background: white;
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+        transition: right 0.3s ease;
+        z-index: 1001;
+        padding: 2rem 1rem;
+        overflow-y: auto;
+    }
+
+    .mobile-nav-menu.active {
+        right: 0;
+    }
+
+    .mobile-nav-menu .nav-link {
+        display: block;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 20px;
+        text-align: center;
+        font-size: 1.1rem;
+        color: #353e45;
+        text-decoration: none;
+        background-color: #fffcf0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .mobile-nav-menu .nav-link:hover {
+        background-color: #1e5919;
+        color: #fafbed;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
+    }
+
+    .mobile-nav-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        font-size: 1.8rem;
+        color: #353e45;
+        cursor: pointer;
+        padding: 0;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .mobile-nav-close:hover {
+        color: #337a2c;
+        transform: scale(1.2);
+    }
+
+    #mobile-login-btn {
+        background: #337A2C;
+        color: white;
+        border: none;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    #mobile-login-btn:hover {
+        background: #1e5919;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    #mobile-admin-btn {
+        background: #1e5919;
+        color: white;
+        border: none;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    #mobile-admin-btn:hover {
+        background: #337A2C;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    @media (max-width: 991px) {
+        #navbarNav {
+            display: none !important;
+        }
+        
+        .mobile-menu-container {
+            display: block;
+        }
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile menu functionality
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+        const mobileNavMenu = document.getElementById('mobile-nav-menu');
+        const mobileNavClose = document.getElementById('mobile-nav-close');
+
+        // Mobile menu toggle
+        if (mobileMenuToggle) {
+            mobileMenuToggle.addEventListener('click', () => {
+                mobileNavOverlay.classList.add('active');
+                mobileNavMenu.classList.add('active');
+            });
+        }
+
+        // Close mobile menu
+        if (mobileNavClose) {
+            mobileNavClose.addEventListener('click', () => {
+                closeMobileMenu();
+            });
+        }
+
+        // Close mobile menu when clicking overlay
+        if (mobileNavOverlay) {
+            mobileNavOverlay.addEventListener('click', (e) => {
+                if (e.target === mobileNavOverlay) {
+                    closeMobileMenu();
+                }
+            });
+        }
+
+        // Mobile navigation links
+        const mobileNavLinks = document.querySelectorAll('#mobile-nav-menu .nav-link');
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', (event) => {
+                // Skip language button - let it navigate normally
+                if (link.href?.includes('/set_language/')) {
+                    return;
+                }
+                event.preventDefault();
+                closeMobileMenu();
+                // For course pages, just redirect to home
+                if (link.id === 'mobile-home-link') {
+                    window.location.href = '/';
+                } else if (link.id === 'mobile-courses-link') {
+                    window.location.href = '/#courses';
+                } else if (link.id === 'mobile-forum-link') {
+                    window.location.href = '/#forum';
+                } else if (link.id === 'mobile-resources-link') {
+                    window.location.href = '/#resources';
+                } else if (link.id === 'mobile-tavi-link') {
+                    window.location.href = '/#tavi-test';
+                } else if (link.id === 'mobile-about-link') {
+                    window.location.href = '/#about';
+                }
+            });
+        });
+
+        function closeMobileMenu() {
+            mobileNavOverlay.classList.remove('active');
+            mobileNavMenu.classList.remove('active');
+        }
+
+        // Update mobile auth buttons on page load
+        updateMobileAuthButtons();
+
+        // Override checkUser if it exists to also update mobile auth buttons
+        if (window.checkUser) {
+            const originalCheckUser = window.checkUser;
+            window.checkUser = function() {
+                return originalCheckUser().then(() => {
+                    updateMobileAuthButtons();
+                });
+            };
+        }
+    });
+
+    function updateMobileAuthButtons() {
+        const mobileAuthButtons = document.getElementById('mobile-auth-buttons');
+        const mobileUserInfo = document.getElementById('mobile-user-info');
+        const mobileUserName = document.getElementById('mobile-user-name');
+        const mobileAdminBtn = document.getElementById('mobile-admin-btn');
+
+        if (window.currentUser) {
+            mobileAuthButtons.style.display = 'none';
+            mobileUserInfo.style.display = 'block';
+            mobileUserName.textContent = window.currentUser.username;
+            if (window.currentUser.is_admin) {
+                mobileAdminBtn.style.display = 'block';
+            }
+        } else {
+            mobileAuthButtons.style.display = 'block';
+            mobileUserInfo.style.display = 'none';
+        }
+    }
+</script>
