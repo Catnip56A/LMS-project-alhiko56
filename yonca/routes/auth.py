@@ -24,7 +24,12 @@ def get_google_redirect_uri(redirect_uri=None):
     # Fallback to automatic detection
     flask_env = os.environ.get('FLASK_ENV', 'development')
     is_local = request.host in ['127.0.0.1:5000', 'localhost:5000'] or flask_env == 'development'
-    return "http://127.0.0.1:5000/auth/google/callback" if is_local else "https://magsud.yonca-sdc.com/auth/google/callback"
+    if is_local:
+        return "http://127.0.0.1:5000/auth/google/callback"
+    elif 'beta' in request.host:
+        return "https://beta.yonca-sdc.com/auth/google/callback"
+    else:
+        return "https://beta.yonca-sdc.com/auth/google/callback"
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -142,7 +147,7 @@ def link_google_account():
         flash('Google OAuth not configured')
         return redirect(url_for('auth.login'))
     
-    # Determine redirect URI based on environment
+    # Determine redirect URI based on environment and request host
     flask_env = os.environ.get('FLASK_ENV', 'development')
     is_local = request.host in ['127.0.0.1:5000', 'localhost:5000'] or flask_env == 'development'
     
@@ -200,7 +205,10 @@ def google_link_callback():
         # Fallback if redirect_uri not stored
         flask_env = os.environ.get('FLASK_ENV', 'development')
         is_local = request.host in ['127.0.0.1:5000', 'localhost:5000'] or flask_env == 'development'
-        redirect_uri = 'http://127.0.0.1:5000/auth/google/link' if is_local else 'https://magsud.yonca-sdc.com/auth/google/link'
+        if is_local:
+            redirect_uri = 'http://127.0.0.1:5000/auth/google/link'
+        else:
+            redirect_uri = 'https://beta.yonca-sdc.com/auth/google/link'
     
     # Exchange code for access token
     token_url = 'https://oauth2.googleapis.com/token'
@@ -292,7 +300,7 @@ def google_callback():
     if is_local:
         redirect_uri = 'http://127.0.0.1:5000/auth/google/callback'
     else:
-        redirect_uri = 'https://magsud.yonca-sdc.com/auth/google/callback'
+        redirect_uri = 'https://beta.yonca-sdc.com/auth/google/callback'
     
     # Exchange code for access token
     token_url = 'https://oauth2.googleapis.com/token'
