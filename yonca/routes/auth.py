@@ -19,6 +19,14 @@ def get_google_redirect_uri(redirect_uri=None):
         raise RuntimeError("GOOGLE_REDIRECT_URI environment variable is not set")
     return uri
 
+def get_google_link_uri():
+    from urllib.parse import urlparse
+    uri = os.environ.get('GOOGLE_REDIRECT_URI')
+    if not uri:
+        raise RuntimeError("GOOGLE_REDIRECT_URI environment variable is not set")
+    parsed = urlparse(uri)
+    return f"{parsed.scheme}://{parsed.netloc}/auth/google/link"
+
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -135,16 +143,7 @@ def link_google_account():
         flash('Google OAuth not configured')
         return redirect(url_for('auth.login'))
     
-    # Determine redirect URI based on environment and request host
-    flask_env = os.environ.get('FLASK_ENV', 'development')
-    is_local = request.host in ['127.0.0.1:5000', 'localhost:5000'] or flask_env == 'development'
-    
-    if is_local:
-        redirect_uri = 'http://127.0.0.1:5000/auth/google/link'
-    else:
-        redirect_uri = 'https://beta.yonca-sdc.com/auth/google/link'
-    
-    print(f"DEBUG: Link account - request.host={request.host}, redirect_uri={redirect_uri}")
+    redirect_uri = get_google_link_uri()
     
     scope = 'openid email profile https://www.googleapis.com/auth/drive.file'
     state = secrets.token_urlsafe(32)  # Generate a secure state
@@ -190,13 +189,7 @@ def google_link_callback():
     # Use the same redirect URI as used in link_google_account (stored in session)
     redirect_uri = session.pop('oauth_redirect_uri', None)
     if not redirect_uri:
-        # Fallback if redirect_uri not stored
-        flask_env = os.environ.get('FLASK_ENV', 'development')
-        is_local = request.host in ['127.0.0.1:5000', 'localhost:5000'] or flask_env == 'development'
-        if is_local:
-            redirect_uri = 'http://127.0.0.1:5000/auth/google/link'
-        else:
-            redirect_uri = 'https://beta.yonca-sdc.com/auth/google/link'
+        redirect_uri = get_google_link_uri()
     
     # Exchange code for access token
     token_url = 'https://oauth2.googleapis.com/token'
@@ -281,14 +274,7 @@ def google_callback():
     client_id = current_app.config.get('GOOGLE_CLIENT_ID')
     client_secret = current_app.config.get('GOOGLE_CLIENT_SECRET')
     
-    # Determine redirect URI based on environment (must match the one used in login_google)
-    flask_env = os.environ.get('FLASK_ENV', 'development')
-    is_local = request.host in ['127.0.0.1:5000', 'localhost:5000'] or flask_env == 'development'
-    
-    if is_local:
-        redirect_uri = 'http://127.0.0.1:5000/auth/google/callback'
-    else:
-        redirect_uri = 'https://beta.yonca-sdc.com/auth/google/callback'
+    redirect_uri = get_google_redirect_uri()
     
     # Exchange code for access token
     token_url = 'https://oauth2.googleapis.com/token'
