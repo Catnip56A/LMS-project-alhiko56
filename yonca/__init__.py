@@ -195,9 +195,12 @@ def create_app(config_name='development'):
         result = re.sub(pattern, replace_button, text, flags=re.IGNORECASE)
         return Markup(result)
     
-    # Start background job worker
-    from yonca.job_manager import job_manager
-    job_manager.start_worker()
+    # Start background job worker — skip during Flask CLI commands (migrations, shell, etc.)
+    import sys
+    is_cli = any(cmd in sys.argv for cmd in ('db', 'shell', 'routes', 'translate'))
+    if not is_cli:
+        from yonca.job_manager import job_manager
+        job_manager.start_worker(app)
     
     return app
 

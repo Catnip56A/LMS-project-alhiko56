@@ -105,11 +105,12 @@ class JobManager:
         self.worker_thread = None
         self.running = False
 
-    def start_worker(self):
+    def start_worker(self, app):
         """Start the background worker thread"""
         if self.worker_thread and self.worker_thread.is_alive():
             return
 
+        self.app = app
         self.running = True
         self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
         self.worker_thread.start()
@@ -157,12 +158,7 @@ class JobManager:
 
     def _worker_loop(self):
         """Main worker loop that processes queued jobs from database"""
-        # Import here to avoid circular imports
-        from yonca import create_app
-        
-        app = create_app()
-        
-        with app.app_context():
+        with self.app.app_context():
             while self.running:
                 try:
                     # Get next queued job from database
