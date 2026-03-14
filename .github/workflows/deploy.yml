@@ -38,6 +38,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Copy compose and Caddyfile
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml,deploy/Caddyfile"
+          target: /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name }}/yonca
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
