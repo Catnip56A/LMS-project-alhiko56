@@ -87,7 +87,6 @@ services:
       - "443:443/udp"
     volumes:
       - ./deploy/Caddyfile.local:/etc/caddy/Caddyfile:ro
-      - ./static:/srv/static:ro
       - ./data/caddy-local:/data
     depends_on:
       - app-prod-dev
@@ -134,7 +133,6 @@ services:
       - "443:443/udp"
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./static:/srv/static:ro
       - ./data/caddy:/data
     depends_on:
       - app

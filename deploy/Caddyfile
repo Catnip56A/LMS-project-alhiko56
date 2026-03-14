@@ -3,13 +3,6 @@
 		max_size 500MB
 	}
 
-	handle_path /static/* {
-		root * /srv/static
-		file_server {
-			pass_thru
-		}
-	}
-
 	handle {
 		reverse_proxy app:8000 {
 			transport http {

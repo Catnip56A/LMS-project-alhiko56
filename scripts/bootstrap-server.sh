@@ -8,8 +8,7 @@
 #   3. Creates deploy directory structure for production and staging
 #   4. Copies docker-compose.yml and deploy/Caddyfile
 #   5. Installs dnsmasq prod config
-#   6. Extracts static files from the Docker image
-#   7. Prints next steps
+#   6. Prints next steps
 
 set -euo pipefail
 
@@ -17,8 +16,6 @@ SSH_HOST="${1:?Usage: $0 <ssh-host> <ssh-user>}"
 SSH_USER="${2:?Usage: $0 <ssh-host> <ssh-user>}"
 SSH="ssh ${SSH_USER}@${SSH_HOST}"
 SCP="scp"
-GHCR_OWNER="${GHCR_OWNER:-$(grep GHCR_OWNER .env | cut -d= -f2)}"
-IMAGE="ghcr.io/${GHCR_OWNER}/yonca:latest"
 
 ENVS=(production staging)
 
@@ -38,15 +35,14 @@ echo "  Done — reconnect for group membership to take effect."
 # ── 2. Create directory structure ────────────────────────────────────────────
 echo "▶ Creating directory structure..."
 for ENV in "${ENVS[@]}"; do
-  $SSH "mkdir -p \$HOME/deploy/${ENV}/yonca/{deploy,data/postgres,data/caddy,flask_session,logs,static}"
+  $SSH "mkdir -p \$HOME/deploy/${ENV}/yonca/{deploy,data/postgres,data/caddy,flask_session,logs}"
 done
 
 # ── 3. Copy docker-compose.yml and Caddyfile ─────────────────────────────────
 echo "▶ Copying compose and Caddyfile..."
 for ENV in "${ENVS[@]}"; do
-  DEST="${SSH_USER}@${SSH_HOST}:\$HOME/deploy/${ENV}/yonca"
-  $SCP docker-compose.yml            "${SSH_USER}@${SSH_HOST}:~/deploy/${ENV}/yonca/docker-compose.yml"
-  $SCP deploy/Caddyfile              "${SSH_USER}@${SSH_HOST}:~/deploy/${ENV}/yonca/deploy/Caddyfile"
+  $SCP docker-compose.yml  "${SSH_USER}@${SSH_HOST}:~/deploy/${ENV}/yonca/docker-compose.yml"
+  $SCP deploy/Caddyfile    "${SSH_USER}@${SSH_HOST}:~/deploy/${ENV}/yonca/deploy/Caddyfile"
 done
 
 # ── 4. Install dnsmasq config ─────────────────────────────────────────────────
@@ -55,20 +51,7 @@ $SSH "command -v dnsmasq" 2>/dev/null || $SSH "sudo apt-get install -y dnsmasq"
 $SCP deploy/dnsmasq/prod.conf "${SSH_USER}@${SSH_HOST}:/tmp/yonca-dnsmasq.conf"
 $SSH "sudo mv /tmp/yonca-dnsmasq.conf /etc/dnsmasq.d/yonca.conf && sudo systemctl restart dnsmasq"
 
-# ── 5. Extract static files from image ───────────────────────────────────────
-echo "▶ Extracting static files from image..."
-$SSH "
-  docker pull ${IMAGE} 2>/dev/null || true
-  for ENV in ${ENVS[*]}; do
-    docker run --rm \
-      -v \$HOME/deploy/\${ENV}/yonca/static:/extract \
-      ${IMAGE} \
-      sh -c 'cp -r /app/static/. /extract/'
-    echo \"  static → ~/deploy/\${ENV}/yonca/static/\"
-  done
-"
-
-# ── 7. Done ───────────────────────────────────────────────────────────────────
+# ── 5. Done ───────────────────────────────────────────────────────────────────
 echo ""
 echo "✓ Bootstrap complete. Next steps:"
 echo ""
