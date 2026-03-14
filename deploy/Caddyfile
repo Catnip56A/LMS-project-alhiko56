@@ -5,7 +5,9 @@
 
 	handle_path /static/* {
 		root * /srv/static
-		file_server
+		file_server {
+			pass_thru
+		}
 	}
 
 	handle {
