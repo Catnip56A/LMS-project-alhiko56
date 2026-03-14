@@ -4,8 +4,6 @@ Automatically translate .po files using LibreTranslate API
 This script reads the messages.po files and populates translations
 """
 import os
-from dotenv import load_dotenv
-load_dotenv()
 
 from yonca import create_app
 from yonca.translation_service import translation_service

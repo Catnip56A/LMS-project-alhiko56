@@ -87,23 +87,14 @@ def upload_gallery_image_to_drive(file, filename):
         return None
 
 def get_google_redirect_uri(redirect_uri=None):
-    """Get the correct Google OAuth redirect URI based on configuration and environment"""
     if redirect_uri:
         return redirect_uri
-    
-    # Check for explicit configuration first
-    redirect_uri = os.environ.get('GOOGLE_REDIRECT_URI')
-    if redirect_uri:
-        return redirect_uri
-    
-    # Auto-detect based on request host
-    flask_env = os.environ.get('FLASK_ENV', 'development')
-    is_local = request.host in ['127.0.0.1:5000', 'localhost:5000'] or flask_env == 'development'
-    
-    if is_local:
-        return "http://127.0.0.1:5000/admin/google_login/"
-    else:
-        return "https://magsud.yonca-sdc.com/admin/google_login/"
+    uri = os.environ.get('GOOGLE_REDIRECT_URI')
+    if not uri:
+        raise RuntimeError("GOOGLE_REDIRECT_URI environment variable is not set")
+    from urllib.parse import urlparse
+    parsed = urlparse(uri)
+    return f"{parsed.scheme}://{parsed.netloc}/admin/google_login/"
 from yonca.models import User, Course, ForumMessage, ForumChannel, TaviTest, Resource, db, HomeContent
 
 class AdminIndexView(AdminIndexView):

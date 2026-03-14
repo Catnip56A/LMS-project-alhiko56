@@ -6,10 +6,8 @@ This allows users to relink Google accounts without "already linked" errors
 
 import sys
 import os
-from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 

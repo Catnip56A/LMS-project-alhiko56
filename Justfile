@@ -1,16 +1,30 @@
+set dotenv-load
+
+# Derived vars for local (non-Docker) execution — mirrors docker-compose behaviour
+_db_url  := "postgresql://" + env('POSTGRES_USER', 'yonca_user') + ":" + env('POSTGRES_PASSWORD', 'changeme') + "@localhost:5432/" + env('POSTGRES_DB', 'yonca_db')
+_redir   := "http://localhost:5000/auth/google/callback"
+
 # Install dependencies
 install:
     uv sync
 
-# Run dev server
+# Run dev server (local, no Docker)
 dev:
-    flask run --debug --host=0.0.0.0 --port=5000
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} flask run --debug --host=0.0.0.0 --port=5000
 
-# Run with gunicorn (production-like)
+# Run with gunicorn (local, no Docker)
 serve:
-    gunicorn --config deploy/gunicorn_config.py app:app
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} gunicorn --config deploy/gunicorn_config.py app:app
 
-# Database migrations (dev)
+# Flask shell (local)
+shell:
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} flask shell
+
+# Create admin user (local)
+create-admin:
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} python scripts/admin/create_admin.py
+
+# Database migrations (via Docker)
 migrate:
     docker compose --profile dev run --rm migrate
 
@@ -23,10 +37,10 @@ db-stamp:
 
 # Compile translations
 translate:
-    uv run pybabel compile -d yonca/translations
+    pybabel compile -d yonca/translations
 
 extract-messages:
-    uv run pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot .
+    pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot .
 
 # Docker — dev
 up:
@@ -64,11 +78,3 @@ prod-down:
 
 prod-logs:
     docker compose --profile prod logs -f app
-
-# Shell
-shell:
-    uv run flask shell
-
-# Create admin user
-create-admin:
-    uv run python scripts/admin/create_admin.py

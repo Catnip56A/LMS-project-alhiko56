@@ -7,9 +7,6 @@ import psycopg2
 import subprocess
 import os
 from urllib.parse import urlparse
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Get database URL from environment
 database_url = os.getenv('DATABASE_URL')

@@ -2,10 +2,8 @@
 Yonca Application Entry Point
 """
 import os
-from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()
 
 from yonca import create_app
 

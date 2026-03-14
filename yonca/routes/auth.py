@@ -12,24 +12,12 @@ import os
 from datetime import datetime, timedelta
 
 def get_google_redirect_uri(redirect_uri=None):
-    """Get the correct Google OAuth redirect URI based on configuration and environment"""
     if redirect_uri:
         return redirect_uri
-    
-    # Check for explicit configuration first
-    redirect_uri = os.environ.get('GOOGLE_REDIRECT_URI')
-    if redirect_uri:
-        return redirect_uri
-    
-    # Fallback to automatic detection
-    flask_env = os.environ.get('FLASK_ENV', 'development')
-    is_local = request.host in ['127.0.0.1:5000', 'localhost:5000'] or flask_env == 'development'
-    if is_local:
-        return "http://127.0.0.1:5000/auth/google/callback"
-    elif 'beta' in request.host:
-        return "https://beta.yonca-sdc.com/auth/google/callback"
-    else:
-        return "https://beta.yonca-sdc.com/auth/google/callback"
+    uri = os.environ.get('GOOGLE_REDIRECT_URI')
+    if not uri:
+        raise RuntimeError("GOOGLE_REDIRECT_URI environment variable is not set")
+    return uri
 
 auth_bp = Blueprint('auth', __name__)
 

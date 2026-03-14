@@ -42,6 +42,7 @@ services:
       FLASK_ENV: development
       FLASK_DEBUG: "1"
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      GOOGLE_REDIRECT_URI: http://localhost:5000/auth/google/callback
     ports:
       - "5000:5000"
     depends_on:
@@ -64,6 +65,7 @@ services:
     environment:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      GOOGLE_REDIRECT_URI: https://${LOCAL_DOMAIN:-local.yonca-sdc.com}/auth/google/callback
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -110,6 +112,7 @@ services:
     environment:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
     depends_on:
       migrate-prod:
         condition: service_completed_successfully

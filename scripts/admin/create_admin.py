@@ -7,10 +7,8 @@ Or run interactively: python create_admin.py
 import os
 import sys
 import getpass
-from dotenv import load_dotenv
 
 # Load environment variables from .env
-load_dotenv()
 
 from yonca import create_app
 from yonca.models import db, User
