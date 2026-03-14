@@ -10,19 +10,19 @@ install:
 
 # Run dev server (local, no Docker)
 dev:
-    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} flask run --debug --host=0.0.0.0 --port=5000
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run flask run --debug --host=0.0.0.0 --port=5000
 
 # Run with gunicorn (local, no Docker)
 serve:
-    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} gunicorn --config deploy/gunicorn_config.py app:app
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run gunicorn --config deploy/gunicorn_config.py app:app
 
 # Flask shell (local)
 shell:
-    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} flask shell
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run flask shell
 
 # Create admin user (local)
 create-admin:
-    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} python scripts/admin/create_admin.py
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run python scripts/admin/create_admin.py
 
 # Database migrations (via Docker)
 migrate:
