@@ -17,10 +17,10 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Tools (run manually with: docker compose run --rm <service>) ─────────────
+  # ── Development ───────────────────────────────────────────────────────────────
 
   migrate:
-    profiles: [tools]
+    profiles: [dev, prod-dev]
     build: .
     restart: no
     env_file: .env
@@ -29,9 +29,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: uv run flask db upgrade
-
-  # ── Development ───────────────────────────────────────────────────────────────
+    volumes:
+      - ./migrations:/app/migrations   # exposes generated files to host
+    command: flask db upgrade
 
   app-dev:
     profiles: [dev]
@@ -45,8 +45,8 @@ services:
     ports:
       - "5000:5000"
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - .:/app                              # live reload — mount entire source
       - /app/.venv                          # preserve venv from image
@@ -65,8 +65,8 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - ./flask_session:/app/flask_session
       - ./logs:/app/logs
@@ -90,6 +90,18 @@ services:
 
   # ── Production ────────────────────────────────────────────────────────────────
 
+  migrate-prod:
+    profiles: [prod]
+    image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
+    restart: no
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: flask db upgrade
+
   app:
     profiles: [prod]
     image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
@@ -99,8 +111,8 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
-      db:
-        condition: service_healthy
+      migrate-prod:
+        condition: service_completed_successfully
     volumes:
       - ./flask_session:/app/flask_session
       - ./logs:/app/logs

@@ -10,12 +10,16 @@ dev:
 serve:
     uv run gunicorn --config deploy/gunicorn_config.py app:app
 
-# Database migrations
+# Database migrations (dev)
 migrate:
-    docker compose --profile tools run --rm migrate
+    docker compose --profile dev run --rm migrate
 
 makemigrations message="auto":
-    docker compose --profile tools run --rm migrate uv run flask db migrate -m "{{message}}"
+    docker compose --profile dev run --rm migrate flask db migrate -m "{{message}}"
+
+# Mark DB as up-to-date without running migrations (use after squash on existing DB)
+db-stamp:
+    docker compose --profile dev run --rm migrate flask db stamp head
 
 # Compile translations
 translate:

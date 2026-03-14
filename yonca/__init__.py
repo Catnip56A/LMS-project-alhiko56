@@ -195,11 +195,6 @@ def create_app(config_name='development'):
         result = re.sub(pattern, replace_button, text, flags=re.IGNORECASE)
         return Markup(result)
     
-    # Create database tables
-    # Remove db.create_all(); migrations will handle schema
-    with app.app_context():
-        db.create_all()
-    
     # Start background job worker
     from yonca.job_manager import job_manager
     job_manager.start_worker()
