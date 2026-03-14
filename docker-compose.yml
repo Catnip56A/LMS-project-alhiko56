@@ -52,7 +52,7 @@ services:
       - /app/.venv                          # preserve venv from image
       - ./flask_session:/app/flask_session
       - ./logs:/app/logs
-    command: uv run flask run --host=0.0.0.0 --port=5000 --debug
+    command: flask run --host=0.0.0.0 --port=5000 --debug
 
   # ── Production (local) ───────────────────────────────────────────────────────
 
@@ -121,6 +121,8 @@ services:
     profiles: [prod]
     image: caddy:2-alpine
     restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
     ports:
       - "80:80"
       - "443:443"

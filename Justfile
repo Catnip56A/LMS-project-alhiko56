@@ -4,11 +4,11 @@ install:
 
 # Run dev server
 dev:
-    uv run flask run --debug --host=0.0.0.0 --port=5000
+    flask run --debug --host=0.0.0.0 --port=5000
 
 # Run with gunicorn (production-like)
 serve:
-    uv run gunicorn --config deploy/gunicorn_config.py app:app
+    gunicorn --config deploy/gunicorn_config.py app:app
 
 # Database migrations (dev)
 migrate:
