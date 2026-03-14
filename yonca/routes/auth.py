@@ -149,7 +149,7 @@ def link_google_account():
     if is_local:
         redirect_uri = 'http://127.0.0.1:5000/auth/google/link'
     else:
-        redirect_uri = 'https://magsud.yonca-sdc.com/auth/google/link'
+        redirect_uri = 'https://beta.yonca-sdc.com/auth/google/link'
     
     print(f"DEBUG: Link account - request.host={request.host}, redirect_uri={redirect_uri}")
     
