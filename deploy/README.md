@@ -97,7 +97,6 @@ Required secrets in `Settings → Secrets → Actions`:
 | `POSTGRES_PASSWORD` | Database password |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `GOOGLE_API_KEY` | Google API key |
 | `DOMAIN` | Production domain (`yonca-sdc.com`) |
 
 Optional variable (non-secret, `Settings → Variables → Actions`):

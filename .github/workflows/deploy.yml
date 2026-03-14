@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
 
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/yonca
@@ -32,8 +32,9 @@ jobs:
         with:
           push: true
           tags: |
-            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.ref_name }}
             ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ github.ref_name == 'main' && format('{0}:latest', env.IMAGE) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -44,7 +45,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/${{ secrets.SSH_USER }}/work/yonca-prod
+            cd /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name }}/yonca
 
             cat > .env <<'EOF'
             FLASK_ENV=production
@@ -57,11 +58,14 @@ jobs:
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
-            DOMAIN=${{ secrets.DOMAIN }}
+            DOMAIN=${{ github.ref_name == 'main' && secrets.DOMAIN || secrets.STAGING_DOMAIN }}
             EOF
 
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose --profile prod pull
+            docker run --rm \
+              -v $(pwd)/static:/extract \
+              ghcr.io/${{ github.repository_owner }}/yonca:${{ github.sha }} \
+              sh -c 'cp -r /app/static/. /extract/'
             docker compose --profile prod up -d --remove-orphans
             docker image prune -f
