@@ -1,0 +1,19 @@
+[Unit]
+Description=My Docker Compose Application
+# Ensures Docker service is running before this service starts
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+# Set the working directory where your docker-compose.yml is located
+WorkingDirectory=/home/${USER}/work/yonca-prod
+# Command to start the application in the foreground
+ExecStart=/usr/bin/docker compose up
+# Command to stop the application
+ExecStop=/usr/bin/docker compose down
+# Restart policy: restart if the service fails
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,121 @@
+services:
+
+  # ── Infrastructure ────────────────────────────────────────────────────────────
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Tools (run manually with: docker compose run --rm <service>) ─────────────
+
+  migrate:
+    profiles: [tools]
+    build: .
+    restart: no
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uv run flask db upgrade
+
+  # ── Development ───────────────────────────────────────────────────────────────
+
+  app-dev:
+    profiles: [dev]
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FLASK_ENV: development
+      FLASK_DEBUG: "1"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app                              # live reload — mount entire source
+      - /app/.venv                          # preserve venv from image
+      - ./flask_session:/app/flask_session
+      - ./logs:/app/logs
+    command: uv run flask run --host=0.0.0.0 --port=5000 --debug
+
+  # ── Production (local) ───────────────────────────────────────────────────────
+
+  app-prod-dev:
+    profiles: [prod-dev]
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./flask_session:/app/flask_session
+      - ./logs:/app/logs
+
+  caddy-local:
+    profiles: [prod-dev]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      LOCAL_DOMAIN: ${LOCAL_DOMAIN:-local.yonca-sdc.com}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - ./static:/srv/static:ro
+      - ./data/caddy-local:/data
+    depends_on:
+      - app-prod-dev
+
+  # ── Production ────────────────────────────────────────────────────────────────
+
+  app:
+    profiles: [prod]
+    image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./flask_session:/app/flask_session
+      - ./logs:/app/logs
+
+  caddy:
+    profiles: [prod]
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./static:/srv/static:ro
+      - ./data/caddy:/data
+    depends_on:
+      - app
