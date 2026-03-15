@@ -1,0 +1,151 @@
+<!-- Google File Picker Component -->
+<div id="googleFilePicker">
+  <button id="openFilePicker" class="btn btn-primary">
+    <i class="fas fa-cloud"></i> Choose from Google Drive
+  </button>
+  <div id="pickerResult" style="display: none; margin-top: 15px;">
+    <div class="alert alert-info">
+      <strong>Selected File:</strong><br>
+      <span id="selectedFileName"></span><br>
+      <small id="selectedFileDetails"></small>
+    </div>
+    <input type="hidden" id="selectedFileId" name="google_file_id">
+  </div>
+</div>
+
+<script src="https://apis.google.com/js/api.js"></script>
+<script>
+let googlePickerApiLoaded = false;
+let googleAuthToken = null;
+
+// Initialize Google API
+function initGooglePickerApi() {
+  gapi.load('picker', {'callback': onPickerApiLoad});
+  gapi.load('auth2', {'callback': onAuth2Load});
+}
+
+function onAuth2Load() {
+  // Initialize auth2 with OAuth2 credentials
+  gapi.auth2.init({
+    client_id: '{{ google_client_id }}',
+    scope: 'https://www.googleapis.com/auth/drive.file'
+  });
+  
+  // Get the current token if user is already authenticated
+  const auth2 = gapi.auth2.getAuthInstance();
+  if (auth2 && auth2.isSignedIn.get()) {
+    const profile = auth2.currentUser.get();
+    googleAuthToken = profile.getAuthResponse().id_token;
+  }
+}
+
+function onPickerApiLoad() {
+  googlePickerApiLoaded = true;
+  document.getElementById('openFilePicker').addEventListener('click', createPicker);
+}
+
+function createPicker() {
+  if (!googlePickerApiLoaded) {
+    alert('Google Picker API is not loaded. Please refresh the page.');
+    return;
+  }
+
+  // Get fresh auth token
+  const auth2 = gapi.auth2.getAuthInstance();
+  if (!auth2 || !auth2.isSignedIn.get()) {
+    // User is not signed in, need to sign in first
+    auth2.signIn().then(function() {
+      const profile = auth2.currentUser.get();
+      googleAuthToken = profile.getAuthResponse().id_token;
+      showPicker();
+    }).catch(function(error) {
+      console.error('Sign-in failed:', error);
+      alert('Failed to authenticate with Google. Please try again.');
+    });
+  } else {
+    const profile = auth2.currentUser.get();
+    googleAuthToken = profile.getAuthResponse().id_token;
+    showPicker();
+  }
+}
+
+function showPicker() {
+  const apiKey = '{{ google_api_key }}';
+  
+  if (!apiKey) {
+    alert('Google API Key is not configured. Please set GOOGLE_API_KEY environment variable.');
+    return;
+  }
+
+  const picker = new google.picker.PickerBuilder()
+    .addView(google.picker.ViewId.DOCS)  // Show Google Drive files/folders
+    .addView(google.picker.ViewId.PDFS)  // Show PDF files specifically
+    .setOAuthToken(googleAuthToken)
+    .setDeveloperKey(apiKey)
+    .setCallback(pickerCallback)
+    .build();
+  
+  picker.setVisible(true);
+}
+
+function pickerCallback(data) {
+  const action = data[google.picker.Response.ACTION];
+  
+  if (action === google.picker.Action.PICKED) {
+    const docs = data[google.picker.Response.DOCUMENTS];
+    if (docs && docs.length > 0) {
+      const doc = docs[0];
+      const fileId = doc[google.picker.Document.ID];
+      const fileName = doc[google.picker.Document.NAME];
+      const mimeType = doc[google.picker.Document.MIME_TYPE];
+      
+      // Store the selected file information
+      document.getElementById('selectedFileId').value = fileId;
+      document.getElementById('selectedFileName').textContent = fileName;
+      document.getElementById('selectedFileDetails').textContent = 
+        'Type: ' + mimeType + ' | ID: ' + fileId;
+      document.getElementById('pickerResult').style.display = 'block';
+      
+      console.log('File selected:', {
+        id: fileId,
+        name: fileName,
+        mimeType: mimeType
+      });
+      
+      // Trigger a custom event that parent forms can listen to
+      const event = new CustomEvent('googleFileSelected', {
+        detail: {
+          file_id: fileId,
+          file_name: fileName,
+          mime_type: mimeType
+        }
+      });
+      document.dispatchEvent(event);
+    }
+  } else if (action === google.picker.Action.CANCEL) {
+    console.log('Picker dialog closed without selection');
+  }
+}
+
+// Initialize when page loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initGooglePickerApi);
+} else {
+  initGooglePickerApi();
+}
+</script>
+
+<style>
+#googleFilePicker {
+  margin: 15px 0;
+}
+
+#openFilePicker {
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+#pickerResult {
+  border-left: 4px solid #0d6efd;
+}
+</style>
