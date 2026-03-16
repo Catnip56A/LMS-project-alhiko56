@@ -6,9 +6,10 @@
 #   1. Installs Docker on the remote (Ubuntu/Debian)
 #   2. Adds user to docker group
 #   3. Creates deploy directory structure for production and staging
-#   4. Copies docker-compose.yml and deploy/Caddyfile
+#   4. Copies docker-compose.yml and deploy files
 #   5. Installs dnsmasq prod config
-#   6. Prints next steps
+#   6. Starts shared Caddy (creates yonca-proxy network automatically)
+#   7. Prints next steps
 
 set -euo pipefail
 
@@ -35,15 +36,17 @@ echo "  Done — reconnect for group membership to take effect."
 # ── 2. Create directory structure ────────────────────────────────────────────
 echo "▶ Creating directory structure..."
 for ENV in "${ENVS[@]}"; do
-  $SSH "mkdir -p \$HOME/deploy/${ENV}/yonca/{deploy,data/postgres,data/caddy,flask_session,logs}"
+  $SSH "mkdir -p \$HOME/deploy/${ENV}/yonca/{deploy,data/postgres,flask_session,logs}"
 done
+$SSH "mkdir -p \$HOME/deploy/caddy/data"
 
-# ── 3. Copy docker-compose.yml and Caddyfile ─────────────────────────────────
-echo "▶ Copying compose and Caddyfile..."
+# ── 3. Copy docker-compose.yml and deploy files ───────────────────────────────
+echo "▶ Copying compose files..."
 for ENV in "${ENVS[@]}"; do
   $SCP docker-compose.yml  "${SSH_USER}@${SSH_HOST}:~/deploy/${ENV}/yonca/docker-compose.yml"
-  $SCP deploy/Caddyfile    "${SSH_USER}@${SSH_HOST}:~/deploy/${ENV}/yonca/deploy/Caddyfile"
 done
+$SCP deploy/caddy/docker-compose.yml "${SSH_USER}@${SSH_HOST}:~/deploy/caddy/docker-compose.yml"
+$SCP deploy/caddy/Caddyfile          "${SSH_USER}@${SSH_HOST}:~/deploy/caddy/Caddyfile"
 
 # ── 4. Install dnsmasq config ─────────────────────────────────────────────────
 echo "▶ Installing dnsmasq..."
@@ -51,7 +54,12 @@ $SSH "command -v dnsmasq" 2>/dev/null || $SSH "sudo apt-get install -y dnsmasq"
 $SCP deploy/dnsmasq/prod.conf "${SSH_USER}@${SSH_HOST}:/tmp/yonca-dnsmasq.conf"
 $SSH "sudo mv /tmp/yonca-dnsmasq.conf /etc/dnsmasq.d/yonca.conf && sudo systemctl restart dnsmasq"
 
-# ── 5. Done ───────────────────────────────────────────────────────────────────
+# ── 5. Start shared Caddy (creates yonca-proxy network) ──────────────────────
+echo "▶ Starting shared Caddy..."
+$SSH "cd \$HOME/deploy/caddy && docker compose up -d"
+echo "  Caddy started — yonca-proxy network created."
+
+# ── 6. Done ───────────────────────────────────────────────────────────────────
 echo ""
 echo "✓ Bootstrap complete. Next steps:"
 echo ""
@@ -64,3 +72,9 @@ echo "     docker compose --profile prod run --rm migrate-prod flask db stamp he
 echo ""
 echo "  3. Verify dnsmasq:"
 echo "     ssh ${SSH_USER}@${SSH_HOST} 'dig yonca-sdc.com +short'"
+echo ""
+echo "  Ports:"
+echo "     production DB:  127.0.0.1:5439"
+echo "     staging DB:     127.0.0.1:5438"
+echo "     production app: 127.0.0.1:5002"
+echo "     staging app:    127.0.0.1:5001"

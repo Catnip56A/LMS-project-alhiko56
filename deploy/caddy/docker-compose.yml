@@ -1,0 +1,17 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data:/data
+    networks:
+      - yonca-proxy
+
+networks:
+  yonca-proxy:
+    name: yonca-proxy    # owns the network — created on first `docker compose up`

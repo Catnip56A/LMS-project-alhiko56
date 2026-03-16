@@ -4,11 +4,12 @@
 
 | File | Purpose |
 |---|---|
-| `Caddyfile` | Caddy reverse proxy config — production |
-| `Caddyfile.local` | Caddy reverse proxy config — local prod-dev profile |
+| `caddy/docker-compose.yml` | Shared Caddy — runs once on the server, routes all domains |
+| `caddy/Caddyfile` | Multi-site Caddy config (prod + staging) |
+| `Caddyfile.local` | Caddy config for local `prod-dev` profile |
 | `gunicorn_config.py` | Gunicorn WSGI server config |
-| `yonca.service` | systemd service unit (legacy, pre-Docker) |
-| `deploy.sh` | Bare-metal setup script (legacy, pre-Docker) |
+| `backup.sh` | Backup Docker postgres to local dir or GCS |
+| `restore.sh` | Restore from `.dump` or `.sql` |
 | `dnsmasq/local.conf` | dnsmasq drop-in for developer machines |
 | `dnsmasq/prod.conf` | dnsmasq drop-in for the production server |
 
@@ -26,65 +27,79 @@ See `docker-compose.yml` and `Justfile` at the project root.
 | `prod-dev` | `just prod-dev-up` | `https://local.yonca-sdc.com` |
 | `prod` | `just prod-up` | `https://yonca-sdc.com` |
 
+### Server layout
+
+```
+~/deploy/
+  caddy/                  # shared Caddy — started once, never torn down
+    docker-compose.yml
+    Caddyfile
+    data/                 # TLS certs
+  production/yonca/       # prod app compose project
+  staging/yonca/          # staging app compose project
+```
+
+### Ports
+
+| Environment | DB | App (direct, bypasses Caddy) |
+|---|---|---|
+| Production | `127.0.0.1:5439` | `127.0.0.1:5002` |
+| Staging | `127.0.0.1:5438` | `127.0.0.1:5001` |
+
 ---
 
 ## dnsmasq setup
 
 ### Developer machine — `prod-dev` profile
 
-Resolves `local.yonca-sdc.com` to loopback so the local Caddy container
-serves it with a Caddy-issued certificate.
-
-**Linux:**
 ```bash
+# Linux
 sudo cp dnsmasq/local.conf /etc/dnsmasq.d/yonca-local.conf
 sudo systemctl restart dnsmasq
-```
 
-**macOS (Homebrew):**
-```bash
+# macOS (Homebrew)
 cp dnsmasq/local.conf $(brew --prefix)/etc/dnsmasq.d/yonca-local.conf
 brew services restart dnsmasq
 ```
 
-Verify resolution:
-```bash
-dig local.yonca-sdc.com +short   # should return 127.0.0.1
-```
+Verify: `dig local.yonca-sdc.com +short`  — should return `127.0.0.1`
 
 Then trust Caddy's local CA (once per machine):
 ```bash
 just prod-dev-trust
 ```
 
----
-
 ### Production server
-
-Resolves all `*.yonca-sdc.com` to loopback so internal requests stay local
-instead of going out through public DNS and back (hairpin NAT).
 
 ```bash
 sudo cp dnsmasq/prod.conf /etc/dnsmasq.d/yonca.conf
 sudo systemctl restart dnsmasq
 ```
 
-Verify:
-```bash
-dig yonca-sdc.com +short          # should return 127.0.0.1
-dig api.yonca-sdc.com +short      # should return 127.0.0.1
-```
+> **Note:** On Ubuntu with `systemd-resolved`, set `DNS=127.0.0.1` in
+> `/etc/systemd/resolved.conf`, set `DNSStubListener=no`, then restart
+> `systemd-resolved`.
 
-> **Note:** Ensure dnsmasq is configured as the system resolver
-> (`/etc/resolv.conf` or `systemd-resolved` stub). On Ubuntu with
-> `systemd-resolved`, add `DNS=127.0.0.1` to `/etc/systemd/resolved.conf`
-> and set `DNSStubListener=no`, then restart `systemd-resolved`.
+---
+
+## Backups
+
+```bash
+# Manual backup
+./backup.sh
+
+# Restore
+./restore.sh ~/backups/yonca/yonca_2026-03-17.dump
+
+# Cron (add on server, runs daily at 3am)
+0 3 * * * cd ~/deploy/production/yonca && ./backup.sh >> ~/logs/backup.log 2>&1
+```
 
 ---
 
 ## GitHub Actions secrets
 
-Required secrets in `Settings → Secrets → Actions`:
+Required in `Settings → Secrets → Actions`:
 
 | Secret | Description |
 |---|---|
@@ -98,9 +113,13 @@ Required secrets in `Settings → Secrets → Actions`:
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | `DOMAIN` | Production domain (`yonca-sdc.com`) |
+| `STAGING_DOMAIN` | Staging domain (`staging.yonca-sdc.com`) |
 
-Optional variable (non-secret, `Settings → Variables → Actions`):
+Optional variable (`Settings → Variables → Actions`):
 
 | Variable | Default | Description |
 |---|---|---|
 | `WEB_CONCURRENCY` | `3` | Gunicorn worker count |
+
+Ports (`POSTGRES_PORT`, `APP_PORT`) and `APP_HOSTNAME` are derived
+automatically from the branch — no secrets needed.

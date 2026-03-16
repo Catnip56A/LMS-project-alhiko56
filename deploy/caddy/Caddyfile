@@ -1,0 +1,53 @@
+yonca-sdc.com {
+	request_body {
+		max_size 500MB
+	}
+
+	reverse_proxy yonca-sdc-com:8000 {
+		transport http {
+			dial_timeout 10m
+			response_header_timeout 10m
+		}
+		header_up X-Real-IP {remote_host}
+	}
+
+	header {
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer-when-downgrade"
+	}
+
+	log {
+		output stdout
+		format json
+	}
+
+	encode gzip zstd
+}
+
+staging.yonca-sdc.com {
+	request_body {
+		max_size 500MB
+	}
+
+	reverse_proxy staging-yonca-sdc-com:8000 {
+		transport http {
+			dial_timeout 10m
+			response_header_timeout 10m
+		}
+		header_up X-Real-IP {remote_host}
+	}
+
+	header {
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer-when-downgrade"
+	}
+
+	log {
+		output stdout
+		format json
+	}
+
+	encode gzip zstd
+}
