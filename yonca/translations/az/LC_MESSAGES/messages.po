@@ -4,19 +4,7 @@
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
-msgstr ""
-"Project-Id-Version: PROJECT VERSION\n"
-"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-12 12:28+0400\n"
-"PO-Revision-Date: 2026-03-12 12:31+0400\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: az <LL@li.org>\n"
-"Language: az\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Generated-By: Babel 2.17.0\n"
+msgstr "Project-Id-Version: PROJECT VERSION\nReport-Msgid-Bugs-To: EMAIL@ADDRESS\nPOT-Creation-Date: 2026-03-12 12:28+0400\nPO-Revision-Date: 2026-03-12 12:31+0400\nLast-Translator: FULL NAME <EMAIL@ADDRESS>\nLanguage-Team: az <LL@li.org>\nLanguage: az\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=2; plural=(n != 1);\nGenerated-By: Babel 2.17.0\n"
 
 #: myenv/Lib/site-packages/click/_termui_impl.py:613
 #, python-brace-format
@@ -41,15 +29,13 @@ msgstr "Seçimlər"
 #: myenv/Lib/site-packages/click/core.py:1245
 #, python-brace-format
 msgid "Got unexpected extra argument ({args})"
-msgid_plural "Got unexpected extra arguments ({args})"
 msgstr[0] "Gözlənilməz əlavə arqument əldə etdim ({args})"
 msgstr[1] "Gözlənilməz əlavə arqument əldə etdim ({args})"
 
 #: myenv/Lib/site-packages/click/core.py:1264
 #, python-brace-format
 msgid "DeprecationWarning: The command {name!r} is deprecated.{extra_message}"
-msgstr ""
-"Təhlükəsizliyin Xəbərdarlığı: {name!r} əmri köhnəlmişdir.{extra_message}"
+msgstr "Təhlükəsizliyin Xəbərdarlığı: {name!r} əmri köhnəlmişdir.{extra_message}"
 
 #: myenv/Lib/site-packages/click/core.py:1448
 msgid "Aborted!"
@@ -75,17 +61,13 @@ msgstr "Dəyər təkrarlana bilən olmalıdır."
 #: myenv/Lib/site-packages/click/core.py:2378
 #, python-brace-format
 msgid "Takes {nargs} values but 1 was given."
-msgid_plural "Takes {nargs} values but {len} were given."
 msgstr[0] "{nargs} qiymətləri alır, lakin 1 verilmişdir."
 msgstr[1] "{nargs} qiymətləri alır, lakin 1 verilmişdir."
 
 #: myenv/Lib/site-packages/click/core.py:2567
 #, python-brace-format
-msgid ""
-"DeprecationWarning: The {param_type} {name!r} is deprecated.{extra_message}"
-msgstr ""
-"Təhlükəsizliyə dair Xəbərdarlıq: {param_type} {name!r} "
-"köhnəlmişdir.{extra_message}"
+msgid "DeprecationWarning: The {param_type} {name!r} is deprecated.{extra_message}"
+msgstr "Təhlükəsizliyə dair Xəbərdarlıq: {param_type} {name!r} köhnəlmişdir.{extra_message}"
 
 #: myenv/Lib/site-packages/click/core.py:3015
 #, python-brace-format
@@ -108,7 +90,7 @@ msgstr "(dinamik)"
 #: myenv/Lib/site-packages/click/decorators.py:465
 #, python-format
 msgid "%(prog)s, version %(version)s"
-msgstr "%(prog)s, versiya %(versiya)s"
+msgstr "%(version)s, versiya %(prog)s"
 
 #: myenv/Lib/site-packages/click/decorators.py:522
 msgid "Show the version and exit."
@@ -169,7 +151,6 @@ msgstr "Belə seçim yoxdur: {name}"
 #: myenv/Lib/site-packages/click/exceptions.py:235
 #, python-brace-format
 msgid "Did you mean {possibility}?"
-msgid_plural "(Possible options: {possibilities})"
 msgstr[0] "{imkanı} nəzərdə tuturdunuz?"
 msgstr[1] "{imkanı} nəzərdə tuturdunuz?"
 
@@ -199,7 +180,6 @@ msgstr "{name!r} variantı dəyər qəbul etmir."
 #: myenv/Lib/site-packages/click/parser.py:444
 #, python-brace-format
 msgid "Option {name!r} requires an argument."
-msgid_plural "Option {name!r} requires {nargs} arguments."
 msgstr[0] "{name!r} variantı arqument tələb edir."
 msgstr[1] "{name!r} variantı arqument tələb edir."
 
@@ -209,8 +189,7 @@ msgstr "Shell tamamlanması 4.4-dən köhnə Bash versiyaları üçün dəstəkl
 
 #: myenv/Lib/site-packages/click/shell_completion.py:339
 msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr ""
-"Bash versiyasını aşkar etmək mümkün olmadı, qabıq tamamlama dəstəklənmir."
+msgstr "Bash versiyasını aşkar etmək mümkün olmadı, qabıq tamamlama dəstəklənmir."
 
 #: myenv/Lib/site-packages/click/termui.py:165
 msgid "Repeat for confirmation"
@@ -239,24 +218,18 @@ msgstr "Davam etmək üçün istənilən düyməni basın..."
 
 #: myenv/Lib/site-packages/click/types.py:332
 #, python-brace-format
-msgid ""
-"Choose from:\n"
-"\t{choices}"
-msgstr ""
-"Seçin:\n"
-"\t{seçimlər}"
+msgid "Choose from:\n\t{choices}"
+msgstr "Seçin:\n\t{seçimlər}"
 
 #: myenv/Lib/site-packages/click/types.py:369
 #, python-brace-format
 msgid "{value!r} is not {choice}."
-msgid_plural "{value!r} is not one of {choices}."
 msgstr[0] "{dəyər!r} {seçim} deyil."
 msgstr[1] "{dəyər!r} {seçim} deyil."
 
 #: myenv/Lib/site-packages/click/types.py:460
 #, python-brace-format
 msgid "{value!r} does not match the format {format}."
-msgid_plural "{value!r} does not match the formats {formats}."
 msgstr[0] "{value!r} {format} formatına uyğun gəlmir."
 msgstr[1] "{value!r} {format} formatına uyğun gəlmir."
 
@@ -325,7 +298,6 @@ msgstr "{name} {fayl adı!r} icra edilə bilməz."
 #: myenv/Lib/site-packages/click/types.py:1099
 #, python-brace-format
 msgid "{len_type} values are required, but {len_value} was given."
-msgid_plural "{len_type} values are required, but {len_value} were given."
 msgstr[0] "{len_type} dəyərlər tələb olunur, lakin {len_value} verilib."
 msgstr[1] "{len_type} dəyərlər tələb olunur, lakin {len_value} verilib."
 
@@ -389,7 +361,7 @@ msgstr "Kataloq yaradılması deaktiv edilib."
 #: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1085
 #, python-format
 msgid "Successfully created directory: %(directory)s"
-msgstr "Kataloq uğurla yaradıldı: %(kataloq)s"
+msgstr "Kataloq uğurla yaradıldı: %(directory)s"
 
 #: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1094
 #, python-format
@@ -504,7 +476,7 @@ msgstr "Etibarlı seçim deyil"
 #: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:606
 #, python-format
 msgid "Failed to get model. %(error)s"
-msgstr "Modeli əldə etmək alınmadı. %(xəta)s"
+msgstr "Modeli əldə etmək alınmadı. %(error)s"
 
 #: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:627
 #: myenv/Lib/site-packages/flask_admin/contrib/peewee/view.py:542
@@ -512,7 +484,7 @@ msgstr "Modeli əldə etmək alınmadı. %(xəta)s"
 #: myenv/Lib/site-packages/flask_admin/contrib/sqla/view.py:1359
 #, python-format
 msgid "Failed to create record. %(error)s"
-msgstr "Qeyd yaratmaq alınmadı. %(xəta)s"
+msgstr "Qeyd yaratmaq alınmadı. %(error)s"
 
 #: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:656
 #: myenv/Lib/site-packages/flask_admin/contrib/peewee/view.py:564
@@ -523,7 +495,7 @@ msgstr "Qeyd yaratmaq alınmadı. %(xəta)s"
 #: myenv/Lib/site-packages/flask_admin/model/base.py:2706
 #, python-format
 msgid "Failed to update record. %(error)s"
-msgstr "Qeydi yeniləmək alınmadı. %(xəta)s"
+msgstr "Qeydi yeniləmək alınmadı. %(error)s"
 
 #: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:682
 #: myenv/Lib/site-packages/flask_admin/contrib/peewee/view.py:582
@@ -531,7 +503,7 @@ msgstr "Qeydi yeniləmək alınmadı. %(xəta)s"
 #: myenv/Lib/site-packages/flask_admin/contrib/sqla/view.py:1416
 #, python-format
 msgid "Failed to delete record. %(error)s"
-msgstr "Qeydi silmək alınmadı. %(xəta)s"
+msgstr "Qeydi silmək alınmadı. %(error)s"
 
 #: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:739
 #: myenv/Lib/site-packages/flask_admin/contrib/peewee/view.py:624
@@ -540,7 +512,6 @@ msgstr "Qeydi silmək alınmadı. %(xəta)s"
 #: myenv/Lib/site-packages/flask_admin/model/base.py:2475
 #, python-format
 msgid "Record was successfully deleted."
-msgid_plural "%(count)s records were successfully deleted."
 msgstr[0] "Qeyd uğurla silindi."
 msgstr[1] "Qeyd uğurla silindi."
 
@@ -550,12 +521,11 @@ msgstr[1] "Qeyd uğurla silindi."
 #: myenv/Lib/site-packages/flask_admin/contrib/sqla/view.py:1475
 #, python-format
 msgid "Failed to delete records. %(error)s"
-msgstr "Qeydləri silmək alınmadı. %(xəta)s"
+msgstr "Qeydləri silmək alınmadı. %(error)s"
 
 #: myenv/Lib/site-packages/flask_admin/contrib/sqla/validators.py:81
 #, python-format
 msgid "At least %(num)d item is required"
-msgid_plural "At least %(num)d items are required"
 msgstr[0] "Ən azı %(num)d element tələb olunur"
 msgstr[1] "Ən azı %(num)d element tələb olunur"
 
@@ -570,7 +540,7 @@ msgstr "Etibarlı rəng deyil (məsələn, \"qırmızı\", \"#f00\", \"#ff0000\"
 #: myenv/Lib/site-packages/flask_admin/contrib/sqla/view.py:1320
 #, python-format
 msgid "Integrity error. %(message)s"
-msgstr "Dürüstlük xətası. %(mesaj)s"
+msgstr "Dürüstlük xətası. %(message)s"
 
 #: myenv/Lib/site-packages/flask_admin/form/fields.py:131
 msgid "Invalid time format"
@@ -670,8 +640,7 @@ msgstr "Faylın təsdiqlənmiş uzantısı yoxdur."
 #: myenv/Lib/site-packages/httplib2/__init__.py:407
 #, python-format
 msgid "Content purported to be compressed with %s but failed to decompress."
-msgstr ""
-"Məzmunun %s ilə sıxıldığı iddia edildi, lakin onu açmaq mümkün olmadı."
+msgstr "Məzmunun %s ilə sıxıldığı iddia edildi, lakin onu açmaq mümkün olmadı."
 
 #: myenv/Lib/site-packages/httplib2/__init__.py:571
 #, python-format
@@ -705,26 +674,23 @@ msgstr "Yanlış sahə adı '%s'."
 #: myenv/Lib/site-packages/wtforms/validators.py:99
 #, python-format
 msgid "Field must be equal to %(other_name)s."
-msgstr "Sahə %(digər_adı)s ilə bərabər olmalıdır."
+msgstr "Sahə %(other_name)s ilə bərabər olmalıdır."
 
 #: myenv/Lib/site-packages/wtforms/validators.py:146
 #, python-format
 msgid "Field must be at least %(min)d character long."
-msgid_plural "Field must be at least %(min)d characters long."
 msgstr[0] "Sahə ən azı %(min)d simvol uzunluğunda olmalıdır."
 msgstr[1] "Sahə ən azı %(min)d simvol uzunluğunda olmalıdır."
 
 #: myenv/Lib/site-packages/wtforms/validators.py:152
 #, python-format
 msgid "Field cannot be longer than %(max)d character."
-msgid_plural "Field cannot be longer than %(max)d characters."
 msgstr[0] "Sahə %(max)d simvoldan uzun ola bilməz."
 msgstr[1] "Sahə %(max)d simvoldan uzun ola bilməz."
 
 #: myenv/Lib/site-packages/wtforms/validators.py:158
 #, python-format
 msgid "Field must be exactly %(max)d character long."
-msgid_plural "Field must be exactly %(max)d characters long."
 msgstr[0] "Sahə tam olaraq %(max)d simvol uzunluğunda olmalıdır."
 msgstr[1] "Sahə tam olaraq %(max)d simvol uzunluğunda olmalıdır."
 
@@ -821,14 +787,11 @@ msgstr "Etibarlı seçim deyil."
 
 #: myenv/Lib/site-packages/wtforms/fields/choices.py:194
 msgid "Invalid choice(s): one or more data inputs could not be coerced."
-msgstr ""
-"Yanlış seçim(lər): bir və ya daha çox məlumat daxiletməsi məcbur edilə "
-"bilməz."
+msgstr "Yanlış seçim(lər): bir və ya daha çox məlumat daxiletməsi məcbur edilə bilməz."
 
 #: myenv/Lib/site-packages/wtforms/fields/choices.py:212
 #, python-format
 msgid "'%(value)s' is not a valid choice for this field."
-msgid_plural "'%(value)s' are not valid choices for this field."
 msgstr[0] "'%(value)s' bu sahə üçün düzgün seçim deyil."
 msgstr[1] "'%(value)s' bu sahə üçün düzgün seçim deyil."
 
@@ -926,7 +889,6 @@ msgstr "Tələbə rəyləri"
 #: yonca/templates/course_description.html:287
 #: yonca/templates/course_page_enrolled.html:727
 msgid "review"
-msgid_plural "reviews"
 msgstr[0] "nəzərdən keçirin"
 msgstr[1] "nəzərdən keçirin"
 
@@ -1008,20 +970,12 @@ msgid "Move Folder"
 msgstr "Qovluğu köçürün"
 
 #: yonca/templates/course_page_enrolled.html:386
-msgid ""
-"Are you sure you want to delete this folder and ALL its contents? This "
-"cannot be undone."
-msgstr ""
-"Bu qovluğu və onun bütün məzmununu silmək istədiyinizə əminsiniz? Bu geri "
-"qaytarıla bilməz."
+msgid "Are you sure you want to delete this folder and ALL its contents? This cannot be undone."
+msgstr "Bu qovluğu və onun bütün məzmununu silmək istədiyinizə əminsiniz? Bu geri qaytarıla bilməz."
 
 #: yonca/templates/course_page_enrolled.html:386
-msgid ""
-"Are you sure you want to delete this folder? This will only work if the "
-"folder is empty."
-msgstr ""
-"Bu qovluğu silmək istədiyinizə əminsiniz? Bu, yalnız qovluq boş olduqda "
-"işləyəcək."
+msgid "Are you sure you want to delete this folder? This will only work if the folder is empty."
+msgstr "Bu qovluğu silmək istədiyinizə əminsiniz? Bu, yalnız qovluq boş olduqda işləyəcək."
 
 #: yonca/templates/course_page_enrolled.html:390
 msgid "Delete with contents"
@@ -1133,12 +1087,8 @@ msgid "Enroll to Access Course Content"
 msgstr "Kurs məzmununa daxil olmaq üçün qeydiyyatdan keçin"
 
 #: yonca/templates/course_page_enrolled.html:913
-msgid ""
-"You need to be enrolled in this course to view the content, materials, and "
-"participate in activities."
-msgstr ""
-"Məzmun, materiallara baxmaq və fəaliyyətlərdə iştirak etmək üçün bu kursa "
-"yazılmalısınız."
+msgid "You need to be enrolled in this course to view the content, materials, and participate in activities."
+msgstr "Məzmun, materiallara baxmaq və fəaliyyətlərdə iştirak etmək üçün bu kursa yazılmalısınız."
 
 #: yonca/templates/course_page_enrolled.html:927
 #: yonca/templates/course_page_enrolled.html:1528
@@ -1210,12 +1160,8 @@ msgid "Submit Assignment"
 msgstr "Tapşırığı təqdim edin"
 
 #: yonca/templates/course_page_enrolled.html:1027
-msgid ""
-"Are you sure you want to delete this assignment? This will also delete all "
-"submissions."
-msgstr ""
-"Bu tapşırığı silmək istədiyinizə əminsiniz? Bu, həmçinin bütün təqdimatları "
-"siləcək."
+msgid "Are you sure you want to delete this assignment? This will also delete all submissions."
+msgstr "Bu tapşırığı silmək istədiyinizə əminsiniz? Bu, həmçinin bütün təqdimatları siləcək."
 
 #: yonca/templates/course_page_enrolled.html:1030
 msgid "Delete Assignment"
@@ -1271,9 +1217,7 @@ msgstr "Giriş tapşırıqlarına qeydiyyatdan keçin"
 
 #: yonca/templates/course_page_enrolled.html:1103
 msgid "You need to be enrolled in this course to view and submit assignments."
-msgstr ""
-"Tapşırıqlara baxmaq və təqdim etmək üçün bu kursda qeydiyyatdan "
-"keçməlisiniz."
+msgstr "Tapşırıqlara baxmaq və təqdim etmək üçün bu kursda qeydiyyatdan keçməlisiniz."
 
 #: yonca/templates/course_page_enrolled.html:1119
 #: yonca/templates/course_page_enrolled.html:1175
@@ -1301,12 +1245,8 @@ msgid "Posted:"
 msgstr "Göndərilən:"
 
 #: yonca/templates/course_page_enrolled.html:1166
-msgid ""
-"Are you sure you want to delete this announcement? This will also delete all"
-" replies."
-msgstr ""
-"Bu elanı silmək istədiyinizə əminsiniz? Bu, həmçinin bütün cavabları "
-"siləcək."
+msgid "Are you sure you want to delete this announcement? This will also delete all replies."
+msgstr "Bu elanı silmək istədiyinizə əminsiniz? Bu, həmçinin bütün cavabları siləcək."
 
 #: yonca/templates/course_page_enrolled.html:1169
 msgid "Delete Announcement"
@@ -1463,8 +1403,7 @@ msgstr "Google Disk URL və ya Fayl/Qovluq ID"
 
 #: yonca/templates/course_page_enrolled.html:1495
 msgid "Paste the sharing link from Google Drive or just the file/folder ID"
-msgstr ""
-"Google Diskdən paylaşma linkini və ya sadəcə fayl/qovluq ID-sini yapışdırın"
+msgstr "Google Diskdən paylaşma linkini və ya sadəcə fayl/qovluq ID-sini yapışdırın"
 
 #: yonca/templates/course_page_enrolled.html:1496
 msgid "Check linked Google account"
@@ -1516,8 +1455,7 @@ msgstr "Və ya kilidləmək üçün xüsusi qovluqları seçin (isteğe bağlı)
 
 #: yonca/templates/course_page_enrolled.html:1613
 msgid "Hold Ctrl (or Cmd) to select multiple folders."
-msgstr ""
-"Birdən çox qovluq seçmək üçün Ctrl (və ya Cmd) düyməsini basıb saxlayın."
+msgstr "Birdən çox qovluq seçmək üçün Ctrl (və ya Cmd) düyməsini basıb saxlayın."
 
 #: yonca/templates/course_page_enrolled.html:1643
 msgid "Select Destination Folder"
@@ -1623,20 +1561,13 @@ msgstr "Yeniliklər"
 
 #: yonca/templates/admin/about_company.html:217
 #: yonca/templates/index.html:2168 yonca/templates/index.html:2686
-msgid ""
-"Discover the latest updates, new features, and exciting developments in our "
-"learning platform."
-msgstr ""
-"Öyrənmə platformamızda ən son yeniləmələri, yeni funksiyaları və maraqlı "
-"inkişafları kəşf edin."
+msgid "Discover the latest updates, new features, and exciting developments in our learning platform."
+msgstr "Öyrənmə platformamızda ən son yeniləmələri, yeni funksiyaları və maraqlı inkişafları kəşf edin."
 
 #: yonca/templates/index.html:2207
-msgid ""
-"If video shows 'still being processed,' please wait 5-60 minutes for Google "
-"Drive to finish processing, then refresh the page."
-msgstr ""
-"Video \"hələ emal olunur\" görünürsə, lütfən, Google Diskin işlənməsini "
-"tamamlaması üçün 5-60 dəqiqə gözləyin, sonra səhifəni yeniləyin."
+msgid "If video shows 'still being processed,' please wait 5-60 minutes for Google Drive to finish processing, then refresh the page."
+msgstr "Video \"hələ emal olunur\" görünürsə, lütfən, Google Diskin işlənməsini tamamlam"
+"ası üçün 5-60 dəqiqə gözləyin, sonra səhifəni yeniləyin."
 
 #: yonca/templates/index.html:2231
 msgid "Learning Community"
@@ -1674,8 +1605,7 @@ msgstr "Platformamızı nəyin xüsusi etdiyini kəşf edin."
 
 #: yonca/templates/index.html:2268
 msgid "Engage with dynamic course content and interactive learning materials."
-msgstr ""
-"Dinamik kurs məzmunu və interaktiv təlim materialları ilə məşğul olun."
+msgstr "Dinamik kurs məzmunu və interaktiv təlim materialları ilə məşğul olun."
 
 #: yonca/templates/index.html:2272
 msgid "Collaborate with fellow learners in our vibrant study communities."
@@ -1694,11 +1624,8 @@ msgid "Professional Education and Training"
 msgstr "Peşəkar Təhsil və Təlim"
 
 #: yonca/templates/index.html:2289 yonca/templates/index.html:2983
-msgid ""
-"Evidence-based training for psychologists, therapists, educators, and tutors"
-msgstr ""
-"Psixoloqlar, terapevtlər, pedaqoqlar və repetitorlar üçün sübuta əsaslanan "
-"təlim"
+msgid "Evidence-based training for psychologists, therapists, educators, and tutors"
+msgstr "Psixoloqlar, terapevtlər, pedaqoqlar və repetitorlar üçün sübuta əsaslanan təlim"
 
 #: yonca/templates/index.html:2291
 msgid "View All Courses"
@@ -1714,8 +1641,7 @@ msgstr "Seçilmiş Kurslar"
 
 #: yonca/templates/index.html:2315 yonca/templates/index.html:2350
 msgid "Loading courses... (Try switching pages in case of delays)"
-msgstr ""
-"Kurslar yüklənir... (Gecikmələr zamanı səhifələri dəyişdirməyə cəhd edin)"
+msgstr "Kurslar yüklənir... (Gecikmələr zamanı səhifələri dəyişdirməyə cəhd edin)"
 
 #: yonca/templates/index.html:2323
 msgid "Explore our available courses and start your learning journey."
@@ -1736,9 +1662,7 @@ msgstr "Qeydiyyatdan Keçdiyim Kurslar"
 
 #: yonca/templates/index.html:2342
 msgid "Loading enrolled courses... (Try switching pages in case of delays)"
-msgstr ""
-"Qeydiyyatdan keçmiş kurslar yüklənir... (Gecikmə halında səhifələri "
-"dəyişməyə cəhd edin)"
+msgstr "Qeydiyyatdan keçmiş kurslar yüklənir... (Gecikmə halında səhifələri dəyişməyə cəhd edin)"
 
 #: yonca/templates/index.html:2348 yonca/templates/index.html:3357
 #: yonca/templates/index.html:3396
@@ -1786,14 +1710,10 @@ msgid "Azerbaijani"
 msgstr "Azərbaycan"
 
 #: yonca/templates/index.html:2387
-msgid ""
-"Select a language to translate messages, or choose 'Don't translate' to view"
-" messages in their original language. Click individual messages to toggle "
-"translation."
-msgstr ""
-"Mesajları tərcümə etmək üçün dil seçin və ya mesajlara orijinal dillərində "
-"baxmaq üçün \"Tərcümə etməyin\" seçimini edin. Tərcüməni dəyişdirmək üçün "
-"fərdi mesajlara klikləyin."
+msgid "Select a language to translate messages, or choose 'Don't translate' to view messages in their original language. Click individual messages to toggle translation."
+msgstr "Mesajları tərcümə etmək üçün dil seçin və ya mesajlara orijinal dillərində baxma"
+"q üçün \"Tərcümə etməyin\" seçimini edin. Tərcüməni dəyişdirmək üçün fərdi mesaj"
+"lara klikləyin."
 
 #: yonca/templates/index.html:2391
 msgid "Post a New Message"
@@ -1824,12 +1744,8 @@ msgid "Welcome to Yonca Forum!"
 msgstr "Yonca Foruma xoş gəlmisiniz!"
 
 #: yonca/templates/index.html:2410
-msgid ""
-"This is where community members can connect, ask questions, and share "
-"knowledge."
-msgstr ""
-"Burada icma üzvləri əlaqə saxlaya, suallar verə və biliklərini paylaşa "
-"bilərlər."
+msgid "This is where community members can connect, ask questions, and share knowledge."
+msgstr "Burada icma üzvləri əlaqə saxlaya, suallar verə və biliklərini paylaşa bilərlər."
 
 #: yonca/templates/index.html:2411
 msgid "Posted on December 8, 2025"
@@ -1837,8 +1753,7 @@ msgstr "8 dekabr 2025-ci ildə dərc edilib"
 
 #: yonca/templates/index.html:2421
 msgid "Download educational materials, documents, and access protected files."
-msgstr ""
-"Təhsil materiallarını, sənədləri yükləyin və qorunan fayllara daxil olun."
+msgstr "Təhsil materiallarını, sənədləri yükləyin və qorunan fayllara daxil olun."
 
 #: yonca/templates/index.html:2425
 msgid "Filter Learning Materials"
@@ -1867,22 +1782,17 @@ msgstr "Tədris materialları"
 
 #: yonca/templates/index.html:2448
 msgid "Loading materials... (Try switching pages in case of delays)"
-msgstr ""
-"Materiallar yüklənir... (Gecikmələr zamanı səhifələri dəyişdirməyə cəhd "
-"edin)"
+msgstr "Materiallar yüklənir... (Gecikmələr zamanı səhifələri dəyişdirməyə cəhd edin)"
 
 #: yonca/templates/index.html:2454
 msgid "Upload Learning Material"
 msgstr "Tədris materialını yükləyin"
 
 #: yonca/templates/index.html:2455
-msgid ""
-"Upload documents, presentations, PDFs, or other materials. You can choose to"
-" enable PIN protection for security or allow free access."
-msgstr ""
-"Sənədləri, təqdimatları, PDF sənədlərini və ya digər materialları yükləyin. "
-"Siz təhlükəsizlik üçün PIN qorumasını aktivləşdirməyi və ya pulsuz girişə "
-"icazə verə bilərsiniz."
+msgid "Upload documents, presentations, PDFs, or other materials. You can choose to enable PIN protection for security or allow free access."
+msgstr "Sənədləri, təqdimatları, PDF sənədlərini və ya digər materialları yükləyin. Siz "
+"təhlükəsizlik üçün PIN qorumasını aktivləşdirməyi və ya pulsuz girişə icazə verə"
+" bilərsiniz."
 
 #: yonca/templates/admin/about_company.html:253
 #: yonca/templates/index.html:2458
@@ -1923,11 +1833,8 @@ msgid "Check to require PIN access, uncheck for free access"
 msgstr "PIN girişi tələb etmək üçün yoxlayın, pulsuz giriş üçün işarəni silin"
 
 #: yonca/templates/index.html:2489
-msgid ""
-"Access PIN will be auto-generated (6 characters, expires in 10 minutes)"
-msgstr ""
-"Giriş PIN-i avtomatik yaradılacaq (6 simvol, müddəti 10 dəqiqə ərzində "
-"bitir)"
+msgid "Access PIN will be auto-generated (6 characters, expires in 10 minutes)"
+msgstr "Giriş PIN-i avtomatik yaradılacaq (6 simvol, müddəti 10 dəqiqə ərzində bitir)"
 
 #: yonca/templates/index.html:2491 yonca/templates/index.html:4126
 msgid "Upload Material"
@@ -1954,12 +1861,8 @@ msgid "Assessment and Skill Evaluation"
 msgstr "Qiymətləndirmə və Bacarıqların Qiymətləndirilməsi"
 
 #: yonca/templates/index.html:2523
-msgid ""
-"Comprehensive assessment of a child's development and creation of an "
-"individualized support plan"
-msgstr ""
-"Uşağın inkişafının hərtərəfli qiymətləndirilməsi və fərdi dəstək planının "
-"yaradılması"
+msgid "Comprehensive assessment of a child's development and creation of an individualized support plan"
+msgstr "Uşağın inkişafının hərtərəfli qiymətləndirilməsi və fərdi dəstək planının yaradılması"
 
 #: yonca/templates/index.html:2525 yonca/templates/index.html:2535
 #: yonca/templates/index.html:2545 yonca/templates/index.html:2555
@@ -2029,12 +1932,8 @@ msgid "Courses for specialists and parents"
 msgstr "Mütəxəssislər və valideynlər üçün kurslar"
 
 #: yonca/templates/index.html:2587
-msgid ""
-"Comprehensive assessment of a child's development to create an "
-"individualized support plan"
-msgstr ""
-"Fərdi dəstək planı yaratmaq üçün uşağın inkişafının hərtərəfli "
-"qiymətləndirilməsi"
+msgid "Comprehensive assessment of a child's development to create an individualized support plan"
+msgstr "Fərdi dəstək planı yaratmaq üçün uşağın inkişafının hərtərəfli qiymətləndirilməsi"
 
 #: yonca/templates/index.html:2589
 msgid "Initial consultation with parents"
@@ -2061,12 +1960,9 @@ msgid "Vineland Adaptive Behavior Scales"
 msgstr "Vineland Adaptiv Davranış Ölçüsü"
 
 #: yonca/templates/index.html:2596
-msgid ""
-"Scientifically validated standardized methods help identify the child's "
-"strengths and areas for development."
-msgstr ""
-"Elmi cəhətdən təsdiq edilmiş standart üsullar uşağın güclü tərəflərini və "
-"inkişaf sahələrini müəyyən etməyə kömək edir."
+msgid "Scientifically validated standardized methods help identify the child's strengths and areas for development."
+msgstr "Elmi cəhətdən təsdiq edilmiş standart üsullar uşağın güclü tərəflərini və inkişa"
+"f sahələrini müəyyən etməyə kömək edir."
 
 #: yonca/templates/index.html:2604
 msgid "Therapeutic and Developmental Sessions"
@@ -2185,11 +2081,8 @@ msgid "Courses for parents"
 msgstr "Valideynlər üçün kurslar"
 
 #: yonca/templates/index.html:2988
-msgid ""
-"Parental support and guidance for raising healthy, well-adjusted children"
-msgstr ""
-"Sağlam, yaxşı uyğunlaşdırılmış uşaq böyütmək üçün valideyn dəstəyi və "
-"rəhbərliyi"
+msgid "Parental support and guidance for raising healthy, well-adjusted children"
+msgstr "Sağlam, yaxşı uyğunlaşdırılmış uşaq böyütmək üçün valideyn dəstəyi və rəhbərliyi"
 
 #: yonca/templates/index.html:3058 yonca/templates/index.html:3072
 msgid "Loading courses..."
@@ -2410,20 +2303,14 @@ msgstr "xoş gəlmisiniz"
 
 #: yonca/templates/terms.html:83
 msgid "(the \"Service\", \"Platform\", \"Website\"), operated by"
-msgstr ""
-"Error 500 (Server Error)!!1500.That’s an error.There was an error. Please "
-"try again later.That’s all we know."
+msgstr "Error 500 (Server Error)!!1500.That’s an error.There was an error. Please try ag"
+"ain later.That’s all we know."
 
 #: yonca/templates/terms.html:83
-msgid ""
-"(\"we\", \"us\", \"our\"). By accessing or using Yonca, you agree to be "
-"bound by these Terms of Service (\"Terms\"). If you do not agree with any "
-"part of these Terms, you must not use the Service."
-msgstr ""
-"(\"biz\", \"biz\", \"bizim\"). Yonca daxil olmaqla və ya istifadə etməklə "
-"siz bu Xidmət Şərtləri (\"Şərtlər\") ilə bağlı olmağa razılaşırsınız. Bu "
-"Şərtlərin hər hansı hissəsi ilə razı deyilsinizsə, Xidmətdən istifadə "
-"etməməlisiniz."
+msgid "(\"we\", \"us\", \"our\"). By accessing or using Yonca, you agree to be bound by these Terms of Service (\"Terms\"). If you do not agree with any part of these Terms, you must not use the Service."
+msgstr "(\"biz\", \"biz\", \"bizim\"). Yonca daxil olmaqla və ya istifadə etməklə siz bu"
+" Xidmət Şərtləri (\"Şərtlər\") ilə bağlı olmağa razılaşırsınız. Bu Şərtlərin hər"
+" hansı hissəsi ilə razı deyilsinizsə, Xidmətdən istifadə etməməlisiniz."
 
 #: yonca/templates/terms.html:87
 msgid "1. Eligibility"
@@ -2438,16 +2325,12 @@ msgid "years old"
 msgstr "yaş"
 
 #: yonca/templates/terms.html:89
-msgid ""
-"to use Yonca. If you are under the age of 18, you confirm that you have "
-"permission from a parent or legal guardian."
-msgstr ""
-"Yonca istifadə etmək. 18 yaşdan kiçiksinizsə, valideyndən və ya qanuni "
-"qəyyumdan icazə aldığınızı təsdiq edirsiniz."
+msgid "to use Yonca. If you are under the age of 18, you confirm that you have permission from a parent or legal guardian."
+msgstr "Yonca istifadə etmək. 18 yaşdan kiçiksinizsə, valideyndən və ya qanuni qəyyumdan"
+" icazə aldığınızı təsdiq edirsiniz."
 
 #: yonca/templates/terms.html:90
-msgid ""
-"You represent that the information you provide is accurate and complete."
+msgid "You represent that the information you provide is accurate and complete."
 msgstr "Siz təqdim etdiyiniz məlumatın dəqiq və tam olduğunu bildirirsiniz."
 
 #: yonca/templates/terms.html:93
@@ -2459,28 +2342,18 @@ msgid "Some features require creating an account."
 msgstr "Bəzi xüsusiyyətlər hesab yaratmağı tələb edir."
 
 #: yonca/templates/terms.html:96
-msgid ""
-"You are responsible for maintaining the confidentiality of your login "
-"credentials and for all activities that occur under your account."
-msgstr ""
-"Siz giriş məlumatlarınızın məxfiliyinin qorunmasına və hesabınız altında baş"
-" verən bütün fəaliyyətlərə cavabdehsiniz."
+msgid "You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your account."
+msgstr "Siz giriş məlumatlarınızın məxfiliyinin qorunmasına və hesabınız altında baş ver"
+"ən bütün fəaliyyətlərə cavabdehsiniz."
 
 #: yonca/templates/terms.html:97
-msgid ""
-"You agree not to share your account or use another user's account without "
-"permission."
-msgstr ""
-"Hesabınızı paylaşmamağa və ya icazəsiz başqa istifadəçinin hesabından "
-"istifadə etməməyə razılaşırsınız."
+msgid "You agree not to share your account or use another user's account without permission."
+msgstr "Hesabınızı paylaşmamağa və ya icazəsiz başqa istifadəçinin hesabından istifadə e"
+"tməməyə razılaşırsınız."
 
 #: yonca/templates/terms.html:98
-msgid ""
-"We reserve the right to suspend or terminate accounts that violate these "
-"Terms."
-msgstr ""
-"Biz bu Şərtləri pozan hesabları dayandırmaq və ya ləğv etmək hüququnu "
-"özümüzdə saxlayırıq."
+msgid "We reserve the right to suspend or terminate accounts that violate these Terms."
+msgstr "Biz bu Şərtləri pozan hesabları dayandırmaq və ya ləğv etmək hüququnu özümüzdə saxlayırıq."
 
 #: yonca/templates/terms.html:101
 msgid "3. User Content"
@@ -2491,45 +2364,31 @@ msgid "3.1 Content You Provide"
 msgstr "3.1 Təqdim etdiyiniz Məzmun"
 
 #: yonca/templates/terms.html:104
-msgid ""
-"Yonca may allow you to submit, upload, store, or share content such as text,"
-" images, files, or messages (\"User Content\")."
-msgstr ""
-"Yonca sizə mətn, şəkillər, fayllar və ya mesajlar (\"İstifadəçi Məzmunu\") "
-"kimi məzmunu təqdim etməyə, yükləməyə, saxlamağa və ya paylaşmağa icazə verə"
-" bilər."
+msgid "Yonca may allow you to submit, upload, store, or share content such as text, images, files, or messages (\"User Content\")."
+msgstr "Yonca sizə mətn, şəkillər, fayllar və ya mesajlar (\"İstifadəçi Məzmunu\") kimi "
+"məzmunu təqdim etməyə, yükləməyə, saxlamağa və ya paylaşmağa icazə verə bilər."
 
 #: yonca/templates/terms.html:105
-msgid ""
-"You retain ownership of your User Content. However, by submitting content, "
-"you grant Yonca a"
-msgstr ""
-"İstifadəçi Məzmununuzun sahibliyini saxlayırsınız. Bununla belə, məzmunu "
-"təqdim etməklə siz Yonca a"
+msgid "You retain ownership of your User Content. However, by submitting content, you grant Yonca a"
+msgstr "İstifadəçi Məzmununuzun sahibliyini saxlayırsınız. Bununla belə, məzmunu təqdim etməklə siz Yonca a"
 
 #: yonca/templates/terms.html:105
 msgid "non-exclusive, worldwide, royalty-free license"
 msgstr "qeyri-eksklüziv, dünya miqyasında, royaltisiz lisenziya"
 
 #: yonca/templates/terms.html:105
-msgid ""
-"to host, store, process, and display the content solely for operating and "
-"improving the Service."
-msgstr ""
-"məzmunu yalnız Xidməti idarə etmək və təkmilləşdirmək üçün yerləşdirmək, "
-"saxlamaq, emal etmək və göstərmək."
+msgid "to host, store, process, and display the content solely for operating and improving the Service."
+msgstr "məzmunu yalnız Xidməti idarə etmək və təkmilləşdirmək üçün yerləşdirmək, saxlama"
+"q, emal etmək və göstərmək."
 
 #: yonca/templates/terms.html:107
 msgid "3.2 Responsibility for Content"
 msgstr "3.2 Məzmun üçün məsuliyyət"
 
 #: yonca/templates/terms.html:108
-msgid ""
-"You are solely responsible for your User Content. You agree not to upload or"
-" share content that:"
-msgstr ""
-"İstifadəçi Məzmununuza görə yalnız siz məsuliyyət daşıyırsınız. Aşağıdakı "
-"məzmunu yükləməməyə və ya paylaşmamağa razılaşırsınız:"
+msgid "You are solely responsible for your User Content. You agree not to upload or share content that:"
+msgstr "İstifadəçi Məzmununuza görə yalnız siz məsuliyyət daşıyırsınız. Aşağıdakı məzmun"
+"u yükləməməyə və ya paylaşmamağa razılaşırsınız:"
 
 #: yonca/templates/terms.html:110
 msgid "Is illegal, fraudulent, or misleading"
@@ -2564,29 +2423,18 @@ msgid "third-party services"
 msgstr "üçüncü tərəf xidmətləri"
 
 #: yonca/templates/terms.html:119
-msgid ""
-"(such as cloud storage, APIs, or translation services) to operate features "
-"like file uploads, backups, or content processing."
-msgstr ""
-"fayl yükləmələri, ehtiyat nüsxələri və ya məzmun emalı kimi funksiyaları "
-"idarə etmək üçün (bulud yaddaşı, API və ya tərcümə xidmətləri kimi)."
+msgid "(such as cloud storage, APIs, or translation services) to operate features like file uploads, backups, or content processing."
+msgstr "fayl yükləmələri, ehtiyat nüsxələri və ya məzmun emalı kimi funksiyaları idarə e"
+"tmək üçün (bulud yaddaşı, API və ya tərcümə xidmətləri kimi)."
 
 #: yonca/templates/terms.html:120
-msgid ""
-"Your content may be processed or stored through these services strictly for "
-"functionality."
-msgstr ""
-"Məzmununuz bu xidmətlər vasitəsilə ciddi şəkildə funksionallıq üçün işlənə "
-"və ya saxlanıla bilər."
+msgid "Your content may be processed or stored through these services strictly for functionality."
+msgstr "Məzmununuz bu xidmətlər vasitəsilə ciddi şəkildə funksionallıq üçün işlənə və ya saxlanıla bilər."
 
 #: yonca/templates/terms.html:121
-msgid ""
-"Yonca is not responsible for outages, data loss, or changes caused by third-"
-"party providers, to the extent permitted by law."
-msgstr ""
-"Yonca qanunla icazə verilən həddə üçüncü tərəf provayderlərinin səbəb olduğu"
-" kəsilmələrə, məlumat itkilərinə və ya dəyişikliklərə görə məsuliyyət "
-"daşımır."
+msgid "Yonca is not responsible for outages, data loss, or changes caused by third-party providers, to the extent permitted by law."
+msgstr "Yonca qanunla icazə verilən həddə üçüncü tərəf provayderlərinin səbəb olduğu kəs"
+"ilmələrə, məlumat itkilərinə və ya dəyişikliklərə görə məsuliyyət daşımır."
 
 #: yonca/templates/terms.html:124
 msgid "4.1 Google Drive Integration"
@@ -2601,12 +2449,9 @@ msgid "account"
 msgstr "hesab"
 
 #: yonca/templates/terms.html:126
-msgid ""
-"using Google OAuth 2.0 for purposes such as uploading, storing, accessing, "
-"or managing files."
-msgstr ""
-"faylları yükləmək, saxlamaq, daxil olmaq və ya idarə etmək kimi məqsədlər "
-"üçün Google OAuth 2.0 istifadə etmək."
+msgid "using Google OAuth 2.0 for purposes such as uploading, storing, accessing, or managing files."
+msgstr "faylları yükləmək, saxlamaq, daxil olmaq və ya idarə etmək kimi məqsədlər üçün G"
+"oogle OAuth 2.0 istifadə etmək."
 
 #: yonca/templates/terms.html:127
 msgid "When you connect Google Drive, Yonca accesses only the"
@@ -2617,12 +2462,8 @@ msgid "minimum permissions required"
 msgstr "minimum icazələr tələb olunur"
 
 #: yonca/templates/terms.html:127
-msgid ""
-"to provide the requested functionality, as disclosed during the Google "
-"authorization process."
-msgstr ""
-"Google avtorizasiya prosesi zamanı açıqlanan tələb olunan funksionallığı "
-"təmin etmək."
+msgid "to provide the requested functionality, as disclosed during the Google authorization process."
+msgstr "Google avtorizasiya prosesi zamanı açıqlanan tələb olunan funksionallığı təmin etmək."
 
 #: yonca/templates/terms.html:128
 msgid "Yonca"
@@ -2637,24 +2478,17 @@ msgid "files outside the scope explicitly permitted by you."
 msgstr "açıq şəkildə icazə verdiyiniz çərçivədən kənar fayllar."
 
 #: yonca/templates/terms.html:129
-msgid ""
-"Files uploaded or managed via Google Drive remain under your control and "
-"subject to"
-msgstr ""
-"Google Disk vasitəsilə yüklənmiş və ya idarə olunan fayllar nəzarətinizdə və"
-" tabeliyində qalır"
+msgid "Files uploaded or managed via Google Drive remain under your control and subject to"
+msgstr "Google Disk vasitəsilə yüklənmiş və ya idarə olunan fayllar nəzarətinizdə və tabeliyində qalır"
 
 #: yonca/templates/terms.html:129
 msgid "Google's own Terms of Service and Privacy Policy"
 msgstr "Google-un öz Xidmət Şərtləri və Məxfilik Siyasəti"
 
 #: yonca/templates/terms.html:130
-msgid ""
-"You may revoke Yonca's access to your Google Drive at any time through your "
-"Google Account security settings."
-msgstr ""
-"Siz istənilən vaxt Google Hesabınızın təhlükəsizlik parametrləri vasitəsilə "
-"Yonca-ın Google Diskinizə girişini ləğv edə bilərsiniz."
+msgid "You may revoke Yonca's access to your Google Drive at any time through your Google Account security settings."
+msgstr "Siz istənilən vaxt Google Hesabınızın təhlükəsizlik parametrləri vasitəsilə Yonc"
+"a-ın Google Diskinizə girişini ləğv edə bilərsiniz."
 
 #: yonca/templates/terms.html:133
 msgid "5. Translations and Automated Features"
@@ -2669,20 +2503,12 @@ msgid "machine translations or AI-assisted tools"
 msgstr "maşın tərcümələri və ya süni intellektlə dəstəklənən alətlər"
 
 #: yonca/templates/terms.html:136
-msgid ""
-"These features are provided \"as is\" and may contain errors or "
-"inaccuracies."
-msgstr ""
-"Bu xüsusiyyətlər \"olduğu kimi\" verilir və səhvlər və ya qeyri-dəqiqliklər "
-"ola bilər."
+msgid "These features are provided \"as is\" and may contain errors or inaccuracies."
+msgstr "Bu xüsusiyyətlər \"olduğu kimi\" verilir və səhvlər və ya qeyri-dəqiqliklər ola bilər."
 
 #: yonca/templates/terms.html:137
-msgid ""
-"Yonca does not guarantee the correctness, completeness, or suitability of "
-"automatically generated results."
-msgstr ""
-"Yonca avtomatik yaradılan nəticələrin düzgünlüyünə, tamlığına və ya "
-"uyğunluğuna zəmanət vermir."
+msgid "Yonca does not guarantee the correctness, completeness, or suitability of automatically generated results."
+msgstr "Yonca avtomatik yaradılan nəticələrin düzgünlüyünə, tamlığına və ya uyğunluğuna zəmanət vermir."
 
 #: yonca/templates/terms.html:140
 msgid "6. Acceptable Use"
@@ -2693,21 +2519,16 @@ msgid "You agree not to:"
 msgstr "Siz razılaşırsınız:"
 
 #: yonca/templates/terms.html:143
-msgid ""
-"Abuse, overload, or attempt to disrupt the Service or its infrastructure"
-msgstr ""
-"Xidmətdən və ya onun infrastrukturundan sui-istifadə, həddindən artıq "
-"yükləmə və ya pozmağa cəhd"
+msgid "Abuse, overload, or attempt to disrupt the Service or its infrastructure"
+msgstr "Xidmətdən və ya onun infrastrukturundan sui-istifadə, həddindən artıq yükləmə və ya pozmağa cəhd"
 
 #: yonca/templates/terms.html:144
 msgid "Attempt unauthorized access to systems, accounts, or data"
-msgstr ""
-"Sistemlərə, hesablara və ya məlumatlara icazəsiz daxil olmağa cəhd edin"
+msgstr "Sistemlərə, hesablara və ya məlumatlara icazəsiz daxil olmağa cəhd edin"
 
 #: yonca/templates/terms.html:145
 msgid "Use Yonca for spam, scraping, or automated misuse"
-msgstr ""
-"Spam, kazıma və ya avtomatlaşdırılmış sui-istifadə üçün Yonca istifadə edin"
+msgstr "Spam, kazıma və ya avtomatlaşdırılmış sui-istifadə üçün Yonca istifadə edin"
 
 #: yonca/templates/terms.html:146
 msgid "Circumvent security or access controls"
@@ -2718,21 +2539,14 @@ msgid "7. Intellectual Property"
 msgstr "7. Əqli Mülkiyyət"
 
 #: yonca/templates/terms.html:151
-msgid ""
-"The Yonca name, logo, design, and all platform-related content (excluding "
-"User Content) are owned by Yonca or its licensors."
-msgstr ""
-"Yonca adı, loqosu, dizaynı və platforma ilə əlaqəli bütün məzmun (İstifadəçi"
-" Məzmunu istisna olmaqla) Yonca və ya onun lisenziyalaşdırıcılarına "
-"məxsusdur."
+msgid "The Yonca name, logo, design, and all platform-related content (excluding User Content) are owned by Yonca or its licensors."
+msgstr "Yonca adı, loqosu, dizaynı və platforma ilə əlaqəli bütün məzmun (İstifadəçi Məz"
+"munu istisna olmaqla) Yonca və ya onun lisenziyalaşdırıcılarına məxsusdur."
 
 #: yonca/templates/terms.html:152
-msgid ""
-"You may not copy, modify, distribute, or reverse-engineer any part of the "
-"Service without written permission."
-msgstr ""
-"Siz yazılı icazə olmadan Xidmətin hər hansı hissəsini köçürə, dəyişdirə, "
-"paylaya və ya tərsinə çevirə bilməzsiniz."
+msgid "You may not copy, modify, distribute, or reverse-engineer any part of the Service without written permission."
+msgstr "Siz yazılı icazə olmadan Xidmətin hər hansı hissəsini köçürə, dəyişdirə, paylaya"
+" və ya tərsinə çevirə bilməzsiniz."
 
 #: yonca/templates/terms.html:155
 msgid "8. Privacy"
@@ -2748,9 +2562,7 @@ msgstr "Məxfilik Siyasəti"
 
 #: yonca/templates/terms.html:156
 msgid "which explains how we collect, use, and protect your data."
-msgstr ""
-"məlumatlarınızı necə topladığımızı, istifadə etdiyimizi və qoruduğumuzu izah"
-" edir."
+msgstr "məlumatlarınızı necə topladığımızı, istifadə etdiyimizi və qoruduğumuzu izah edir."
 
 #: yonca/templates/terms.html:158
 msgid "9. Termination"
@@ -2761,18 +2573,13 @@ msgid "You may stop using Yonca at any time."
 msgstr "İstənilən vaxt Yonca istifadəsini dayandıra bilərsiniz."
 
 #: yonca/templates/terms.html:161
-msgid ""
-"We may suspend or terminate your access immediately if you violate these "
-"Terms or if required by law."
-msgstr ""
-"Bu Şərtləri pozarsanız və ya qanunla tələb olunarsa, girişinizi dərhal "
-"dayandıra və ya ləğv edə bilərik."
+msgid "We may suspend or terminate your access immediately if you violate these Terms or if required by law."
+msgstr "Bu Şərtləri pozarsanız və ya qanunla tələb olunarsa, girişinizi dərhal dayandıra"
+" və ya ləğv edə bilərik."
 
 #: yonca/templates/terms.html:162
-msgid ""
-"Upon termination, access to your account and stored content may be removed."
-msgstr ""
-"Ləğv edildikdən sonra hesabınıza və saxlanılan məzmuna giriş silinə bilər."
+msgid "Upon termination, access to your account and stored content may be removed."
+msgstr "Ləğv edildikdən sonra hesabınıza və saxlanılan məzmuna giriş silinə bilər."
 
 #: yonca/templates/terms.html:165
 msgid "10. Disclaimer of Warranties"
@@ -2800,8 +2607,7 @@ msgstr "Qanunla icazə verilən maksimum həddə:"
 
 #: yonca/templates/terms.html:168
 msgid "We make no warranties regarding availability, reliability, or accuracy"
-msgstr ""
-"Biz mövcudluq, etibarlılıq və ya dəqiqliklə bağlı heç bir zəmanət vermirik"
+msgstr "Biz mövcudluq, etibarlılıq və ya dəqiqliklə bağlı heç bir zəmanət vermirik"
 
 #: yonca/templates/terms.html:169
 msgid "We do not guarantee uninterrupted or error-free operation"
@@ -2813,8 +2619,7 @@ msgstr "11. Məsuliyyətin məhdudlaşdırılması"
 
 #: yonca/templates/terms.html:173
 msgid "To the extent permitted by law, Yonca shall not be liable for:"
-msgstr ""
-"Qanunla icazə verilən həddə, Yonca aşağıdakılara görə məsuliyyət daşımır:"
+msgstr "Qanunla icazə verilən həddə, Yonca aşağıdakılara görə məsuliyyət daşımır:"
 
 #: yonca/templates/terms.html:175
 msgid "Indirect, incidental, or consequential damages"
@@ -2826,54 +2631,39 @@ msgstr "Məlumatların, mənfəətin və ya biznes imkanlarının itirilməsi"
 
 #: yonca/templates/terms.html:177
 msgid "Issues caused by third-party services or user actions"
-msgstr ""
-"Üçüncü tərəf xidmətləri və ya istifadəçi hərəkətləri nəticəsində yaranan "
-"problemlər"
+msgstr "Üçüncü tərəf xidmətləri və ya istifadəçi hərəkətləri nəticəsində yaranan problemlər"
 
 #: yonca/templates/terms.html:180
 msgid "12. Changes to the Terms"
 msgstr "12. Şərtlərə Dəyişikliklər"
 
 #: yonca/templates/terms.html:181
-msgid ""
-"We may update these Terms from time to time. Continued use of Yonca after "
-"changes become effective constitutes acceptance of the revised Terms."
-msgstr ""
-"Biz bu Şərtləri vaxtaşırı yeniləyə bilərik. Dəyişikliklər qüvvəyə mindikdən "
-"sonra Yonca-dan davamlı istifadə yenidən işlənmiş Şərtlərin qəbul edilməsini"
-" təşkil edir."
+msgid "We may update these Terms from time to time. Continued use of Yonca after changes become effective constitutes acceptance of the revised Terms."
+msgstr "Biz bu Şərtləri vaxtaşırı yeniləyə bilərik. Dəyişikliklər qüvvəyə mindikdən sonr"
+"a Yonca-dan davamlı istifadə yenidən işlənmiş Şərtlərin qəbul edilməsini təşkil "
+"edir."
 
 #: yonca/templates/terms.html:183
 msgid "13. Governing Law"
 msgstr "13. İdarəetmə Qanunu"
 
 #: yonca/templates/terms.html:184
-msgid ""
-"These Terms are governed by and construed in accordance with applicable "
-"laws, without regard to conflict of law principles."
-msgstr ""
-"Bu Şərtlər qanunun ziddiyyəti prinsiplərindən asılı olmayaraq, qüvvədə olan "
-"qanunlarla tənzimlənir və onlara uyğun şərh edilir."
+msgid "These Terms are governed by and construed in accordance with applicable laws, without regard to conflict of law principles."
+msgstr "Bu Şərtlər qanunun ziddiyyəti prinsiplərindən asılı olmayaraq, qüvvədə olan qanu"
+"nlarla tənzimlənir və onlara uyğun şərh edilir."
 
 #: yonca/templates/terms.html:186
 msgid "14. Contact"
 msgstr "14. Əlaqə"
 
 #: yonca/templates/terms.html:187
-msgid ""
-"If you have questions about these Terms, please contact us through the Yonca"
-" website."
-msgstr ""
-"Bu Şərtlərlə bağlı suallarınız varsa, lütfən, Yonca vebsaytı vasitəsilə "
-"bizimlə əlaqə saxlayın."
+msgid "If you have questions about these Terms, please contact us through the Yonca website."
+msgstr "Bu Şərtlərlə bağlı suallarınız varsa, lütfən, Yonca vebsaytı vasitəsilə bizimlə əlaqə saxlayın."
 
 #: yonca/templates/terms.html:191
-msgid ""
-"By using Yonca, you acknowledge that you have read, understood, and agree to"
-" these Terms of Service."
-msgstr ""
-"Yonca istifadə etməklə siz bu Xidmət Şərtlərini oxuduğunuzu, başa "
-"düşdüyünüzü və razılaşdığınızı təsdiq edirsiniz."
+msgid "By using Yonca, you acknowledge that you have read, understood, and agree to these Terms of Service."
+msgstr "Yonca istifadə etməklə siz bu Xidmət Şərtlərini oxuduğunuzu, başa düşdüyünüzü və"
+" razılaşdığınızı təsdiq edirsiniz."
 
 #: yonca/templates/admin/about_company.html:242 yonca/templates/terms.html:193
 msgid "Back to Home"
@@ -2900,12 +2690,9 @@ msgid "Subtitle:"
 msgstr "Altyazı:"
 
 #: yonca/templates/admin/about_company.html:163
-msgid ""
-"Join our learning community and discover amazing features designed to "
-"enhance your educational experience."
-msgstr ""
-"Öyrənmə icmamıza qoşulun və təhsil təcrübənizi artırmaq üçün hazırlanmış "
-"heyrətamiz xüsusiyyətləri kəşf edin."
+msgid "Join our learning community and discover amazing features designed to enhance your educational experience."
+msgstr "Öyrənmə icmamıza qoşulun və təhsil təcrübənizi artırmaq üçün hazırlanmış heyrəta"
+"miz xüsusiyyətləri kəşf edin."
 
 #: yonca/templates/admin/about_company.html:164
 msgid "A brief description that appears below the welcome title"
@@ -2992,12 +2779,8 @@ msgid "Media URL:"
 msgstr "Media URL:"
 
 #: yonca/templates/admin/about_company.html:262
-msgid ""
-"https://youtube.com/watch?v=... or https://drive.google.com/file/d/... or "
-"direct video URL"
-msgstr ""
-"https://youtube.com/watch?v=... və ya https://drive.google.com/file/d/... və"
-" ya birbaşa video URL"
+msgid "https://youtube.com/watch?v=... or https://drive.google.com/file/d/... or direct video URL"
+msgstr "https://youtube.com/watch?v=... və ya https://drive.google.com/file/d/... və ya birbaşa video URL"
 
 #: yonca/templates/admin/about_company.html:263
 msgid "Alt Text:"

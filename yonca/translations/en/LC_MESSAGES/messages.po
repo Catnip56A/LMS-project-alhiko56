@@ -4,19 +4,7 @@
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
-msgstr ""
-"Project-Id-Version: PROJECT VERSION\n"
-"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-12 12:28+0400\n"
-"PO-Revision-Date: 2026-03-12 12:31+0400\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: en\n"
-"Language-Team: en <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+msgstr "Project-Id-Version: PROJECT VERSION\nReport-Msgid-Bugs-To: EMAIL@ADDRESS\nPOT-Creation-Date: 2026-03-12 12:28+0400\nPO-Revision-Date: 2026-03-12 12:31+0400\nLast-Translator: FULL NAME <EMAIL@ADDRESS>\nLanguage: en\nLanguage-Team: en <LL@li.org>\nPlural-Forms: nplurals=2; plural=(n != 1);\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\nContent-Transfer-Encoding: 8bit\nGenerated-By: Babel 2.17.0\n"
 
 #: myenv/Lib/site-packages/click/_termui_impl.py:613
 #, python-brace-format
@@ -41,7 +29,6 @@ msgstr ""
 #: myenv/Lib/site-packages/click/core.py:1245
 #, python-brace-format
 msgid "Got unexpected extra argument ({args})"
-msgid_plural "Got unexpected extra arguments ({args})"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -74,15 +61,12 @@ msgstr ""
 #: myenv/Lib/site-packages/click/core.py:2378
 #, python-brace-format
 msgid "Takes {nargs} values but 1 was given."
-msgid_plural "Takes {nargs} values but {len} were given."
 msgstr[0] ""
 msgstr[1] ""
 
 #: myenv/Lib/site-packages/click/core.py:2567
 #, python-brace-format
-msgid ""
-"DeprecationWarning: The {param_type} {name!r} is "
-"deprecated.{extra_message}"
+msgid "DeprecationWarning: The {param_type} {name!r} is deprecated.{extra_message}"
 msgstr ""
 
 #: myenv/Lib/site-packages/click/core.py:3015
@@ -167,7 +151,6 @@ msgstr ""
 #: myenv/Lib/site-packages/click/exceptions.py:235
 #, python-brace-format
 msgid "Did you mean {possibility}?"
-msgid_plural "(Possible options: {possibilities})"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -197,7 +180,6 @@ msgstr ""
 #: myenv/Lib/site-packages/click/parser.py:444
 #, python-brace-format
 msgid "Option {name!r} requires an argument."
-msgid_plural "Option {name!r} requires {nargs} arguments."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -236,22 +218,18 @@ msgstr ""
 
 #: myenv/Lib/site-packages/click/types.py:332
 #, python-brace-format
-msgid ""
-"Choose from:\n"
-"\t{choices}"
+msgid "Choose from:\n\t{choices}"
 msgstr ""
 
 #: myenv/Lib/site-packages/click/types.py:369
 #, python-brace-format
 msgid "{value!r} is not {choice}."
-msgid_plural "{value!r} is not one of {choices}."
 msgstr[0] ""
 msgstr[1] ""
 
 #: myenv/Lib/site-packages/click/types.py:460
 #, python-brace-format
 msgid "{value!r} does not match the format {format}."
-msgid_plural "{value!r} does not match the formats {formats}."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -320,7 +298,6 @@ msgstr ""
 #: myenv/Lib/site-packages/click/types.py:1099
 #, python-brace-format
 msgid "{len_type} values are required, but {len_value} was given."
-msgid_plural "{len_type} values are required, but {len_value} were given."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -535,7 +512,6 @@ msgstr ""
 #: myenv/Lib/site-packages/flask_admin/model/base.py:2475
 #, python-format
 msgid "Record was successfully deleted."
-msgid_plural "%(count)s records were successfully deleted."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -550,7 +526,6 @@ msgstr ""
 #: myenv/Lib/site-packages/flask_admin/contrib/sqla/validators.py:81
 #, python-format
 msgid "At least %(num)d item is required"
-msgid_plural "At least %(num)d items are required"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -704,21 +679,18 @@ msgstr ""
 #: myenv/Lib/site-packages/wtforms/validators.py:146
 #, python-format
 msgid "Field must be at least %(min)d character long."
-msgid_plural "Field must be at least %(min)d characters long."
 msgstr[0] ""
 msgstr[1] ""
 
 #: myenv/Lib/site-packages/wtforms/validators.py:152
 #, python-format
 msgid "Field cannot be longer than %(max)d character."
-msgid_plural "Field cannot be longer than %(max)d characters."
 msgstr[0] ""
 msgstr[1] ""
 
 #: myenv/Lib/site-packages/wtforms/validators.py:158
 #, python-format
 msgid "Field must be exactly %(max)d character long."
-msgid_plural "Field must be exactly %(max)d characters long."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -820,7 +792,6 @@ msgstr ""
 #: myenv/Lib/site-packages/wtforms/fields/choices.py:212
 #, python-format
 msgid "'%(value)s' is not a valid choice for this field."
-msgid_plural "'%(value)s' are not valid choices for this field."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -918,7 +889,6 @@ msgstr ""
 #: yonca/templates/course_description.html:287
 #: yonca/templates/course_page_enrolled.html:727
 msgid "review"
-msgid_plural "reviews"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -1000,15 +970,11 @@ msgid "Move Folder"
 msgstr ""
 
 #: yonca/templates/course_page_enrolled.html:386
-msgid ""
-"Are you sure you want to delete this folder and ALL its contents? This "
-"cannot be undone."
+msgid "Are you sure you want to delete this folder and ALL its contents? This cannot be undone."
 msgstr ""
 
 #: yonca/templates/course_page_enrolled.html:386
-msgid ""
-"Are you sure you want to delete this folder? This will only work if the "
-"folder is empty."
+msgid "Are you sure you want to delete this folder? This will only work if the folder is empty."
 msgstr ""
 
 #: yonca/templates/course_page_enrolled.html:390
@@ -1121,9 +1087,7 @@ msgid "Enroll to Access Course Content"
 msgstr ""
 
 #: yonca/templates/course_page_enrolled.html:913
-msgid ""
-"You need to be enrolled in this course to view the content, materials, "
-"and participate in activities."
+msgid "You need to be enrolled in this course to view the content, materials, and participate in activities."
 msgstr ""
 
 #: yonca/templates/course_page_enrolled.html:927
@@ -1196,9 +1160,7 @@ msgid "Submit Assignment"
 msgstr ""
 
 #: yonca/templates/course_page_enrolled.html:1027
-msgid ""
-"Are you sure you want to delete this assignment? This will also delete "
-"all submissions."
+msgid "Are you sure you want to delete this assignment? This will also delete all submissions."
 msgstr ""
 
 #: yonca/templates/course_page_enrolled.html:1030
@@ -1283,9 +1245,7 @@ msgid "Posted:"
 msgstr ""
 
 #: yonca/templates/course_page_enrolled.html:1166
-msgid ""
-"Are you sure you want to delete this announcement? This will also delete "
-"all replies."
+msgid "Are you sure you want to delete this announcement? This will also delete all replies."
 msgstr ""
 
 #: yonca/templates/course_page_enrolled.html:1169
@@ -1601,15 +1561,11 @@ msgstr ""
 
 #: yonca/templates/admin/about_company.html:217 yonca/templates/index.html:2168
 #: yonca/templates/index.html:2686
-msgid ""
-"Discover the latest updates, new features, and exciting developments in "
-"our learning platform."
+msgid "Discover the latest updates, new features, and exciting developments in our learning platform."
 msgstr ""
 
 #: yonca/templates/index.html:2207
-msgid ""
-"If video shows 'still being processed,' please wait 5-60 minutes for "
-"Google Drive to finish processing, then refresh the page."
+msgid "If video shows 'still being processed,' please wait 5-60 minutes for Google Drive to finish processing, then refresh the page."
 msgstr ""
 
 #: yonca/templates/index.html:2231
@@ -1665,9 +1621,7 @@ msgid "Professional Education and Training"
 msgstr ""
 
 #: yonca/templates/index.html:2289 yonca/templates/index.html:2983
-msgid ""
-"Evidence-based training for psychologists, therapists, educators, and "
-"tutors"
+msgid "Evidence-based training for psychologists, therapists, educators, and tutors"
 msgstr ""
 
 #: yonca/templates/index.html:2291
@@ -1753,10 +1707,7 @@ msgid "Azerbaijani"
 msgstr ""
 
 #: yonca/templates/index.html:2387
-msgid ""
-"Select a language to translate messages, or choose 'Don't translate' to "
-"view messages in their original language. Click individual messages to "
-"toggle translation."
+msgid "Select a language to translate messages, or choose 'Don't translate' to view messages in their original language. Click individual messages to toggle translation."
 msgstr ""
 
 #: yonca/templates/index.html:2391
@@ -1788,9 +1739,7 @@ msgid "Welcome to Yonca Forum!"
 msgstr ""
 
 #: yonca/templates/index.html:2410
-msgid ""
-"This is where community members can connect, ask questions, and share "
-"knowledge."
+msgid "This is where community members can connect, ask questions, and share knowledge."
 msgstr ""
 
 #: yonca/templates/index.html:2411
@@ -1835,9 +1784,7 @@ msgid "Upload Learning Material"
 msgstr ""
 
 #: yonca/templates/index.html:2455
-msgid ""
-"Upload documents, presentations, PDFs, or other materials. You can choose"
-" to enable PIN protection for security or allow free access."
+msgid "Upload documents, presentations, PDFs, or other materials. You can choose to enable PIN protection for security or allow free access."
 msgstr ""
 
 #: yonca/templates/admin/about_company.html:253 yonca/templates/index.html:2458
@@ -1905,9 +1852,7 @@ msgid "Assessment and Skill Evaluation"
 msgstr ""
 
 #: yonca/templates/index.html:2523
-msgid ""
-"Comprehensive assessment of a child's development and creation of an "
-"individualized support plan"
+msgid "Comprehensive assessment of a child's development and creation of an individualized support plan"
 msgstr ""
 
 #: yonca/templates/index.html:2525 yonca/templates/index.html:2535
@@ -1978,9 +1923,7 @@ msgid "Courses for specialists and parents"
 msgstr ""
 
 #: yonca/templates/index.html:2587
-msgid ""
-"Comprehensive assessment of a child's development to create an "
-"individualized support plan"
+msgid "Comprehensive assessment of a child's development to create an individualized support plan"
 msgstr ""
 
 #: yonca/templates/index.html:2589
@@ -2008,9 +1951,7 @@ msgid "Vineland Adaptive Behavior Scales"
 msgstr ""
 
 #: yonca/templates/index.html:2596
-msgid ""
-"Scientifically validated standardized methods help identify the child's "
-"strengths and areas for development."
+msgid "Scientifically validated standardized methods help identify the child's strengths and areas for development."
 msgstr ""
 
 #: yonca/templates/index.html:2604
@@ -2355,10 +2296,7 @@ msgid "(the \"Service\", \"Platform\", \"Website\"), operated by"
 msgstr ""
 
 #: yonca/templates/terms.html:83
-msgid ""
-"(\"we\", \"us\", \"our\"). By accessing or using Yonca, you agree to be "
-"bound by these Terms of Service (\"Terms\"). If you do not agree with any"
-" part of these Terms, you must not use the Service."
+msgid "(\"we\", \"us\", \"our\"). By accessing or using Yonca, you agree to be bound by these Terms of Service (\"Terms\"). If you do not agree with any part of these Terms, you must not use the Service."
 msgstr ""
 
 #: yonca/templates/terms.html:87
@@ -2374,9 +2312,7 @@ msgid "years old"
 msgstr ""
 
 #: yonca/templates/terms.html:89
-msgid ""
-"to use Yonca. If you are under the age of 18, you confirm that you have "
-"permission from a parent or legal guardian."
+msgid "to use Yonca. If you are under the age of 18, you confirm that you have permission from a parent or legal guardian."
 msgstr ""
 
 #: yonca/templates/terms.html:90
@@ -2392,21 +2328,15 @@ msgid "Some features require creating an account."
 msgstr ""
 
 #: yonca/templates/terms.html:96
-msgid ""
-"You are responsible for maintaining the confidentiality of your login "
-"credentials and for all activities that occur under your account."
+msgid "You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your account."
 msgstr ""
 
 #: yonca/templates/terms.html:97
-msgid ""
-"You agree not to share your account or use another user's account without"
-" permission."
+msgid "You agree not to share your account or use another user's account without permission."
 msgstr ""
 
 #: yonca/templates/terms.html:98
-msgid ""
-"We reserve the right to suspend or terminate accounts that violate these "
-"Terms."
+msgid "We reserve the right to suspend or terminate accounts that violate these Terms."
 msgstr ""
 
 #: yonca/templates/terms.html:101
@@ -2418,15 +2348,11 @@ msgid "3.1 Content You Provide"
 msgstr ""
 
 #: yonca/templates/terms.html:104
-msgid ""
-"Yonca may allow you to submit, upload, store, or share content such as "
-"text, images, files, or messages (\"User Content\")."
+msgid "Yonca may allow you to submit, upload, store, or share content such as text, images, files, or messages (\"User Content\")."
 msgstr ""
 
 #: yonca/templates/terms.html:105
-msgid ""
-"You retain ownership of your User Content. However, by submitting "
-"content, you grant Yonca a"
+msgid "You retain ownership of your User Content. However, by submitting content, you grant Yonca a"
 msgstr ""
 
 #: yonca/templates/terms.html:105
@@ -2434,9 +2360,7 @@ msgid "non-exclusive, worldwide, royalty-free license"
 msgstr ""
 
 #: yonca/templates/terms.html:105
-msgid ""
-"to host, store, process, and display the content solely for operating and"
-" improving the Service."
+msgid "to host, store, process, and display the content solely for operating and improving the Service."
 msgstr ""
 
 #: yonca/templates/terms.html:107
@@ -2444,9 +2368,7 @@ msgid "3.2 Responsibility for Content"
 msgstr ""
 
 #: yonca/templates/terms.html:108
-msgid ""
-"You are solely responsible for your User Content. You agree not to upload"
-" or share content that:"
+msgid "You are solely responsible for your User Content. You agree not to upload or share content that:"
 msgstr ""
 
 #: yonca/templates/terms.html:110
@@ -2482,21 +2404,15 @@ msgid "third-party services"
 msgstr ""
 
 #: yonca/templates/terms.html:119
-msgid ""
-"(such as cloud storage, APIs, or translation services) to operate "
-"features like file uploads, backups, or content processing."
+msgid "(such as cloud storage, APIs, or translation services) to operate features like file uploads, backups, or content processing."
 msgstr ""
 
 #: yonca/templates/terms.html:120
-msgid ""
-"Your content may be processed or stored through these services strictly "
-"for functionality."
+msgid "Your content may be processed or stored through these services strictly for functionality."
 msgstr ""
 
 #: yonca/templates/terms.html:121
-msgid ""
-"Yonca is not responsible for outages, data loss, or changes caused by "
-"third-party providers, to the extent permitted by law."
+msgid "Yonca is not responsible for outages, data loss, or changes caused by third-party providers, to the extent permitted by law."
 msgstr ""
 
 #: yonca/templates/terms.html:124
@@ -2512,9 +2428,7 @@ msgid "account"
 msgstr ""
 
 #: yonca/templates/terms.html:126
-msgid ""
-"using Google OAuth 2.0 for purposes such as uploading, storing, "
-"accessing, or managing files."
+msgid "using Google OAuth 2.0 for purposes such as uploading, storing, accessing, or managing files."
 msgstr ""
 
 #: yonca/templates/terms.html:127
@@ -2526,9 +2440,7 @@ msgid "minimum permissions required"
 msgstr ""
 
 #: yonca/templates/terms.html:127
-msgid ""
-"to provide the requested functionality, as disclosed during the Google "
-"authorization process."
+msgid "to provide the requested functionality, as disclosed during the Google authorization process."
 msgstr ""
 
 #: yonca/templates/terms.html:128
@@ -2544,9 +2456,7 @@ msgid "files outside the scope explicitly permitted by you."
 msgstr ""
 
 #: yonca/templates/terms.html:129
-msgid ""
-"Files uploaded or managed via Google Drive remain under your control and "
-"subject to"
+msgid "Files uploaded or managed via Google Drive remain under your control and subject to"
 msgstr ""
 
 #: yonca/templates/terms.html:129
@@ -2554,9 +2464,7 @@ msgid "Google's own Terms of Service and Privacy Policy"
 msgstr ""
 
 #: yonca/templates/terms.html:130
-msgid ""
-"You may revoke Yonca's access to your Google Drive at any time through "
-"your Google Account security settings."
+msgid "You may revoke Yonca's access to your Google Drive at any time through your Google Account security settings."
 msgstr ""
 
 #: yonca/templates/terms.html:133
@@ -2572,15 +2480,11 @@ msgid "machine translations or AI-assisted tools"
 msgstr ""
 
 #: yonca/templates/terms.html:136
-msgid ""
-"These features are provided \"as is\" and may contain errors or "
-"inaccuracies."
+msgid "These features are provided \"as is\" and may contain errors or inaccuracies."
 msgstr ""
 
 #: yonca/templates/terms.html:137
-msgid ""
-"Yonca does not guarantee the correctness, completeness, or suitability of"
-" automatically generated results."
+msgid "Yonca does not guarantee the correctness, completeness, or suitability of automatically generated results."
 msgstr ""
 
 #: yonca/templates/terms.html:140
@@ -2612,15 +2516,11 @@ msgid "7. Intellectual Property"
 msgstr ""
 
 #: yonca/templates/terms.html:151
-msgid ""
-"The Yonca name, logo, design, and all platform-related content (excluding"
-" User Content) are owned by Yonca or its licensors."
+msgid "The Yonca name, logo, design, and all platform-related content (excluding User Content) are owned by Yonca or its licensors."
 msgstr ""
 
 #: yonca/templates/terms.html:152
-msgid ""
-"You may not copy, modify, distribute, or reverse-engineer any part of the"
-" Service without written permission."
+msgid "You may not copy, modify, distribute, or reverse-engineer any part of the Service without written permission."
 msgstr ""
 
 #: yonca/templates/terms.html:155
@@ -2648,15 +2548,11 @@ msgid "You may stop using Yonca at any time."
 msgstr ""
 
 #: yonca/templates/terms.html:161
-msgid ""
-"We may suspend or terminate your access immediately if you violate these "
-"Terms or if required by law."
+msgid "We may suspend or terminate your access immediately if you violate these Terms or if required by law."
 msgstr ""
 
 #: yonca/templates/terms.html:162
-msgid ""
-"Upon termination, access to your account and stored content may be "
-"removed."
+msgid "Upon termination, access to your account and stored content may be removed."
 msgstr ""
 
 #: yonca/templates/terms.html:165
@@ -2716,9 +2612,7 @@ msgid "12. Changes to the Terms"
 msgstr ""
 
 #: yonca/templates/terms.html:181
-msgid ""
-"We may update these Terms from time to time. Continued use of Yonca after"
-" changes become effective constitutes acceptance of the revised Terms."
+msgid "We may update these Terms from time to time. Continued use of Yonca after changes become effective constitutes acceptance of the revised Terms."
 msgstr ""
 
 #: yonca/templates/terms.html:183
@@ -2726,9 +2620,7 @@ msgid "13. Governing Law"
 msgstr ""
 
 #: yonca/templates/terms.html:184
-msgid ""
-"These Terms are governed by and construed in accordance with applicable "
-"laws, without regard to conflict of law principles."
+msgid "These Terms are governed by and construed in accordance with applicable laws, without regard to conflict of law principles."
 msgstr ""
 
 #: yonca/templates/terms.html:186
@@ -2736,15 +2628,11 @@ msgid "14. Contact"
 msgstr ""
 
 #: yonca/templates/terms.html:187
-msgid ""
-"If you have questions about these Terms, please contact us through the "
-"Yonca website."
+msgid "If you have questions about these Terms, please contact us through the Yonca website."
 msgstr ""
 
 #: yonca/templates/terms.html:191
-msgid ""
-"By using Yonca, you acknowledge that you have read, understood, and agree"
-" to these Terms of Service."
+msgid "By using Yonca, you acknowledge that you have read, understood, and agree to these Terms of Service."
 msgstr ""
 
 #: yonca/templates/admin/about_company.html:242 yonca/templates/terms.html:193
@@ -2772,9 +2660,7 @@ msgid "Subtitle:"
 msgstr ""
 
 #: yonca/templates/admin/about_company.html:163
-msgid ""
-"Join our learning community and discover amazing features designed to "
-"enhance your educational experience."
+msgid "Join our learning community and discover amazing features designed to enhance your educational experience."
 msgstr ""
 
 #: yonca/templates/admin/about_company.html:164
@@ -2862,9 +2748,7 @@ msgid "Media URL:"
 msgstr ""
 
 #: yonca/templates/admin/about_company.html:262
-msgid ""
-"https://youtube.com/watch?v=... or https://drive.google.com/file/d/... or"
-" direct video URL"
+msgid "https://youtube.com/watch?v=... or https://drive.google.com/file/d/... or direct video URL"
 msgstr ""
 
 #: yonca/templates/admin/about_company.html:263
