@@ -25,6 +25,7 @@ dependencies = [
     "google-auth-httplib2>=0.1.0",
     "google-auth-oauthlib>=0.4.0",
     "polib>=1.1.0",
+    "google-cloud-storage>=3.9.0",
 ]
 
 [tool.uv]
