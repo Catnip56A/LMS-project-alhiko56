@@ -84,7 +84,7 @@ jobs:
             echo "APP_HOSTNAME=$(grep '^DOMAIN=' .env | cut -d= -f2 | tr '.' '-')" >> .env
 
             chmod +x deploy/backup.sh deploy/restore.sh
-            deploy/backup.sh
+            ./deploy/backup.sh /home/${{ secrets.SSH_USER }}/backup/yonca/${{ github.ref_name == 'main' && 'production' || 'staging' }}
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose --profile prod pull
             docker compose --profile prod up -d --remove-orphans
