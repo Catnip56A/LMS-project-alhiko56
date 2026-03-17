@@ -89,3 +89,7 @@ certs:
     mkdir -p .local/certs
     mkcert -install
     mkcert -cert-file .local/certs/local.crt -key-file .local/certs/local.key "$DOMAIN"
+
+# calls uv sync
+sync:
+    uv sync
