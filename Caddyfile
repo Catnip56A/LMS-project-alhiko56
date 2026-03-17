@@ -1,12 +1,12 @@
 {$LOCAL_DOMAIN} {
-	tls internal
+	tls /certs/local.crt /certs/local.key
 
 	request_body {
 		max_size 500MB
 	}
 
 	handle {
-		reverse_proxy app-prod-dev:8000 {
+		reverse_proxy app-dev:8000 {
 			transport http {
 				dial_timeout 10m
 				response_header_timeout 10m

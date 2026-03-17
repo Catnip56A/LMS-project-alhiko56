@@ -6,7 +6,6 @@
 |---|---|
 | `caddy/docker-compose.yml` | Shared Caddy — runs once on the server, routes all domains |
 | `caddy/Caddyfile` | Multi-site Caddy config (prod + staging) |
-| `Caddyfile.local` | Caddy config for local `prod-dev` profile |
 | `gunicorn_config.py` | Gunicorn WSGI server config |
 | `backup.sh` | Backup Docker postgres to local dir or GCS |
 | `restore.sh` | Restore from `.dump` or `.sql` |

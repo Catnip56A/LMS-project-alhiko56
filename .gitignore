@@ -134,3 +134,6 @@ client_secret_860511395930-3eojlbffavnl47upo580avedqa49lq3f.apps.googleuserconte
 # DB dumps
 seed.sql
 *.dump
+
+# machine-local files (certs, etc.)
+.local/

@@ -22,7 +22,7 @@ services:
   # ── Development ───────────────────────────────────────────────────────────────
 
   migrate:
-    profiles: [dev, prod-dev]
+    profiles: [dev]
     build: .
     restart: no
     env_file: .env
@@ -35,32 +35,30 @@ services:
       - ./migrations:/app/migrations   # exposes generated files to host
     command: flask db upgrade
 
+#  app-dev:
+#    profiles: [dev]
+#    build: .
+#    restart: unless-stopped
+#    env_file: .env
+#    environment:
+#      FLASK_ENV: development
+#      FLASK_DEBUG: "1"
+#      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+#      GOOGLE_REDIRECT_URI: http://localhost:5000/auth/google/callback
+#    ports:
+#      - "5000:5000"
+#    depends_on:
+#      migrate:
+#        condition: service_completed_successfully
+#    volumes:
+#      - .:/app                              # live reload — mount entire source
+#      - /app/.venv                          # preserve venv from image
+#      - ./flask_session:/app/flask_session
+#      - ./logs:/app/logs
+#    command: flask run --host=0.0.0.0 --port=5000 --debug
+
   app-dev:
     profiles: [dev]
-    build: .
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      FLASK_ENV: development
-      FLASK_DEBUG: "1"
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      GOOGLE_REDIRECT_URI: http://localhost:5000/auth/google/callback
-    ports:
-      - "5000:5000"
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    volumes:
-      - .:/app                              # live reload — mount entire source
-      - /app/.venv                          # preserve venv from image
-      - ./flask_session:/app/flask_session
-      - ./logs:/app/logs
-    command: flask run --host=0.0.0.0 --port=5000 --debug
-
-  # ── Production (local) ───────────────────────────────────────────────────────
-
-  app-prod-dev:
-    profiles: [prod-dev]
     build: .
     restart: unless-stopped
     env_file: .env
@@ -68,6 +66,8 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       GOOGLE_REDIRECT_URI: https://${LOCAL_DOMAIN:-local.yonca-sdc.com}/auth/google/callback
+    ports:
+      - "8000:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -75,8 +75,8 @@ services:
       - ./flask_session:/app/flask_session
       - ./logs:/app/logs
 
-  caddy-local:
-    profiles: [prod-dev]
+  caddy-dev:
+    profiles: [dev]
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
@@ -86,12 +86,12 @@ services:
       - "443:443"
       - "443:443/udp"
     volumes:
-      - ./deploy/Caddyfile.local:/etc/caddy/Caddyfile:ro
-      - ./data/caddy-local:/data
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./.local/certs:/certs:ro
     depends_on:
-      - app-prod-dev
+      - app-dev
 
-  # ── Production ────────────────────────────────────────────────────────────────
+  # ── Production and Staging ────────────────────────────────────────────────────────────────
 
   migrate-prod:
     profiles: [prod]

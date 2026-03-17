@@ -38,9 +38,9 @@ yonca/
   google_drive_service.py Google Drive API integration
   translation_service.py  Translation service abstraction
 
+Caddyfile               Local dev reverse proxy config (mkcert TLS)
 deploy/
-  Caddyfile             Production reverse proxy config
-  Caddyfile.local       Local prod-dev reverse proxy config
+  Caddyfile             Production/staging reverse proxy config (in deploy/caddy/)
   gunicorn_config.py    Gunicorn settings (bind, workers, timeouts)
   backup.sh             Dockerized pg_dump to local dir or GCS
   restore.sh            Restore from .dump or .sql
