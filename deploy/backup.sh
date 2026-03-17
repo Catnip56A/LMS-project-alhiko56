@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-BACKUP_DIR="${1:-$HOME/backups/yonca}"
+BACKUP_DIR="${1:-$HOME/backup/yonca}"
 TIMESTAMP=$(date +%F_%H-%M-%S)
 BACKUP_FILE="${BACKUP_DIR}/yonca_${TIMESTAMP}.dump"
 
