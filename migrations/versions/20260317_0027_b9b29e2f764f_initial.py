@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: 2697befa1ff0
+Revision ID: b9b29e2f764f
 Revises: 
-Create Date: 2026-03-14 14:56:42.415161
+Create Date: 2026-03-17 00:27:23.289530
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '2697befa1ff0'
+revision = 'b9b29e2f764f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -71,6 +71,10 @@ def upgrade():
     sa.Column('page_show_navigation', sa.Boolean(), nullable=True),
     sa.Column('page_show_footer', sa.Boolean(), nullable=True),
     sa.Column('tags', sa.JSON(), nullable=True),
+    sa.Column('tab_content_label', sa.String(length=50), nullable=True),
+    sa.Column('tab_announcements_label', sa.String(length=50), nullable=True),
+    sa.Column('tab_reviews_label', sa.String(length=50), nullable=True),
+    sa.Column('tab_assignments_label', sa.String(length=50), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('forum_channel',

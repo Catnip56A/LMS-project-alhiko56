@@ -1,5 +1,14 @@
 set dotenv-load
 
+_ssh_host := env('SSH_HOST', 'yonca-sdc.com')
+
+# SSH tunnels for remote DBs
+db-tunnel-prod:
+    ssh -L 5439:127.0.0.1:5439 {{_ssh_host}} -N
+
+db-tunnel-staging:
+    ssh -L 5438:127.0.0.1:5438 {{_ssh_host}} -N
+
 # Derived vars for local (non-Docker) execution — mirrors docker-compose behaviour
 _db_url  := "postgresql://" + env('POSTGRES_USER', 'yonca_user') + ":" + env('POSTGRES_PASSWORD', 'changeme') + "@localhost:5432/" + env('POSTGRES_DB', 'yonca_db')
 _redir   := "http://localhost:5000/auth/google/callback"
