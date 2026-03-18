@@ -2,6 +2,9 @@ set dotenv-load
 
 _ssh_host := env('SSH_HOST', 'yonca-sdc.com')
 
+default:
+   just --list
+
 # SSH tunnels for remote DBs
 db-tunnel-prod:
     ssh -L 5439:127.0.0.1:5439 {{_ssh_host}} -N
