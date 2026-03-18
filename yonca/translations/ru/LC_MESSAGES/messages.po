@@ -4,1574 +4,794 @@
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 msgid ""
-msgstr "Project-Id-Version: PROJECT VERSION\nReport-Msgid-Bugs-To: EMAIL@ADDRESS\nPOT-Creation-Date: 2026-03-12 12:28+0400\nPO-Revision-Date: 2026-03-12 12:31+0400\nLast-Translator: FULL NAME <EMAIL@ADDRESS>\nLanguage-Team: ru <LL@li.org>\nLanguage: ru\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8\nContent-Transfer-Encoding: 8bit\nPlural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\nGenerated-By: Babel 2.17.0\n"
-
-#: myenv/Lib/site-packages/click/_termui_impl.py:613
-#, python-brace-format
-msgid "{editor}: Editing failed"
-msgstr "{editor}: редактирование не удалось"
-
-#: myenv/Lib/site-packages/click/_termui_impl.py:617
-#, python-brace-format
-msgid "{editor}: Editing failed: {e}"
-msgstr "{editor}: Ошибка редактирования: {e}"
-
-#: myenv/Lib/site-packages/click/core.py:1114
-#: myenv/Lib/site-packages/click/core.py:1151
-#, python-brace-format
-msgid "{text} {deprecated_message}"
-msgstr "{текст} {устаревшее_сообщение}"
-
-#: myenv/Lib/site-packages/click/core.py:1170
-msgid "Options"
-msgstr "Параметры"
-
-#: myenv/Lib/site-packages/click/core.py:1245
-#, python-brace-format
-msgid "Got unexpected extra argument ({args})"
-msgstr[0] "Получил неожиданный дополнительный аргумент ({args})"
-msgstr[1] "Получил неожиданный дополнительный аргумент ({args})"
-msgstr[2] "Получил неожиданный дополнительный аргумент ({args})"
-
-#: myenv/Lib/site-packages/click/core.py:1264
-#, python-brace-format
-msgid "DeprecationWarning: The command {name!r} is deprecated.{extra_message}"
-msgstr "Предупреждение об устаревании: команда {name!r} устарела.{extra_message}"
-
-#: myenv/Lib/site-packages/click/core.py:1448
-msgid "Aborted!"
-msgstr "Прервано!"
-
-#: myenv/Lib/site-packages/click/core.py:1822
-msgid "Commands"
-msgstr "Команды"
-
-#: myenv/Lib/site-packages/click/core.py:1853
-msgid "Missing command."
-msgstr "Отсутствует команда."
-
-#: myenv/Lib/site-packages/click/core.py:1931
-#, python-brace-format
-msgid "No such command {name!r}."
-msgstr "Нет такой команды {name!r}."
-
-#: myenv/Lib/site-packages/click/core.py:2355
-msgid "Value must be an iterable."
-msgstr "Значение должно быть итерируемым."
-
-#: myenv/Lib/site-packages/click/core.py:2378
-#, python-brace-format
-msgid "Takes {nargs} values but 1 was given."
-msgstr[0] "Принимает значения {nargs}, но было задано 1."
-msgstr[1] "Принимает значения {nargs}, но было задано 1."
-msgstr[2] "Принимает значения {nargs}, но было задано 1."
-
-#: myenv/Lib/site-packages/click/core.py:2567
-#, python-brace-format
-msgid "DeprecationWarning: The {param_type} {name!r} is deprecated.{extra_message}"
-msgstr "Предупреждение об устаревании: параметр {param_type} {name!r} устарел. {extra_message}"
-
-#: myenv/Lib/site-packages/click/core.py:3015
-#, python-brace-format
-msgid "env var: {var}"
-msgstr "окружение вар: {вар}"
-
-#: myenv/Lib/site-packages/click/core.py:3018
-#, python-brace-format
-msgid "default: {default}"
-msgstr "по умолчанию: {по умолчанию}"
-
-#: myenv/Lib/site-packages/click/core.py:3022
-msgid "required"
-msgstr "необходимый"
-
-#: myenv/Lib/site-packages/click/core.py:3082
-msgid "(dynamic)"
-msgstr "(динамический)"
-
-#: myenv/Lib/site-packages/click/decorators.py:465
-#, python-format
-msgid "%(prog)s, version %(version)s"
-msgstr "%(prog)s, версия %(version)s"
-
-#: myenv/Lib/site-packages/click/decorators.py:522
-msgid "Show the version and exit."
-msgstr "Покажите версию и выйдите."
-
-#: myenv/Lib/site-packages/click/decorators.py:548
-msgid "Show this message and exit."
-msgstr "Покажите это сообщение и выйдите."
-
-#: myenv/Lib/site-packages/click/exceptions.py:50
-#: myenv/Lib/site-packages/click/exceptions.py:89
-#, python-brace-format
-msgid "Error: {message}"
-msgstr "Ошибка: {сообщение}"
-
-#: myenv/Lib/site-packages/click/exceptions.py:81
-#, python-brace-format
-msgid "Try '{command} {option}' for help."
-msgstr "Попробуйте «{command} {option}» для получения помощи."
-
-#: myenv/Lib/site-packages/click/exceptions.py:130
-#, python-brace-format
-msgid "Invalid value: {message}"
-msgstr "Недопустимое значение: {message}."
-
-#: myenv/Lib/site-packages/click/exceptions.py:132
-#, python-brace-format
-msgid "Invalid value for {param_hint}: {message}"
-msgstr "Недопустимое значение для {param_hint}: {message}."
-
-#: myenv/Lib/site-packages/click/exceptions.py:190
-msgid "Missing argument"
-msgstr "Отсутствует аргумент"
-
-#: myenv/Lib/site-packages/click/exceptions.py:192
-msgid "Missing option"
-msgstr "Отсутствует опция"
-
-#: myenv/Lib/site-packages/click/exceptions.py:194
-msgid "Missing parameter"
-msgstr "Отсутствует параметр"
-
-#: myenv/Lib/site-packages/click/exceptions.py:196
-#, python-brace-format
-msgid "Missing {param_type}"
-msgstr "Отсутствует {param_type}"
-
-#: myenv/Lib/site-packages/click/exceptions.py:203
-#, python-brace-format
-msgid "Missing parameter: {param_name}"
-msgstr "Отсутствует параметр: {param_name}."
-
-#: myenv/Lib/site-packages/click/exceptions.py:223
-#, python-brace-format
-msgid "No such option: {name}"
-msgstr "Нет такой опции: {name}"
-
-#: myenv/Lib/site-packages/click/exceptions.py:235
-#, python-brace-format
-msgid "Did you mean {possibility}?"
-msgstr[0] "Вы имели в виду {возможность}?"
-msgstr[1] "Вы имели в виду {возможность}?"
-msgstr[2] "Вы имели в виду {возможность}?"
-
-#: myenv/Lib/site-packages/click/exceptions.py:282
-msgid "unknown error"
-msgstr "неизвестная ошибка"
-
-#: myenv/Lib/site-packages/click/exceptions.py:289
-#, python-brace-format
-msgid "Could not open file {filename!r}: {message}"
-msgstr "Не удалось открыть файл {filename!r}: {message}"
-
-#: myenv/Lib/site-packages/click/formatting.py:156
-msgid "Usage:"
-msgstr "Использование:"
-
-#: myenv/Lib/site-packages/click/parser.py:199
-#, python-brace-format
-msgid "Argument {name!r} takes {nargs} values."
-msgstr "Аргумент {name!r} принимает значения {nargs}."
-
-#: myenv/Lib/site-packages/click/parser.py:381
-#, python-brace-format
-msgid "Option {name!r} does not take a value."
-msgstr "Опция {name!r} не принимает значения."
-
-#: myenv/Lib/site-packages/click/parser.py:444
-#, python-brace-format
-msgid "Option {name!r} requires an argument."
-msgstr[0] "Опция {name!r} требует аргумента."
-msgstr[1] "Опция {name!r} требует аргумента."
-msgstr[2] "Опция {name!r} требует аргумента."
-
-#: myenv/Lib/site-packages/click/shell_completion.py:332
-msgid "Shell completion is not supported for Bash versions older than 4.4."
-msgstr "Завершение оболочки не поддерживается для версий Bash старше 4.4."
-
-#: myenv/Lib/site-packages/click/shell_completion.py:339
-msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr "Не удалось определить версию Bash, завершение оболочки не поддерживается."
-
-#: myenv/Lib/site-packages/click/termui.py:165
-msgid "Repeat for confirmation"
-msgstr "Повторите для подтверждения"
-
-#: myenv/Lib/site-packages/click/termui.py:181
-msgid "Error: The value you entered was invalid."
-msgstr "Ошибка: введенное вами значение недействительно."
-
-#: myenv/Lib/site-packages/click/termui.py:183
-#, python-brace-format
-msgid "Error: {e.message}"
-msgstr "Ошибка: {e.message}"
-
-#: myenv/Lib/site-packages/click/termui.py:194
-msgid "Error: The two entered values do not match."
-msgstr "Ошибка: два введенных значения не совпадают."
-
-#: myenv/Lib/site-packages/click/termui.py:253
-msgid "Error: invalid input"
-msgstr "Ошибка: неверный ввод."
-
-#: myenv/Lib/site-packages/click/termui.py:872
-msgid "Press any key to continue..."
-msgstr "Нажмите любую клавишу, чтобы продолжить..."
-
-#: myenv/Lib/site-packages/click/types.py:332
-#, python-brace-format
-msgid "Choose from:\n\t{choices}"
-msgstr "Выберите из:\n\t{выбор}"
-
-#: myenv/Lib/site-packages/click/types.py:369
-#, python-brace-format
-msgid "{value!r} is not {choice}."
-msgstr[0] "{value!r} не является {choice}."
-msgstr[1] "{value!r} не является {choice}."
-msgstr[2] "{value!r} не является {choice}."
-
-#: myenv/Lib/site-packages/click/types.py:460
-#, python-brace-format
-msgid "{value!r} does not match the format {format}."
-msgstr[0] "{value!r} не соответствует формату {format}."
-msgstr[1] "{value!r} не соответствует формату {format}."
-msgstr[2] "{value!r} не соответствует формату {format}."
-
-#: myenv/Lib/site-packages/click/types.py:482
-#, python-brace-format
-msgid "{value!r} is not a valid {number_type}."
-msgstr "{value!r} не является допустимым {number_type}."
-
-#: myenv/Lib/site-packages/click/types.py:538
-#, python-brace-format
-msgid "{value} is not in the range {range}."
-msgstr "{value} находится за пределами диапазона {range}."
-
-#: myenv/Lib/site-packages/click/types.py:719
-#, python-brace-format
-msgid "{value!r} is not a valid boolean. Recognized values: {states}"
-msgstr "{value!r} не является допустимым логическим значением. Признанные ценности: {states}"
-
-#: myenv/Lib/site-packages/click/types.py:747
-#, python-brace-format
-msgid "{value!r} is not a valid UUID."
-msgstr "{value!r} не является допустимым UUID."
-
-#: myenv/Lib/site-packages/click/types.py:937
-msgid "file"
-msgstr "файл"
-
-#: myenv/Lib/site-packages/click/types.py:939
-msgid "directory"
-msgstr "каталог"
-
-#: myenv/Lib/site-packages/click/types.py:941
-msgid "path"
-msgstr "путь"
-
-#: myenv/Lib/site-packages/click/types.py:988
-#, python-brace-format
-msgid "{name} {filename!r} does not exist."
-msgstr "{имя} {имя_файла!r} не существует."
-
-#: myenv/Lib/site-packages/click/types.py:997
-#, python-brace-format
-msgid "{name} {filename!r} is a file."
-msgstr "{имя} {имя_файла!r} — это файл."
-
-#: myenv/Lib/site-packages/click/types.py:1005
-#, python-brace-format
-msgid "{name} {filename!r} is a directory."
-msgstr "{имя} {имя_файла!r} — это каталог."
-
-#: myenv/Lib/site-packages/click/types.py:1014
-#, python-brace-format
-msgid "{name} {filename!r} is not readable."
-msgstr "{имя} {имя файла!r} не читается."
-
-#: myenv/Lib/site-packages/click/types.py:1023
-#, python-brace-format
-msgid "{name} {filename!r} is not writable."
-msgstr "{name} {filename!r} недоступен для записи."
-
-#: myenv/Lib/site-packages/click/types.py:1032
-#, python-brace-format
-msgid "{name} {filename!r} is not executable."
-msgstr "{name} {filename!r} не является исполняемым."
-
-#: myenv/Lib/site-packages/click/types.py:1099
-#, python-brace-format
-msgid "{len_type} values are required, but {len_value} was given."
-msgstr[0] ""
-"Значения {len_type} являются обязательными, но было задано {len_value}."
-msgstr[1] ""
-"Значения {len_type} являются обязательными, но было задано {len_value}."
-msgstr[2] ""
-"Значения {len_type} являются обязательными, но было задано {len_value}."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/rediscli.py:118
-msgid "Cli: Invalid command."
-msgstr "Cli: Неверная команда."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:422
-msgid "File required."
-msgstr "Требуется файл."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:427
-msgid "Invalid file type."
-msgstr "Неверный тип файла."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:457
-msgid "Invalid name"
-msgstr "Неверное имя"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:838
-#, python-format
-msgid "File \"%(name)s\" already exists."
-msgstr "Файл «%(name)s» уже существует."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:885
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:992
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1068
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1142
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1209
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1278
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2540
-msgid "Permission denied."
-msgstr "Доступ запрещен."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:988
-msgid "File uploading is disabled."
-msgstr "Загрузка файлов отключена."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1001
-#, python-format
-msgid "Successfully saved file: %(name)s"
-msgstr "Файл успешно сохранен: %(name)s"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1010
-#, python-format
-msgid "Failed to save file: %(error)s"
-msgstr "Не удалось сохранить файл: %(error)s."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1024
-#: yonca/templates/admin/about_company.html:258
-#: yonca/templates/course_page_enrolled.html:786
-#: yonca/templates/course_page_enrolled.html:1424
-#: yonca/templates/course_page_enrolled.html:1456
-msgid "Upload File"
-msgstr "Загрузить файл"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1064
-msgid "Directory creation is disabled."
-msgstr "Создание каталога отключено."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1085
-#, python-format
-msgid "Successfully created directory: %(directory)s"
-msgstr "Каталог успешно создан: %(directory)s."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1094
-#, python-format
-msgid "Failed to create directory: %(error)s"
-msgstr "Не удалось создать каталог: %(error)s."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1111
-msgid "Create Directory"
-msgstr "Создать каталог"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1138
-msgid "Deletion is disabled."
-msgstr "Удаление отключено."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1147
-msgid "Directory deletion is disabled."
-msgstr "Удаление каталога отключено."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1155
-#, python-format
-msgid "Directory \"%(path)s\" was successfully deleted."
-msgstr "Каталог «%(path)s» успешно удален."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1162
-#, python-format
-msgid "Failed to delete directory: %(error)s"
-msgstr "Не удалось удалить каталог: %(error)s."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1173
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1376
-#, python-format
-msgid "File \"%(name)s\" was successfully deleted."
-msgstr "Файл «%(name)s» успешно удален."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1179
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1382
-#, python-format
-msgid "Failed to delete file: %(name)s"
-msgstr "Не удалось удалить файл: %(name)s."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1205
-msgid "Renaming is disabled."
-msgstr "Переименование отключено."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1213
-msgid "Path does not exist."
-msgstr "Путь не существует."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1226
-#, python-format
-msgid "Successfully renamed \"%(src)s\" to \"%(dst)s\""
-msgstr "Успешно переименован «%(src)s» в «%(dst)s»."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1235
-#, python-format
-msgid "Failed to rename: %(error)s"
-msgstr "Не удалось переименовать: %(error)s"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1256
-#, python-format
-msgid "Rename %(name)s"
-msgstr "Переименовать %(name)s"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1296
-#, python-format
-msgid "Error saving changes to %(name)s."
-msgstr "Ошибка сохранения изменений в %(name)s."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1302
-#, python-format
-msgid "Changes to %(name)s saved successfully."
-msgstr "Изменения в %(name)s успешно сохранены."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1312
-#, python-format
-msgid "Error reading %(name)s."
-msgstr "Ошибка чтения %(name)s."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1316
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1329
-#, python-format
-msgid "Unexpected error while reading from %(name)s"
-msgstr "Непредвиденная ошибка при чтении из %(name)s"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1324
-#, python-format
-msgid "Cannot edit %(name)s."
-msgstr "Невозможно редактировать %(name)s."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1351
-#, python-format
-msgid "Editing %(path)s"
-msgstr "Редактирование %(path)s"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/__init__.py:1366
-msgid "File deletion is disabled."
-msgstr "Удаление файлов отключено."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/fileadmin/s3.py:233
-msgid "Cannot operate on non empty directories"
-msgstr "Невозможно работать с непустыми каталогами"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/form.py:121
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/fields.py:151
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/fields.py:210
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/fields.py:215
-#: myenv/Lib/site-packages/flask_admin/model/fields.py:222
-#: myenv/Lib/site-packages/flask_admin/model/fields.py:282
-msgid "Not a valid choice"
-msgstr "Не правильный выбор"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:606
-#, python-format
-msgid "Failed to get model. %(error)s"
-msgstr "Не удалось получить модель. %(ошибка)с"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:627
-#: myenv/Lib/site-packages/flask_admin/contrib/peewee/view.py:542
-#: myenv/Lib/site-packages/flask_admin/contrib/pymongo/view.py:352
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/view.py:1359
-#, python-format
-msgid "Failed to create record. %(error)s"
-msgstr "Не удалось создать запись. %(ошибка)с"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:656
-#: myenv/Lib/site-packages/flask_admin/contrib/peewee/view.py:564
-#: myenv/Lib/site-packages/flask_admin/contrib/pymongo/view.py:376
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/view.py:1388
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2695
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2702
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2706
-#, python-format
-msgid "Failed to update record. %(error)s"
-msgstr "Не удалось обновить запись. %(ошибка)с"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:682
-#: myenv/Lib/site-packages/flask_admin/contrib/peewee/view.py:582
-#: myenv/Lib/site-packages/flask_admin/contrib/pymongo/view.py:400
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/view.py:1416
-#, python-format
-msgid "Failed to delete record. %(error)s"
-msgstr "Не удалось удалить запись. %(ошибка)с"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:739
-#: myenv/Lib/site-packages/flask_admin/contrib/peewee/view.py:624
-#: myenv/Lib/site-packages/flask_admin/contrib/pymongo/view.py:432
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/view.py:1463
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2475
-#, python-format
-msgid "Record was successfully deleted."
-msgstr[0] "Запись успешно удалена."
-msgstr[1] "Запись успешно удалена."
-msgstr[2] "Запись успешно удалена."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/mongoengine/view.py:749
-#: myenv/Lib/site-packages/flask_admin/contrib/peewee/view.py:634
-#: myenv/Lib/site-packages/flask_admin/contrib/pymongo/view.py:441
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/view.py:1475
-#, python-format
-msgid "Failed to delete records. %(error)s"
-msgstr "Не удалось удалить записи. %(ошибка)с"
-
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/validators.py:81
-#, python-format
-msgid "At least %(num)d item is required"
-msgstr[0] "Требуется хотя бы %(num)d элемент."
-msgstr[1] "Требуется хотя бы %(num)d элемент."
-msgstr[2] "Требуется хотя бы %(num)d элемент."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/validators.py:98
-msgid "Not a valid ISO currency code (e.g. USD, EUR, CNY)."
-msgstr "Недействительный код валюты ISO (например, USD, EUR, CNY)."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/validators.py:109
-msgid "Not a valid color (e.g. \"red\", \"#f00\", \"#ff0000\")."
-msgstr "Недопустимый цвет (например, «красный», «#f00», «#ff0000»)."
-
-#: myenv/Lib/site-packages/flask_admin/contrib/sqla/view.py:1320
-#, python-format
-msgid "Integrity error. %(message)s"
-msgstr "Ошибка целостности. %(сообщение)с"
-
-#: myenv/Lib/site-packages/flask_admin/form/fields.py:131
-msgid "Invalid time format"
-msgstr "Неверный формат времени"
-
-#: myenv/Lib/site-packages/flask_admin/form/fields.py:202
-msgid "Invalid Choice: could not coerce"
-msgstr "Неверный выбор: не удалось принудить"
-
-#: myenv/Lib/site-packages/flask_admin/form/fields.py:291
-msgid "Invalid JSON"
-msgstr "Неверный JSON"
-
-#: myenv/Lib/site-packages/flask_admin/form/upload.py:241
-msgid "Invalid file extension"
-msgstr "Неверное расширение файла"
-
-#: myenv/Lib/site-packages/flask_admin/form/validators.py:18
-msgid "This field requires at least one item."
-msgstr "Для этого поля требуется хотя бы один элемент."
-
-#: myenv/Lib/site-packages/flask_admin/model/base.py:1903
-msgid "There are no items in the table."
-msgstr "В таблице нет элементов."
-
-#: myenv/Lib/site-packages/flask_admin/model/base.py:1912
-#, python-format
-msgid "Invalid Filter Value: %(value)s"
-msgstr "Неверное значение фильтра: %(value)s"
-
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2333
-msgid "Record was successfully created."
-msgstr "Запись успешно создана."
-
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2380
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2434
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2468
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2686
-msgid "Record does not exist."
-msgstr "Запись не существует."
-
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2388
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2691
-msgid "Record was successfully saved."
-msgstr "Запись успешно сохранена."
-
-#: myenv/Lib/site-packages/flask_admin/model/base.py:2630
-#, python-format
-msgid "Export type \"%(type)s\" is not supported."
-msgstr "Тип экспорта «%(type)s» не поддерживается."
-
-#: myenv/Lib/site-packages/flask_admin/model/template.py:97
-#: myenv/Lib/site-packages/flask_admin/model/template.py:102
-msgid "View Record"
-msgstr "Посмотреть запись"
-
-#: myenv/Lib/site-packages/flask_admin/model/template.py:107
-#: myenv/Lib/site-packages/flask_admin/model/template.py:112
-msgid "Edit Record"
-msgstr "Редактировать запись"
-
-#: myenv/Lib/site-packages/flask_admin/model/template.py:117
-msgid "Delete Record"
-msgstr "Удалить запись"
-
-#: myenv/Lib/site-packages/flask_admin/model/widgets.py:71
-msgid "Please select model"
-msgstr "Пожалуйста, выберите модель"
-
-#: myenv/Lib/site-packages/flask_admin/model/widgets.py:127
-msgid "No"
-msgstr "Нет"
-
-#: myenv/Lib/site-packages/flask_admin/model/widgets.py:128
-msgid "Yes"
-msgstr "Да"
-
-#: myenv/Lib/site-packages/flask_admin/tests/sqla/test_translation.py:22
-msgid "Name"
-msgstr "Имя"
-
-#: myenv/Lib/site-packages/flask_wtf/file.py:55
-#: myenv/Lib/site-packages/wtforms/validators.py:293
-#: myenv/Lib/site-packages/wtforms/validators.py:323
-msgid "This field is required."
-msgstr "Это поле обязательно к заполнению."
-
-#: myenv/Lib/site-packages/flask_wtf/file.py:94
-#, python-brace-format
-msgid "File does not have an approved extension: {extensions}"
-msgstr "У файла нет одобренного расширения: {extensions}."
-
-#: myenv/Lib/site-packages/flask_wtf/file.py:101
-msgid "File does not have an approved extension."
-msgstr "Файл не имеет утвержденного расширения."
-
-#: myenv/Lib/site-packages/httplib2/__init__.py:407
-#, python-format
-msgid "Content purported to be compressed with %s but failed to decompress."
-msgstr "Содержимое предположительно было сжато с помощью %s, но его не удалось распаковать."
-
-#: myenv/Lib/site-packages/httplib2/__init__.py:571
-#, python-format
-msgid "Unsupported value for qop: %s."
-msgstr "Неподдерживаемое значение для qop: %s."
-
-#: myenv/Lib/site-packages/httplib2/__init__.py:575
-#: myenv/Lib/site-packages/httplib2/__init__.py:653
-#, python-format
-msgid "Unsupported value for algorithm: %s.algorithm"
-msgstr "Неподдерживаемое значение для алгоритма: %s.algorithm."
-
-#: myenv/Lib/site-packages/httplib2/__init__.py:648
-msgid "The challenge doesn't contain a server nonce, or this one is empty."
-msgstr "Запрос не содержит одноразовый номер сервера, или он пуст."
-
-#: myenv/Lib/site-packages/httplib2/__init__.py:658
-#, python-format
-msgid "Unsupported value for pw-algorithm: %s.pw-algorithm"
-msgstr "Неподдерживаемое значение для алгоритма pw: %s.pw-алгоритм"
-
-#: myenv/Lib/site-packages/httplib2/__init__.py:1471
-msgid "Redirected but the response is missing a Location: header."
-msgstr "Перенаправлено, но в ответе отсутствует заголовок Location:."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:86
-#, python-format
-msgid "Invalid field name '%s'."
-msgstr "Недопустимое имя поля «%s»."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:99
-#, python-format
-msgid "Field must be equal to %(other_name)s."
-msgstr "Поле должно быть равно %(other_name)s."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:146
-#, python-format
-msgid "Field must be at least %(min)d character long."
-msgstr[0] "Поле должно содержать не менее %(min)d символов."
-msgstr[1] "Поле должно содержать не менее %(min)d символов."
-msgstr[2] "Поле должно содержать не менее %(min)d символов."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:152
-#, python-format
-msgid "Field cannot be longer than %(max)d character."
-msgstr[0] "Поле не может содержать более %(max)d символов."
-msgstr[1] "Поле не может содержать более %(max)d символов."
-msgstr[2] "Поле не может содержать более %(max)d символов."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:158
-#, python-format
-msgid "Field must be exactly %(max)d character long."
-msgstr[0] "Поле должно содержать ровно %(max)d символов."
-msgstr[1] "Поле должно содержать ровно %(max)d символов."
-msgstr[2] "Поле должно содержать ровно %(max)d символов."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:164
-#, python-format
-msgid "Field must be between %(min)d and %(max)d characters long."
-msgstr "Поле должно содержать от %(min)d до %(max)d символов."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:216
-#, python-format
-msgid "Number must be at least %(min)s."
-msgstr "Число должно быть не менее %(min)s."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:219
-#, python-format
-msgid "Number must be at most %(max)s."
-msgstr "Число должно быть не более %(max)s."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:222
-#, python-format
-msgid "Number must be between %(min)s and %(max)s."
-msgstr "Число должно быть между %(min)s и %(max)s."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:358
-msgid "Invalid input."
-msgstr "Неверный ввод."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:422
-msgid "Invalid email address."
-msgstr "Неверный адрес электронной почты."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:460
-msgid "Invalid IP address."
-msgstr "Неверный IP-адрес."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:503
-msgid "Invalid Mac address."
-msgstr "Неверный Mac-адрес."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:540
-msgid "Invalid URL."
-msgstr "Неверный URL-адрес."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:561
-msgid "Invalid UUID."
-msgstr "Неверный UUID."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:595
-#, python-format
-msgid "Invalid value, must be one of: %(values)s."
-msgstr "Недопустимое значение. Должно быть одно из: %(values)s."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:631
-#, python-format
-msgid "Invalid value, can't be any of: %(values)s."
-msgstr "Недопустимое значение. Оно не может быть одним из: %(values)s."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:700
-msgid "This field cannot be edited."
-msgstr "Это поле нельзя редактировать."
-
-#: myenv/Lib/site-packages/wtforms/validators.py:716
-msgid "This field is disabled and cannot have a value."
-msgstr "Это поле отключено и не может иметь значения."
-
-#: myenv/Lib/site-packages/wtforms/csrf/core.py:96
-msgid "Invalid CSRF Token."
-msgstr "Неверный токен CSRF."
-
-#: myenv/Lib/site-packages/wtforms/csrf/session.py:64
-msgid "CSRF token missing."
-msgstr "Токен CSRF отсутствует."
-
-#: myenv/Lib/site-packages/wtforms/csrf/session.py:72
-msgid "CSRF failed."
-msgstr "CSRF не удалось."
-
-#: myenv/Lib/site-packages/wtforms/csrf/session.py:77
-msgid "CSRF token expired."
-msgstr "Срок действия токена CSRF истек."
-
-#: myenv/Lib/site-packages/wtforms/fields/choices.py:142
-msgid "Invalid Choice: could not coerce."
-msgstr "Неверный выбор: не удалось принудить."
-
-#: myenv/Lib/site-packages/wtforms/fields/choices.py:149
-#: myenv/Lib/site-packages/wtforms/fields/choices.py:203
-msgid "Choices cannot be None."
-msgstr "Варианты выбора не могут быть «Нет»."
-
-#: myenv/Lib/site-packages/wtforms/fields/choices.py:155
-msgid "Not a valid choice."
-msgstr "Не верный выбор."
-
-#: myenv/Lib/site-packages/wtforms/fields/choices.py:194
-msgid "Invalid choice(s): one or more data inputs could not be coerced."
-msgstr "Неверный выбор: один или несколько входных данных не могут быть принудительно использованы."
-
-#: myenv/Lib/site-packages/wtforms/fields/choices.py:212
-#, python-format
-msgid "'%(value)s' is not a valid choice for this field."
-msgstr[0] "'%(value)s' не является допустимым выбором для этого поля."
-msgstr[1] "'%(value)s' не является допустимым выбором для этого поля."
-msgstr[2] "'%(value)s' не является допустимым выбором для этого поля."
-
-#: myenv/Lib/site-packages/wtforms/fields/datetime.py:52
-msgid "Not a valid datetime value."
-msgstr "Недопустимое значение даты и времени."
-
-#: myenv/Lib/site-packages/wtforms/fields/datetime.py:78
-msgid "Not a valid date value."
-msgstr "Недопустимое значение даты."
-
-#: myenv/Lib/site-packages/wtforms/fields/datetime.py:104
-msgid "Not a valid time value."
-msgstr "Недопустимое значение времени."
-
-#: myenv/Lib/site-packages/wtforms/fields/datetime.py:149
-msgid "Not a valid week value."
-msgstr "Недопустимое значение недели."
-
-#: myenv/Lib/site-packages/wtforms/fields/numeric.py:82
-#: myenv/Lib/site-packages/wtforms/fields/numeric.py:92
-msgid "Not a valid integer value."
-msgstr "Недопустимое целочисленное значение."
-
-#: myenv/Lib/site-packages/wtforms/fields/numeric.py:168
-msgid "Not a valid decimal value."
-msgstr "Недопустимое десятичное значение."
-
-#: myenv/Lib/site-packages/wtforms/fields/numeric.py:197
-msgid "Not a valid float value."
-msgstr "Недопустимое значение с плавающей запятой."
-
-#: yonca/templates/course_description.html:253
-#: yonca/templates/course_page_enrolled.html:693
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-03-17 20:12+0200\n"
+"PO-Revision-Date: 2026-03-12 12:31+0400\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: ru <LL@li.org>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: yonca/templates/course_description.html:266
+#: yonca/templates/course_page_enrolled.html:706
 msgid "Course Features"
 msgstr "Особенности курса"
 
-#: yonca/templates/components/navbar.html:24
-#: yonca/templates/course_description.html:258
-#: yonca/templates/course_page_enrolled.html:698
+#: yonca/templates/components/navbar.html:20
+#: yonca/templates/components/navbar.html:81
+#: yonca/templates/course_description.html:271
+#: yonca/templates/course_page_enrolled.html:711
 #: yonca/templates/index.html:2088 yonca/templates/index.html:2141
 msgid "Forum"
 msgstr "Форум"
 
-#: yonca/templates/course_description.html:259
-#: yonca/templates/course_page_enrolled.html:699
+#: yonca/templates/course_description.html:272
+#: yonca/templates/course_page_enrolled.html:712
 msgid "Connect with fellow learners and get help from instructors."
-msgstr "Общайтесь с другими учениками и получайте помощь от преподавателей."
+msgstr "Общайтесь с другими учениками и получите помощь от инструкторов."
 
-#: yonca/templates/course_description.html:260
-#: yonca/templates/course_page_enrolled.html:700
+#: yonca/templates/course_description.html:273
+#: yonca/templates/course_page_enrolled.html:713
 msgid "Access Forum"
-msgstr "Доступ к форуму"
+msgstr "Форум Access"
 
-#: yonca/templates/components/navbar.html:27
-#: yonca/templates/course_description.html:266
-#: yonca/templates/course_page_enrolled.html:706
+#: yonca/templates/components/navbar.html:23
+#: yonca/templates/components/navbar.html:82
+#: yonca/templates/course_description.html:279
+#: yonca/templates/course_page_enrolled.html:719
 #: yonca/templates/index.html:2089 yonca/templates/index.html:2142
 #: yonca/templates/index.html:2420
 msgid "Resources"
 msgstr "Ресурсы"
 
-#: yonca/templates/course_description.html:267
-#: yonca/templates/course_page_enrolled.html:707
+#: yonca/templates/course_description.html:280
+#: yonca/templates/course_page_enrolled.html:720
 msgid "Access course materials, documents, and additional resources."
-msgstr "Получите доступ к материалам курса, документам и дополнительным ресурсам."
+msgstr "Доступ к материалам курса, документам и дополнительным ресурсам."
 
-#: yonca/templates/course_description.html:268
-#: yonca/templates/course_page_enrolled.html:708
+#: yonca/templates/course_description.html:281
+#: yonca/templates/course_page_enrolled.html:721
 msgid "Access Resources"
 msgstr "Доступ к ресурсам"
 
-#: yonca/templates/course_description.html:274
-#: yonca/templates/course_page_enrolled.html:366
-#: yonca/templates/course_page_enrolled.html:714
+#: yonca/templates/course_description.html:287
+#: yonca/templates/course_page_enrolled.html:379
+#: yonca/templates/course_page_enrolled.html:727
 msgid "Reviews"
-msgstr "Отзывы"
+msgstr "Обзоры"
 
-#: yonca/templates/course_description.html:275
-#: yonca/templates/course_page_enrolled.html:715
+#: yonca/templates/course_description.html:288
+#: yonca/templates/course_page_enrolled.html:728
 msgid "Read reviews from other students and share your experience."
-msgstr "Прочтите отзывы других студентов и поделитесь своим опытом."
+msgstr "Читайте отзывы других студентов и делитесь своим опытом."
 
-#: yonca/templates/course_description.html:276
-#: yonca/templates/course_page_enrolled.html:716
+#: yonca/templates/course_description.html:289
+#: yonca/templates/course_page_enrolled.html:729
 msgid "View Reviews"
-msgstr "Посмотреть обзоры"
+msgstr "Посмотреть отзывы"
 
-#: yonca/templates/course_description.html:286
-#: yonca/templates/course_page_enrolled.html:726
-#: yonca/templates/course_page_enrolled.html:1254
+#: yonca/templates/course_description.html:299
+#: yonca/templates/course_page_enrolled.html:739
+#: yonca/templates/course_page_enrolled.html:1267
 msgid "Student Reviews"
 msgstr "Отзывы студентов"
 
-#: yonca/templates/course_description.html:287
-#: yonca/templates/course_page_enrolled.html:727
+#: yonca/templates/course_description.html:300
+#: yonca/templates/course_page_enrolled.html:740
+#, fuzzy
 msgid "review"
+msgid_plural "reviews"
 msgstr[0] "обзор"
 msgstr[1] "обзор"
 msgstr[2] "обзор"
 
-#: yonca/templates/course_description.html:287
+#: yonca/templates/course_description.html:300
 msgid "reviews"
-msgstr "обзоры"
+msgstr "отзывы"
 
-#: yonca/templates/course_description.html:304
-#: yonca/templates/course_page_enrolled.html:744
+#: yonca/templates/course_description.html:317
+#: yonca/templates/course_page_enrolled.html:757
 msgid "Average Rating"
 msgstr "Средний рейтинг"
 
-#: yonca/templates/course_description.html:321
+#: yonca/templates/course_description.html:334
 msgid "By"
-msgstr "К"
+msgstr "By"
 
-#: yonca/templates/course_description.html:335
-#: yonca/templates/course_page_enrolled.html:915
-#: yonca/templates/course_page_enrolled.html:1105
+#: yonca/templates/course_description.html:348
+#: yonca/templates/course_page_enrolled.html:928
+#: yonca/templates/course_page_enrolled.html:1118
 #: yonca/templates/index.html:3613
 msgid "Login to Enroll"
-msgstr "Войдите, чтобы зарегистрироваться"
+msgstr "Войти в Enroll"
 
-#: yonca/templates/course_description.html:337
+#: yonca/templates/course_description.html:350
 msgid "You are not enrolled in this course."
 msgstr "Вы не зачислены на этот курс."
 
 #: yonca/templates/course_editor.html:460
-#: yonca/templates/course_page_enrolled.html:1069
+#: yonca/templates/course_page_enrolled.html:1082
 msgid "Passed"
-msgstr "Прошедший"
-
-#: yonca/templates/course_page_enrolled.html:344
-msgid "Teacher/Admin Mode:"
-msgstr "Режим учителя/администратора:"
-
-#: yonca/templates/course_page_enrolled.html:344
-msgid "You have editing privileges for this course."
-msgstr "У вас есть права редактирования этого курса."
-
-#: yonca/templates/course_page_enrolled.html:349
-msgid "Back to Courses"
-msgstr "Вернуться к курсам"
-
-#: yonca/templates/course_page_enrolled.html:354
-msgid "Content"
-msgstr "Содержание"
+msgstr "Пройденный"
 
 #: yonca/templates/course_page_enrolled.html:357
-#: yonca/templates/course_page_enrolled.html:1403
-#: yonca/templates/course_page_enrolled.html:1442
-#: yonca/templates/course_page_enrolled.html:1539
+msgid "Teacher/Admin Mode:"
+msgstr "Режим учитель/админ:"
+
+#: yonca/templates/course_page_enrolled.html:357
+msgid "You have editing privileges for this course."
+msgstr "У вас есть привилегии редактирования для этого курса."
+
+#: yonca/templates/course_page_enrolled.html:362
+msgid "Back to Courses"
+msgstr "Вернуться в Курсы"
+
+#: yonca/templates/course_page_enrolled.html:367
+msgid "Content"
+msgstr "Контент"
+
+#: yonca/templates/course_page_enrolled.html:370
+#: yonca/templates/course_page_enrolled.html:1416
+#: yonca/templates/course_page_enrolled.html:1455
+#: yonca/templates/course_page_enrolled.html:1552
 msgid "Description"
 msgstr "Описание"
 
-#: yonca/templates/course_page_enrolled.html:360
-#: yonca/templates/course_page_enrolled.html:924
+#: yonca/templates/course_page_enrolled.html:373
+#: yonca/templates/course_page_enrolled.html:937
 msgid "Assignments"
-msgstr "Задания"
+msgstr "Назначения"
 
-#: yonca/templates/course_page_enrolled.html:363
-#: yonca/templates/course_page_enrolled.html:1150
+#: yonca/templates/course_page_enrolled.html:376
+#: yonca/templates/course_page_enrolled.html:1163
 msgid "Announcements"
 msgstr "Объявления"
 
-#: yonca/templates/course_page_enrolled.html:377
+#: yonca/templates/course_page_enrolled.html:390
 msgid "Locked"
-msgstr "Заблокировано"
+msgstr "Запертый"
 
-#: yonca/templates/course_page_enrolled.html:381
-#: yonca/templates/course_page_enrolled.html:1698
+#: yonca/templates/course_page_enrolled.html:394
+#: yonca/templates/course_page_enrolled.html:1711
 msgid "Edit Folder"
-msgstr "Редактировать папку"
+msgstr "Эдит Фолдер"
 
-#: yonca/templates/course_page_enrolled.html:384
-#: yonca/templates/course_page_enrolled.html:1666
-#: yonca/templates/course_page_enrolled.html:1686
+#: yonca/templates/course_page_enrolled.html:397
+#: yonca/templates/course_page_enrolled.html:1679
+#: yonca/templates/course_page_enrolled.html:1699
 msgid "Move Folder"
 msgstr "Переместить папку"
 
-#: yonca/templates/course_page_enrolled.html:386
-msgid "Are you sure you want to delete this folder and ALL its contents? This cannot be undone."
-msgstr "Вы уверены, что хотите удалить эту папку и ВСЕ ее содержимое? Это невозможно отменить."
+#: yonca/templates/course_page_enrolled.html:399
+msgid ""
+"Are you sure you want to delete this folder and ALL its contents? This "
+"cannot be undone."
+msgstr ""
+"Вы уверены, что хотите удалить эту папку и все ее содержимое? Это нельзя "
+"отменить."
 
-#: yonca/templates/course_page_enrolled.html:386
-msgid "Are you sure you want to delete this folder? This will only work if the folder is empty."
-msgstr "Вы уверены, что хотите удалить эту папку? Это будет работать только в том случае, если папка пуста."
+#: yonca/templates/course_page_enrolled.html:399
+msgid ""
+"Are you sure you want to delete this folder? This will only work if the "
+"folder is empty."
+msgstr ""
+"Вы уверены, что хотите удалить эту папку? Это будет работать только в том "
+"случае, если папка пуста."
 
-#: yonca/templates/course_page_enrolled.html:390
+#: yonca/templates/course_page_enrolled.html:403
 msgid "Delete with contents"
-msgstr "Удалить вместе с содержимым"
+msgstr "Удалить содержимое"
 
-#: yonca/templates/course_page_enrolled.html:392
+#: yonca/templates/course_page_enrolled.html:405
 msgid "Delete Folder"
 msgstr "Удалить папку"
 
-#: yonca/templates/course_page_enrolled.html:401
+#: yonca/templates/course_page_enrolled.html:414
 msgid "This folder is locked until you complete the required assignment."
-msgstr "Эта папка заблокирована до тех пор, пока вы не выполните необходимое задание."
+msgstr ""
+"Эта папка заблокирована до тех пор, пока вы не выполните необходимое "
+"задание."
 
-#: yonca/templates/course_page_enrolled.html:442
-#: yonca/templates/course_page_enrolled.html:444
-#: yonca/templates/course_page_enrolled.html:873
-#: yonca/templates/course_page_enrolled.html:875
+#: yonca/templates/course_page_enrolled.html:455
+#: yonca/templates/course_page_enrolled.html:457
+#: yonca/templates/course_page_enrolled.html:886
+#: yonca/templates/course_page_enrolled.html:888
 msgid "View File"
-msgstr "Посмотреть файл"
-
-#: yonca/templates/course_page_enrolled.html:448
-#: yonca/templates/course_page_enrolled.html:879
-#: yonca/templates/course_page_enrolled.html:1730
-msgid "Edit File"
-msgstr "Редактировать файл"
-
-#: yonca/templates/course_page_enrolled.html:451
-#: yonca/templates/course_page_enrolled.html:882
-#: yonca/templates/course_page_enrolled.html:1634
-msgid "Move File"
-msgstr "Переместить файл"
-
-#: yonca/templates/course_page_enrolled.html:458
-msgid "Visible"
-msgstr "Видимый"
-
-#: yonca/templates/course_page_enrolled.html:458
-msgid "Private"
-msgstr "Частный"
+msgstr "Просмотреть файл"
 
 #: yonca/templates/course_page_enrolled.html:461
 #: yonca/templates/course_page_enrolled.html:892
-msgid "Are you sure you want to delete this file?"
-msgstr "Вы уверены, что хотите удалить этот файл?"
+#: yonca/templates/course_page_enrolled.html:1743
+msgid "Edit File"
+msgstr "Редактировать файл"
 
 #: yonca/templates/course_page_enrolled.html:464
 #: yonca/templates/course_page_enrolled.html:895
-#: yonca/templates/course_page_enrolled.html:1281
-#: yonca/templates/course_page_enrolled.html:2015
+#: yonca/templates/course_page_enrolled.html:1647
+msgid "Move File"
+msgstr "Переместить файл"
+
+#: yonca/templates/course_page_enrolled.html:471
+msgid "Visible"
+msgstr "Видимый"
+
+#: yonca/templates/course_page_enrolled.html:471
+msgid "Private"
+msgstr "Частный"
+
+#: yonca/templates/course_page_enrolled.html:474
+#: yonca/templates/course_page_enrolled.html:905
+msgid "Are you sure you want to delete this file?"
+msgstr "Вы уверены, что хотите удалить этот файл?"
+
+#: yonca/templates/course_page_enrolled.html:477
+#: yonca/templates/course_page_enrolled.html:908
+#: yonca/templates/course_page_enrolled.html:1294
+#: yonca/templates/course_page_enrolled.html:2143
 #: yonca/templates/index.html:3860 yonca/templates/index.html:3883
 #: yonca/templates/index.html:3971
 msgid "Delete"
-msgstr "Удалить"
+msgstr "Исключить"
 
-#: yonca/templates/course_page_enrolled.html:779
+#: yonca/templates/course_page_enrolled.html:792
 msgid "Course Content"
-msgstr "Содержание курса"
+msgstr "Курсовый контент"
 
-#: yonca/templates/course_page_enrolled.html:783
-#: yonca/templates/course_page_enrolled.html:1389
-#: yonca/templates/course_page_enrolled.html:1409
+#: yonca/templates/course_page_enrolled.html:796
+#: yonca/templates/course_page_enrolled.html:1402
+#: yonca/templates/course_page_enrolled.html:1422
 msgid "Create Folder"
 msgstr "Создать папку"
 
-#: yonca/templates/course_page_enrolled.html:789
+#: yonca/templates/admin/about_company.html:258
+#: yonca/templates/course_page_enrolled.html:799
+#: yonca/templates/course_page_enrolled.html:1437
+#: yonca/templates/course_page_enrolled.html:1469
+msgid "Upload File"
+msgstr "Скачать файл"
+
+#: yonca/templates/course_page_enrolled.html:802
 msgid "Import from Drive"
-msgstr "Импортировать с Диска"
+msgstr "Импорт из Drive"
 
-#: yonca/templates/course_page_enrolled.html:792
-#: yonca/templates/course_page_enrolled.html:1572
-#: yonca/templates/course_page_enrolled.html:1622
+#: yonca/templates/course_page_enrolled.html:805
+#: yonca/templates/course_page_enrolled.html:1585
+#: yonca/templates/course_page_enrolled.html:1635
 msgid "Import Assignment"
-msgstr "Импортировать назначение"
+msgstr "Назначение импорта"
 
-#: yonca/templates/course_page_enrolled.html:804
+#: yonca/templates/course_page_enrolled.html:817
 msgid "Delete Selected"
-msgstr "Удалить выбранное"
+msgstr "Удалить выбранный"
 
-#: yonca/templates/course_page_enrolled.html:807
+#: yonca/templates/course_page_enrolled.html:820
 msgid "Move Selected"
-msgstr "Переместить выбранное"
+msgstr "Move выбранный"
 
-#: yonca/templates/course_page_enrolled.html:810
+#: yonca/templates/course_page_enrolled.html:823
 msgid "Toggle Visibility"
-msgstr "Переключить видимость"
+msgstr "Toggle Видимость"
 
-#: yonca/templates/course_page_enrolled.html:813
+#: yonca/templates/course_page_enrolled.html:826
 msgid "Clear"
-msgstr "Прозрачный"
+msgstr "Чисто"
 
-#: yonca/templates/course_page_enrolled.html:821
+#: yonca/templates/course_page_enrolled.html:834
 msgid "Unsorted"
 msgstr "Несортированный"
 
-#: yonca/templates/course_page_enrolled.html:828
+#: yonca/templates/course_page_enrolled.html:841
 msgid "Move to Folder"
-msgstr "Переместить в папку"
+msgstr "Перейти в папку"
 
-#: yonca/templates/course_page_enrolled.html:856
+#: yonca/templates/course_page_enrolled.html:869
 msgid "Unsorted Files"
 msgstr "Несортированные файлы"
 
-#: yonca/templates/course_page_enrolled.html:871
+#: yonca/templates/course_page_enrolled.html:884
 msgid "View Assignment"
-msgstr "Посмотреть задание"
+msgstr "Посмотреть назначение"
 
-#: yonca/templates/course_page_enrolled.html:912
+#: yonca/templates/course_page_enrolled.html:925
 msgid "Enroll to Access Course Content"
-msgstr "Зарегистрируйтесь, чтобы получить доступ к материалам курса"
+msgstr "Записаться на Access Course Content"
 
-#: yonca/templates/course_page_enrolled.html:913
-msgid "You need to be enrolled in this course to view the content, materials, and participate in activities."
-msgstr "Вам необходимо зарегистрироваться на этот курс, чтобы просматривать содержание, "
+#: yonca/templates/course_page_enrolled.html:926
+msgid ""
+"You need to be enrolled in this course to view the content, materials, and "
+"participate in activities."
+msgstr ""
+"Вы должны быть зачислены на этот курс, чтобы просматривать контент, "
 "материалы и участвовать в мероприятиях."
 
-#: yonca/templates/course_page_enrolled.html:927
-#: yonca/templates/course_page_enrolled.html:1528
-#: yonca/templates/course_page_enrolled.html:1557
+#: yonca/templates/course_page_enrolled.html:940
+#: yonca/templates/course_page_enrolled.html:1541
+#: yonca/templates/course_page_enrolled.html:1570
 msgid "Create Assignment"
-msgstr "Создать задание"
+msgstr "Создать назначение"
 
-#: yonca/templates/course_page_enrolled.html:942
+#: yonca/templates/course_page_enrolled.html:955
 msgid "Due:"
-msgstr "Должный:"
+msgstr "Из-за:"
 
-#: yonca/templates/course_page_enrolled.html:942
+#: yonca/templates/course_page_enrolled.html:955
 msgid "Due: N/A"
-msgstr "Два: Н/Д"
+msgstr "Должность: N/A"
 
-#: yonca/templates/course_page_enrolled.html:943
+#: yonca/templates/course_page_enrolled.html:956
 msgid "pts"
-msgstr "баллы"
+msgstr "pts"
 
-#: yonca/templates/course_page_enrolled.html:953
-#: yonca/templates/course_page_enrolled.html:996
-#: yonca/templates/course_page_enrolled.html:1048
+#: yonca/templates/course_page_enrolled.html:966
+#: yonca/templates/course_page_enrolled.html:1009
+#: yonca/templates/course_page_enrolled.html:1061
 msgid "Late"
 msgstr "Поздно"
 
-#: yonca/templates/course_page_enrolled.html:955
-#: yonca/templates/course_page_enrolled.html:998
+#: yonca/templates/course_page_enrolled.html:968
+#: yonca/templates/course_page_enrolled.html:1011
 msgid "Submitted"
-msgstr "Поданный"
+msgstr "Представленный"
 
-#: yonca/templates/course_page_enrolled.html:958
-#: yonca/templates/course_page_enrolled.html:1002
-#: yonca/templates/course_page_enrolled.html:1078
+#: yonca/templates/course_page_enrolled.html:971
+#: yonca/templates/course_page_enrolled.html:1015
+#: yonca/templates/course_page_enrolled.html:1091
 msgid "Grade:"
-msgstr "Оценка:"
-
-#: yonca/templates/course_page_enrolled.html:962
-#: yonca/templates/course_page_enrolled.html:1010
-msgid "Overdue"
-msgstr "Просрочено"
-
-#: yonca/templates/course_page_enrolled.html:964
-#: yonca/templates/course_page_enrolled.html:1012
-msgid "Not submitted"
-msgstr "Не отправлено"
-
-#: yonca/templates/course_page_enrolled.html:969
-msgid "submissions"
-msgstr "материалы"
+msgstr "Класс:"
 
 #: yonca/templates/course_page_enrolled.html:975
+#: yonca/templates/course_page_enrolled.html:1023
+msgid "Overdue"
+msgstr "Просроченный"
+
+#: yonca/templates/course_page_enrolled.html:977
+#: yonca/templates/course_page_enrolled.html:1025
+msgid "Not submitted"
+msgstr "Не представлен"
+
+#: yonca/templates/course_page_enrolled.html:982
+msgid "submissions"
+msgstr "представления"
+
+#: yonca/templates/course_page_enrolled.html:988
 msgid "Published"
 msgstr "Опубликовано"
 
-#: yonca/templates/course_page_enrolled.html:1000
+#: yonca/templates/course_page_enrolled.html:1013
 msgid "View Your Submission"
-msgstr "Посмотреть вашу заявку"
-
-#: yonca/templates/course_page_enrolled.html:1005
-msgid "Feedback:"
-msgstr "Обратная связь:"
+msgstr "Посмотреть Вашу заявку"
 
 #: yonca/templates/course_page_enrolled.html:1018
+msgid "Feedback:"
+msgstr "Отзывы:"
+
+#: yonca/templates/course_page_enrolled.html:1031
 msgid "Upload Your Work:"
 msgstr "Загрузите свою работу:"
 
-#: yonca/templates/course_page_enrolled.html:1021
+#: yonca/templates/course_page_enrolled.html:1034
 msgid "Submit Assignment"
-msgstr "Отправить задание"
+msgstr "Подать заявку"
 
-#: yonca/templates/course_page_enrolled.html:1027
-msgid "Are you sure you want to delete this assignment? This will also delete all submissions."
-msgstr "Вы уверены, что хотите удалить это задание? Это также приведет к удалению всех п"
-"редставленных материалов."
+#: yonca/templates/course_page_enrolled.html:1040
+msgid ""
+"Are you sure you want to delete this assignment? This will also delete all "
+"submissions."
+msgstr ""
+"Вы уверены, что хотите удалить это задание? Это также удалит все "
+"представления."
 
-#: yonca/templates/course_page_enrolled.html:1030
+#: yonca/templates/course_page_enrolled.html:1043
 msgid "Delete Assignment"
-msgstr "Удалить назначение"
+msgstr "Исключить назначение"
 
-#: yonca/templates/course_page_enrolled.html:1035
+#: yonca/templates/course_page_enrolled.html:1048
 msgid "View Submissions"
-msgstr "Просмотр материалов"
+msgstr "Посмотреть материалы"
 
-#: yonca/templates/course_page_enrolled.html:1044
+#: yonca/templates/course_page_enrolled.html:1057
 msgid "On Time"
 msgstr "Вовремя"
 
-#: yonca/templates/course_page_enrolled.html:1051
+#: yonca/templates/course_page_enrolled.html:1064
 msgid "Early"
-msgstr "Рано"
+msgstr "Ранний"
 
-#: yonca/templates/course_page_enrolled.html:1056
+#: yonca/templates/course_page_enrolled.html:1069
 msgid "Submitted:"
-msgstr "Поданный:"
+msgstr "Представлено:"
 
-#: yonca/templates/course_page_enrolled.html:1057
+#: yonca/templates/course_page_enrolled.html:1070
 msgid "View Submission"
-msgstr "Посмотреть отправку"
+msgstr "Посмотреть Представление"
 
-#: yonca/templates/course_page_enrolled.html:1063
+#: yonca/templates/course_page_enrolled.html:1076
 msgid "Grade"
-msgstr "Оценка"
+msgstr "Класс"
 
-#: yonca/templates/course_page_enrolled.html:1066
+#: yonca/templates/course_page_enrolled.html:1079
 msgid "Comment"
 msgstr "Комментарий"
 
-#: yonca/templates/course_page_enrolled.html:1073
+#: yonca/templates/course_page_enrolled.html:1086
 msgid "Save Grade"
-msgstr "Сохранить оценку"
+msgstr "Save Grade"
 
-#: yonca/templates/course_page_enrolled.html:1081
+#: yonca/templates/course_page_enrolled.html:1094
 msgid "Comment:"
 msgstr "Комментарий:"
 
-#: yonca/templates/course_page_enrolled.html:1087
+#: yonca/templates/course_page_enrolled.html:1100
 msgid "No submissions yet."
-msgstr "Пока нет заявок."
+msgstr "Пока никаких представлений."
 
-#: yonca/templates/course_page_enrolled.html:1097
+#: yonca/templates/course_page_enrolled.html:1110
 msgid "No assignments available."
-msgstr "Нет доступных заданий."
+msgstr "Никаких заданий."
 
-#: yonca/templates/course_page_enrolled.html:1102
+#: yonca/templates/course_page_enrolled.html:1115
 msgid "Enroll to Access Assignments"
-msgstr "Зарегистрируйтесь, чтобы получить доступ к заданиям"
+msgstr "Записаться на Access Assignments"
 
-#: yonca/templates/course_page_enrolled.html:1103
+#: yonca/templates/course_page_enrolled.html:1116
 msgid "You need to be enrolled in this course to view and submit assignments."
-msgstr "Чтобы просматривать и отправлять задания, вам необходимо зарегистрироваться на этот курс."
+msgstr ""
+"Вы должны быть зачислены в этот курс, чтобы просматривать и отправлять "
+"задания."
 
-#: yonca/templates/course_page_enrolled.html:1119
-#: yonca/templates/course_page_enrolled.html:1175
+#: yonca/templates/course_page_enrolled.html:1132
+#: yonca/templates/course_page_enrolled.html:1188
 msgid "Reply"
-msgstr "Отвечать"
+msgstr "Ответить"
 
-#: yonca/templates/course_page_enrolled.html:1129
-#: yonca/templates/course_page_enrolled.html:1184
+#: yonca/templates/course_page_enrolled.html:1142
+#: yonca/templates/course_page_enrolled.html:1197
 msgid "Write a reply..."
 msgstr "Напишите ответ..."
 
-#: yonca/templates/course_page_enrolled.html:1131
-#: yonca/templates/course_page_enrolled.html:1186
+#: yonca/templates/course_page_enrolled.html:1144
+#: yonca/templates/course_page_enrolled.html:1199
 msgid "Post Reply"
-msgstr "Опубликовать ответ"
+msgstr "Post Reply"
 
-#: yonca/templates/course_page_enrolled.html:1153
-#: yonca/templates/course_page_enrolled.html:1353
-#: yonca/templates/course_page_enrolled.html:1374
+#: yonca/templates/course_page_enrolled.html:1166
+#: yonca/templates/course_page_enrolled.html:1366
+#: yonca/templates/course_page_enrolled.html:1387
 msgid "Add Announcement"
 msgstr "Добавить объявление"
 
-#: yonca/templates/course_page_enrolled.html:1163
+#: yonca/templates/course_page_enrolled.html:1176
 msgid "Posted:"
 msgstr "Опубликовано:"
 
-#: yonca/templates/course_page_enrolled.html:1166
-msgid "Are you sure you want to delete this announcement? This will also delete all replies."
-msgstr "Вы уверены, что хотите удалить это объявление? Это также приведет к удалению всех ответов."
+#: yonca/templates/course_page_enrolled.html:1179
+msgid ""
+"Are you sure you want to delete this announcement? This will also delete all"
+" replies."
+msgstr ""
+"Вы уверены, что хотите удалить это объявление? Это также удалит все ответы."
 
-#: yonca/templates/course_page_enrolled.html:1169
+#: yonca/templates/course_page_enrolled.html:1182
 msgid "Delete Announcement"
 msgstr "Удалить объявление"
 
-#: yonca/templates/course_page_enrolled.html:1203
+#: yonca/templates/course_page_enrolled.html:1216
 msgid "No announcements yet."
-msgstr "Никаких объявлений пока нет."
+msgstr "Пока никаких объявлений."
 
-#: yonca/templates/course_page_enrolled.html:1210
+#: yonca/templates/course_page_enrolled.html:1223
 msgid "Course Reviews"
 msgstr "Обзоры курсов"
 
-#: yonca/templates/course_page_enrolled.html:1216
+#: yonca/templates/course_page_enrolled.html:1229
 msgid "Write Your Review"
 msgstr "Напишите свой отзыв"
 
-#: yonca/templates/course_page_enrolled.html:1223
-#: yonca/templates/course_page_enrolled.html:1306
+#: yonca/templates/course_page_enrolled.html:1236
+#: yonca/templates/course_page_enrolled.html:1319
 msgid "Rating"
 msgstr "Рейтинг"
 
-#: yonca/templates/course_page_enrolled.html:1232
+#: yonca/templates/course_page_enrolled.html:1245
 msgid "Click on a star to rate (1-5)"
-msgstr "Нажмите на звездочку, чтобы оценить (1-5)"
+msgstr "Нажмите на звезду, чтобы оценить (1-5)"
 
-#: yonca/templates/course_page_enrolled.html:1236
-#: yonca/templates/course_page_enrolled.html:1317
+#: yonca/templates/course_page_enrolled.html:1249
+#: yonca/templates/course_page_enrolled.html:1330
 msgid "Review Title"
-msgstr "Название обзора"
+msgstr "Оригинальное название"
 
-#: yonca/templates/course_page_enrolled.html:1237
+#: yonca/templates/course_page_enrolled.html:1250
 msgid "Summarize your experience"
-msgstr "Обобщите свой опыт"
+msgstr "Обобщи свой опыт"
 
-#: yonca/templates/course_page_enrolled.html:1241
-#: yonca/templates/course_page_enrolled.html:1321
+#: yonca/templates/course_page_enrolled.html:1254
+#: yonca/templates/course_page_enrolled.html:1334
 msgid "Your Review"
 msgstr "Ваш отзыв"
 
-#: yonca/templates/course_page_enrolled.html:1242
+#: yonca/templates/course_page_enrolled.html:1255
 msgid "Share your thoughts about this course..."
-msgstr "Поделитесь своим мнением об этом курсе..."
+msgstr "Поделитесь своими мыслями об этом курсе..."
 
-#: yonca/templates/course_page_enrolled.html:1246
+#: yonca/templates/course_page_enrolled.html:1259
 msgid "Submit Review"
-msgstr "Отправить отзыв"
+msgstr "Представление обзора"
 
-#: yonca/templates/course_page_enrolled.html:1275
+#: yonca/templates/course_page_enrolled.html:1288
 msgid "Edit"
 msgstr "Редактировать"
 
-#: yonca/templates/course_page_enrolled.html:1277
+#: yonca/templates/course_page_enrolled.html:1290
 msgid "Are you sure you want to delete this review?"
-msgstr "Вы уверены, что хотите удалить этот отзыв?"
+msgstr "Вы уверены, что хотите удалить этот обзор?"
 
-#: yonca/templates/course_page_enrolled.html:1299
+#: yonca/templates/course_page_enrolled.html:1312
 msgid "Edit Review"
-msgstr "Редактировать обзор"
+msgstr "Рецензия"
 
-#: yonca/templates/course_page_enrolled.html:1327
+#: yonca/templates/course_page_enrolled.html:1340
 msgid "Update Review"
-msgstr "Обновление обзора"
+msgstr "Обновление Update"
 
-#: yonca/templates/course_page_enrolled.html:1338
+#: yonca/templates/course_page_enrolled.html:1351
 msgid "No reviews yet. Be the first to review this course!"
-msgstr "Пока нет отзывов. Будьте первым, кто оставит отзыв об этом курсе!"
+msgstr "Отзывов пока нет. Станьте первым, кто пересмотрит этот курс!"
 
-#: yonca/templates/course_page_enrolled.html:1360
-#: yonca/templates/course_page_enrolled.html:1438
-#: yonca/templates/course_page_enrolled.html:1535
+#: yonca/templates/course_page_enrolled.html:1373
+#: yonca/templates/course_page_enrolled.html:1451
+#: yonca/templates/course_page_enrolled.html:1548
 msgid "Title"
-msgstr "Заголовок"
+msgstr "Название"
 
-#: yonca/templates/course_page_enrolled.html:1364
+#: yonca/templates/course_page_enrolled.html:1377
 msgid "Message"
-msgstr "Сообщение"
+msgstr "Послание"
 
-#: yonca/templates/course_page_enrolled.html:1369
-#: yonca/templates/course_page_enrolled.html:1447
-#: yonca/templates/course_page_enrolled.html:1505
-#: yonca/templates/course_page_enrolled.html:1552
-#: yonca/templates/course_page_enrolled.html:1617
+#: yonca/templates/course_page_enrolled.html:1382
+#: yonca/templates/course_page_enrolled.html:1460
+#: yonca/templates/course_page_enrolled.html:1518
+#: yonca/templates/course_page_enrolled.html:1565
+#: yonca/templates/course_page_enrolled.html:1630
 msgid "Publish immediately"
 msgstr "Опубликовать немедленно"
 
-#: yonca/templates/course_page_enrolled.html:1373
-#: yonca/templates/course_page_enrolled.html:1408
-#: yonca/templates/course_page_enrolled.html:1455
-#: yonca/templates/course_page_enrolled.html:1513
-#: yonca/templates/course_page_enrolled.html:1556
-#: yonca/templates/course_page_enrolled.html:1621
-#: yonca/templates/course_page_enrolled.html:1653
-#: yonca/templates/course_page_enrolled.html:1685
-#: yonca/templates/course_page_enrolled.html:1717
-#: yonca/templates/course_page_enrolled.html:1749
+#: yonca/templates/course_page_enrolled.html:1386
+#: yonca/templates/course_page_enrolled.html:1421
+#: yonca/templates/course_page_enrolled.html:1468
+#: yonca/templates/course_page_enrolled.html:1526
+#: yonca/templates/course_page_enrolled.html:1569
+#: yonca/templates/course_page_enrolled.html:1634
+#: yonca/templates/course_page_enrolled.html:1666
+#: yonca/templates/course_page_enrolled.html:1698
+#: yonca/templates/course_page_enrolled.html:1730
+#: yonca/templates/course_page_enrolled.html:1762
 msgid "Cancel"
-msgstr "Отмена"
+msgstr "Отменить"
 
-#: yonca/templates/course_page_enrolled.html:1396
+#: yonca/templates/course_page_enrolled.html:1409
 msgid "Parent:"
 msgstr "Родитель:"
 
-#: yonca/templates/course_page_enrolled.html:1396
-#: yonca/templates/course_page_enrolled.html:1431
-#: yonca/templates/course_page_enrolled.html:1478
-#: yonca/templates/course_page_enrolled.html:1579
-#: yonca/templates/course_page_enrolled.html:1645
-#: yonca/templates/course_page_enrolled.html:1677
+#: yonca/templates/course_page_enrolled.html:1409
+#: yonca/templates/course_page_enrolled.html:1444
+#: yonca/templates/course_page_enrolled.html:1491
+#: yonca/templates/course_page_enrolled.html:1592
+#: yonca/templates/course_page_enrolled.html:1658
+#: yonca/templates/course_page_enrolled.html:1690
 msgid "Root"
 msgstr "Корень"
 
-#: yonca/templates/course_page_enrolled.html:1399
-#: yonca/templates/course_page_enrolled.html:1708
+#: yonca/templates/course_page_enrolled.html:1412
+#: yonca/templates/course_page_enrolled.html:1721
 msgid "Folder Name"
 msgstr "Имя папки"
 
-#: yonca/templates/course_page_enrolled.html:1431
+#: yonca/templates/course_page_enrolled.html:1444
 msgid "Upload to:"
-msgstr "Загрузите в:"
+msgstr "Загрузить в:"
 
-#: yonca/templates/course_page_enrolled.html:1434
+#: yonca/templates/course_page_enrolled.html:1447
 msgid "File"
 msgstr "Файл"
 
-#: yonca/templates/course_page_enrolled.html:1451
+#: yonca/templates/course_page_enrolled.html:1464
 msgid "Allow students to view this file"
-msgstr "Разрешить учащимся просматривать этот файл"
+msgstr "Разрешить студентам просматривать этот файл"
 
-#: yonca/templates/course_page_enrolled.html:1471
+#: yonca/templates/course_page_enrolled.html:1484
 msgid "Import from Google Drive"
-msgstr "Импортировать с Google Диска"
+msgstr "Импорт с Google Drive"
 
-#: yonca/templates/course_page_enrolled.html:1478
-#: yonca/templates/course_page_enrolled.html:1579
+#: yonca/templates/course_page_enrolled.html:1491
+#: yonca/templates/course_page_enrolled.html:1592
 msgid "Import to:"
-msgstr "Импортировать в:"
+msgstr "Импорт для:"
 
-#: yonca/templates/course_page_enrolled.html:1481
+#: yonca/templates/course_page_enrolled.html:1494
 msgid "Import Type"
 msgstr "Тип импорта"
 
-#: yonca/templates/course_page_enrolled.html:1484
+#: yonca/templates/course_page_enrolled.html:1497
 msgid "Single File"
-msgstr "Один файл"
+msgstr "Одиночный файл"
 
-#: yonca/templates/course_page_enrolled.html:1488
+#: yonca/templates/course_page_enrolled.html:1501
 msgid "Entire Folder (includes all subfolders and files)"
-msgstr "Вся папка (включая все подпапки и файлы)"
+msgstr "Целая папка (включая все подпапки и файлы)"
 
-#: yonca/templates/course_page_enrolled.html:1492
+#: yonca/templates/course_page_enrolled.html:1505
 msgid "Google Drive URL or File/Folder ID"
-msgstr "URL-адрес Google Диска или идентификатор файла/папки"
+msgstr "Google Drive URL или идентификатор файла / папки"
 
-#: yonca/templates/course_page_enrolled.html:1495
+#: yonca/templates/course_page_enrolled.html:1508
 msgid "Paste the sharing link from Google Drive or just the file/folder ID"
-msgstr "Вставьте ссылку для общего доступа с Google Диска или просто идентификатор файла/папки."
+msgstr ""
+"Вставьте ссылку обмена с Google Drive или просто идентификатор файла / папки"
 
-#: yonca/templates/course_page_enrolled.html:1496
+#: yonca/templates/course_page_enrolled.html:1509
 msgid "Check linked Google account"
 msgstr "Проверьте связанный аккаунт Google"
 
-#: yonca/templates/course_page_enrolled.html:1500
+#: yonca/templates/course_page_enrolled.html:1513
 msgid "Title (Optional)"
-msgstr "Название (необязательно)"
-
-#: yonca/templates/course_page_enrolled.html:1501
-msgid "Leave empty to use original filename"
-msgstr "Оставьте пустым, чтобы использовать исходное имя файла."
-
-#: yonca/templates/course_page_enrolled.html:1509
-msgid "Allow students to view"
-msgstr "Разрешить учащимся просматривать"
+msgstr "Название (факультативно)"
 
 #: yonca/templates/course_page_enrolled.html:1514
+msgid "Leave empty to use original filename"
+msgstr "Оставьте пустой, чтобы использовать оригинальное имя файла"
+
+#: yonca/templates/course_page_enrolled.html:1522
+msgid "Allow students to view"
+msgstr "Разрешить студентам просматривать"
+
+#: yonca/templates/course_page_enrolled.html:1527
 msgid "Import"
 msgstr "Импорт"
 
-#: yonca/templates/course_page_enrolled.html:1543
+#: yonca/templates/course_page_enrolled.html:1556
 msgid "Due Date"
-msgstr "Два свидания"
+msgstr "Срок давности"
 
-#: yonca/templates/course_page_enrolled.html:1547
+#: yonca/templates/course_page_enrolled.html:1560
 msgid "Points"
-msgstr "Очки"
+msgstr "Точки"
 
-#: yonca/templates/course_page_enrolled.html:1582
+#: yonca/templates/course_page_enrolled.html:1595
 msgid "Select Assignment"
-msgstr "Выберите задание"
+msgstr "Выберите назначение"
 
-#: yonca/templates/course_page_enrolled.html:1589
+#: yonca/templates/course_page_enrolled.html:1602
 msgid "No assignments available"
-msgstr "Нет доступных заданий"
+msgstr "Задания отсутствуют"
 
-#: yonca/templates/course_page_enrolled.html:1594
+#: yonca/templates/course_page_enrolled.html:1607
 msgid "Lock other folders until completed (optional)"
-msgstr "Заблокируйте другие папки до завершения (необязательно)."
+msgstr "Заблокировать другие папки до завершения (необязательно)"
 
-#: yonca/templates/course_page_enrolled.html:1596
+#: yonca/templates/course_page_enrolled.html:1609
 msgid "None"
 msgstr "Никто"
 
-#: yonca/templates/course_page_enrolled.html:1605
+#: yonca/templates/course_page_enrolled.html:1618
 msgid "Or choose specific folders to lock (optional)"
-msgstr "Или выберите определенные папки для блокировки (необязательно)."
+msgstr "Или выбрать конкретные папки для блокировки (необязательно)"
 
-#: yonca/templates/course_page_enrolled.html:1613
+#: yonca/templates/course_page_enrolled.html:1626
 msgid "Hold Ctrl (or Cmd) to select multiple folders."
-msgstr "Удерживайте Ctrl (или Cmd), чтобы выбрать несколько папок."
+msgstr "Держите Ctrl (или Cmd) для выбора нескольких папок."
 
-#: yonca/templates/course_page_enrolled.html:1643
+#: yonca/templates/course_page_enrolled.html:1656
 msgid "Select Destination Folder"
 msgstr "Выберите папку назначения"
 
-#: yonca/templates/course_page_enrolled.html:1654
+#: yonca/templates/course_page_enrolled.html:1667
 msgid "Move"
 msgstr "Двигаться"
 
-#: yonca/templates/course_page_enrolled.html:1675
+#: yonca/templates/course_page_enrolled.html:1688
 msgid "Select New Parent Folder"
-msgstr "Выберите новую родительскую папку"
+msgstr "Выберите папку для родителей"
 
-#: yonca/templates/course_page_enrolled.html:1712
+#: yonca/templates/course_page_enrolled.html:1725
 msgid "Folder Description"
 msgstr "Описание папки"
 
 #: yonca/templates/admin/about_company.html:239
-#: yonca/templates/course_page_enrolled.html:1718
-#: yonca/templates/course_page_enrolled.html:1750
+#: yonca/templates/course_page_enrolled.html:1731
+#: yonca/templates/course_page_enrolled.html:1763
 msgid "Save Changes"
 msgstr "Сохранить изменения"
 
-#: yonca/templates/course_page_enrolled.html:1740
+#: yonca/templates/course_page_enrolled.html:1753
 msgid "File Name"
 msgstr "Имя файла"
 
-#: yonca/templates/course_page_enrolled.html:1744
+#: yonca/templates/course_page_enrolled.html:1757
 msgid "File Description"
 msgstr "Описание файла"
 
-#: yonca/templates/course_page_enrolled.html:1870
+#: yonca/templates/course_page_enrolled.html:1998
 msgid "Move File:"
 msgstr "Переместить файл:"
 
-#: yonca/templates/course_page_enrolled.html:1881
+#: yonca/templates/course_page_enrolled.html:2009
 msgid "Move Folder:"
-msgstr "Переместить папку:"
+msgstr "Переместите папку:"
 
-#: yonca/templates/course_page_enrolled.html:1895
+#: yonca/templates/course_page_enrolled.html:2023
 msgid "Edit Folder:"
-msgstr "Редактировать папку:"
+msgstr "Эдит Фолдер:"
 
-#: yonca/templates/course_page_enrolled.html:1909
+#: yonca/templates/course_page_enrolled.html:2037
 msgid "Edit File:"
 msgstr "Редактировать файл:"
 
-#: yonca/templates/course_page_enrolled.html:2015
+#: yonca/templates/course_page_enrolled.html:2143
 msgid "selected items? This action cannot be undone."
-msgstr "выбранные предметы? Это действие невозможно отменить."
+msgstr "избранные предметы? Это действие не может быть отменено."
 
 #: yonca/templates/index.html:8
 msgid "Yonca - Learning Platform"
-msgstr "Yonca – учебная платформа"
+msgstr "{PROTECTED 0} - Учебная платформа"
 
-#: yonca/templates/components/navbar.html:18 yonca/templates/index.html:2086
+#: yonca/templates/components/navbar.html:14
+#: yonca/templates/components/navbar.html:79 yonca/templates/index.html:2086
 #: yonca/templates/index.html:2139
 msgid "Home"
-msgstr "Дом"
+msgstr "Домой"
 
-#: yonca/templates/components/navbar.html:21 yonca/templates/index.html:2087
+#: yonca/templates/components/navbar.html:17
+#: yonca/templates/components/navbar.html:80 yonca/templates/index.html:2087
 #: yonca/templates/index.html:2140 yonca/templates/index.html:2322
 msgid "Courses"
 msgstr "Курсы"
 
-#: yonca/templates/components/navbar.html:30 yonca/templates/index.html:2090
+#: yonca/templates/components/navbar.html:26
+#: yonca/templates/components/navbar.html:83 yonca/templates/index.html:2090
 #: yonca/templates/index.html:2143 yonca/templates/index.html:2499
 msgid "TAVI Test"
-msgstr "ТАВИ Тест"
+msgstr "Тест ТАВИ"
 
 #: yonca/templates/admin/about_company.html:151
-#: yonca/templates/index.html:2091 yonca/templates/index.html:2144
+#: yonca/templates/components/navbar.html:84 yonca/templates/index.html:2091
+#: yonca/templates/index.html:2144
 msgid "About Company"
 msgstr "О компании"
 
-#: yonca/templates/components/navbar.html:59 yonca/templates/index.html:2103
+#: yonca/templates/components/navbar.html:55
+#: yonca/templates/components/navbar.html:91 yonca/templates/index.html:2103
 #: yonca/templates/index.html:2151 yonca/templates/login.html:250
 msgid "Login"
-msgstr "Авторизоваться"
+msgstr "Логин"
 
-#: yonca/templates/index.html:2111 yonca/templates/index.html:2154
+#: yonca/templates/components/navbar.html:94 yonca/templates/index.html:2111
+#: yonca/templates/index.html:2154
 msgid "Welcome"
 msgstr "Добро пожаловать"
 
-#: yonca/templates/index.html:2112 yonca/templates/index.html:2155
+#: yonca/templates/components/navbar.html:95 yonca/templates/index.html:2112
+#: yonca/templates/index.html:2155
 msgid "Admin"
-msgstr "Админ"
+msgstr "Администратор"
 
-#: yonca/templates/components/navbar.html:52 yonca/templates/index.html:2113
+#: yonca/templates/components/navbar.html:48
+#: yonca/templates/components/navbar.html:96 yonca/templates/index.html:2113
 #: yonca/templates/index.html:2156
 msgid "Link Google Account"
-msgstr "Связать аккаунт Google"
+msgstr "Ссылка на Google аккаунт"
 
-#: yonca/templates/components/navbar.html:54 yonca/templates/index.html:2114
+#: yonca/templates/components/navbar.html:50
+#: yonca/templates/components/navbar.html:97 yonca/templates/index.html:2114
 #: yonca/templates/index.html:2157
 msgid "Logout"
-msgstr "Выход из системы"
+msgstr "Выход"
 
 #: yonca/templates/admin/about_company.html:211
 #: yonca/templates/index.html:2167 yonca/templates/index.html:2685
@@ -1580,14 +800,20 @@ msgstr "Что нового"
 
 #: yonca/templates/admin/about_company.html:217
 #: yonca/templates/index.html:2168 yonca/templates/index.html:2686
-msgid "Discover the latest updates, new features, and exciting developments in our learning platform."
-msgstr "Узнайте о последних обновлениях, новых функциях и интересных разработках на наше"
-"й обучающей платформе."
+msgid ""
+"Discover the latest updates, new features, and exciting developments in our "
+"learning platform."
+msgstr ""
+"Откройте для себя последние обновления, новые функции и захватывающие "
+"разработки в нашей учебной платформе."
 
 #: yonca/templates/index.html:2207
-msgid "If video shows 'still being processed,' please wait 5-60 minutes for Google Drive to finish processing, then refresh the page."
-msgstr "Если видео показывает, что «все еще обрабатывается», подождите 5–60 минут, пока "
-"Google Диск завершит обработку, а затем обновите страницу."
+msgid ""
+"If video shows 'still being processed,' please wait 5-60 minutes for Google "
+"Drive to finish processing, then refresh the page."
+msgstr ""
+"Если видео показывает, что «все еще обрабатывается», пожалуйста, подождите "
+"5-60 минут, пока Google Drive закончит обработку, а затем обновите страницу."
 
 #: yonca/templates/index.html:2231
 msgid "Learning Community"
@@ -1595,7 +821,7 @@ msgstr "Учебное сообщество"
 
 #: yonca/templates/index.html:2232
 msgid "Our vibrant learning community"
-msgstr "Наше активное обучающееся сообщество"
+msgstr "Наше яркое учебное сообщество"
 
 #: yonca/templates/index.html:2235 yonca/templates/index.html:2267
 msgid "Interactive Courses"
@@ -1603,20 +829,20 @@ msgstr "Интерактивные курсы"
 
 #: yonca/templates/index.html:2236
 msgid "Engage with interactive course content"
-msgstr "Взаимодействуйте с интерактивным содержанием курса"
+msgstr "Взаимодействие с интерактивным контентом курса"
 
 #: yonca/templates/index.html:2239 yonca/templates/index.html:2271
 msgid "Study Groups"
-msgstr "исследовательские группы"
+msgstr "Исследовательские группы"
 
 #: yonca/templates/index.html:2240
 msgid "Collaborate in study groups"
-msgstr "Сотрудничать в учебных группах"
+msgstr "Сотрудничество в исследовательских группах"
 
 #: yonca/templates/admin/about_company.html:177
 #: yonca/templates/index.html:2251
 msgid "Our Features"
-msgstr "Наши возможности"
+msgstr "Наши особенности"
 
 #: yonca/templates/admin/about_company.html:183
 #: yonca/templates/index.html:2252
@@ -1625,11 +851,13 @@ msgstr "Узнайте, что делает нашу платформу особ
 
 #: yonca/templates/index.html:2268
 msgid "Engage with dynamic course content and interactive learning materials."
-msgstr "Взаимодействуйте с динамичным содержанием курса и интерактивными учебными материалами."
+msgstr ""
+"Занимайтесь динамическим содержанием курса и интерактивными учебными "
+"материалами."
 
 #: yonca/templates/index.html:2272
 msgid "Collaborate with fellow learners in our vibrant study communities."
-msgstr "Сотрудничайте с другими учениками в наших динамичных учебных сообществах."
+msgstr "Сотрудничайте с другими учащимися в наших ярких учебных сообществах."
 
 #: yonca/templates/index.html:2275
 msgid "Expert Support"
@@ -1637,19 +865,24 @@ msgstr "Экспертная поддержка"
 
 #: yonca/templates/index.html:2276
 msgid "Get help from our team of educational experts and specialists."
-msgstr "Получите помощь от нашей команды экспертов и специалистов в области образования."
+msgstr ""
+"Получите помощь от нашей команды экспертов и специалистов в области "
+"образования."
 
 #: yonca/templates/index.html:2288
 msgid "Professional Education and Training"
-msgstr "Профессиональное образование и обучение"
+msgstr "Профессиональное образование и подготовка кадров"
 
 #: yonca/templates/index.html:2289 yonca/templates/index.html:2983
-msgid "Evidence-based training for psychologists, therapists, educators, and tutors"
-msgstr "Доказательное обучение для психологов, терапевтов, педагогов и репетиторов"
+msgid ""
+"Evidence-based training for psychologists, therapists, educators, and tutors"
+msgstr ""
+"Обучение на основе фактических данных для психологов, терапевтов, педагогов "
+"и преподавателей"
 
 #: yonca/templates/index.html:2291
 msgid "View All Courses"
-msgstr "Посмотреть все курсы"
+msgstr "Смотреть все курсы"
 
 #: yonca/templates/index.html:2292 yonca/templates/index.html:2677
 msgid "Contact Us"
@@ -1657,32 +890,35 @@ msgstr "Связаться с нами"
 
 #: yonca/templates/index.html:2313
 msgid "Featured Courses"
-msgstr "Рекомендуемые курсы"
+msgstr "Избранные курсы"
 
 #: yonca/templates/index.html:2315 yonca/templates/index.html:2350
 msgid "Loading courses... (Try switching pages in case of delays)"
-msgstr "Загрузка курсов... (Попробуйте переключить страницы в случае задержек)"
+msgstr ""
+"Загрузка курсов ... (Попробуйте переключать страницы в случае задержек)"
 
 #: yonca/templates/index.html:2323
 msgid "Explore our available courses and start your learning journey."
-msgstr "Изучите наши доступные курсы и начните свой путь обучения."
+msgstr "Изучите наши доступные курсы и начните свое учебное путешествие."
 
 #: yonca/templates/index.html:2327
 msgid "Filter Courses"
-msgstr "Фильтровать курсы"
+msgstr "Курсы фильтрации"
 
 #: yonca/templates/index.html:2330 yonca/templates/index.html:2439
 #: yonca/templates/index.html:2466
 msgid "Tags:"
-msgstr "Теги:"
+msgstr "Тэги:"
 
 #: yonca/templates/index.html:2340
 msgid "My Enrolled Courses"
-msgstr "Мои зарегистрированные курсы"
+msgstr "Мои зачисленные курсы"
 
 #: yonca/templates/index.html:2342
 msgid "Loading enrolled courses... (Try switching pages in case of delays)"
-msgstr "Загрузка зарегистрированных курсов... (Попробуйте переключить страницы в случае задержек)"
+msgstr ""
+"Загрузка зарегистрированных курсов ... (Попробуйте переключать страницы в "
+"случае задержек)"
 
 #: yonca/templates/index.html:2348 yonca/templates/index.html:3357
 #: yonca/templates/index.html:3396
@@ -1699,11 +935,11 @@ msgstr "Требуется аутентификация"
 
 #: yonca/templates/index.html:2362
 msgid "Please log in to participate in the community forum."
-msgstr "Пожалуйста, войдите, чтобы принять участие в форуме сообщества."
+msgstr "Пожалуйста, войдите для участия в форуме сообщества."
 
 #: yonca/templates/index.html:2363
 msgid "You can still view messages without logging in."
-msgstr "Вы по-прежнему можете просматривать сообщения без входа в систему."
+msgstr "Вы все еще можете просматривать сообщения без входа в систему."
 
 #: yonca/templates/index.html:2375
 msgid "Translation Settings"
@@ -1727,13 +963,17 @@ msgstr "Русский"
 
 #: yonca/templates/index.html:2383
 msgid "Azerbaijani"
-msgstr "азербайджанский"
+msgstr "Азербайджан"
 
 #: yonca/templates/index.html:2387
-msgid "Select a language to translate messages, or choose 'Don't translate' to view messages in their original language. Click individual messages to toggle translation."
-msgstr "Выберите язык для перевода сообщений или выберите «Не переводить», чтобы просмат"
-"ривать сообщения на языке оригинала. Нажмите на отдельные сообщения, чтобы перек"
-"лючить перевод."
+msgid ""
+"Select a language to translate messages, or choose 'Don't translate' to view"
+" messages in their original language. Click individual messages to toggle "
+"translation."
+msgstr ""
+"Выберите язык для перевода сообщений или выберите «Не переводить» для "
+"просмотра сообщений на их исходном языке. Нажмите отдельные сообщения, чтобы"
+" переключать перевод."
 
 #: yonca/templates/index.html:2391
 msgid "Post a New Message"
@@ -1749,35 +989,39 @@ msgstr "Сообщение:"
 
 #: yonca/templates/index.html:2399
 msgid "Share your thoughts, ask questions, or help others..."
-msgstr "Делитесь своими мыслями, задавайте вопросы или помогайте другим..."
+msgstr "Делитесь своими мыслями, задавайте вопросы или помогайте другим."
 
 #: yonca/templates/index.html:2401
 msgid "Post Message"
-msgstr "Опубликовать сообщение"
+msgstr "Послание"
 
 #: yonca/templates/index.html:2406
 msgid "General Discussion"
-msgstr "Общая дискуссия"
+msgstr "Общее обсуждение"
 
 #: yonca/templates/index.html:2409
 msgid "Welcome to Yonca Forum!"
-msgstr "Добро пожаловать на форум Yonca!"
+msgstr "Добро пожаловать на форум {PROTECTED 0}!"
 
 #: yonca/templates/index.html:2410
-msgid "This is where community members can connect, ask questions, and share knowledge."
-msgstr "Здесь члены сообщества могут общаться, задавать вопросы и делиться знаниями."
+msgid ""
+"This is where community members can connect, ask questions, and share "
+"knowledge."
+msgstr ""
+"Именно здесь члены сообщества могут общаться, задавать вопросы и делиться "
+"знаниями."
 
 #: yonca/templates/index.html:2411
 msgid "Posted on December 8, 2025"
-msgstr "Опубликовано 8 декабря 2025 г."
+msgstr "Опубликовано 8 декабря 2025"
 
 #: yonca/templates/index.html:2421
 msgid "Download educational materials, documents, and access protected files."
-msgstr "Загружайте учебные материалы, документы и получайте доступ к защищенным файлам."
+msgstr "Загрузите учебные материалы, документы и доступ к защищенным файлам."
 
 #: yonca/templates/index.html:2425
 msgid "Filter Learning Materials"
-msgstr "Фильтрация учебных материалов"
+msgstr "Фильтр Учебные материалы"
 
 #: yonca/templates/index.html:2429
 msgid "Access Type:"
@@ -1790,11 +1034,11 @@ msgstr "Все"
 
 #: yonca/templates/index.html:2432
 msgid "PIN Protected"
-msgstr "PIN-код защищен"
+msgstr "PIN защищен"
 
 #: yonca/templates/index.html:2433
 msgid "Free Access"
-msgstr "Свободный доступ"
+msgstr "Бесплатный доступ"
 
 #: yonca/templates/index.html:2446
 msgid "Learning Materials"
@@ -1802,21 +1046,26 @@ msgstr "Учебные материалы"
 
 #: yonca/templates/index.html:2448
 msgid "Loading materials... (Try switching pages in case of delays)"
-msgstr "Загрузка материалов... (Попробуйте переключить страницы в случае задержек)"
+msgstr ""
+"Загрузка материалов (попробуйте переключать страницы в случае задержек)"
 
 #: yonca/templates/index.html:2454
 msgid "Upload Learning Material"
-msgstr "Загрузить учебные материалы"
+msgstr "Скачать Learning Material"
 
 #: yonca/templates/index.html:2455
-msgid "Upload documents, presentations, PDFs, or other materials. You can choose to enable PIN protection for security or allow free access."
-msgstr "Загружайте документы, презентации, PDF-файлы или другие материалы. Вы можете вкл"
-"ючить защиту PIN-кодом в целях безопасности или разрешить бесплатный доступ."
+msgid ""
+"Upload documents, presentations, PDFs, or other materials. You can choose to"
+" enable PIN protection for security or allow free access."
+msgstr ""
+"Загрузите документы, презентации, PDF-файлы или другие материалы. Вы можете "
+"включить защиту PIN-кода для обеспечения безопасности или разрешить "
+"свободный доступ."
 
 #: yonca/templates/admin/about_company.html:253
 #: yonca/templates/index.html:2458
 msgid "Title:"
-msgstr "Заголовок:"
+msgstr "Название:"
 
 #: yonca/templates/admin/about_company.html:254
 #: yonca/templates/index.html:2462
@@ -1825,45 +1074,49 @@ msgstr "Описание:"
 
 #: yonca/templates/index.html:2467
 msgid "Enter tags separated by spaces, e.g. Tag1 Tag2 Tag3"
-msgstr "Введите теги, разделенные пробелами, например. Тег1 Тег2 Тег3"
+msgstr "Введите теги, разделенные пространствами, например Tag1 Tag2 Tag3"
 
 #: yonca/templates/index.html:2468
 msgid "Tags will be displayed as hashtags"
-msgstr "Теги будут отображаться в виде хэштегов."
+msgstr "Теги будут отображаться как хэштеги"
 
 #: yonca/templates/index.html:2471
 msgid "Preview Image (optional):"
-msgstr "Предварительный просмотр изображения (необязательно):"
+msgstr "Предварительный просмотр изображения (опционально):"
 
 #: yonca/templates/index.html:2473
 msgid "Upload an image to display as a preview for this resource"
-msgstr "Загрузите изображение для предварительного просмотра этого ресурса."
+msgstr ""
+"Загрузите изображение для отображения в качестве предварительного просмотра "
+"для этого ресурса"
 
 #: yonca/templates/index.html:2476
 msgid "Choose file..."
-msgstr "Выбрать файл..."
+msgstr "Выберите файл..."
 
 #: yonca/templates/index.html:2483
 msgid "Enable PIN Protection"
-msgstr "Включить защиту PIN-кодом"
+msgstr "Включить PIN-защиту"
 
 #: yonca/templates/index.html:2485
 msgid "Check to require PIN access, uncheck for free access"
-msgstr "Установите флажок, чтобы требовать доступ по PIN-коду, снимите флажок, чтобы пол"
-"учить бесплатный доступ."
+msgstr ""
+"Проверьте, требуется ли PIN-код, отмените проверку для бесплатного доступа"
 
 #: yonca/templates/index.html:2489
-msgid "Access PIN will be auto-generated (6 characters, expires in 10 minutes)"
-msgstr "PIN-код доступа будет сгенерирован автоматически (6 символов, срок действия исте"
-"кает через 10 минут)."
+msgid ""
+"Access PIN will be auto-generated (6 characters, expires in 10 minutes)"
+msgstr ""
+"PIN-код доступа будет автоматически генерироваться (6 символов, срок "
+"действия истекает через 10 минут)"
 
 #: yonca/templates/index.html:2491 yonca/templates/index.html:4126
 msgid "Upload Material"
-msgstr "Загрузить материал"
+msgstr "Скачать материал"
 
 #: yonca/templates/index.html:2501
 msgid "TAVI Test section is coming soon."
-msgstr "Скоро появится раздел TAVI Test."
+msgstr "Тави Тестовый раздел скоро появится."
 
 #: yonca/templates/index.html:2509
 msgid "Our Services"
@@ -1871,19 +1124,23 @@ msgstr "Наши услуги"
 
 #: yonca/templates/index.html:2510
 msgid "Explore the comprehensive services we offer."
-msgstr "Ознакомьтесь с комплексными услугами, которые мы предлагаем."
+msgstr "Изучите комплексные услуги, которые мы предлагаем."
 
 #: yonca/templates/index.html:2520
 msgid "Assessment icon"
-msgstr "Значок оценки"
+msgstr "Иконка оценки"
 
 #: yonca/templates/index.html:2521 yonca/templates/index.html:2586
 msgid "Assessment and Skill Evaluation"
 msgstr "Оценка и оценка навыков"
 
 #: yonca/templates/index.html:2523
-msgid "Comprehensive assessment of a child's development and creation of an individualized support plan"
-msgstr "Комплексная оценка развития ребенка и составление индивидуального плана поддержки."
+msgid ""
+"Comprehensive assessment of a child's development and creation of an "
+"individualized support plan"
+msgstr ""
+"Комплексная оценка развития ребенка и создание индивидуального плана "
+"поддержки"
 
 #: yonca/templates/index.html:2525 yonca/templates/index.html:2535
 #: yonca/templates/index.html:2545 yonca/templates/index.html:2555
@@ -1894,7 +1151,7 @@ msgstr "Узнать больше"
 
 #: yonca/templates/index.html:2530
 msgid "Therapeutic sessions icon"
-msgstr "Значок терапевтических сеансов"
+msgstr "Икона терапевтических сеансов"
 
 #: yonca/templates/index.html:2531
 msgid "Therapeutic Sessions"
@@ -1906,19 +1163,19 @@ msgstr "Индивидуальная работа с ребенком и цел�
 
 #: yonca/templates/index.html:2540
 msgid "School support icon"
-msgstr "Значок поддержки школы"
+msgstr "Икона школьной поддержки"
 
 #: yonca/templates/index.html:2541 yonca/templates/index.html:2624
 msgid "School Support"
-msgstr "Поддержка школы"
+msgstr "Школьная поддержка"
 
 #: yonca/templates/index.html:2543
 msgid "Tutoring support and assistance within the school environment"
-msgstr "Репетиторская поддержка и помощь в школьной среде"
+msgstr "Поддержка и помощь в обучении в школьной среде"
 
 #: yonca/templates/index.html:2550
 msgid "Psychological help icon"
-msgstr "Значок психологической помощи"
+msgstr "Икона психологической помощи"
 
 #: yonca/templates/index.html:2551 yonca/templates/index.html:2642
 msgid "Psychological Support"
@@ -1930,7 +1187,7 @@ msgstr "Индивидуальная, групповая и семейная т�
 
 #: yonca/templates/index.html:2560
 msgid "Clubs icon"
-msgstr "Значок клуба"
+msgstr "Клубная икона"
 
 #: yonca/templates/index.html:2561 yonca/templates/index.html:2656
 msgid "Clubs"
@@ -1938,11 +1195,11 @@ msgstr "Клубы"
 
 #: yonca/templates/index.html:2563
 msgid "Club for mothers and club for teenagers"
-msgstr "Клуб мам и клуб подростков."
+msgstr "Клуб для матерей и клуб для подростков"
 
 #: yonca/templates/index.html:2570
 msgid "Education icon"
-msgstr "Значок образования"
+msgstr "Образовательная икона"
 
 #: yonca/templates/index.html:2571 yonca/templates/index.html:2668
 msgid "Educational Programs"
@@ -1953,12 +1210,16 @@ msgid "Courses for specialists and parents"
 msgstr "Курсы для специалистов и родителей"
 
 #: yonca/templates/index.html:2587
-msgid "Comprehensive assessment of a child's development to create an individualized support plan"
-msgstr "Комплексная оценка развития ребенка для создания индивидуального плана поддержки."
+msgid ""
+"Comprehensive assessment of a child's development to create an "
+"individualized support plan"
+msgstr ""
+"Комплексная оценка развития ребенка для создания индивидуального плана "
+"поддержки"
 
 #: yonca/templates/index.html:2589
 msgid "Initial consultation with parents"
-msgstr "Первичная консультация с родителями"
+msgstr "Первоначальная консультация с родителями"
 
 #: yonca/templates/index.html:2590
 msgid "Assessment of speech, cognitive, and social skills"
@@ -1966,11 +1227,11 @@ msgstr "Оценка речевых, когнитивных и социальн�
 
 #: yonca/templates/index.html:2591
 msgid "MOXO d-CPT (Profiler / MOXO 360)"
-msgstr "MOXO d-CPT (Профилировщик / MOXO 360)"
+msgstr "MOXO d-CPT (Профильер / MOXO 360)"
 
 #: yonca/templates/index.html:2592
 msgid "ABLLS-R, AFLS, WebMAP"
-msgstr "АБЛЛС-Р, АФЛС, WebMAP"
+msgstr "ABLLS-R, AFLS, WebMAP"
 
 #: yonca/templates/index.html:2593
 msgid "Neuropsychological assessment"
@@ -1978,12 +1239,15 @@ msgstr "Нейропсихологическая оценка"
 
 #: yonca/templates/index.html:2594
 msgid "Vineland Adaptive Behavior Scales"
-msgstr "Шкалы адаптивного поведения Вайнленда"
+msgstr "Весы адаптивного поведения Vineland"
 
 #: yonca/templates/index.html:2596
-msgid "Scientifically validated standardized methods help identify the child's strengths and areas for development."
-msgstr "Научно обоснованные стандартизированные методы помогают выявить сильные стороны "
-"ребенка и области для развития."
+msgid ""
+"Scientifically validated standardized methods help identify the child's "
+"strengths and areas for development."
+msgstr ""
+"Научно обоснованные стандартизированные методы помогают определить сильные "
+"стороны ребенка и области его развития."
 
 #: yonca/templates/index.html:2604
 msgid "Therapeutic and Developmental Sessions"
@@ -1995,11 +1259,11 @@ msgstr "Индивидуальные программы развития и вм
 
 #: yonca/templates/index.html:2607
 msgid "ABA therapy"
-msgstr "АВА-терапия"
+msgstr "ABA терапия"
 
 #: yonca/templates/index.html:2608
 msgid "Speech and communication development"
-msgstr "Развитие речи и общения"
+msgstr "Развитие речи и коммуникации"
 
 #: yonca/templates/index.html:2609
 msgid "Sensory integration"
@@ -2011,15 +1275,16 @@ msgstr "Академические навыки и подготовка к шк�
 
 #: yonca/templates/index.html:2611
 msgid "Self-regulation and socialization"
-msgstr "Саморегуляция и социализация"
+msgstr "Саморегулирование и социализация"
 
 #: yonca/templates/index.html:2612
 msgid "Music and art therapy"
-msgstr "Музыкальная и арт-терапия"
+msgstr "Музыка и арт-терапия"
 
 #: yonca/templates/index.html:2613
 msgid "Therapeutic physical training and adaptive physical education"
-msgstr "Лечебная физическая культура и адаптивная физическая культура"
+msgstr ""
+"Терапевтическая физическая подготовка и адаптивное физическое воспитание"
 
 #: yonca/templates/index.html:2614
 msgid "Self-defense"
@@ -2027,11 +1292,11 @@ msgstr "Самооборона"
 
 #: yonca/templates/index.html:2615
 msgid "Brazilian Jiu-Jitsu"
-msgstr "Бразильское джиу-джитсу"
+msgstr "Бразильский джиу-джитсу"
 
 #: yonca/templates/index.html:2625
 msgid "Comprehensive support for a child in the educational environment"
-msgstr "Комплексное сопровождение ребенка в образовательной среде"
+msgstr "Комплексная поддержка ребенка в образовательной среде"
 
 #: yonca/templates/index.html:2627
 msgid "Support for learning difficulties (dyslexia, dysgraphia, dyscalculia)"
@@ -2043,11 +1308,11 @@ msgstr "Индивидуальные академические программ
 
 #: yonca/templates/index.html:2629
 msgid "Homework assistance"
-msgstr "Помощь в выполнении домашних заданий"
+msgstr "Помощь по дому"
 
 #: yonca/templates/index.html:2630
 msgid "Tutor support"
-msgstr "Репетиторская поддержка"
+msgstr "Поддержка преподавателей"
 
 #: yonca/templates/index.html:2631
 msgid "Adaptation to the school environment"
@@ -2075,15 +1340,15 @@ msgstr "Групповая терапия"
 
 #: yonca/templates/index.html:2647
 msgid "Family therapy and parental support"
-msgstr "Семейная терапия и поддержка родителей"
+msgstr "Семейная терапия и родительская поддержка"
 
 #: yonca/templates/index.html:2658
 msgid "Mothers' club"
-msgstr "клуб матерей"
+msgstr "Клуб матерей"
 
 #: yonca/templates/index.html:2659
 msgid "Teenagers' club (social skills and emotional regulation)"
-msgstr "Клуб подростков (социальные навыки и эмоциональная регуляция)"
+msgstr "Клуб подростков (социальные навыки и эмоциональное регулирование)"
 
 #: yonca/templates/index.html:2670
 msgid "Professional training courses"
@@ -2102,20 +1367,23 @@ msgid "Courses for parents"
 msgstr "Курсы для родителей"
 
 #: yonca/templates/index.html:2988
-msgid "Parental support and guidance for raising healthy, well-adjusted children"
-msgstr "Родительская поддержка и руководство для воспитания здоровых, хорошо адаптированных детей"
+msgid ""
+"Parental support and guidance for raising healthy, well-adjusted children"
+msgstr ""
+"Родительская поддержка и руководство по воспитанию здоровых, хорошо "
+"приспособленных детей"
 
 #: yonca/templates/index.html:3058 yonca/templates/index.html:3072
 msgid "Loading courses..."
-msgstr "Загрузка курсов..."
+msgstr "Загрузочные курсы..."
 
 #: yonca/templates/index.html:3082
 msgid "Error loading courses"
-msgstr "Ошибка загрузки курсов."
+msgstr "Курсы загрузки ошибок"
 
 #: yonca/templates/index.html:3096
 msgid "No courses available for this category."
-msgstr "Для этой категории курсов нет."
+msgstr "Курсов для этой категории нет."
 
 #: yonca/templates/index.html:3355
 msgid "You're enrolled in all available courses!"
@@ -2123,11 +1391,11 @@ msgstr "Вы зачислены на все доступные курсы!"
 
 #: yonca/templates/index.html:3356
 msgid "Error loading courses. Please try again."
-msgstr "Ошибка загрузки курсов. Пожалуйста, попробуйте еще раз."
+msgstr "Курсы загрузки ошибок. Пожалуйста, попробуйте еще раз."
 
 #: yonca/templates/index.html:3377
 msgid "No courses available at the moment."
-msgstr "На данный момент курсов нет."
+msgstr "На данный момент нет доступных курсов."
 
 #: yonca/templates/index.html:3393
 msgid "Other Available Courses"
@@ -2135,7 +1403,7 @@ msgstr "Другие доступные курсы"
 
 #: yonca/templates/index.html:3594
 msgid "Loading... (Try switching pages in case of delays)"
-msgstr "Загрузка... (Попробуйте переключить страницы в случае задержек)"
+msgstr "Загрузка (попробуйте переключать страницы в случае задержек)"
 
 #: yonca/templates/index.html:3595 yonca/templates/index.html:3607
 #: yonca/templates/index.html:3614
@@ -2144,23 +1412,23 @@ msgstr "Посмотреть детали"
 
 #: yonca/templates/index.html:3606
 msgid "Enroll Now"
-msgstr "Зарегистрируйтесь сейчас"
+msgstr "Записаться сейчас"
 
 #: yonca/templates/index.html:3669
 msgid "Enrolling in"
-msgstr "Регистрация в"
+msgstr "Записаться в"
 
 #: yonca/templates/index.html:3751
 msgid "No materials available at the moment."
-msgstr "На данный момент материалов нет."
+msgstr "Материалов на данный момент нет."
 
 #: yonca/templates/index.html:3798
 msgid "No materials match the selected filter."
-msgstr "Ни один материал не соответствует выбранному фильтру."
+msgstr "Никакие материалы не соответствуют выбранному фильтру."
 
 #: yonca/templates/index.html:3816
 msgid "Log In to Access"
-msgstr "Войдите, чтобы получить доступ"
+msgstr "Войти в Access"
 
 #: yonca/templates/index.html:3819 yonca/templates/index.html:3839
 #: yonca/templates/index.html:3878
@@ -2169,7 +1437,7 @@ msgstr "Посмотреть ресурс"
 
 #: yonca/templates/index.html:3829
 msgid "Expires in:"
-msgstr "Срок действия истекает через:"
+msgstr "Исполняется в:"
 
 #: yonca/templates/index.html:3829
 msgid "minutes"
@@ -2177,7 +1445,7 @@ msgstr "минуты"
 
 #: yonca/templates/index.html:3831
 msgid "PIN has expired"
-msgstr "Срок действия PIN-кода истек"
+msgstr "PIN-код истек"
 
 #: yonca/templates/index.html:3835 yonca/templates/index.html:3950
 msgid "Your Access PIN:"
@@ -2185,7 +1453,7 @@ msgstr "Ваш PIN-код доступа:"
 
 #: yonca/templates/index.html:3837 yonca/templates/index.html:3952
 msgid "Share this PIN with others to grant access"
-msgstr "Поделитесь этим PIN-кодом с другими, чтобы предоставить доступ."
+msgstr "Поделитесь этим PIN-кодом с другими, чтобы предоставить доступ"
 
 #: yonca/templates/index.html:3842 yonca/templates/index.html:3957
 msgid "Request Access"
@@ -2194,7 +1462,7 @@ msgstr "Запросить доступ"
 #: yonca/templates/index.html:3850 yonca/templates/index.html:3873
 #: yonca/templates/index.html:3962
 msgid "No description available"
-msgstr "Нет описания"
+msgstr "Описания отсутствуют"
 
 #: yonca/templates/index.html:3853 yonca/templates/index.html:3876
 #: yonca/templates/index.html:3964
@@ -2215,15 +1483,15 @@ msgstr "PDF-документов на данный момент нет."
 
 #: yonca/templates/index.html:3954
 msgid "Access PDF"
-msgstr "Доступ к PDF-файлу"
+msgstr "Доступ к PDF"
 
 #: yonca/templates/index.html:3968
 msgid "Are you sure you want to delete this PDF?"
-msgstr "Вы уверены, что хотите удалить этот PDF-файл?"
+msgstr "Вы уверены, что хотите удалить этот PDF?"
 
 #: yonca/templates/index.html:3979
 msgid "Error loading PDFs. Please try again."
-msgstr "Ошибка загрузки PDF-файлов. Пожалуйста, попробуйте еще раз."
+msgstr "Ошибка загрузки PDF. Пожалуйста, попробуйте еще раз."
 
 #: yonca/templates/index.html:3985
 msgid "Enter access PIN for:"
@@ -2231,7 +1499,7 @@ msgstr "Введите PIN-код доступа для:"
 
 #: yonca/templates/index.html:4011
 msgid "Invalid PIN or access denied."
-msgstr "Неверный PIN-код или доступ запрещен."
+msgstr "Недействительный PIN-код или доступ запрещен."
 
 #: yonca/templates/index.html:4015
 msgid "Error accessing resource. Please try again."
@@ -2239,11 +1507,11 @@ msgstr "Ошибка доступа к ресурсу. Пожалуйста, п�
 
 #: yonca/templates/index.html:4029 yonca/templates/index.html:4031
 msgid "Uploading PDF..."
-msgstr "Загрузка PDF..."
+msgstr "Скачать PDF..."
 
 #: yonca/templates/index.html:4053
 msgid "PDF uploaded successfully! Access PIN:"
-msgstr "PDF успешно загружен! PIN-код доступа:"
+msgstr "PDF скачать успешно! Доступ к PIN:"
 
 #: yonca/templates/index.html:4061 yonca/templates/index.html:4065
 msgid "Error uploading PDF. Please try again."
@@ -2251,19 +1519,19 @@ msgstr "Ошибка загрузки PDF. Пожалуйста, попробу�
 
 #: yonca/templates/index.html:4068
 msgid "Upload PDF"
-msgstr "Загрузить PDF"
+msgstr "Скачать PDF"
 
 #: yonca/templates/index.html:4082
 msgid "Uploading..."
-msgstr "Загрузка..."
+msgstr "Загрузить..."
 
 #: yonca/templates/index.html:4084
 msgid "Uploading resource..."
-msgstr "Загрузка ресурса..."
+msgstr "Загрузить ресурс..."
 
 #: yonca/templates/index.html:4106
 msgid "Access PIN:"
-msgstr "PIN-код доступа:"
+msgstr "Доступ к PIN:"
 
 #: yonca/templates/index.html:4106
 msgid "Free access enabled"
@@ -2275,7 +1543,7 @@ msgstr "Материал успешно загружен!"
 
 #: yonca/templates/index.html:4119
 msgid "Error uploading material. Please try again."
-msgstr "Ошибка при загрузке материала. Пожалуйста, попробуйте еще раз."
+msgstr "Ошибка загрузки материала. Пожалуйста, попробуйте еще раз."
 
 #: yonca/templates/index.html:4123
 msgid "Error uploading resource. Please try again."
@@ -2283,7 +1551,7 @@ msgstr "Ошибка загрузки ресурса. Пожалуйста, по
 
 #: yonca/templates/login.html:220
 msgid "Login to Your Account"
-msgstr "Войдите в свою учетную запись"
+msgstr "Войти в свой аккаунт"
 
 #: yonca/templates/login.html:236
 msgid "Password:"
@@ -2291,24 +1559,24 @@ msgstr "Пароль:"
 
 #: yonca/templates/login.html:241
 msgid "Login as Administrator"
-msgstr "Войти как администратор"
+msgstr "Логин как администратор"
 
 #: yonca/templates/login.html:246
 msgid "I acknowledge that I have read and agree to the"
-msgstr "Я подтверждаю, что прочитал и согласен с"
+msgstr "Я признаю, что прочитал и согласен с"
 
 #: yonca/templates/components/footer.html:37 yonca/templates/login.html:247
 #: yonca/templates/terms.html:79
 msgid "Terms of Service"
-msgstr "Условия использования"
+msgstr "Условия обслуживания"
 
 #: yonca/templates/login.html:253
 msgid "Back to Yonca"
-msgstr "Вернуться к Yonca"
+msgstr "Вернуться в {PROTECTED 0}"
 
 #: yonca/templates/terms.html:6
 msgid "Terms of Service - Yonca"
-msgstr "Условия использования – Yonca"
+msgstr "Условия предоставления услуг - {PROTECTED 0}"
 
 #: yonca/templates/terms.html:81
 msgid "Last updated:"
@@ -2316,21 +1584,26 @@ msgstr "Последнее обновление:"
 
 #: yonca/templates/terms.html:81
 msgid "January 2026"
-msgstr "январь 2026 г."
+msgstr "Январь 2026"
 
 #: yonca/templates/terms.html:83
 msgid "Welcome to"
-msgstr "Добро пожаловать в"
+msgstr "Добро пожаловать"
 
 #: yonca/templates/terms.html:83
 msgid "(the \"Service\", \"Platform\", \"Website\"), operated by"
 msgstr "(«Сервис», «Платформа», «Веб-сайт»), управляемый"
 
 #: yonca/templates/terms.html:83
-msgid "(\"we\", \"us\", \"our\"). By accessing or using Yonca, you agree to be bound by these Terms of Service (\"Terms\"). If you do not agree with any part of these Terms, you must not use the Service."
-msgstr "(«мы», «нас», «наш»). Получая доступ к Yonca или используя его, вы соглашаетесь "
-"соблюдать настоящие Условия обслуживания («Условия»). Если вы не согласны с како"
-"й-либо частью настоящих Условий, вы не должны использовать Сервис."
+msgid ""
+"(\"we\", \"us\", \"our\"). By accessing or using Yonca, you agree to be "
+"bound by these Terms of Service (\"Terms\"). If you do not agree with any "
+"part of these Terms, you must not use the Service."
+msgstr ""
+"(«мы», «нас», «наш»). Получая доступ или используя {PROTECTED 0}, вы "
+"соглашаетесь соблюдать настоящие Условия предоставления услуг (\"Условия\")."
+" Если вы не согласны с какой-либо частью настоящих Условий, вы не должны "
+"использовать Сервис."
 
 #: yonca/templates/terms.html:87
 msgid "1. Eligibility"
@@ -2338,79 +1611,106 @@ msgstr "1. Право на участие"
 
 #: yonca/templates/terms.html:89
 msgid "You must be at least"
-msgstr "Вы должны быть как минимум"
+msgstr "Вы должны быть по крайней мере"
 
 #: yonca/templates/terms.html:89
 msgid "years old"
-msgstr "лет"
+msgstr "возраст"
 
 #: yonca/templates/terms.html:89
-msgid "to use Yonca. If you are under the age of 18, you confirm that you have permission from a parent or legal guardian."
-msgstr "использовать Yonca. Если вам меньше 18 лет, вы подтверждаете, что у вас есть раз"
-"решение от родителя или законного опекуна."
+msgid ""
+"to use Yonca. If you are under the age of 18, you confirm that you have "
+"permission from a parent or legal guardian."
+msgstr ""
+"использование {PROTECTED 0}. Если вам не исполнилось 18 лет, вы "
+"подтверждаете, что у вас есть разрешение от родителя или законного опекуна."
 
 #: yonca/templates/terms.html:90
-msgid "You represent that the information you provide is accurate and complete."
-msgstr "Вы заявляете, что предоставленная вами информация является точной и полной."
+msgid ""
+"You represent that the information you provide is accurate and complete."
+msgstr ""
+"Вы заявляете, что предоставленная вами информация является точной и полной."
 
 #: yonca/templates/terms.html:93
 msgid "2. Accounts and Authentication"
-msgstr "2. Учетные записи и аутентификация"
+msgstr "2.Учетные записи и аутентификация"
 
 #: yonca/templates/terms.html:95
 msgid "Some features require creating an account."
 msgstr "Некоторые функции требуют создания учетной записи."
 
 #: yonca/templates/terms.html:96
-msgid "You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your account."
-msgstr "Вы несете ответственность за сохранение конфиденциальности ваших учетных данных "
-"для входа и за все действия, которые происходят под вашей учетной записью."
+msgid ""
+"You are responsible for maintaining the confidentiality of your login "
+"credentials and for all activities that occur under your account."
+msgstr ""
+"Вы несете ответственность за сохранение конфиденциальности ваших учетных "
+"данных и за все действия, которые происходят под вашей учетной записью."
 
 #: yonca/templates/terms.html:97
-msgid "You agree not to share your account or use another user's account without permission."
-msgstr "Вы соглашаетесь не передавать свою учетную запись другим пользователям и не испо"
-"льзовать ее без разрешения."
+msgid ""
+"You agree not to share your account or use another user's account without "
+"permission."
+msgstr ""
+"Вы соглашаетесь не делиться своей учетной записью или использовать учетную "
+"запись другого пользователя без разрешения."
 
 #: yonca/templates/terms.html:98
-msgid "We reserve the right to suspend or terminate accounts that violate these Terms."
-msgstr "Мы оставляем за собой право приостановить или прекратить действие учетных записе"
-"й, которые нарушают настоящие Условия."
+msgid ""
+"We reserve the right to suspend or terminate accounts that violate these "
+"Terms."
+msgstr ""
+"Мы оставляем за собой право приостановить или прекратить действие учетных "
+"записей, нарушающих настоящие Условия."
 
 #: yonca/templates/terms.html:101
 msgid "3. User Content"
-msgstr "3. Пользовательский контент"
+msgstr "3 Пользовательский контент"
 
 #: yonca/templates/terms.html:103
 msgid "3.1 Content You Provide"
-msgstr "3.1 Предоставляемый вами контент"
+msgstr "3.1 Контент, который вы предоставляете"
 
 #: yonca/templates/terms.html:104
-msgid "Yonca may allow you to submit, upload, store, or share content such as text, images, files, or messages (\"User Content\")."
-msgstr "Yonca может разрешать вам отправлять, загружать, хранить или делиться контентом,"
-" например текстом, изображениями, файлами или сообщениями («Пользовательский кон"
-"тент»)."
+msgid ""
+"Yonca may allow you to submit, upload, store, or share content such as text,"
+" images, files, or messages (\"User Content\")."
+msgstr ""
+"{PROTECTED 0} может позволить вам отправлять, загружать, хранить или "
+"делиться контентом, таким как текст, изображения, файлы или сообщения "
+"(\"Пользовательский контент\")."
 
 #: yonca/templates/terms.html:105
-msgid "You retain ownership of your User Content. However, by submitting content, you grant Yonca a"
-msgstr "Вы сохраняете право собственности на свой Пользовательский контент. Однако, отпр"
-"авляя контент, вы предоставляете Yonca"
+msgid ""
+"You retain ownership of your User Content. However, by submitting content, "
+"you grant Yonca a"
+msgstr ""
+"Вы сохраняете право собственности на свой Пользовательский контент. Однако, "
+"отправляя контент, вы предоставляете {PROTECTED 0}"
 
 #: yonca/templates/terms.html:105
 msgid "non-exclusive, worldwide, royalty-free license"
-msgstr "неисключительная, всемирная, бесплатная лицензия"
+msgstr "неисключительная, по всему миру, лицензия без роялти"
 
 #: yonca/templates/terms.html:105
-msgid "to host, store, process, and display the content solely for operating and improving the Service."
-msgstr "размещать, хранить, обрабатывать и отображать контент исключительно для работы и улучшения Сервиса."
+msgid ""
+"to host, store, process, and display the content solely for operating and "
+"improving the Service."
+msgstr ""
+"размещать, хранить, обрабатывать и отображать контент исключительно для "
+"работы и улучшения Сервиса."
 
 #: yonca/templates/terms.html:107
 msgid "3.2 Responsibility for Content"
 msgstr "3.2 Ответственность за контент"
 
 #: yonca/templates/terms.html:108
-msgid "You are solely responsible for your User Content. You agree not to upload or share content that:"
-msgstr "Вы несете единоличную ответственность за свой Пользовательский контент. Вы согла"
-"шаетесь не загружать и не делиться контентом, который:"
+msgid ""
+"You are solely responsible for your User Content. You agree not to upload or"
+" share content that:"
+msgstr ""
+"Вы несете единоличную ответственность за свой Пользовательский контент. Вы "
+"соглашаетесь не загружать и не делиться контентом, который:"
 
 #: yonca/templates/terms.html:110
 msgid "Is illegal, fraudulent, or misleading"
@@ -2418,11 +1718,11 @@ msgstr "Является незаконным, мошенническим или
 
 #: yonca/templates/terms.html:111
 msgid "Infringes intellectual property or privacy rights"
-msgstr "Нарушает права интеллектуальной собственности или конфиденциальности"
+msgstr "Нарушение прав интеллектуальной собственности или конфиденциальности"
 
 #: yonca/templates/terms.html:112
 msgid "Contains malware, viruses, or harmful code"
-msgstr "Содержит вредоносное ПО, вирусы или вредоносный код."
+msgstr "Содержит вредоносные программы, вирусы или вредоносный код"
 
 #: yonca/templates/terms.html:113
 msgid "Is abusive, hateful, or harassing"
@@ -2430,67 +1730,87 @@ msgstr "Является оскорбительным, ненавистным и
 
 #: yonca/templates/terms.html:115
 msgid "We may remove content that violates these Terms or applicable laws."
-msgstr "Мы можем удалить контент, который нарушает настоящие Условия или применимое законодательство."
+msgstr ""
+"Мы можем удалять контент, который нарушает настоящие Условия или применимые "
+"законы."
 
 #: yonca/templates/terms.html:117
 msgid "4. File Storage and Third-Party Services"
-msgstr "4. Хранение файлов и сторонние сервисы"
+msgstr "4. Хранение файлов и сторонние услуги"
 
 #: yonca/templates/terms.html:119
 msgid "Yonca may use"
-msgstr "Yonca может использовать"
+msgstr "{PROTECTED 0} может использоваться"
 
 #: yonca/templates/terms.html:119
 msgid "third-party services"
-msgstr "сторонние услуги"
+msgstr "услуги третьих сторон"
 
 #: yonca/templates/terms.html:119
-msgid "(such as cloud storage, APIs, or translation services) to operate features like file uploads, backups, or content processing."
-msgstr "(например, облачное хранилище, API или службы перевода) для управления такими фу"
-"нкциями, как загрузка файлов, резервное копирование или обработка контента."
+msgid ""
+"(such as cloud storage, APIs, or translation services) to operate features "
+"like file uploads, backups, or content processing."
+msgstr ""
+"(например, облачное хранилище, API или услуги перевода) для работы с такими "
+"функциями, как загрузка файлов, резервное копирование или обработка "
+"контента."
 
 #: yonca/templates/terms.html:120
-msgid "Your content may be processed or stored through these services strictly for functionality."
-msgstr "Ваш контент может обрабатываться или храниться с помощью этих служб исключительн"
-"о для обеспечения функциональности."
+msgid ""
+"Your content may be processed or stored through these services strictly for "
+"functionality."
+msgstr ""
+"Ваш контент может обрабатываться или храниться через эти службы строго для "
+"функциональности."
 
 #: yonca/templates/terms.html:121
-msgid "Yonca is not responsible for outages, data loss, or changes caused by third-party providers, to the extent permitted by law."
-msgstr "Yonca не несет ответственности за сбои в работе, потерю данных или изменения, вы"
-"званные сторонними поставщиками, в пределах, разрешенных законом."
+msgid ""
+"Yonca is not responsible for outages, data loss, or changes caused by third-"
+"party providers, to the extent permitted by law."
+msgstr ""
+"{PROTECTED 0} не несет ответственности за сбои, потерю данных или изменения,"
+" вызванные сторонними поставщиками, в объеме, разрешенном законом."
 
 #: yonca/templates/terms.html:124
 msgid "4.1 Google Drive Integration"
-msgstr "4.1 Интеграция с Google Диском"
+msgstr "4.1 Интеграция Google Drive"
 
 #: yonca/templates/terms.html:126
 msgid "Yonca may allow users to connect their"
-msgstr "Yonca может разрешить пользователям подключать свои"
+msgstr "{PROTECTED 0} позволяет пользователям подключать"
 
 #: yonca/templates/terms.html:126
 msgid "account"
 msgstr "счет"
 
 #: yonca/templates/terms.html:126
-msgid "using Google OAuth 2.0 for purposes such as uploading, storing, accessing, or managing files."
-msgstr "использование Google OAuth 2.0 для таких целей, как загрузка, хранение, доступ к"
-" файлам или управление ими."
+msgid ""
+"using Google OAuth 2.0 for purposes such as uploading, storing, accessing, "
+"or managing files."
+msgstr ""
+"использование Google OAuth 2.0 для загрузки, хранения, доступа или "
+"управления файлами."
 
 #: yonca/templates/terms.html:127
 msgid "When you connect Google Drive, Yonca accesses only the"
-msgstr "Когда вы подключаете Google Диск, Yonca получает доступ только к"
+msgstr ""
+"Когда вы подключаете Google Диск, {PROTECTED 0} получает доступ только к"
 
 #: yonca/templates/terms.html:127
 msgid "minimum permissions required"
-msgstr "требуется минимум разрешений"
+msgstr "минимальные необходимые разрешения"
 
 #: yonca/templates/terms.html:127
-msgid "to provide the requested functionality, as disclosed during the Google authorization process."
-msgstr "для предоставления запрошенной функциональности, как указано в процессе авторизации Google."
+msgid ""
+"to provide the requested functionality, as disclosed during the Google "
+"authorization process."
+msgstr ""
+"предоставление запрошенной функциональности, раскрытой в процессе "
+"авторизации Google."
 
 #: yonca/templates/terms.html:128
 msgid "Yonca"
-msgstr "Yonca"
+msgstr "{PROTECTED 0}"
 
 #: yonca/templates/terms.html:128
 msgid "does not access, read, or modify"
@@ -2498,112 +1818,145 @@ msgstr "не имеет доступа, не читает и не изменяе
 
 #: yonca/templates/terms.html:128
 msgid "files outside the scope explicitly permitted by you."
-msgstr "файлы за пределами явно разрешенной вами области."
+msgstr "файлы, находящиеся за пределами объема, явно разрешенного вами."
 
 #: yonca/templates/terms.html:129
-msgid "Files uploaded or managed via Google Drive remain under your control and subject to"
-msgstr "Файлы, загруженные или управляемые через Google Диск, остаются под вашим контролем и подлежат"
+msgid ""
+"Files uploaded or managed via Google Drive remain under your control and "
+"subject to"
+msgstr ""
+"Файлы, загруженные или управляемые с помощью Google Диска, остаются под "
+"вашим контролем"
 
 #: yonca/templates/terms.html:129
 msgid "Google's own Terms of Service and Privacy Policy"
-msgstr "Собственные Условия использования и Политика конфиденциальности Google."
+msgstr "Собственные условия обслуживания и политика конфиденциальности Google"
 
 #: yonca/templates/terms.html:130
-msgid "You may revoke Yonca's access to your Google Drive at any time through your Google Account security settings."
-msgstr "Вы можете в любое время отозвать доступ Yonca к вашему Google Диску через настро"
-"йки безопасности вашего аккаунта Google."
+msgid ""
+"You may revoke Yonca's access to your Google Drive at any time through your "
+"Google Account security settings."
+msgstr ""
+"Вы можете отозвать доступ {PROTECTED 0} к вашему диску Google в любое время "
+"через настройки безопасности учетной записи Google."
 
 #: yonca/templates/terms.html:133
 msgid "5. Translations and Automated Features"
-msgstr "5. Переводы и автоматизированные функции"
+msgstr "5.Переводы и автоматизированные функции"
 
 #: yonca/templates/terms.html:135
 msgid "Yonca may provide automated features such as"
-msgstr "Yonca может предоставлять автоматизированные функции, такие как"
+msgstr ""
+"{PROTECTED 0} может предоставлять автоматизированные функции, такие как:"
 
 #: yonca/templates/terms.html:135
 msgid "machine translations or AI-assisted tools"
-msgstr "машинный перевод или инструменты с использованием искусственного интеллекта"
+msgstr "машинные переводы или инструменты с поддержкой ИИ"
 
 #: yonca/templates/terms.html:136
-msgid "These features are provided \"as is\" and may contain errors or inaccuracies."
-msgstr "Эти функции предоставляются «как есть» и могут содержать ошибки и неточности."
+msgid ""
+"These features are provided \"as is\" and may contain errors or "
+"inaccuracies."
+msgstr ""
+"Эти функции предоставляются «как есть» и могут содержать ошибки или "
+"неточности."
 
 #: yonca/templates/terms.html:137
-msgid "Yonca does not guarantee the correctness, completeness, or suitability of automatically generated results."
-msgstr "Yonca не гарантирует правильность, полноту или пригодность автоматически сгенери"
-"рованных результатов."
+msgid ""
+"Yonca does not guarantee the correctness, completeness, or suitability of "
+"automatically generated results."
+msgstr ""
+"{PROTECTED 0} не гарантирует правильность, полноту или пригодность "
+"автоматически генерируемых результатов."
 
 #: yonca/templates/terms.html:140
 msgid "6. Acceptable Use"
-msgstr "6. Допустимое использование"
+msgstr "6.Допустимое использование"
 
 #: yonca/templates/terms.html:141
 msgid "You agree not to:"
 msgstr "Вы соглашаетесь не:"
 
 #: yonca/templates/terms.html:143
-msgid "Abuse, overload, or attempt to disrupt the Service or its infrastructure"
-msgstr "Злоупотребление, перегрузка или попытка нарушить работу Сервиса или его инфраструктуры."
+msgid ""
+"Abuse, overload, or attempt to disrupt the Service or its infrastructure"
+msgstr ""
+"Злоупотребление, перегрузка или попытка нарушить работу Сервиса или его "
+"инфраструктуры"
 
 #: yonca/templates/terms.html:144
 msgid "Attempt unauthorized access to systems, accounts, or data"
-msgstr "Попытка несанкционированного доступа к системам, учетным записям или данным."
+msgstr "Несанкционированный доступ к системам, учетным записям или данным"
 
 #: yonca/templates/terms.html:145
 msgid "Use Yonca for spam, scraping, or automated misuse"
-msgstr "Используйте Yonca для спама, очистки или автоматического злоупотребления."
+msgstr ""
+"Используйте {PROTECTED 0} для спама, скребок или автоматического "
+"неправильного использования"
 
 #: yonca/templates/terms.html:146
 msgid "Circumvent security or access controls"
-msgstr "Обход средств безопасности или контроля доступа"
+msgstr "Обходная безопасность или контроль доступа"
 
 #: yonca/templates/terms.html:149
 msgid "7. Intellectual Property"
 msgstr "7. Интеллектуальная собственность"
 
 #: yonca/templates/terms.html:151
-msgid "The Yonca name, logo, design, and all platform-related content (excluding User Content) are owned by Yonca or its licensors."
-msgstr "Название Yonca, логотип, дизайн и весь контент, связанный с платформой (за исклю"
-"чением Пользовательского контента), принадлежат Yonca или ее лицензиарам."
+msgid ""
+"The Yonca name, logo, design, and all platform-related content (excluding "
+"User Content) are owned by Yonca or its licensors."
+msgstr ""
+"Название, логотип, дизайн и весь контент, связанный с платформой (за "
+"исключением пользовательского контента), принадлежат {PROTECTED 1} или его "
+"лицензиарам."
 
 #: yonca/templates/terms.html:152
-msgid "You may not copy, modify, distribute, or reverse-engineer any part of the Service without written permission."
-msgstr "Вы не имеете права копировать, изменять, распространять или перепроектировать лю"
-"бую часть Сервиса без письменного разрешения."
+msgid ""
+"You may not copy, modify, distribute, or reverse-engineer any part of the "
+"Service without written permission."
+msgstr ""
+"Вы не можете копировать, изменять, распространять или реверс-инжиниринг "
+"любой части Сервиса без письменного разрешения."
 
 #: yonca/templates/terms.html:155
 msgid "8. Privacy"
-msgstr "8. Конфиденциальность"
+msgstr "8.Конфиденциальность"
 
 #: yonca/templates/terms.html:156
 msgid "Your use of Yonca is also governed by our"
-msgstr "Использование вами Yonca также регулируется нашими"
+msgstr "Ваше использование {PROTECTED 0} также регулируется нашей"
 
 #: yonca/templates/terms.html:156
 msgid "Privacy Policy"
-msgstr "политика конфиденциальности"
+msgstr "Политика конфиденциальности"
 
 #: yonca/templates/terms.html:156
 msgid "which explains how we collect, use, and protect your data."
-msgstr "где объясняется, как мы собираем, используем и защищаем ваши данные."
+msgstr "это объясняет, как мы собираем, используем и защищаем ваши данные."
 
 #: yonca/templates/terms.html:158
 msgid "9. Termination"
-msgstr "9. Прекращение действия"
+msgstr "9. Прекращение"
 
 #: yonca/templates/terms.html:160
 msgid "You may stop using Yonca at any time."
-msgstr "Вы можете прекратить использование Yonca в любое время."
+msgstr "Вы можете отказаться от использования {PROTECTED 0} в любое время."
 
 #: yonca/templates/terms.html:161
-msgid "We may suspend or terminate your access immediately if you violate these Terms or if required by law."
-msgstr "Мы можем немедленно приостановить или прекратить ваш доступ, если вы нарушите на"
-"стоящие Условия или если этого требует закон."
+msgid ""
+"We may suspend or terminate your access immediately if you violate these "
+"Terms or if required by law."
+msgstr ""
+"Мы можем немедленно приостановить или прекратить ваш доступ, если вы "
+"нарушаете настоящие Условия или если это требуется по закону."
 
 #: yonca/templates/terms.html:162
-msgid "Upon termination, access to your account and stored content may be removed."
-msgstr "После прекращения действия доступ к вашей учетной записи и сохраненному контенту может быть закрыт."
+msgid ""
+"Upon termination, access to your account and stored content may be removed."
+msgstr ""
+"После прекращения доступа к вашей учетной записи и сохраненному контенту "
+"может быть удален."
 
 #: yonca/templates/terms.html:165
 msgid "10. Disclaimer of Warranties"
@@ -2611,7 +1964,7 @@ msgstr "10. Отказ от гарантий"
 
 #: yonca/templates/terms.html:166
 msgid "Yonca is provided"
-msgstr "Yonca предоставляется"
+msgstr "Предоставляется {PROTECTED 0}"
 
 #: yonca/templates/terms.html:166
 msgid "as is"
@@ -2623,7 +1976,7 @@ msgstr "и"
 
 #: yonca/templates/terms.html:166
 msgid "as available"
-msgstr "как доступно"
+msgstr "в наличии"
 
 #: yonca/templates/terms.html:166
 msgid "To the maximum extent permitted by law:"
@@ -2631,11 +1984,13 @@ msgstr "В максимальной степени, разрешенной за�
 
 #: yonca/templates/terms.html:168
 msgid "We make no warranties regarding availability, reliability, or accuracy"
-msgstr "Мы не даем никаких гарантий относительно доступности, надежности или точности."
+msgstr ""
+"Мы не даем никаких гарантий относительно доступности, надежности или "
+"точности"
 
 #: yonca/templates/terms.html:169
 msgid "We do not guarantee uninterrupted or error-free operation"
-msgstr "Мы не гарантируем бесперебойную и безошибочную работу"
+msgstr "Мы не гарантируем бесперебойную или безошибочную работу"
 
 #: yonca/templates/terms.html:172
 msgid "11. Limitation of Liability"
@@ -2643,7 +1998,8 @@ msgstr "11. Ограничение ответственности"
 
 #: yonca/templates/terms.html:173
 msgid "To the extent permitted by law, Yonca shall not be liable for:"
-msgstr "В пределах, разрешенных законом, Yonca не несет ответственности за:"
+msgstr ""
+"В пределах, разрешенных законом, {PROTECTED 0} не несет ответственности за:"
 
 #: yonca/templates/terms.html:175
 msgid "Indirect, incidental, or consequential damages"
@@ -2651,43 +2007,56 @@ msgstr "Косвенный, случайный или косвенный уще�
 
 #: yonca/templates/terms.html:176
 msgid "Loss of data, profits, or business opportunities"
-msgstr "Потеря данных, прибыли или деловых возможностей"
+msgstr "Потеря данных, прибыли или бизнес-возможностей"
 
 #: yonca/templates/terms.html:177
 msgid "Issues caused by third-party services or user actions"
-msgstr "Проблемы, вызванные сторонними сервисами или действиями пользователя."
+msgstr "Проблемы, вызванные сторонними услугами или действиями пользователей"
 
 #: yonca/templates/terms.html:180
 msgid "12. Changes to the Terms"
 msgstr "12. Изменения в Условиях"
 
 #: yonca/templates/terms.html:181
-msgid "We may update these Terms from time to time. Continued use of Yonca after changes become effective constitutes acceptance of the revised Terms."
-msgstr "Мы можем время от времени обновлять настоящие Условия. Продолжение использования"
-" Yonca после вступления изменений в силу означает принятие пересмотренных Услови"
-"й."
+msgid ""
+"We may update these Terms from time to time. Continued use of Yonca after "
+"changes become effective constitutes acceptance of the revised Terms."
+msgstr ""
+"Мы можем время от времени обновлять настоящие Условия. Продолжение "
+"использования {PROTECTED 0} после вступления изменений в силу означает "
+"принятие пересмотренных Условий."
 
 #: yonca/templates/terms.html:183
 msgid "13. Governing Law"
-msgstr "13. Применимое право"
+msgstr "13. Управляющий закон"
 
 #: yonca/templates/terms.html:184
-msgid "These Terms are governed by and construed in accordance with applicable laws, without regard to conflict of law principles."
-msgstr "Настоящие Условия регулируются и толкуются в соответствии с действующим законода"
-"тельством, без учета принципов коллизионного права."
+msgid ""
+"These Terms are governed by and construed in accordance with applicable "
+"laws, without regard to conflict of law principles."
+msgstr ""
+"Настоящие Условия регулируются и толкуются в соответствии с применимым "
+"законодательством, без учета принципов коллизионного права."
 
 #: yonca/templates/terms.html:186
 msgid "14. Contact"
-msgstr "14. Контакт"
+msgstr "14.Контакт"
 
 #: yonca/templates/terms.html:187
-msgid "If you have questions about these Terms, please contact us through the Yonca website."
-msgstr "Если у вас есть вопросы по поводу настоящих Условий, свяжитесь с нами через веб-сайт Yonca."
+msgid ""
+"If you have questions about these Terms, please contact us through the Yonca"
+" website."
+msgstr ""
+"Если у вас есть вопросы об этих Условиях, пожалуйста, свяжитесь с нами через"
+" веб-сайт {PROTECTED 0}."
 
 #: yonca/templates/terms.html:191
-msgid "By using Yonca, you acknowledge that you have read, understood, and agree to these Terms of Service."
-msgstr "Используя Yonca, вы подтверждаете, что прочитали, поняли и согласились с настоящ"
-"ими Условиями обслуживания."
+msgid ""
+"By using Yonca, you acknowledge that you have read, understood, and agree to"
+" these Terms of Service."
+msgstr ""
+"Используя {PROTECTED 0}, вы подтверждаете, что прочитали, поняли и согласны "
+"с настоящими Условиями предоставления услуг."
 
 #: yonca/templates/admin/about_company.html:242 yonca/templates/terms.html:193
 msgid "Back to Home"
@@ -2695,56 +2064,59 @@ msgstr "Вернуться домой"
 
 #: yonca/templates/admin/about_company.html:132
 msgid "About Company Configuration"
-msgstr "О конфигурации компании"
+msgstr "О компании Конфигурация"
 
 #: yonca/templates/admin/about_company.html:155
 msgid "Welcome Title:"
-msgstr "Приветственное название:"
+msgstr "Добро пожаловать заголовок:"
 
 #: yonca/templates/admin/about_company.html:157
 msgid "Welcome to Yonca"
-msgstr "Добро пожаловать в Yonca"
+msgstr "Добро пожаловать в {PROTECTED 0}"
 
 #: yonca/templates/admin/about_company.html:158
 msgid "The main welcome title displayed on the About page"
-msgstr "Основной заголовок приветствия, отображаемый на странице «О программе»."
+msgstr "Главный приветственный заголовок, отображаемый на странице О"
 
 #: yonca/templates/admin/about_company.html:162
 msgid "Subtitle:"
-msgstr "Субтитры:"
+msgstr "Подзаголовок:"
 
 #: yonca/templates/admin/about_company.html:163
-msgid "Join our learning community and discover amazing features designed to enhance your educational experience."
-msgstr "Присоединяйтесь к нашему учебному сообществу и откройте для себя удивительные фу"
-"нкции, призванные улучшить ваш образовательный опыт."
+msgid ""
+"Join our learning community and discover amazing features designed to "
+"enhance your educational experience."
+msgstr ""
+"Присоединяйтесь к нашему учебному сообществу и откройте для себя "
+"удивительные функции, призванные улучшить ваш образовательный опыт."
 
 #: yonca/templates/admin/about_company.html:164
 msgid "A brief description that appears below the welcome title"
-msgstr "Краткое описание, которое появляется под приветственным заголовком."
+msgstr "Краткое описание, которое появляется ниже заголовка приветствия"
 
 #: yonca/templates/admin/about_company.html:171
 msgid "About Features Section"
-msgstr "О разделе «Функции»"
+msgstr "Об особенностях раздела"
 
 #: yonca/templates/admin/about_company.html:175
 msgid "Features Title:"
-msgstr "Название функции:"
+msgstr "Оригинальное название:"
 
 #: yonca/templates/admin/about_company.html:178
 msgid "The heading that appears above the features"
-msgstr "Заголовок, который появляется над функциями"
+msgstr "Заголовок, который появляется над чертами"
 
 #: yonca/templates/admin/about_company.html:182
 msgid "Features Subtitle:"
-msgstr "Особенности Подзаголовок:"
+msgstr "Особенности Subtitle:"
 
 #: yonca/templates/admin/about_company.html:184
 msgid "The subtitle that appears below the features title"
-msgstr "Подзаголовок, который появляется под названием функции."
+msgstr "Подзаголовок, который появляется ниже заголовка функций"
 
 #: yonca/templates/admin/about_company.html:191
 msgid "About Features"
-msgstr "О функциях"
+msgstr "Об особенностях"
 
 #: yonca/templates/admin/about_company.html:193
 msgid "Add Feature"
@@ -2768,7 +2140,7 @@ msgstr "Подзаголовок галереи:"
 
 #: yonca/templates/admin/about_company.html:218
 msgid "The subtitle that appears below the gallery title"
-msgstr "Подзаголовок, который появляется под названием галереи."
+msgstr "Подзаголовок, который появляется под названием галереи"
 
 #: yonca/templates/admin/about_company.html:225
 msgid "About Gallery (Images, Videos, YouTube, Vimeo)"
@@ -2780,11 +2152,11 @@ msgstr "Добавить медиа"
 
 #: yonca/templates/admin/about_company.html:255
 msgid "Feature title"
-msgstr "Название функции"
+msgstr "Оригинальное название"
 
 #: yonca/templates/admin/about_company.html:256
 msgid "Feature description"
-msgstr "Описание функции"
+msgstr "Описание характеристики"
 
 #: yonca/templates/admin/about_company.html:257
 msgid "Choose input type:"
@@ -2796,19 +2168,22 @@ msgstr "Введите URL"
 
 #: yonca/templates/admin/about_company.html:260
 msgid "Media File:"
-msgstr "Медиа-файл:"
+msgstr "Media File:"
 
 #: yonca/templates/admin/about_company.html:261
 msgid "Media URL:"
-msgstr "URL-адрес носителя:"
+msgstr "Media URL:"
 
 #: yonca/templates/admin/about_company.html:262
-msgid "https://youtube.com/watch?v=... or https://drive.google.com/file/d/... or direct video URL"
-msgstr "https://youtube.com/watch?v=... или https://drive.google.com/file/d/... или прямой URL-адрес видео."
+msgid ""
+"https://youtube.com/watch?v=... or https://drive.google.com/file/d/... or "
+"direct video URL"
+msgstr ""
+"https://youtube.com/watch?v=... или https://drive.google.com/file/d/.."
 
 #: yonca/templates/admin/about_company.html:263
 msgid "Alt Text:"
-msgstr "Альтернативный текст:"
+msgstr "Альттекст:"
 
 #: yonca/templates/admin/about_company.html:264
 msgid "Image description"
@@ -2820,19 +2195,19 @@ msgstr "Подпись:"
 
 #: yonca/templates/admin/about_company.html:266
 msgid "Image caption"
-msgstr "Подпись к изображению"
+msgstr "Image caption"
 
 #: yonca/templates/admin/about_company.html:267
 msgid "Translate Caption"
-msgstr "Перевести подпись"
+msgstr "Перевод подписи"
 
 #: yonca/templates/admin/about_company.html:268
 msgid "Please enter some text in the caption field before translating."
-msgstr "Перед переводом введите текст в поле подписи."
+msgstr "Пожалуйста, введите некоторый текст в поле подписи перед переводом."
 
 #: yonca/templates/admin/about_company.html:269
 msgid "Translation completed and cached:"
-msgstr "Перевод завершен и кэширован:"
+msgstr "Завершенный и кэшированный перевод:"
 
 #: yonca/templates/admin/about_company.html:270
 msgid "Original"
@@ -2840,7 +2215,7 @@ msgstr "Оригинал"
 
 #: yonca/templates/admin/about_company.html:271
 msgid "Translation failed:"
-msgstr "Перевод не удался:"
+msgstr "Перевод провалился:"
 
 #: yonca/templates/admin/about_company.html:272
 msgid "Translation error:"
@@ -2856,7 +2231,7 @@ msgstr "WhatsApp"
 
 #: yonca/templates/components/footer.html:11
 msgid "Available: Mon-Fri, 9AM-6PM"
-msgstr "Доступно: Пн-Пт, 9:00-18:00."
+msgstr "Доступно: Mon-Fri, 9AM-6PM"
 
 #: yonca/templates/components/footer.html:15
 msgid "Email"
@@ -2864,7 +2239,7 @@ msgstr "Электронная почта"
 
 #: yonca/templates/components/footer.html:19
 msgid "We respond within 24 hours"
-msgstr "Мы отвечаем в течение 24 часов"
+msgstr "Мы ответим в течение 24 часов"
 
 #: yonca/templates/components/footer.html:23
 msgid "Location"
@@ -2874,10 +2249,563 @@ msgstr "Расположение"
 msgid "Baku, Azerbaijan"
 msgstr "Баку, Азербайджан"
 
-#: yonca/templates/components/navbar.html:33
+#: yonca/templates/components/navbar.html:29
 msgid "About"
-msgstr "О"
+msgstr "О нас"
 
-#: yonca/templates/components/navbar.html:49
+#: yonca/templates/components/navbar.html:45
 msgid "Admin Panel"
-msgstr "Панель администратора"
+msgstr "Панель администраторов"
+
+#~ msgid "{editor}: Editing failed"
+#~ msgstr "Редактирование провалилось"
+
+#~ msgid "{editor}: Editing failed: {e}"
+#~ msgstr "Редактировать не удалось:"
+
+#~ msgid "{text} {deprecated_message}"
+#~ msgstr "{text} {deprecated message}"
+
+#~ msgid "Options"
+#~ msgstr "Варианты"
+
+#~ msgid "Got unexpected extra argument ({args})"
+#~ msgid_plural "Got unexpected extra arguments ({args})"
+#~ msgstr[0] "Got unexpected extra argument ({args})"
+#~ msgstr[1] "Got unexpected extra argument ({args})"
+#~ msgstr[2] "Got unexpected extra argument ({args})"
+
+#~ msgid "DeprecationWarning: The command {name!r} is deprecated.{extra_message}"
+#~ msgstr ""
+#~ "Амортизация Предупреждение: команда {name!r} обесценена.{extra message}"
+
+#~ msgid "Aborted!"
+#~ msgstr "Аборт!"
+
+#~ msgid "Commands"
+#~ msgstr "Командование"
+
+#~ msgid "Missing command."
+#~ msgstr "Недостающее командование."
+
+#~ msgid "No such command {name!r}."
+#~ msgstr "Нет такого приказа."
+
+#~ msgid "Value must be an iterable."
+#~ msgstr "Ценность должна быть итерабельной."
+
+#~ msgid "Takes {nargs} values but 1 was given."
+#~ msgid_plural "Takes {nargs} values but {len} were given."
+#~ msgstr[0] "Takes {nargs} values but 1 was given."
+#~ msgstr[1] "Takes {nargs} values but 1 was given."
+#~ msgstr[2] "Takes {nargs} values but 1 was given."
+
+#~ msgid ""
+#~ "DeprecationWarning: The {param_type} {name!r} is deprecated.{extra_message}"
+#~ msgstr ""
+#~ "Амортизация Предупреждение: {param type} {name!r} обесценивается.{extra "
+#~ "message}"
+
+#~ msgid "env var: {var}"
+#~ msgstr "env var: {var}"
+
+#~ msgid "default: {default}"
+#~ msgstr "по умолчанию: {default}"
+
+#~ msgid "required"
+#~ msgstr "необходимый"
+
+#~ msgid "(dynamic)"
+#~ msgstr "(динамический)"
+
+#~ msgid "%(prog)s, version %(version)s"
+#~ msgstr "%(prog)s, версия %(версия)"
+
+#~ msgid "Show the version and exit."
+#~ msgstr "Покажите версию и выход."
+
+#~ msgid "Show this message and exit."
+#~ msgstr "Покажите это сообщение и выход."
+
+#~ msgid "Error: {message}"
+#~ msgstr "Ошибка: {сообщение}"
+
+#~ msgid "Try '{command} {option}' for help."
+#~ msgstr "Попробуй помочь."
+
+#~ msgid "Invalid value: {message}"
+#~ msgstr "Недействительное значение: {сообщение}"
+
+#~ msgid "Invalid value for {param_hint}: {message}"
+#~ msgstr "Недействительное значение для {param hint}: {message}"
+
+#~ msgid "Missing argument"
+#~ msgstr "Пропущенный аргумент"
+
+#~ msgid "Missing option"
+#~ msgstr "Недостающий вариант"
+
+#~ msgid "Missing parameter"
+#~ msgstr "Недостающий параметр"
+
+#~ msgid "Missing {param_type}"
+#~ msgstr "Пропавший {param type}"
+
+#~ msgid "Missing parameter: {param_name}"
+#~ msgstr "Пропущенный параметр: {param name}"
+
+#~ msgid "No such option: {name}"
+#~ msgstr "Нет такого варианта: {имя}"
+
+#~ msgid "Did you mean {possibility}?"
+#~ msgid_plural "(Possible options: {possibilities})"
+#~ msgstr[0] "Did you mean {possibility}?"
+#~ msgstr[1] "Did you mean {possibility}?"
+#~ msgstr[2] "Did you mean {possibility}?"
+
+#~ msgid "unknown error"
+#~ msgstr "неизвестная ошибка"
+
+#~ msgid "Could not open file {filename!r}: {message}"
+#~ msgstr "Не удалось открыть файл {filename!r}: {message}"
+
+#~ msgid "Usage:"
+#~ msgstr "Использование:"
+
+#~ msgid "Argument {name!r} takes {nargs} values."
+#~ msgstr "Аргумент {name!r} принимает значения {nargs}."
+
+#~ msgid "Option {name!r} does not take a value."
+#~ msgstr "Вариант {name!r} не имеет значения."
+
+#~ msgid "Option {name!r} requires an argument."
+#~ msgid_plural "Option {name!r} requires {nargs} arguments."
+#~ msgstr[0] "Option {name!r} requires an argument."
+#~ msgstr[1] "Option {name!r} requires an argument."
+#~ msgstr[2] "Option {name!r} requires an argument."
+
+#~ msgid "Shell completion is not supported for Bash versions older than 4.4."
+#~ msgstr "Дополнение Shell не поддерживается для версий Bash старше 4.4."
+
+#~ msgid "Couldn't detect Bash version, shell completion is not supported."
+#~ msgstr ""
+#~ "Не удалось обнаружить версию Bash, завершение оболочки не поддерживается."
+
+#~ msgid "Repeat for confirmation"
+#~ msgstr "Повторить для подтверждения"
+
+#~ msgid "Error: The value you entered was invalid."
+#~ msgstr "Ошибка: значение, которое вы ввели, было недействительным."
+
+#~ msgid "Error: {e.message}"
+#~ msgstr "Ошибка: {e.message}"
+
+#~ msgid "Error: The two entered values do not match."
+#~ msgstr "Ошибка: введенные значения не совпадают."
+
+#~ msgid "Error: invalid input"
+#~ msgstr "Ошибка: недействительный вход"
+
+#~ msgid "Press any key to continue..."
+#~ msgstr "Нажмите любой ключ, чтобы продолжить..."
+
+#~ msgid ""
+#~ "Choose from:\n"
+#~ "\t{choices}"
+#~ msgstr ""
+#~ "Выберите из:\n"
+#~ "{Выбор}"
+
+#~ msgid "{value!r} is not {choice}."
+#~ msgid_plural "{value!r} is not one of {choices}."
+#~ msgstr[0] "{value!r} is not {choice}."
+#~ msgstr[1] "{value!r} is not {choice}."
+#~ msgstr[2] "{value!r} is not {choice}."
+
+#~ msgid "{value!r} does not match the format {format}."
+#~ msgid_plural "{value!r} does not match the formats {formats}."
+#~ msgstr[0] "{value!r} does not match the format {format}."
+#~ msgstr[1] "{value!r} does not match the format {format}."
+#~ msgstr[2] "{value!r} does not match the format {format}."
+
+#~ msgid "{value!r} is not a valid {number_type}."
+#~ msgstr "{value!r} не является действительным {number type}."
+
+#~ msgid "{value} is not in the range {range}."
+#~ msgstr "{значение} не находится в диапазоне {диапазон}."
+
+#~ msgid "{value!r} is not a valid boolean. Recognized values: {states}"
+#~ msgstr ""
+#~ "{value!r} не является действительным булевым. Признанные значения: {states}"
+
+#~ msgid "{value!r} is not a valid UUID."
+#~ msgstr "{value!r} не является действительным UUID."
+
+#~ msgid "file"
+#~ msgstr "файл"
+
+#~ msgid "directory"
+#~ msgstr "справочник"
+
+#~ msgid "path"
+#~ msgstr "путь"
+
+#~ msgid "{name} {filename!r} does not exist."
+#~ msgstr "{имя} {filename!r} не существует."
+
+#~ msgid "{name} {filename!r} is a file."
+#~ msgstr "{name} {filename!r} - файл."
+
+#~ msgid "{name} {filename!r} is a directory."
+#~ msgstr "{name} {filename!r} является каталогом."
+
+#~ msgid "{name} {filename!r} is not readable."
+#~ msgstr "{имя} {filename!r} не читается."
+
+#~ msgid "{name} {filename!r} is not writable."
+#~ msgstr "{имя} {filename!r} не пишется."
+
+#~ msgid "{name} {filename!r} is not executable."
+#~ msgstr "{name} {filename!r} не выполняется."
+
+#~ msgid "{len_type} values are required, but {len_value} was given."
+#~ msgid_plural "{len_type} values are required, but {len_value} were given."
+#~ msgstr[0] "{len_type} values are required, but {len_value} was given."
+#~ msgstr[1] "{len_type} values are required, but {len_value} was given."
+#~ msgstr[2] "{len_type} values are required, but {len_value} was given."
+
+#~ msgid "Cli: Invalid command."
+#~ msgstr "Недействительная команда."
+
+#~ msgid "File required."
+#~ msgstr "Файл нужен."
+
+#~ msgid "Invalid file type."
+#~ msgstr "Недействительный тип файла."
+
+#~ msgid "Invalid name"
+#~ msgstr "Недействительное имя"
+
+#~ msgid "File \"%(name)s\" already exists."
+#~ msgstr "Файл \"%(имя)\" уже существует."
+
+#~ msgid "Permission denied."
+#~ msgstr "Разрешение отказано."
+
+#~ msgid "File uploading is disabled."
+#~ msgstr "Загрузка файлов отключена."
+
+#~ msgid "Successfully saved file: %(name)s"
+#~ msgstr "Успешно сохраненный файл: %(имя)"
+
+#~ msgid "Failed to save file: %(error)s"
+#~ msgstr "Не удалось сохранить файл: % (ошибка)"
+
+#~ msgid "Directory creation is disabled."
+#~ msgstr "Создание каталога отключено."
+
+#~ msgid "Successfully created directory: %(directory)s"
+#~ msgstr "Успешно созданный каталог: %(directory)"
+
+#~ msgid "Failed to create directory: %(error)s"
+#~ msgstr "Не удалось создать каталог: %(ошибки)"
+
+#~ msgid "Create Directory"
+#~ msgstr "Создать каталог"
+
+#~ msgid "Deletion is disabled."
+#~ msgstr "Удаление отключено."
+
+#~ msgid "Directory deletion is disabled."
+#~ msgstr "Удаление каталога отключено."
+
+#~ msgid "Directory \"%(path)s\" was successfully deleted."
+#~ msgstr "Справочник «%(path)s» был успешно удален."
+
+#~ msgid "Failed to delete directory: %(error)s"
+#~ msgstr "Не удалось удалить каталог: % (ошибка)"
+
+#~ msgid "File \"%(name)s\" was successfully deleted."
+#~ msgstr "Файл «%(имя)» был успешно удален."
+
+#~ msgid "Failed to delete file: %(name)s"
+#~ msgstr "Не удалось удалить файл: %(имя)"
+
+#~ msgid "Renaming is disabled."
+#~ msgstr "Переименование отключено."
+
+#~ msgid "Path does not exist."
+#~ msgstr "Пути не существует."
+
+#~ msgid "Successfully renamed \"%(src)s\" to \"%(dst)s\""
+#~ msgstr "Успешно переименовали «%(src)s» в «%(dst)s»"
+
+#~ msgid "Failed to rename: %(error)s"
+#~ msgstr "Не удалось переименовать: % (ошибка)"
+
+#~ msgid "Rename %(name)s"
+#~ msgstr "Rename %(имя)"
+
+#~ msgid "Error saving changes to %(name)s."
+#~ msgstr "Ошибка сохранения изменений в %(имя)."
+
+#~ msgid "Changes to %(name)s saved successfully."
+#~ msgstr "Изменения в %(имя) сохранены успешно."
+
+#~ msgid "Error reading %(name)s."
+#~ msgstr "Ошибка считывания %(имя)."
+
+#~ msgid "Unexpected error while reading from %(name)s"
+#~ msgstr "Неожиданная ошибка при чтении из %(имя)"
+
+#~ msgid "Cannot edit %(name)s."
+#~ msgstr "Не может редактировать %(имя)."
+
+#~ msgid "Editing %(path)s"
+#~ msgstr "Редактирование %(path)"
+
+#~ msgid "File deletion is disabled."
+#~ msgstr "Удаление файлов отключено."
+
+#~ msgid "Cannot operate on non empty directories"
+#~ msgstr "Не может работать в непустых каталогах"
+
+#~ msgid "Not a valid choice"
+#~ msgstr "Не правильный выбор"
+
+#~ msgid "Failed to get model. %(error)s"
+#~ msgstr "Не удалось получить модель. % (ошибка)"
+
+#~ msgid "Failed to create record. %(error)s"
+#~ msgstr "Не удалось создать рекорд. % (ошибка)"
+
+#~ msgid "Failed to update record. %(error)s"
+#~ msgstr "Не удалось обновить запись. % (ошибка)"
+
+#~ msgid "Failed to delete record. %(error)s"
+#~ msgstr "Не удалось удалить запись. % (ошибка)"
+
+#~ msgid "Record was successfully deleted."
+#~ msgid_plural "%(count)s records were successfully deleted."
+#~ msgstr[0] "Record was successfully deleted."
+#~ msgstr[1] "Record was successfully deleted."
+#~ msgstr[2] "Record was successfully deleted."
+
+#~ msgid "Failed to delete records. %(error)s"
+#~ msgstr "Не удалось удалить записи. % (ошибка)"
+
+#~ msgid "At least %(num)d item is required"
+#~ msgid_plural "At least %(num)d items are required"
+#~ msgstr[0] "At least %(num)d item is required"
+#~ msgstr[1] "At least %(num)d item is required"
+#~ msgstr[2] "At least %(num)d item is required"
+
+#~ msgid "Not a valid ISO currency code (e.g. USD, EUR, CNY)."
+#~ msgstr "Не действительный код валюты ISO (например, USD, EUR, CNY)."
+
+#~ msgid "Not a valid color (e.g. \"red\", \"#f00\", \"#ff0000\")."
+#~ msgstr "Недействительный цвет (например, \"красный\", \"#f00\", \"#ff0000\")."
+
+#~ msgid "Integrity error. %(message)s"
+#~ msgstr "Ошибка целостности. % (сообщение)"
+
+#~ msgid "Invalid time format"
+#~ msgstr "Недействительный формат времени"
+
+#~ msgid "Invalid Choice: could not coerce"
+#~ msgstr "Недействительный выбор: нельзя принуждать"
+
+#~ msgid "Invalid JSON"
+#~ msgstr "Недействительный JSON"
+
+#~ msgid "Invalid file extension"
+#~ msgstr "Недействительное расширение файла"
+
+#~ msgid "This field requires at least one item."
+#~ msgstr "Это поле требует по крайней мере одного элемента."
+
+#~ msgid "There are no items in the table."
+#~ msgstr "В столе нет никаких предметов."
+
+#~ msgid "Invalid Filter Value: %(value)s"
+#~ msgstr "Недействительное значение фильтра: %(значение)"
+
+#~ msgid "Record was successfully created."
+#~ msgstr "Рекорд был успешно создан."
+
+#~ msgid "Record does not exist."
+#~ msgstr "Рекордов не существует."
+
+#~ msgid "Record was successfully saved."
+#~ msgstr "Рекорд был успешно сохранен."
+
+#~ msgid "Export type \"%(type)s\" is not supported."
+#~ msgstr "Экспорт типа \"%(типы)\" не поддерживается."
+
+#~ msgid "View Record"
+#~ msgstr "Посмотреть запись"
+
+#~ msgid "Edit Record"
+#~ msgstr "Редактировать запись"
+
+#~ msgid "Delete Record"
+#~ msgstr "Удалить запись"
+
+#~ msgid "Please select model"
+#~ msgstr "Выберите модель"
+
+#~ msgid "No"
+#~ msgstr "Нет"
+
+#~ msgid "Yes"
+#~ msgstr "Да"
+
+#~ msgid "Name"
+#~ msgstr "Имя"
+
+#~ msgid "This field is required."
+#~ msgstr "Это поле необходимо."
+
+#~ msgid "File does not have an approved extension: {extensions}"
+#~ msgstr "Файл не имеет утвержденного расширения: {расширения}"
+
+#~ msgid "File does not have an approved extension."
+#~ msgstr "Файл не имеет утвержденного расширения."
+
+#~ msgid "Content purported to be compressed with %s but failed to decompress."
+#~ msgstr ""
+#~ "Содержимое, предположительно, сжималось с %, но не декомпрессировалось."
+
+#~ msgid "Unsupported value for qop: %s."
+#~ msgstr "Неподдерживаемое значение для qop: %."
+
+#~ msgid "Unsupported value for algorithm: %s.algorithm"
+#~ msgstr "Неподдерживаемое значение для алгоритма: %s.algorithm"
+
+#~ msgid "The challenge doesn't contain a server nonce, or this one is empty."
+#~ msgstr "Задача не содержит серверного nonce, или этот пуст."
+
+#~ msgid "Unsupported value for pw-algorithm: %s.pw-algorithm"
+#~ msgstr "Неподдерживаемое значение для pw-алгоритма: %s.pw-алгоритм"
+
+#~ msgid "Redirected but the response is missing a Location: header."
+#~ msgstr "Перенаправлено, но в ответе отсутствует местоположение: заголовок."
+
+#~ msgid "Invalid field name '%s'."
+#~ msgstr "Недействительное название поля «%s»."
+
+#~ msgid "Field must be equal to %(other_name)s."
+#~ msgstr "Поле должно быть равно % (другое имя)."
+
+#~ msgid "Field must be at least %(min)d character long."
+#~ msgid_plural "Field must be at least %(min)d characters long."
+#~ msgstr[0] "Field must be at least %(min)d character long."
+#~ msgstr[1] "Field must be at least %(min)d character long."
+#~ msgstr[2] "Field must be at least %(min)d character long."
+
+#~ msgid "Field cannot be longer than %(max)d character."
+#~ msgid_plural "Field cannot be longer than %(max)d characters."
+#~ msgstr[0] "Field cannot be longer than %(max)d character."
+#~ msgstr[1] "Field cannot be longer than %(max)d character."
+#~ msgstr[2] "Field cannot be longer than %(max)d character."
+
+#~ msgid "Field must be exactly %(max)d character long."
+#~ msgid_plural "Field must be exactly %(max)d characters long."
+#~ msgstr[0] "Field must be exactly %(max)d character long."
+#~ msgstr[1] "Field must be exactly %(max)d character long."
+#~ msgstr[2] "Field must be exactly %(max)d character long."
+
+#~ msgid "Field must be between %(min)d and %(max)d characters long."
+#~ msgstr "Поле должно быть между символами %(min)d и %(max)d."
+
+#~ msgid "Number must be at least %(min)s."
+#~ msgstr "Число должно быть не менее % (мин)."
+
+#~ msgid "Number must be at most %(max)s."
+#~ msgstr "Количество должно быть не более %(max)s."
+
+#~ msgid "Number must be between %(min)s and %(max)s."
+#~ msgstr "Число должно быть между %(min)s и %(max)s."
+
+#~ msgid "Invalid input."
+#~ msgstr "Недействительный вход."
+
+#~ msgid "Invalid email address."
+#~ msgstr "Недействительный адрес электронной почты."
+
+#~ msgid "Invalid IP address."
+#~ msgstr "Недействительный IP адрес."
+
+#~ msgid "Invalid Mac address."
+#~ msgstr "Недействительный адрес Mac."
+
+#~ msgid "Invalid URL."
+#~ msgstr "Недействительный URL."
+
+#~ msgid "Invalid UUID."
+#~ msgstr "Недействительный UUID."
+
+#~ msgid "Invalid value, must be one of: %(values)s."
+#~ msgstr "Недействительное значение должно быть одним из: % (значения)."
+
+#~ msgid "Invalid value, can't be any of: %(values)s."
+#~ msgstr "Недействительное значение не может быть любым из: % (значения)."
+
+#~ msgid "This field cannot be edited."
+#~ msgstr "Это поле нельзя редактировать."
+
+#~ msgid "This field is disabled and cannot have a value."
+#~ msgstr "Это поле отключено и не может иметь значения."
+
+#~ msgid "Invalid CSRF Token."
+#~ msgstr "Недействительный CSRF Токен."
+
+#~ msgid "CSRF token missing."
+#~ msgstr "Токен CSRF отсутствует."
+
+#~ msgid "CSRF failed."
+#~ msgstr "CSRF провалилась."
+
+#~ msgid "CSRF token expired."
+#~ msgstr "Срок действия токена CSRF истек."
+
+#~ msgid "Invalid Choice: could not coerce."
+#~ msgstr "Недействительный выбор: нельзя принуждать."
+
+#~ msgid "Choices cannot be None."
+#~ msgstr "Выбор не может быть ничьим."
+
+#~ msgid "Not a valid choice."
+#~ msgstr "Неправильный выбор."
+
+#~ msgid "Invalid choice(s): one or more data inputs could not be coerced."
+#~ msgstr ""
+#~ "Недействительный выбор: один или несколько входов данных не могут быть "
+#~ "принуждены."
+
+#~ msgid "'%(value)s' is not a valid choice for this field."
+#~ msgid_plural "'%(value)s' are not valid choices for this field."
+#~ msgstr[0] "'%(value)s' is not a valid choice for this field."
+#~ msgstr[1] "'%(value)s' is not a valid choice for this field."
+#~ msgstr[2] "'%(value)s' is not a valid choice for this field."
+
+#~ msgid "Not a valid datetime value."
+#~ msgstr "Не действительная дата."
+
+#~ msgid "Not a valid date value."
+#~ msgstr "Не действительная дата."
+
+#~ msgid "Not a valid time value."
+#~ msgstr "Не действительная временная стоимость."
+
+#~ msgid "Not a valid week value."
+#~ msgstr "Не действительная недельная стоимость."
+
+#~ msgid "Not a valid integer value."
+#~ msgstr "Не является действительным целым числом."
+
+#~ msgid "Not a valid decimal value."
+#~ msgstr "Не является действительным десятичным значением."
+
+#~ msgid "Not a valid float value."
+#~ msgstr "Не действительная стоимость."

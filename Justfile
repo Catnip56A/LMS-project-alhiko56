@@ -11,15 +11,23 @@ db-tunnel-staging:
 
 # Pull DB from staging live (streams directly, no temp file)
 db-pull-staging:
+    #!/usr/bin/env bash
+    app_running=$(docker compose --profile dev ps -q app-dev 2>/dev/null)
+    [ -n "$app_running" ] && docker compose --profile dev stop app-dev
     ssh {{_ssh_host}} "docker compose --profile prod -f ~/deploy/staging/yonca/docker-compose.yml exec -T db pg_dump -U ${POSTGRES_USER} -Fc ${POSTGRES_DB}" \
       | docker compose exec -T db pg_restore -U ${POSTGRES_USER} -d ${POSTGRES_DB} --clean --if-exists --no-owner --no-acl
     just db-stamp
+    [ -n "$app_running" ] && docker compose --profile dev start app-dev
 
 # Pull latest backup from server
 db-pull-backup:
+    #!/usr/bin/env bash
+    app_running=$(docker compose --profile dev ps -q app-dev 2>/dev/null)
+    [ -n "$app_running" ] && docker compose --profile dev stop app-dev
     ssh {{_ssh_host}} "cat \$(ls -t ~/backup/yonca/staging/*.dump | head -1)" \
       | docker compose exec -T db pg_restore -U ${POSTGRES_USER} -d ${POSTGRES_DB} --clean --if-exists --no-owner --no-acl
     just db-stamp
+    [ -n "$app_running" ] && docker compose --profile dev start app-dev
 
 # Derived vars for local (non-Docker) execution — mirrors docker-compose behaviour
 _db_url  := "postgresql://" + env('POSTGRES_USER', 'yonca_user') + ":" + env('POSTGRES_PASSWORD', 'changeme') + "@localhost:5432/" + env('POSTGRES_DB', 'yonca_db')
@@ -28,6 +36,10 @@ _redir   := "http://localhost:5000/auth/google/callback"
 # Install dependencies
 install:
     uv sync
+
+ensure-dirs:
+    mkdir -p ./data/libretranslate ./data/caddy-local ./data/logs ./data/flask_session
+    chmod a+rwx ./data/libretranslate ./data/caddy-local ./data/logs ./data/flask_session
 
 db:
     docker compose --profile dev up db migrate -d
@@ -58,15 +70,42 @@ makemigrations message="auto":
 db-stamp:
     docker compose --profile dev run --rm migrate flask db stamp head
 
+# Run LibreTranslate locally for dev-time translation (PO files, testing)
+# Binds to localhost:5050. Stop with: docker stop yonca-libretranslate
+libre:
+    #!/usr/bin/env bash
+    mkdir -p ./data/libretranslate
+    chmod a+rwx ./data/libretranslate
+    if docker inspect yonca-libretranslate > /dev/null 2>&1; then
+      echo "LibreTranslate already running."
+    else
+      docker run -d --rm \
+        --name yonca-libretranslate \
+        -p 127.0.0.1:5050:5000 \
+        -v "$(pwd)/data/libretranslate:/home/libretranslate/.local/share" \
+        libretranslate/libretranslate \
+        --load-only en,az,ru
+      echo "LibreTranslate starting at http://localhost:5050 (may take a minute to load models)"
+      echo "Stop with: docker stop yonca-libretranslate"
+    fi
+
 # Compile translations
 translate:
-    pybabel compile -d yonca/translations
+    uv run pybabel compile -d yonca/translations
 
 extract-messages:
-    pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot .
+    uv run pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot yonca
+
+translate-all: libre
+    uv run python scripts/translations/clear_all_po_translations.py
+    uv run pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot yonca
+    uv run pybabel update -i yonca/translations/messages.pot -d yonca/translations
+    uv run pybabel compile -f -d yonca/translations
+    uv run python scripts/translations/auto_translate_po.py
+    docker stop yonca-libretranslate
 
 # Docker — dev
-up: certs
+up: ensure-dirs certs
     docker compose --profile dev up -d
 
 down:

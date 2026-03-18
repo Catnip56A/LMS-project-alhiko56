@@ -97,7 +97,7 @@ def find_po_files(base_path):
 def main():
     """Main function to clear all translations from .po files"""
     # Get the base path (project root)
-    base_path = Path(__file__).parent
+    base_path = Path(__file__).parent.parent.parent
     
     print("=" * 60)
     print("Clearing all translations from .po files")
@@ -113,12 +113,6 @@ def main():
     print(f"\nFound {len(po_files)} .po file(s):")
     for po_file in po_files:
         print(f"  - {po_file.relative_to(base_path)}")
-    
-    # Ask for confirmation
-    response = input("\nAre you sure you want to clear all translations? (yes/no): ")
-    if response.lower() not in ['yes', 'y']:
-        print("Operation cancelled.")
-        return
     
     print("\nClearing translations...")
     # Process each .po file

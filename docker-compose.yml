@@ -19,6 +19,19 @@ services:
       timeout: 5s
       retries: 5
 
+  libretranslate:
+    image: libretranslate/libretranslate
+    restart: unless-stopped
+    command: ["--load-only", "en,az,ru"]
+    volumes:
+      - ./data/libretranslate:/home/libretranslate/.local/share
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/languages')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
   # ── Development ───────────────────────────────────────────────────────────────
 
   migrate:
@@ -35,28 +48,6 @@ services:
       - ./migrations:/app/migrations   # exposes generated files to host
     command: flask db upgrade
 
-#  app-dev:
-#    profiles: [dev]
-#    build: .
-#    restart: unless-stopped
-#    env_file: .env
-#    environment:
-#      FLASK_ENV: development
-#      FLASK_DEBUG: "1"
-#      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-#      GOOGLE_REDIRECT_URI: http://localhost:5000/auth/google/callback
-#    ports:
-#      - "5000:5000"
-#    depends_on:
-#      migrate:
-#        condition: service_completed_successfully
-#    volumes:
-#      - .:/app                              # live reload — mount entire source
-#      - /app/.venv                          # preserve venv from image
-#      - ./flask_session:/app/flask_session
-#      - ./logs:/app/logs
-#    command: flask run --host=0.0.0.0 --port=5000 --debug
-
   app-dev:
     profiles: [dev]
     build: .
@@ -66,14 +57,17 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       GOOGLE_REDIRECT_URI: https://${LOCAL_DOMAIN:-local.yonca-sdc.com}/auth/google/callback
+      LIBRETRANSLATE_URL: http://libretranslate:5000
     ports:
       - "8000:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
+      libretranslate:
+        condition: service_healthy
     volumes:
-      - ./flask_session:/app/flask_session
-      - ./logs:/app/logs
+      - ./data/flask_session:/app/flask_session
+      - ./data/logs:/app/logs
 
   caddy-dev:
     profiles: [dev]
@@ -115,17 +109,20 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
+      LIBRETRANSLATE_URL: http://libretranslate:5000
     ports:
       - "127.0.0.1:${APP_PORT}:8000"
     depends_on:
       migrate-prod:
         condition: service_completed_successfully
+      libretranslate:
+        condition: service_healthy
     networks:
       - default
       - yonca-proxy
     volumes:
-      - ./flask_session:/app/flask_session
-      - ./logs:/app/logs
+      - ./data/flask_session:/app/flask_session
+      - ./data/logs:/app/logs
 
 networks:
   yonca-proxy:

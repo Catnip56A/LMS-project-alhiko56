@@ -36,7 +36,7 @@ echo "  Done — reconnect for group membership to take effect."
 # ── 2. Create directory structure ────────────────────────────────────────────
 echo "▶ Creating directory structure..."
 for ENV in "${ENVS[@]}"; do
-  $SSH "mkdir -p \$HOME/deploy/${ENV}/yonca/{deploy,data/postgres,flask_session,logs}"
+  $SSH "mkdir -p \$HOME/deploy/${ENV}/yonca/{deploy,data/postgres,data/libretranslate,data/flask_session,data/logs} && chmod a+w \$HOME/deploy/${ENV}/yonca/{deploy,data/postgres,data/libretranslate,data/flask_session,data/logs}"
 done
 $SSH "mkdir -p \$HOME/deploy/caddy/data"
 
