@@ -15,22 +15,58 @@ db-tunnel-staging:
 # Pull DB from staging live (streams directly, no temp file)
 db-pull-staging:
     #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'echo "Error on line $LINENO"' ERR
+    
     app_running=$(docker compose --profile dev ps -q app-dev 2>/dev/null)
-    [ -n "$app_running" ] && docker compose --profile dev stop app-dev
-    ssh {{_ssh_host}} "docker compose --profile prod -f ~/deploy/staging/yonca/docker-compose.yml exec -T db pg_dump -U ${POSTGRES_USER} -Fc ${POSTGRES_DB}" \
-      | docker compose exec -T db pg_restore -U ${POSTGRES_USER} -d ${POSTGRES_DB} --clean --if-exists --no-owner --no-acl
-    just db-stamp
-    [ -n "$app_running" ] && docker compose --profile dev start app-dev
+    if [ -n "$app_running" ]; then
+        echo "Stopping app-dev..."
+        docker compose --profile dev stop app-dev
+    fi
+    
+    echo "Restoring database from staging..."
+    ssh {{_ssh_host}} "docker compose --profile prod -f ~/deploy/staging/yonca/docker-compose.yml exec -T db pg_dump -U yonca_user -Fc yonca_db" \
+      | docker compose exec -T db pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
+    echo "Database restored successfully"
+    
+    echo "Stamping database version..."
+    docker compose --profile dev run --rm migrate flask db stamp head || { echo "Stamp failed with $?"; exit 1; }
+    echo "Database stamped successfully"
+    
+    if [ -n "$app_running" ]; then
+        echo "Restarting app-dev..."
+        docker compose --profile dev start app-dev
+    fi
+    
+    echo "Done!"
 
 # Pull latest backup from server
 db-pull-backup:
     #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'echo "Error on line $LINENO"' ERR
+    
     app_running=$(docker compose --profile dev ps -q app-dev 2>/dev/null)
-    [ -n "$app_running" ] && docker compose --profile dev stop app-dev
-    ssh {{_ssh_host}} "cat \$(ls -t ~/backup/yonca/staging/*.dump | head -1)" \
-      | docker compose exec -T db pg_restore -U ${POSTGRES_USER} -d ${POSTGRES_DB} --clean --if-exists --no-owner --no-acl
-    just db-stamp
-    [ -n "$app_running" ] && docker compose --profile dev start app-dev
+    if [ -n "$app_running" ]; then
+        echo "Stopping app-dev..."
+        docker compose --profile dev stop app-dev
+    fi
+    
+    echo "Restoring database from latest backup..."
+    ssh {{_ssh_host}} "cat $(ls -t ~/backup/yonca/staging/*.dump | head -1)" \
+      | docker compose exec -T db pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
+    echo "Database restored successfully"
+    
+    echo "Stamping database version..."
+    docker compose --profile dev run --rm migrate flask db stamp head || { echo "Stamp failed with $?"; exit 1; }
+    echo "Database stamped successfully"
+    
+    if [ -n "$app_running" ]; then
+        echo "Restarting app-dev..."
+        docker compose --profile dev start app-dev
+    fi
+    
+    echo "Done!"
 
 # Derived vars for local (non-Docker) execution — mirrors docker-compose behaviour
 _db_url  := "postgresql://" + env('POSTGRES_USER', 'yonca_user') + ":" + env('POSTGRES_PASSWORD', 'changeme') + "@localhost:5432/" + env('POSTGRES_DB', 'yonca_db')
@@ -53,6 +89,14 @@ dev: db
 # Run with gunicorn (local, no Docker)
 serve:
     DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run gunicorn --config deploy/gunicorn_config.py app:app
+
+# Run app.py directly (local, no Docker)
+app: db
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run python app.py
+
+# Run wsgi.py with gunicorn (local, no Docker)
+wsgi: db
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run gunicorn --config deploy/gunicorn_config.py wsgi:app
 
 # Flask shell (local)
 shell:
@@ -93,7 +137,7 @@ libre:
     fi
 
 # Compile translations
-translate:
+translate-compile:
     uv run pybabel compile -d yonca/translations
 
 extract-messages:
@@ -106,6 +150,10 @@ translate-all: libre
     uv run pybabel compile -f -d yonca/translations
     uv run python scripts/translations/auto_translate_po.py
     docker stop yonca-libretranslate
+
+translate-fix-placeholders: libre
+    uv run python scripts/translations/fix_placeholders_v2.py
+    
 
 # Docker — dev
 up: ensure-dirs certs

@@ -16,37 +16,42 @@ def fix_po_content(content):
     while i < len(lines):
         line = lines[i]
         
-        # Match msgid_plural or msgid
-        msgid_match = re.match(r'(msgid_plural|msgid)\s+"(.+)"', line)
+        # Match msgid_plural or msgid (including commented lines with #~)
+        msgid_match = re.match(r'(#~\s+)?(msgid_plural|msgid)\s+"(.+)"', line)
         if msgid_match:
-            is_plural = msgid_match.group(1) == 'msgid_plural'
-            msgid_base = msgid_match.group(1)
-            msgid_content = msgid_match.group(2)
+            comment_prefix = msgid_match.group(1)  # captures '#~ ' if present
+            is_plural = msgid_match.group(2) == 'msgid_plural'
+            msgid_base = msgid_match.group(2)
+            msgid_content = msgid_match.group(3)
             
             # Append the msgid line
             result.append(line)
             i += 1
             
             # Handle multiline msgid
-            while i < len(lines) and lines[i].startswith('"') and not lines[i].startswith('msgstr'):
+            while i < len(lines) and lines[i].startswith('"') and not re.match(r'#*~?\s*msgstr', lines[i]):
                 msgid_content += lines[i]
                 result.append(lines[i])
                 i += 1
             
-            # Extract placeholders from msgid
-            placeholder_pattern = r'%\(([a-zA-Z_][a-zA-Z0-9_]*)\)s'
-            orig_placeholders = re.findall(placeholder_pattern, msgid_content)
+            # Extract placeholders from msgid (both %(name)s and {name} styles)
+            py_placeholder_pattern = r'%\(([a-zA-Z_][a-zA-Z0-9_]*)\)s'
+            jinja_placeholder_pattern = r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}'
+            
+            py_placeholders = re.findall(py_placeholder_pattern, msgid_content)
+            jinja_placeholders = re.findall(jinja_placeholder_pattern, msgid_content)
             
             # Process corresponding msgstr
-            if i < len(lines) and re.match(r'msgstr(\[\d+\])?\s+"', lines[i]):
+            if i < len(lines) and re.match(r'#*~?\s*msgstr(\[\d+\])?\s+"', lines[i]):
                 # Handle potentially multiple msgstr (for plurals)
-                while i < len(lines) and re.match(r'msgstr', lines[i]):
+                while i < len(lines) and re.match(r'#*~?\s*msgstr', lines[i]):
                     msgstr_line = lines[i]
-                    msgstr_match = re.match(r'(msgstr(?:\[\d+\])?)\s+"(.+)"', msgstr_line)
+                    msgstr_match = re.match(r'(#~\s+)?(msgstr(?:\[\d+\])?)\s+"(.+)"', msgstr_line)
                     
                     if msgstr_match:
-                        msgstr_base = msgstr_match.group(1)
-                        msgstr_content = msgstr_match.group(2)
+                        msgstr_prefix = msgstr_match.group(1)  # captures '#~ ' if present
+                        msgstr_base = msgstr_match.group(2)
+                        msgstr_content = msgstr_match.group(3)
                         
                         # Collect multiline msgstr
                         i += 1
@@ -54,14 +59,21 @@ def fix_po_content(content):
                             msgstr_content += lines[i]
                             i += 1
                         
-                        # Find mismatched placeholders in msgstr
-                        msgstr_placeholders = re.findall(placeholder_pattern, msgstr_content)
-                        
-                        # Fix each mismatch
-                        for idx, msgstr_ph in enumerate(msgstr_placeholders):
-                            if idx < len(orig_placeholders) and msgstr_ph != orig_placeholders[idx]:
+                        # Fix Python-style placeholders
+                        msgstr_py_placeholders = re.findall(py_placeholder_pattern, msgstr_content)
+                        for idx, msgstr_ph in enumerate(msgstr_py_placeholders):
+                            if idx < len(py_placeholders) and msgstr_ph != py_placeholders[idx]:
                                 old_ph = f'%({msgstr_ph})s'
-                                new_ph = f'%({orig_placeholders[idx]})s'
+                                new_ph = f'%({py_placeholders[idx]})s'
+                                msgstr_content = msgstr_content.replace(old_ph, new_ph, 1)
+                                fixes_made += 1
+                        
+                        # Fix Jinja2-style placeholders
+                        msgstr_jinja_placeholders = re.findall(jinja_placeholder_pattern, msgstr_content)
+                        for idx, msgstr_ph in enumerate(msgstr_jinja_placeholders):
+                            if idx < len(jinja_placeholders) and msgstr_ph != jinja_placeholders[idx]:
+                                old_ph = f'{{{msgstr_ph}}}'
+                                new_ph = f'{{{jinja_placeholders[idx]}}}'
                                 msgstr_content = msgstr_content.replace(old_ph, new_ph, 1)
                                 fixes_made += 1
                         
@@ -70,11 +82,11 @@ def fix_po_content(content):
                         if len(msgstr_content) > 100:
                             # Wrap long lines
                             parts = [msgstr_content[i:i+80] for i in range(0, len(msgstr_content), 80)]
-                            result.append(f'{msgstr_base} "{parts[0]}"')
+                            result.append(f'{msgstr_prefix or ""}{msgstr_base} "{parts[0]}"')
                             for part in parts[1:]:
                                 result.append(f'"{part}"')
                         else:
-                            result.append(f'{msgstr_base} "{msgstr_content}"')
+                            result.append(f'{msgstr_prefix or ""}{msgstr_base} "{msgstr_content}"')
                     else:
                         result.append(msgstr_line)
                         i += 1
