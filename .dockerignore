@@ -4,11 +4,6 @@ __pycache__/
 *.so
 .venv/
 venv/
-*.pyc
-.git
-.gitignore
-.env
-data/
 
 # uv
 .uv/
