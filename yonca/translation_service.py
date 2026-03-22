@@ -90,23 +90,53 @@ class TranslationService:
                 current_app.logger.error(f"Failed to cache translation: {exc}")
 
     def translate_html(self, html_content: str, target_language: str, source_language: str = 'auto') -> str:
-        """Translate HTML content while preserving tag structure."""
+        """Translate HTML content while preserving tag structure.
+        
+        Extracts text content only, translates it, and reconstructs HTML with translated text.
+        This ensures the final stored translation contains proper HTML tags, not placeholders.
+        """
         if not html_content or not html_content.strip():
             return html_content
 
-        tags: list[str] = []
+        # Extract all tags and store them with their positions
+        tags: dict[str, str] = {}
+        tag_counter = [0]
+        
+        def replace_tag(match):
+            placeholder = f"{{TAG_{tag_counter[0]}}}"
+            tags[placeholder] = match.group(0)
+            tag_counter[0] += 1
+            return placeholder
 
-        def protect_tag(match):
-            tags.append(match.group(0))
-            return f"{{TAG_{len(tags) - 1}}}"
+        # Replace all tags with unique placeholders
+        protected = re.sub(r'<[^>]+>', replace_tag, html_content)
+        
+        # Translate the protected content (text + placeholders)
+        if protected.strip():
+            from yonca import core_translator
+            import os
+            
+            # Use core_translator directly to avoid caching the placeholder version
+            libre_url = os.environ.get('LIBRETRANSLATE_URL')
+            detected_source = core_translator.detect_language(protected)
+            
+            if detected_source == target_language:
+                translated_protected = protected
+            else:
+                translated_protected = core_translator.translate_text(
+                    protected, 
+                    target_language,
+                    libretranslate_url=libre_url
+                )
+        else:
+            translated_protected = protected
 
-        protected = re.sub(r'<[^>]+>', protect_tag, html_content)
-        translated = self.get_translation(protected, target_language, source_language) if protected.strip() else protected
+        # Restore tags in the translated content
+        result = translated_protected
+        for placeholder, tag in tags.items():
+            result = result.replace(placeholder, tag)
 
-        for i, tag in enumerate(tags):
-            translated = translated.replace(f"{{TAG_{i}}}", tag)
-
-        return translated
+        return result
 
     def get_supported_languages(self) -> dict:
         return {'en': 'English', 'ru': 'Russian', 'az': 'Azerbaijani'}
