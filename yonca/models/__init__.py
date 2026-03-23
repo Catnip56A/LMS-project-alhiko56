@@ -91,6 +91,8 @@ class Course(db.Model):
     page_gallery_images = db.Column(db.JSON, default=[])
     page_show_navigation = db.Column(db.Boolean, default=True)
     page_show_footer = db.Column(db.Boolean, default=True)
+    page_show_title = db.Column(db.Boolean, default=True)  # Show/hide course name and subtitle
+    page_show_description = db.Column(db.Boolean, default=True)  # Show/hide description/page content
     
     # Tags for course filtering
     tags = db.Column(db.JSON, default=[])

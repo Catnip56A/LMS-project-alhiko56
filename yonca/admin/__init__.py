@@ -690,6 +690,8 @@ class CourseView(SecureModelView):
             course.page_description = request.form.get('page_description', '')
             course.page_show_navigation = 'page_show_navigation' in request.form
             course.page_show_footer = 'page_show_footer' in request.form
+            course.page_show_title = 'page_show_title' in request.form
+            course.page_show_description = 'page_show_description' in request.form
             
             # Course tab labels
             course.tab_content_label = request.form.get('tab_content_label', 'Content')
@@ -748,6 +750,8 @@ class CourseView(SecureModelView):
             'page_description': get_translated_content('course', course.id, 'page_description', course.page_description or '', 'en') or course.page_description,
             'page_show_navigation': course.page_show_navigation,
             'page_show_footer': course.page_show_footer,
+            'page_show_title': course.page_show_title,
+            'page_show_description': course.page_show_description,
             'page_features': course.page_features,
             'dropdown_menu': course.dropdown_menu
         }
@@ -778,7 +782,9 @@ class CourseView(SecureModelView):
                 page_subtitle=request.form.get('page_subtitle', ''),
                 page_description=request.form.get('page_description', ''),
                 page_show_navigation='page_show_navigation' in request.form,
-                page_show_footer='page_show_footer' in request.form
+                page_show_footer='page_show_footer' in request.form,
+                page_show_title='page_show_title' in request.form,
+                page_show_description='page_show_description' in request.form
             )
 
             # Handle course page features

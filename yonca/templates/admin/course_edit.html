@@ -171,6 +171,21 @@
         <button type="button" class="add-menu-item-btn" onclick="addFeature()">+ Add Feature</button>
 
         <div class="form-group" style="margin-top: 20px;">
+            <h4 style="margin-bottom: 15px;">Page Visibility Settings</h4>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="page_show_title" name="page_show_title"
+                       {% if course is none or course.page_show_title %}checked{% endif %}>
+                <label class="form-check-label" for="page_show_title">
+                    Show course name and subtitle on course page
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="page_show_description" name="page_show_description"
+                       {% if course is none or course.page_show_description %}checked{% endif %}>
+                <label class="form-check-label" for="page_show_description">
+                    Show course description on course page
+                </label>
+            </div>
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="page_show_navigation" name="page_show_navigation"
                        {% if course and course.page_show_navigation %}checked{% endif %}>
