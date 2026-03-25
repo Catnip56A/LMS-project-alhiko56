@@ -466,8 +466,9 @@ function renderBlockSettings(block) {
         case 'plain-text':
             html += `
                 <div class="input-group-vertical">
-                    <label>Text Content</label>
-                    <textarea onchange="updateBlock('${block.id}', 'text', this.value)" rows="4">${block.settings.text}</textarea>
+                    <label>Text Content (supports HTML)</label>
+                    <textarea onchange="updateBlock('${block.id}', 'text', this.value)" rows="4" placeholder="e.g., &lt;p&gt;Hello &lt;b&gt;World&lt;/b&gt;&lt;/p&gt;">${block.settings.text}</textarea>
+                    <small style="color: #666;">You can use HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;p&gt;, &lt;h2&gt;, &lt;span&gt;, or style attributes</small>
                 </div>
                 <div class="input-group-vertical">
                     <label>Font Size (px)</label>
@@ -516,8 +517,9 @@ function renderBlockSettings(block) {
         case 'hero':
             html += `
                 <div class="input-group-vertical">
-                    <label>Title</label>
-                    <input type="text" value="${block.settings.title}" onchange="updateBlock('${block.id}', 'title', this.value)">
+                    <label>Title (supports HTML)</label>
+                    <textarea onchange="updateBlock('${block.id}', 'title', this.value)" rows="3" placeholder="e.g., &lt;h1&gt;My Title&lt;/h1&gt; or plain text">${block.settings.title || ''}</textarea>
+                    <small style="color: #666;">You can use HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;h1&gt;, or style attributes</small>
                 </div>
                 <div class="input-group-vertical">
                     <label>Title Font Size (px)</label>
@@ -532,8 +534,9 @@ function renderBlockSettings(block) {
                     </select>
                 </div>
                 <div class="input-group-vertical">
-                    <label>Subtitle</label>
-                    <input type="text" value="${block.settings.subtitle}" onchange="updateBlock('${block.id}', 'subtitle', this.value)">
+                    <label>Subtitle (supports HTML)</label>
+                    <textarea onchange="updateBlock('${block.id}', 'subtitle', this.value)" rows="3" placeholder="e.g., &lt;p&gt;My subtitle&lt;/p&gt; or plain text">${block.settings.subtitle || ''}</textarea>
+                    <small style="color: #666;">You can use HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;p&gt;, or style attributes</small>
                 </div>
                 <div class="input-group-vertical">
                     <label>Subtitle Font Size (px)</label>
@@ -558,8 +561,9 @@ function renderBlockSettings(block) {
         case 'text-image':
             html += `
                 <div class="input-group-vertical">
-                    <label>Text Content</label>
-                    <textarea onchange="updateBlock('${block.id}', 'text', this.value)" rows="3">${block.settings.text}</textarea>
+                    <label>Text Content (supports HTML)</label>
+                    <textarea onchange="updateBlock('${block.id}', 'text', this.value)" rows="3" placeholder="e.g., &lt;p&gt;Hello &lt;b&gt;World&lt;/b&gt;&lt;/p&gt;">${block.settings.text}</textarea>
+                    <small style="color: #666;">You can use HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;p&gt;, &lt;h2&gt;, &lt;span&gt;, or style attributes</small>
                 </div>
                 <div class="input-group-vertical">
                     <label>Image URL</label>
@@ -642,8 +646,8 @@ function renderBlockSettings(block) {
                         <div style="background: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
                             <p style="margin: 0 0 5px 0; font-size: 12px; color: #666; font-weight: bold;">Item ${idx + 1}</p>
                             <input type="text" placeholder="Image URL" value="${item.image || ''}" onchange="updateCarouselItem('${block.id}', ${idx}, 'image', this.value)" style="width: 100%; margin-bottom: 5px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
-                            <input type="text" placeholder="Title" value="${item.title || ''}" onchange="updateCarouselItem('${block.id}', ${idx}, 'title', this.value)" style="width: 100%; margin-bottom: 5px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
-                            <textarea placeholder="Description" onchange="updateCarouselItem('${block.id}', ${idx}, 'description', this.value)" style="width: 100%; height: 60px; margin-bottom: 5px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">${item.description || ''}</textarea>
+                            <textarea placeholder="Title (supports HTML)" onchange="updateCarouselItem('${block.id}', ${idx}, 'title', this.value)" style="width: 100%; height: 40px; margin-bottom: 5px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">${item.title || ''}</textarea>
+                            <textarea placeholder="Description (supports HTML)" onchange="updateCarouselItem('${block.id}', ${idx}, 'description', this.value)" style="width: 100%; height: 60px; margin-bottom: 5px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">${item.description || ''}</textarea>
                             <button type="button" class="btn btn-sm" onclick="deleteCarouselItem('${block.id}', ${idx})" style="background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer;">Remove</button>
                         </div>
                     `).join('')}
