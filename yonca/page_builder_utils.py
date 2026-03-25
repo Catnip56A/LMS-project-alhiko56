@@ -319,12 +319,12 @@ def render_page_builder_blocks(blocks):
             hero_min_height = "min-height: 300px;" if background_image_url else ""
             
             html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; {background_style} color: white; border-radius: 12px; {hero_min_height}">
-                <div style="{inner_style}; display: flex; align-items: center; gap: 40px; flex-wrap: wrap; justify-content: center; width: 100%;">
+                <div style="{inner_style}; display: flex; align-items: center; gap: 40px; flex-wrap: wrap; justify-content: center; width: 100%; flex-direction: column;">
                     <div style="flex: 1; min-width: 0; flex-basis: auto; width: 100%;">
                         <h1 style="font-size: {title_font_size}px; font-weight: {title_weight}; margin: 0 0 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">{title}</h1>
                         <p style="font-size: {subtitle_font_size}px; margin: 0; opacity: 0.95; color: {subtitle_color};">{subtitle}</p>
                     </div>
-                    {f'<div style="flex: 1; min-width: 0; flex-basis: auto; display: flex; justify-content: center;">{image_html}</div>' if image_html else ''}
+                    {f'<div style="flex: 1; min-width: 0; flex-basis: auto; display: flex; justify-content: center; width: 100%;">{image_html}</div>' if image_html else ''}
                 </div>
             </div></div></div>'''
             html_parts.append(html)
