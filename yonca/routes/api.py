@@ -3,8 +3,10 @@ API routes for courses, forum, and resources
 """
 import os
 import time
+import re
+import requests
 from werkzeug.utils import secure_filename
-from flask import Blueprint, request, jsonify, current_app, redirect, url_for
+from flask import Blueprint, request, jsonify, current_app, redirect, url_for, Response
 from flask_login import current_user, login_required
 from flask_babel import _
 from yonca.models import Course, ForumMessage, ForumChannel, Resource, PDFDocument, Translation, db
@@ -28,6 +30,84 @@ def is_image_file(filename):
 
 # Set custom unauthorized handler for API blueprint
 api_bp.unauthorized = api_unauthorized
+
+@api_bp.route('/proxy-image/<file_id>')
+def proxy_image(file_id):
+    """
+    Proxy Google Drive images to bypass CORB (Cross-Origin Read Blocking).
+    
+    Tries multiple endpoints:
+    1. Drive thumbnail API (public, fast)
+    2. Export as image endpoint
+    
+    Args:
+        file_id: Google Drive file ID
+    
+    Returns:
+        The image with proper content-type headers
+    """
+    # Validate file_id format to prevent injection attacks
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', file_id):
+        current_app.logger.warning(f"Invalid file ID format: {file_id}")
+        return jsonify({'error': 'Invalid file ID format'}), 400
+    
+    try:
+        current_app.logger.info(f"Proxying image request for file_id: {file_id}")
+        
+        # Browser-like headers
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Referer': 'https://drive.google.com/',
+            'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'
+        }
+        
+        # Try multiple Google Drive image endpoints in order of preference
+        urls_to_try = [
+            # 1. Thumbnail API (public, no auth needed)
+            f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000",
+            # 2. Export with preview=true parameter
+            f"https://drive.google.com/uc?export=view&id={file_id}",
+            # 3. Open endpoint
+            f"https://drive.google.com/open?id={file_id}",
+        ]
+        
+        response = None
+        for url in urls_to_try:
+            try:
+                current_app.logger.info(f"Trying URL: {url}")
+                resp = requests.get(url, timeout=15, allow_redirects=True, headers=headers, stream=False)
+                
+                if resp.status_code == 200 and resp.headers.get('Content-Type', '').startswith('image'):
+                    response = resp
+                    current_app.logger.info(f"Success with {url}: {resp.headers.get('Content-Type')}")
+                    break
+                else:
+                    current_app.logger.warning(f"Failed {url}: status={resp.status_code}, content-type={resp.headers.get('Content-Type')}")
+            except Exception as e:
+                current_app.logger.warning(f"Error trying {url}: {str(e)}")
+                continue
+        
+        if not response:
+            current_app.logger.error(f"All endpoints failed for file {file_id}")
+            return jsonify({'error': 'File not found or not publicly shared'}), 404
+        
+        # Return the image with proper headers
+        return Response(
+            response.content,
+            mimetype=response.headers.get('Content-Type', 'image/jpeg'),
+            headers={
+                'Cache-Control': 'public, max-age=31536000',
+                'Content-Type': response.headers.get('Content-Type', 'image/jpeg')
+            }
+        )
+    except requests.exceptions.Timeout:
+        current_app.logger.error(f"Timeout fetching image {file_id}")
+        return jsonify({'error': 'Request timeout'}), 504
+    except Exception as e:
+        current_app.logger.error(f"Error proxying image {file_id}: {type(e).__name__}: {str(e)}")
+        import traceback
+        current_app.logger.error(traceback.format_exc())
+        return jsonify({'error': 'Failed to fetch image'}), 500
 
 @api_bp.route('/courses')
 def get_courses():
