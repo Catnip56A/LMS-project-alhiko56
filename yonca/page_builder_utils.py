@@ -154,6 +154,12 @@ def render_page_builder_blocks(blocks):
         padding = settings.get('padding', '20')
         width = settings.get('width', '100')
         
+        # Convert padding to int for calculations
+        try:
+            padding = int(padding)
+        except (TypeError, ValueError):
+            padding = 20
+        
         # Get scale setting
         scale = settings.get('scale', '100')
         
@@ -258,7 +264,7 @@ def render_page_builder_blocks(blocks):
             text = preserve_html_tags(settings.get('text', ''))
             font_size = settings.get('fontSize', '16')
             font_size_mobile = settings.get('fontSizeMobile', font_size)  # Mobile variant
-            padding_mobile = settings.get('paddingMobile', padding)
+            padding_mobile = settings.get('paddingMobile', max(15, padding // 2))  # Reduce padding on mobile
             width_mobile = settings.get('widthMobile', width)
             weight = settings.get('weight', 'normal')
             text_align = settings.get('textAlign', 'left')
@@ -289,7 +295,7 @@ def render_page_builder_blocks(blocks):
             subtitle_font_size = settings.get('subtitleFontSize', '24')
             subtitle_font_size_mobile = settings.get('subtitleFontSizeMobile', subtitle_font_size)  # Mobile variant
             subtitle_color = settings.get('subtitleColor', '#ffffff')
-            padding_mobile = settings.get('paddingMobile', padding)
+            padding_mobile = settings.get('paddingMobile', max(15, padding // 2))  # Reduce padding on mobile
             width_mobile = settings.get('widthMobile', width)
             
             # Collect mobile CSS for this block
@@ -313,12 +319,12 @@ def render_page_builder_blocks(blocks):
             hero_min_height = "min-height: 300px;" if background_image_url else ""
             
             html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; {background_style} color: white; border-radius: 12px; {hero_min_height}">
-                <div style="{inner_style}; display: flex; align-items: center; gap: 40px; flex-wrap: wrap; justify-content: center;">
-                    <div style="flex: 1; min-width: 250px;">
+                <div style="{inner_style}; display: flex; align-items: center; gap: 40px; flex-wrap: wrap; justify-content: center; width: 100%;">
+                    <div style="flex: 1; min-width: 0; flex-basis: auto;">
                         <h1 style="font-size: {title_font_size}px; font-weight: {title_weight}; margin: 0 0 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">{title}</h1>
                         <p style="font-size: {subtitle_font_size}px; margin: 0; opacity: 0.95; color: {subtitle_color};">{subtitle}</p>
                     </div>
-                    {f'<div style="flex: 1; min-width: 250px; display: flex; justify-content: center;">{image_html}</div>' if image_html else ''}
+                    {f'<div style="flex: 1; min-width: 0; flex-basis: auto; display: flex; justify-content: center;">{image_html}</div>' if image_html else ''}
                 </div>
             </div></div></div>'''
             html_parts.append(html)
@@ -350,7 +356,7 @@ def render_page_builder_blocks(blocks):
             button_font_size = settings.get('buttonFontSize', '16')
             button_font_size_mobile = settings.get('buttonFontSizeMobile', button_font_size)  # Mobile variant
             button_font_weight = settings.get('buttonFontWeight', 'bold')
-            padding_mobile = settings.get('paddingMobile', padding)
+            padding_mobile = settings.get('paddingMobile', max(15, padding // 2))  # Reduce padding on mobile
             width_mobile = settings.get('widthMobile', width)
             
             # Collect mobile CSS for this block
@@ -387,7 +393,7 @@ def render_page_builder_blocks(blocks):
             video_id_input = settings.get('videoId', '')
             height = settings.get('height', '400')
             height_mobile = settings.get('heightMobile', height)  # Mobile variant
-            padding_mobile = settings.get('paddingMobile', padding)
+            padding_mobile = settings.get('paddingMobile', max(15, padding // 2))  # Reduce padding on mobile
             width_mobile = settings.get('widthMobile', width)
             
             # Collect mobile CSS for this block
@@ -443,7 +449,7 @@ def render_page_builder_blocks(blocks):
             item_title_weight = settings.get('itemTitleWeight', 'bold')
             item_description_font_size = settings.get('itemDescriptionFontSize', '16')
             item_description_font_size_mobile = settings.get('itemDescriptionFontSizeMobile', item_description_font_size)  # Mobile variant
-            padding_mobile = settings.get('paddingMobile', padding)
+            padding_mobile = settings.get('paddingMobile', max(15, padding // 2))  # Reduce padding on mobile
             width_mobile = settings.get('widthMobile', width)
             carousel_id = f"carousel_{block.get('id', 'default')}"
             
@@ -622,12 +628,40 @@ def render_page_builder_blocks(blocks):
     
     # Generate mobile CSS media queries
     mobile_css = ""
+    
+    # Base mobile CSS to stack flex items vertically on small screens and fill width
+    base_mobile_css = """
+        [id^="block-"] {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        [style*="display: flex"] {
+            flex-direction: column !important;
+            width: 100% !important;
+        }
+        [style*="flex: 1"] {
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+    """
+    
     if mobile_css_rules:
         mobile_css_content = "\n".join(mobile_css_rules)
         mobile_css = f"""
         <style>
         @media (max-width: 768px) {{
+            {base_mobile_css}
             {mobile_css_content}
+        }}
+        </style>
+        """
+    else:
+        # Even if no specific rules, add the base mobile CSS for flex stacking
+        mobile_css = f"""
+        <style>
+        @media (max-width: 768px) {{
+            {base_mobile_css}
         }}
         </style>
         """
