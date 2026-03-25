@@ -103,9 +103,9 @@ class TranslationService:
         tag_counter = [0]
         
         def replace_tag(match):
-            # Use a placeholder format that's less likely to be modified by translation APIs
-            # Using triple pipes and uppercase to make it distinctive
-            placeholder = f"|||TAG{tag_counter[0]}|||"
+            # Use a placeholder format that's extremely unlikely to be modified by translation APIs
+            # XLT = eXtract Language Tag (less likely to be translated than common English words)
+            placeholder = f"XLT{tag_counter[0]}XLT"
             tags[placeholder] = match.group(0)
             tag_counter[0] += 1
             return placeholder
@@ -136,17 +136,19 @@ class TranslationService:
         # Restore tags in the translated content
         result = translated_protected
         for placeholder, tag in tags.items():
-            # Try exact match first
+            # Try exact match first (most common case)
             if placeholder in result:
                 result = result.replace(placeholder, tag)
             else:
-                # If exact match fails, try regex with potential spacing variations
-                # (API might add/remove spaces around the placeholder)
+                # Fallback: try matching with potential spacing variations
+                # XLT0XLT → XLT 0 XLT → X L T 0 X L T (all variations)
                 import re as regex_module
-                # Pattern to match placeholder with possible spaces: |||TAG0||| or ||| TAG0 |||
-                tag_num = placeholder.replace("|||", "").replace("TAG", "")
-                pattern = f"\\|+\\s*TAG{tag_num}\\s*\\|+"
-                result = regex_module.sub(pattern, tag, result)
+                tag_num = placeholder.replace("XLT", "")
+                
+                # Match with any amount of space or no space between parts
+                # This handles: XLT0XLT, XLT 0 XLT, X L T 0 X L T, etc.
+                pattern = f"X\\s*L\\s*T\\s*{tag_num}\\s*X\\s*L\\s*T"
+                result = regex_module.sub(pattern, tag, result, flags=regex_module.IGNORECASE)
         
         return result
 
