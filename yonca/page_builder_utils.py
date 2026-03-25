@@ -313,7 +313,7 @@ def render_page_builder_blocks(blocks):
             hero_min_height = "min-height: 300px;" if background_image_url else ""
             
             html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; {background_style} color: white; border-radius: 12px; {hero_min_height}">
-                <div style="{inner_style}; display: flex; align-items: center; gap: 40px; flex-wrap: wrap;">
+                <div style="{inner_style}; display: flex; align-items: center; gap: 40px; flex-wrap: wrap; justify-content: center;">
                     <div style="flex: 1; min-width: 250px;">
                         <h1 style="font-size: {title_font_size}px; font-weight: {title_weight}; margin: 0 0 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">{title}</h1>
                         <p style="font-size: {subtitle_font_size}px; margin: 0; opacity: 0.95; color: {subtitle_color};">{subtitle}</p>
@@ -535,14 +535,14 @@ def render_page_builder_blocks(blocks):
                     </div>'''
                     
                     if carousel_layout == 'left':
-                        html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; display: flex; gap: 30px; align-items: flex-start; margin-bottom: 20px;">
+                        html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; display: flex; gap: 30px; align-items: flex-start; justify-content: center; margin-bottom: 20px;">
                             <div style="{inner_style}">
                                 {item1_html}
                                 {item2_html}
                             </div>
                         </div></div></div>'''
                     else:  # right
-                        html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; display: flex; gap: 30px; align-items: flex-start; flex-direction: row-reverse; margin-bottom: 20px;">
+                        html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; display: flex; gap: 30px; align-items: flex-start; flex-direction: row-reverse; justify-content: center; margin-bottom: 20px;">
                             <div style="{inner_style}">
                                 {item1_html}
                                 {item2_html}
