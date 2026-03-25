@@ -208,6 +208,16 @@ def translate_json_array(content_type, content_id, field_name, json_array, text_
         if 'caption' in item and item['caption']:
             sub_field_name = f"{field_name}[{index}].caption"
             translate_content(content_type, content_id, sub_field_name, item['caption'], source_language, session)
+        
+        # Translate tags if present (for carousel items or other content)
+        if 'tags' in item and item['tags']:
+            if isinstance(item['tags'], list):
+                # If tags is an array of strings, translate each tag
+                translate_string_array(content_type, content_id, f"{field_name}[{index}].tags", item['tags'], source_language, session)
+            elif isinstance(item['tags'], str):
+                # If tags is a string (comma or space separated), translate it as text
+                sub_field_name = f"{field_name}[{index}].tags"
+                translate_content(content_type, content_id, sub_field_name, item['tags'], source_language, session)
 
 
 def translate_string_array(content_type, content_id, field_name, string_array, source_language=None, session=None):
@@ -424,6 +434,21 @@ def get_translated_json_array(content_type, content_id, field_name, json_array, 
             translated_item['button_text'] = get_translated_content(
                 content_type, content_id, sub_field_name, item.get('button_text', ''), target_language
             )
+        
+        # Translate tags if present (for carousel items or other content)
+        if 'tags' in item:
+            if isinstance(item['tags'], list):
+                # If tags is an array of strings, translate each tag
+                sub_field_name = f"{field_name}[{index}].tags"
+                translated_item['tags'] = get_translated_string_array(
+                    content_type, content_id, sub_field_name, item['tags'], target_language
+                )
+            elif isinstance(item['tags'], str) and item['tags'].strip():
+                # If tags is a string (comma or space separated), translate it as text
+                sub_field_name = f"{field_name}[{index}].tags"
+                translated_item['tags'] = get_translated_content(
+                    content_type, content_id, sub_field_name, item['tags'], target_language
+                )
         
         translated_array.append(translated_item)
     
@@ -656,8 +681,10 @@ def get_translated_page_builder_data(course, target_language):
                 # Get translated carousel items
                 items = settings.get('items', [])
                 if items:
+                    logger.warning(f"    → Translating {len(items)} carousel items")
                     translated_items = get_translated_json_array('course', course.id, f'page_builder[{block_id}].items', items, lang_code)
                     settings['items'] = translated_items
+                    blocks_with_translations += 1
         except Exception as e:
             logger.error(f"  ✗ ERROR processing block {block_idx}: {str(e)}")
     

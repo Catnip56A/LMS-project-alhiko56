@@ -103,7 +103,9 @@ class TranslationService:
         tag_counter = [0]
         
         def replace_tag(match):
-            placeholder = f"{{TAG_{tag_counter[0]}}}"
+            # Use a placeholder format that's less likely to be modified by translation APIs
+            # Using triple pipes and uppercase to make it distinctive
+            placeholder = f"|||TAG{tag_counter[0]}|||"
             tags[placeholder] = match.group(0)
             tag_counter[0] += 1
             return placeholder
@@ -134,8 +136,18 @@ class TranslationService:
         # Restore tags in the translated content
         result = translated_protected
         for placeholder, tag in tags.items():
-            result = result.replace(placeholder, tag)
-
+            # Try exact match first
+            if placeholder in result:
+                result = result.replace(placeholder, tag)
+            else:
+                # If exact match fails, try regex with potential spacing variations
+                # (API might add/remove spaces around the placeholder)
+                import re as regex_module
+                # Pattern to match placeholder with possible spaces: |||TAG0||| or ||| TAG0 |||
+                tag_num = placeholder.replace("|||", "").replace("TAG", "")
+                pattern = f"\\|+\\s*TAG{tag_num}\\s*\\|+"
+                result = regex_module.sub(pattern, tag, result)
+        
         return result
 
     def get_supported_languages(self) -> dict:
