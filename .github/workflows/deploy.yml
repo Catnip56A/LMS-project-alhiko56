@@ -63,7 +63,6 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: USER=${{ secrets.SSH_USER }},GCS_BUCKET="gs://yonca-main-site-db-backup",GCS_JSON="${{ secrets.GCS_JSON }}"
           script: |
             cd /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name }}/yonca
 
@@ -83,10 +82,13 @@ jobs:
             APP_PORT=${{ github.ref_name == 'main' && '5002' || '5001' }}
             EOF
             echo "APP_HOSTNAME=$(grep '^DOMAIN=' .env | cut -d= -f2 | tr '.' '-')" >> .env
-            echo bucket=$GCS_BUCKET
+
             mkdir -p data/libretranslate && chmod a+w data/libretranslate
             chmod +x deploy/backup.sh deploy/restore.sh
-            ./deploy/backup.sh /home/${{ secrets.SSH_USER }}/backup/yonca/${{ github.ref_name == 'main' && 'production' || 'staging' }}
+            GCS_BUCKET="gs://yonca-main-site-db-backup" \
+            GCS_JSON="${{ secrets.GCS_JSON }}" \
+            USER="${{ secrets.SSH_USER }}" \
+              ./deploy/backup.sh /home/${{ secrets.SSH_USER }}/backup/yonca/${{ github.ref_name == 'main' && 'production' || 'staging' }}
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose --profile prod pull
             docker compose --profile prod up -d --remove-orphans
