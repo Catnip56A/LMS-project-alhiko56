@@ -83,7 +83,7 @@ jobs:
             APP_PORT=${{ github.ref_name == 'main' && '5002' || '5001' }}
             EOF
             echo "APP_HOSTNAME=$(grep '^DOMAIN=' .env | cut -d= -f2 | tr '.' '-')" >> .env
-
+            echo bucket=$GCS_BUCKET
             mkdir -p data/libretranslate && chmod a+w data/libretranslate
             chmod +x deploy/backup.sh deploy/restore.sh
             ./deploy/backup.sh /home/${{ secrets.SSH_USER }}/backup/yonca/${{ github.ref_name == 'main' && 'production' || 'staging' }}
