@@ -21,7 +21,7 @@ docker compose --profile prod exec -T db \
 echo "[$(date)] Backup saved to $BACKUP_FILE ($(du -sh "$BACKUP_FILE" | cut -f1))"
 
 # Upload to GCS if bucket configured
-if [ -n "${GCS_BUCKET:-}" ] && [ -n "${GCS_JSON:-}"] ; then
+if [ -n "${GCS_BUCKET:-}" ] && [ -n "${GCS_JSON:-}" ] ; then
   keyfile=$(mktemp)
   echo "$GCS_JSON" > $keyfile
   $gcloud auth activate-service-account --key-file=$keyfile
