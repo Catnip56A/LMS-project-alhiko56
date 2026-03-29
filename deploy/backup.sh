@@ -6,7 +6,7 @@
 # Optional: gsutil for GCS upload (set GCS_BUCKET env var)
 
 set -euo pipefail
-
+gcloud="/home/$USER/google-cloud-sdk/bin/gcloud"
 BACKUP_DIR="${1:-$HOME/backup/yonca}"
 TIMESTAMP=$(date +%F_%H-%M-%S)
 BACKUP_FILE="${BACKUP_DIR}/yonca_${TIMESTAMP}.dump"
@@ -21,8 +21,11 @@ docker compose --profile prod exec -T db \
 echo "[$(date)] Backup saved to $BACKUP_FILE ($(du -sh "$BACKUP_FILE" | cut -f1))"
 
 # Upload to GCS if bucket configured
-if [ -n "${GCS_BUCKET:-}" ]; then
-  gcloud storage cp "$BACKUP_FILE" "${GCS_BUCKET}/$(basename "$BACKUP_FILE")" \
+if [ -n "${GCS_BUCKET:-}" ] && [ -n "${GCS_JSON:-}"] ; then
+  keyfile=$(mktemp)
+  echo "$GCS_JSON" > $keyfile
+  $gcloud auth activate-service-account --key-file=$keyfile
+  $gcloud storage cp "$BACKUP_FILE" "${GCS_BUCKET}/$(basename "$BACKUP_FILE")" \
     && echo "Upload succeeded" || { echo "Upload failed"; exit 1; }
   echo "[$(date)] Uploaded to ${GCS_BUCKET}"
 fi
