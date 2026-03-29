@@ -25,6 +25,7 @@ if [ -n "${GCS_BUCKET:-}" ] && [ -n "${GCS_JSON:-}" ] ; then
   keyfile=$(mktemp)
   echo "$GCS_JSON" > $keyfile
   $gcloud auth activate-service-account --key-file=$keyfile
+  echo Uploading "$BACKUP_FILE" to "${GCS_BUCKET}/$(basename "$BACKUP_FILE")"
   $gcloud storage cp "$BACKUP_FILE" "${GCS_BUCKET}/$(basename "$BACKUP_FILE")" \
     && echo "Upload succeeded" || { echo "Upload failed"; exit 1; }
   echo "[$(date)] Uploaded to ${GCS_BUCKET}"
