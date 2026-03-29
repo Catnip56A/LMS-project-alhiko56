@@ -22,7 +22,8 @@ echo "[$(date)] Backup saved to $BACKUP_FILE ($(du -sh "$BACKUP_FILE" | cut -f1)
 
 # Upload to GCS if bucket configured
 if [ -n "${GCS_BUCKET:-}" ]; then
-  gcloud storage cp "$BACKUP_FILE" "${GCS_BUCKET}/$(basename "$BACKUP_FILE")"
+  gcloud storage cp "$BACKUP_FILE" "${GCS_BUCKET}/$(basename "$BACKUP_FILE")" \
+    && echo "Upload succeeded" || { echo "Upload failed"; exit 1; }
   echo "[$(date)] Uploaded to ${GCS_BUCKET}"
 fi
 
