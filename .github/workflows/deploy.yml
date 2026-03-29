@@ -86,8 +86,8 @@ jobs:
             mkdir -p data/libretranslate && chmod a+w data/libretranslate
             chmod +x deploy/backup.sh deploy/restore.sh
             GCS_BUCKET="gs://yonca-main-site-db-backup" \
-            GCS_JSON="${{ secrets.GCS_JSON }}" \
-            USER="${{ secrets.SSH_USER }}" \
+            GCS_JSON='${{ secrets.GCS_JSON }}' \
+            USER=${{ secrets.SSH_USER }} \
               ./deploy/backup.sh /home/${{ secrets.SSH_USER }}/backup/yonca/${{ github.ref_name == 'main' && 'production' || 'staging' }}
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose --profile prod pull
