@@ -86,7 +86,7 @@ jobs:
             mkdir -p data/libretranslate && chmod a+w data/libretranslate
             chmod +x deploy/backup.sh deploy/restore.sh
             keyfile=$(mktemp)
-            echo ${{ secrets.GCS_JSON }} > $tmp
+            echo '${{ secrets.GCS_JSON }}' > $tmp
             gcloud auth activate-service-account --key-file=$keyfile
             export GCS_BUCKET="gs://yonca-main-site-db-backup"
             ./deploy/backup.sh /home/${{ secrets.SSH_USER }}/backup/yonca/${{ github.ref_name == 'main' && 'production' || 'staging' }}
