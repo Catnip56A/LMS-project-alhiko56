@@ -63,7 +63,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: USER=${{ secrets.SSH_USER }},GCS_BUCKET="gs://yonca-main-site-db-backup"
+          envs: USER=${{ secrets.SSH_USER }},GCS_BUCKET="gs://yonca-main-site-db-backup",GCS_JSON="${{ secrets.GCS_JSON }}
           script: |
             cd /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name }}/yonca
 
