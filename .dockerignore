@@ -1,46 +1,26 @@
-# Git
-.git/
-.gitignore
-
 # Python
 __pycache__/
 *.py[cod]
 *.so
-
-# Virtualenv / uv
 .venv/
 venv/
+
+# uv
 .uv/
 
 # Dev/test artifacts
 .pytest_cache/
 .coverage
 htmlcov/
-.mypy_cache/
 
 # Env & secrets
 .env
-service-account-key.json
-client_secret_*.json
+*.json
 
 # Runtime data (mounted as volumes)
 flask_session/
 logs/
 data/
-
-# DB files
-*.db
-*.sqlite
-*.sqlite3
-seed.sql
-*.dump
-
-# Translations artifacts
-*.pot
-
-# Machine-local
-.local/
-instance/
 
 # Editors & OS
 .vscode/
@@ -51,8 +31,10 @@ Thumbs.db
 # Project noise
 docs/
 scripts/
+instance/
 Additional_scripts/
-README.md
-AGENTS.md
 *.zip
 *.docx
+*.db
+*.sqlite
+*.sqlite3
