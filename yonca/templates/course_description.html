@@ -212,7 +212,7 @@
     {% if course.page_show_description %}
     {# Check for page builder content first #}
     {% if course.page_builder_data and course.page_builder_data|length > 0 %}
-        <div style="margin-top:1.2rem; width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); box-sizing: border-box;">
+        <div style="margin-top:1.2rem; width: 100%; box-sizing: border-box;">
             {# Use translated data if available, otherwise use original #}
             {% set page_data = page_builder_data_translated or course.page_builder_data %}
             {{ render_page_builder_blocks(page_data) | safe }}
