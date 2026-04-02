@@ -303,6 +303,10 @@ def render_page_builder_blocks(blocks):
                 #{block_id} {{ padding: {padding_mobile}px; width: {width_mobile}%; }}
                 #{block_id} h1 {{ font-size: {title_font_size_mobile}px; }}
                 #{block_id} p {{ font-size: {subtitle_font_size_mobile}px; }}
+                @media (max-width: 768px) {{
+                    #{block_id} > div > div {{ flex-direction: column; }}
+                    #{block_id} > div > div > div {{ width: 100% !important; }}
+                }}
             """)
             
             # Create background image style if provided, properly encode URL
@@ -312,19 +316,21 @@ def render_page_builder_blocks(blocks):
                 safe_url = urllib.parse.quote(background_image_url, safe=':/?#[]@!$&\'()*+,;=.-_~')
                 background_style = f"background-image: url('{safe_url}'); background-size: cover; background-position: center; background-repeat: no-repeat;"
             
-            # Create image HTML with fixed width
-            image_html = f'<img src="{image_url}" style="width: 100%; max-width: 400px; height: auto; border-radius: 8px;" />' if image_url else ''
+            # Create image HTML with fixed width with smooth curved fade edge
+            image_html = f'<img src="{image_url}" style="width: 100%; height: 100%; object-fit: cover; display: block; clip-path: polygon(0% 100%, 0.4% 95%, 0.8% 90%, 1.2% 85%, 1.5% 80%, 1.8% 75%, 2.0% 70%, 2.1% 65%, 2.2% 60%, 2.3% 55%, 2.4% 50%, 2.3% 45%, 2.2% 40%, 2.1% 35%, 2.0% 30%, 1.8% 25%, 1.5% 20%, 1.2% 15%, 0.8% 10%, 0.4% 5%, 0% 0%, 100% 0%, 100% 100%); mask-image: radial-gradient(ellipse 25% 150% at 0% 50%, transparent 0%, rgba(0,0,0,0.05) 2%, rgba(0,0,0,0.15) 4%, rgba(0,0,0,0.3) 6%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.65) 10%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.92) 24%, rgba(0,0,0,0.95) 28%, rgba(0,0,0,0.97) 32%, rgba(0,0,0,0.99) 36%, rgba(0,0,0,1) 41%); -webkit-mask-image: radial-gradient(ellipse 25% 150% at 0% 50%, transparent 0%, rgba(0,0,0,0.05) 2%, rgba(0,0,0,0.15) 4%, rgba(0,0,0,0.3) 6%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.65) 10%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.92) 24%, rgba(0,0,0,0.95) 28%, rgba(0,0,0,0.97) 32%, rgba(0,0,0,0.99) 36%, rgba(0,0,0,1) 41%); transition: mask-image 0.3s ease-in-out;" />' if image_url else ''
             
             # Start with minimum height for hero section visibility
             hero_min_height = "min-height: 300px;" if background_image_url else ""
             
             html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; {background_style} color: white; border-radius: 12px; {hero_min_height}">
-                <div style="{inner_style}; display: flex; align-items: center; gap: 40px; flex-wrap: wrap; justify-content: center; width: 100%; flex-direction: column;">
-                    <div style="flex: 1; min-width: 0; flex-basis: auto; width: 100%;">
+                <div style="{inner_style}; display: flex; align-items: stretch; gap: 0; flex-wrap: nowrap; justify-content: flex-start; width: 100%; flex-direction: row; margin: 0; padding: 0;">
+                    <div style="flex: 1 1 55%; min-width: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding-right: 40px; padding-left: 0; margin: 0; text-align: center;">
                         <h1 style="font-size: {title_font_size}px; font-weight: {title_weight}; margin: 0 0 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">{title}</h1>
                         <p style="font-size: {subtitle_font_size}px; margin: 0; opacity: 0.95; color: {subtitle_color};">{subtitle}</p>
                     </div>
-                    {f'<div style="flex: 1; min-width: 0; flex-basis: auto; display: flex; justify-content: center; width: 100%;">{image_html}</div>' if image_html else ''}
+                    {f'<div style="flex: 1 1 45%; min-width: 0; overflow: hidden; padding: 0; margin: 0;">{image_html}</div>' if image_html else ''}
+                </div>
+                </div>
                 </div>
             </div></div></div>'''
             html_parts.append(html)
