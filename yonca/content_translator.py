@@ -137,7 +137,10 @@ def translate_content(content_type, content_id, field_name, text, source_languag
             print(f"✓ Translated {content_type}:{content_id}.{field_name} -> {target_lang}")
             
         except Exception as e:
-            print(f"Error translating {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error translating {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
+            print(f"ERROR: Translation failed for {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
     
     # Flush translations to database
     try:

@@ -102,6 +102,9 @@ def translate_text(
 
     url = libretranslate_url or os.environ.get('LIBRETRANSLATE_URL') or ''
     if not url:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"LIBRETRANSLATE_URL not configured - cannot translate '{text[:60]}' to {target_lang}")
         return text
 
     protected, replacements = protect_terms(text)
@@ -127,5 +130,8 @@ def translate_text(
             return text
         return restore_terms(result, replacements)
 
-    except Exception:
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"LibreTranslate error translating to {target_lang}: {e} (URL: {url})")
         return text
