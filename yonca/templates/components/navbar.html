@@ -30,9 +30,9 @@
                 </li>
 
                 <li class="nav-item">
-                    {% set lang_cycle = {'az': 'ru', 'ru': 'en', 'en': 'az'} %}
-                    {% set lang_names = {'en': 'English', 'az': 'Azeri', 'ru': 'Russian'} %}
-                    <a class="nav-link" href="/set_language/{{ lang_cycle.get(current_locale, 'az') }}" onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">🌐 {{ lang_names.get(current_locale, 'English') }}</a>
+                    {% set lang_cycle = {'ru': 'en', 'en': 'ru'} %}
+                    {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
+                    <a class="nav-link" href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">🌐 {{ lang_names.get(current_locale, 'English') }}</a>
                 </li>
 
                 {% if is_authenticated %}
@@ -82,9 +82,9 @@
         <a href="javascript:void(0)" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
         <a href="javascript:void(0)" class="nav-link" id="mobile-tavi-link">{{ _('TAVI Test') }}</a>
         <a href="javascript:void(0)" class="nav-link" id="mobile-about-link">{{ _('About Company') }}</a>
-        {% set lang_cycle = {'az': 'ru', 'ru': 'en', 'en': 'az'} %}
-        {% set lang_names = {'en': 'English', 'az': 'Azeri', 'ru': 'Russian'} %}
-        <a href="/set_language/{{ lang_cycle.get(current_locale, 'az') }}" class="nav-link" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'az'), 'English') }}">
+        {% set lang_cycle = {'ru': 'en', 'en': 'ru'} %}
+        {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
+        <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}">
             🌐 {{ lang_names.get(current_locale, 'English') }}
         </a>
         <div id="mobile-auth-buttons" style="margin-top: 2rem; text-align: center;">

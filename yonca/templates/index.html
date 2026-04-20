@@ -2095,17 +2095,17 @@
 
                     <div class="auth-section" id="auth-section">
                         <div id="auth-buttons" style="display: block;">
-                            {% set lang_cycle = {'az': 'ru', 'ru': 'en', 'en': 'az'} %}
-                            {% set lang_names = {'en': 'English', 'az': 'Azeri', 'ru': 'Russian'} %}
-                            <a href="/set_language/{{ lang_cycle.get(current_locale, 'az') }}" class="nav-link" id="lang-toggle-btn" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'az'), 'English') }}" style="margin-right: 0.5rem;">
+                            {% set lang_cycle = {'ru': 'en', 'en': 'ru'} %}
+                            {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
+                            <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" id="lang-toggle-btn" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}" style="margin-right: 0.5rem;">
                                 🌐 {{ lang_names.get(current_locale, 'English') }}
                             </a>
                             <button id="login-btn" onclick="window.location.href='/login'">{{ _('Login') }}</button>
                         </div>
                         <div id="user-info" style="display: none; align-items: center;">
-                            {% set lang_cycle = {'az': 'ru', 'ru': 'en', 'en': 'az'} %}
-                            {% set lang_names = {'en': 'English', 'az': 'Azeri', 'ru': 'Russian'} %}
-                            <a href="/set_language/{{ lang_cycle.get(current_locale, 'az') }}" class="nav-link" id="lang-toggle-btn-logged" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'az'), 'English') }}" style="margin-right: 0.5rem;">
+                            {% set lang_cycle = {'ru': 'en', 'en': 'ru'} %}
+                            {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
+                            <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" id="lang-toggle-btn-logged" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}" style="margin-right: 0.5rem;">
                                 🌐 {{ lang_names.get(current_locale, 'English') }}
                             </a>
                             <span style="color: #353e45; margin-right: 0.5rem; white-space: nowrap;">{{ _('Welcome') }}, <span id="user-name"></span>!</span>
@@ -2142,9 +2142,9 @@
             <a href="javascript:void(0)" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-tavi-link">{{ _('TAVI Test') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-about-link">{{ _('About Company') }}</a>
-            {% set lang_cycle = {'az': 'ru', 'ru': 'en', 'en': 'az'} %}
-            {% set lang_names = {'en': 'English', 'az': 'Azeri', 'ru': 'Russian'} %}
-            <a href="/set_language/{{ lang_cycle.get(current_locale, 'az') }}" class="nav-link" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'az'), 'English') }}">
+            {% set lang_cycle = {'ru': 'en', 'en': 'ru'} %}
+            {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
+            <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}">
                 🌐 {{ lang_names.get(current_locale, 'English') }}
             </a>
             <div id="mobile-auth-buttons" style="margin-top: 2rem; text-align: center;">
@@ -2380,7 +2380,6 @@
                                 <option value="none">{{ _("Don't translate") }}</option>
                                 <option value="en">{{ _("English") }}</option>
                                 <option value="ru">{{ _("Russian") }}</option>
-                                <option value="az">{{ _("Azerbaijani") }}</option>
                             </select>
                         </div>
                     </div>
@@ -3162,12 +3161,10 @@
             const messages = {
                 'auth_required': {
                     'en': '🔒 Authentication required to access this file',
-                    'az': '🔒 Bu faylə dəişmək üçün autentifikasiya tələb olunur',
                     'ru': '🔒 Для доступа к этому файлу требуется аутентификация'
                 },
                 'file_not_found': {
                     'en': '❌ File not found',
-                    'az': '❌ Fayl tapılmadı',
                     'ru': '❌ Файл не найден'
                 }
             };
@@ -4136,7 +4133,6 @@
         let autoTranslateEnabled = false; // Auto-translate is disabled
         let currentLanguageIndex = 0;
         const availableLanguages = [
-            {code: 'az', name: 'AZ', flag: '🇦🇿'},
             {code: 'ru', name: 'RU', flag: '🇷🇺'},
             {code: 'en', name: 'EN', flag: '🌐'}
         ];

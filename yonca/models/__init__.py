@@ -339,7 +339,7 @@ class ContentTranslation(db.Model):
     content_id = db.Column(db.Integer, nullable=False)  # ID of the content item
     field_name = db.Column(db.String(100), nullable=False)  # Field being translated (e.g., 'title', 'description')
     source_language = db.Column(db.String(10), default='en')  # Source language
-    target_language = db.Column(db.String(10), nullable=False)  # Target language ('az', 'ru')
+    target_language = db.Column(db.String(10), nullable=False)  # Target language ('ru')
     translated_text = db.Column(db.Text, nullable=False)  # Translated content
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())

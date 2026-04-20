@@ -16,7 +16,7 @@ from yonca.models import Translation, db
 class TranslationService:
     """Translates and permanently caches content in the Translation DB table."""
 
-    SUPPORTED_LANGUAGES = ['az', 'ru', 'en']
+    SUPPORTED_LANGUAGES = ['en', 'ru']
 
     def get_translation(self, text: str, target_language: str, source_language: str = None) -> str:
         """Return translation of text into target_language, using DB cache.
@@ -153,7 +153,7 @@ class TranslationService:
         return result
 
     def get_supported_languages(self) -> dict:
-        return {'en': 'English', 'ru': 'Russian', 'az': 'Azerbaijani'}
+        return {'en': 'English', 'ru': 'Russian'}
 
 
 # Global singleton used throughout the application

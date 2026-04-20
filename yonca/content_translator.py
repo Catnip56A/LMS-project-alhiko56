@@ -13,7 +13,7 @@ except ImportError:
     print("Warning: langdetect not available. Install with: pip install langdetect")
 
 # Languages to automatically translate to
-TARGET_LANGUAGES = ['az', 'ru']
+TARGET_LANGUAGES = ['ru']
 
 # Fields to translate for each content type
 TRANSLATABLE_FIELDS = {
@@ -51,7 +51,6 @@ def detect_language(text):
         detected = detect(text)
         # Map common language codes
         lang_map = {
-            'az': 'az',  # Azerbaijani
             'ru': 'ru',  # Russian
             'en': 'en',  # English
         }
@@ -602,7 +601,7 @@ def get_translated_page_builder_data(course, target_language):
     lang_code = str(target_language)
     logger.warning(f"📖 RAW target_language: {repr(target_language)} (type: {type(target_language).__name__})")
     
-    # Handle Locale objects: Locale('az') -> 'az', or 'az_AZ' -> 'az'
+    # Handle Locale objects: Locale('ru') -> 'ru', or 'ru_RU' -> 'ru'
     if hasattr(target_language, 'language'):
         # It's a Flask-Babel Locale object
         lang_code = target_language.language
