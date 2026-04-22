@@ -141,9 +141,9 @@
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h4><i class="fas fa-graduation-cap"></i> {{ course.title }}</h4>
             <div>
-                {% set lang_cycle = {'az': 'ru', 'ru': 'en', 'en': 'az'} %}
-                {% set lang_names = {'en': 'English', 'az': 'Azeri', 'ru': 'Russian'} %}
-                <a class="btn btn-sm btn-outline-light mr-2" href="/set_language/{{ lang_cycle.get(current_locale, 'az') }}">🌐 {{ lang_names.get(current_locale, 'English') }}</a>
+                {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
+                {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
+                <a class="btn btn-sm btn-outline-light mr-2" href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}">🌐 {{ lang_names.get(current_locale, 'English') }}</a>
                 {% if current_user.is_authenticated and current_user.is_admin %}
                 <a href="/admin/course_management/" class="btn btn-sm btn-outline-light">
                     <i class="fa fa-arrow-left"></i> Back

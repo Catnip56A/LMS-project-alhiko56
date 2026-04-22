@@ -1956,7 +1956,7 @@ def set_language(lang):
     print(f"DEBUG: Attempting to set language to: {lang}")
     print(f"DEBUG: Session before: {dict(session)}")
     
-    if lang in ['en', 'az', 'ru']:
+    if lang in ['en', 'ru']:
         session['language'] = lang
         session.modified = True
         session.permanent = True

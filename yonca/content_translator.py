@@ -12,8 +12,11 @@ except ImportError:
     LANGDETECT_AVAILABLE = False
     print("Warning: langdetect not available. Install with: pip install langdetect")
 
+# Import centralized language constants
+from yonca.constants import SUPPORTED_LANGUAGES
+
 # Languages to automatically translate to
-TARGET_LANGUAGES = ['az', 'ru']
+TARGET_LANGUAGES = SUPPORTED_LANGUAGES
 
 # Fields to translate for each content type
 TRANSLATABLE_FIELDS = {

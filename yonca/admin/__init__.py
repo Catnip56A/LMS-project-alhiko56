@@ -1315,24 +1315,23 @@ class TranslateContentView(BaseView):
         
         try:
             from yonca.models import ContentTranslation, Translation
+            from yonca.constants import SUPPORTED_LANGUAGES
             
             # Count translations before deletion
-            az_content_count = ContentTranslation.query.filter_by(target_language='az').count()
             ru_content_count = ContentTranslation.query.filter_by(target_language='ru').count()
-            az_cache_count = Translation.query.filter_by(target_language='az').count()
             ru_cache_count = Translation.query.filter_by(target_language='ru').count()
             
-            total_before = az_content_count + ru_content_count + az_cache_count + ru_cache_count
+            total_before = ru_content_count + ru_cache_count
             
             # Delete from ContentTranslation table
-            ContentTranslation.query.filter(ContentTranslation.target_language.in_(['az', 'ru'])).delete()
+            ContentTranslation.query.filter(ContentTranslation.target_language.in_(SUPPORTED_LANGUAGES)).delete()
             
             # Delete from Translation cache table
-            Translation.query.filter(Translation.target_language.in_(['az', 'ru'])).delete()
+            Translation.query.filter(Translation.target_language.in_(SUPPORTED_LANGUAGES)).delete()
             
             db.session.commit()
             
-            message = f"Deleted {total_before} total translations ({az_content_count + az_cache_count} Azerbaijani, {ru_content_count + ru_cache_count} Russian)."
+            message = f"Deleted {total_before} total translations ({ru_content_count + ru_cache_count} Russian)."
             
             return jsonify({'success': True, 'message': message, 'stats': {
                 'az_content_translations': az_content_count,

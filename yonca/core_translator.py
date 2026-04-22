@@ -20,7 +20,7 @@ except ImportError:
     _LANGDETECT_AVAILABLE = False
     LangDetectException = Exception
 
-SUPPORTED_LANGUAGES = ['en', 'az', 'ru']
+from yonca.constants import SUPPORTED_LANGUAGES
 
 # Terms that must survive translation unchanged
 PROTECTED_TERMS = ['Yonca', 'YONCA', 'yonca']

@@ -10,13 +10,14 @@ import re
 from flask import current_app
 
 from yonca import core_translator
+from yonca.constants import SUPPORTED_LANGUAGES, LANGUAGE_NAMES
 from yonca.models import Translation, db
 
 
 class TranslationService:
     """Translates and permanently caches content in the Translation DB table."""
 
-    SUPPORTED_LANGUAGES = ['az', 'ru', 'en']
+    SUPPORTED_LANGUAGES = SUPPORTED_LANGUAGES
 
     def get_translation(self, text: str, target_language: str, source_language: str = None) -> str:
         """Return translation of text into target_language, using DB cache.
@@ -153,7 +154,7 @@ class TranslationService:
         return result
 
     def get_supported_languages(self) -> dict:
-        return {'en': 'English', 'ru': 'Russian', 'az': 'Azerbaijani'}
+        return LANGUAGE_NAMES
 
 
 # Global singleton used throughout the application

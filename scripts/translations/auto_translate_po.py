@@ -17,7 +17,12 @@ _spec = _ilu.spec_from_file_location(
     "core_translator",
     os.path.join(os.path.dirname(__file__), '..', '..', 'yonca', 'core_translator.py'),
 )
-core_translator = _ilu.module_from_spec(_spec)
+import sys
+import os
+
+# Add parent directory to path to allow imports from yonca package
+_spec = importlib.util.spec_from_file_location("yonca.core_translator", os.path.join(os.path.dirname(__file__), '../../yonca/core_translator.py'))
+_ilu = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(core_translator)
 
 try:
@@ -26,8 +31,9 @@ except ImportError:
     print("Error: polib is required. Install with: uv add polib")
     sys.exit(1)
 
-LANGUAGES = {'az': 'Azerbaijani', 'ru': 'Russian'}
-BASE_PATH = os.path.normpath(
+from yonca.constants import SUPPORTED_LANGUAGES
+
+LANGUAGES = {lang: SUPPORTED_LANGUAGES for lang in SUPPORTED_LANGUAGES}
     os.path.join(os.path.dirname(__file__), '..', '..', 'yonca', 'translations')
 )
 LIBRE_URL = os.environ.get('LIBRETRANSLATE_URL') or None
