@@ -581,8 +581,8 @@
         }
 
         .service-icon {
-            width: 50.4px;
-            height: 50.4px;
+            width: 70.56px;
+            height: 70.56px;
             margin: 0 auto 0.675rem auto;
             object-fit: contain;
             display: block;
@@ -803,8 +803,8 @@
 
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, 210px);
-            grid-template-rows: 210px;
+            grid-template-columns: repeat(auto-fit, 157.5px);
+            grid-template-rows: 157.5px;
             gap: 0;
             margin: 0;
             overflow-x: auto;
@@ -817,7 +817,7 @@
         /* Carousel styles for single large gallery box */
         .gallery-container {
             position: relative;
-            width: 82%;
+            width: 65.6%;
             overflow: hidden;
             border-radius: 0;
             margin: 0 auto;
@@ -826,19 +826,44 @@
         }
 
         .gallery-wrapper {
+            --gallery-item-width: 65%;
             display: flex;
             transition: transform 0.6s ease-in-out;
             width: 100%;
+            gap: 16px;
+            padding: 0 calc((100% - var(--gallery-item-width)) / 2);
+            justify-content: flex-start;
+            box-sizing: border-box;
+        }
+
+        .gallery-wrapper.gallery-initializing {
+            visibility: hidden;
+            transition: none;
         }
 
         .gallery-wrapper > .gallery-item {
-            min-width: 100%;
+            min-width: var(--gallery-item-width);
+            flex-shrink: 0;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: stretch;
             justify-content: center;
-            padding: 0; /* add horizontal gutter so neighboring slides' edges don't show */
+            padding: 0;
+            transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.45s ease;
+            opacity: 0.6;
+            transform: scale(0.85);
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+        }
+
+        .gallery-wrapper > .gallery-item.center {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .gallery-wrapper > .gallery-item.gallery-item-clone {
+            pointer-events: none;
         }
 
         /* Enforce width:height = 16:10 (i.e. height:width = 10:16) for gallery media */
@@ -854,19 +879,10 @@
             display: block;
         }
 
-        /* Ensure slide box preserves aspect even before media loads */
-        .gallery-wrapper > .gallery-item {
-            min-width: 100%;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            padding: 0;
-        }
-
         .gallery-media-viewport {
-            width: 80%;
+            width: 64%;
             aspect-ratio: 16 / 10;
-            max-height: 80vh;
+            max-height: 64vh;
             overflow: hidden;
             border-radius: 0;
             background: transparent;
@@ -2168,7 +2184,7 @@
             <p class="section-description">{{ _('Discover the latest updates, new features, and exciting developments in our learning platform.') }}</p>
 
             <div class="gallery-container">
-                <div class="gallery-wrapper">
+                <div class="gallery-wrapper gallery-initializing">
                 {% if home_content.gallery_images %}
                 {% for image in translate_json('home_content', home_content.id, 'gallery_images', home_content.gallery_images) %}
                 <div class="gallery-item">
@@ -2229,15 +2245,15 @@
                 {% else %}
                 <div class="gallery-item">
                     <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%23abc32f' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3ELearning Community%3C/text%3E%3C/svg%3E" alt="{{ _('Learning Community') }}" loading="lazy">
-                    <div class="gallery-caption">{{ _("Our vibrant learning community") }}</div>
+                    <div class="gallery-caption" style="font-size: 110%;">{{ _("Our vibrant learning community") }}</div>
                 </div>
                 <div class="gallery-item">
                     <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%234a90e2' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EInteractive Courses%3C/text%3E%3C/svg%3E" alt="{{ _('Interactive Courses') }}" loading="lazy">
-                    <div class="gallery-caption">{{ _("Engage with interactive course content") }}</div>
+                    <div class="gallery-caption" style="font-size: 110%;">{{ _("Engage with interactive course content") }}</div>
                 </div>
                 <div class="gallery-item">
                     <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%237ed321' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EStudy Groups%3C/text%3E%3C/svg%3E" alt="{{ _('Study Groups') }}" loading="lazy">
-                    <div class="gallery-caption">{{ _("Collaborate in study groups") }}</div>
+                    <div class="gallery-caption" style="font-size: 110%;">{{ _("Collaborate in study groups") }}</div>
                 </div>
                 {% endif %}
                 </div>
@@ -2517,61 +2533,61 @@
                         <!-- Assessment -->
                         <div class="service-card">
                             <img src="/static/permanent/icon1_Services.png" alt="{{ _('Assessment icon') }}" class="service-icon">
-                            <h3>{{ _('Assessment and Skill Evaluation') }}</h3>
-                            <p>
+                            <h3 style="font-size: 110%;">{{ _('Assessment and Skill Evaluation') }}</h3>
+                            <p style="font-size: 105%;">
                                 {{ _('Comprehensive assessment of a child\'s development and creation of an individualized support plan') }}
                             </p>
-                            <a href="#" class="service-btn" onclick="openServiceModal(event, 'serviceModal1')">{{ _('Learn More') }}</a>
+                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal1')">{{ _('Learn More') }}</a>
                         </div>
 
                         <!-- Correction -->
                         <div class="service-card">
                             <img src="/static/permanent/icon2_Services.png" alt="{{ _('Therapeutic sessions icon') }}" class="service-icon">
-                            <h3>{{ _('Therapeutic Sessions') }}</h3>
-                            <p>
+                            <h3 style="font-size: 110%;">{{ _('Therapeutic Sessions') }}</h3>
+                            <p style="font-size: 105%;">
                                 {{ _('Individual work with the child and targeted skill development') }}
                             </p>
-                            <a href="#" class="service-btn" onclick="openServiceModal(event, 'serviceModal2')">{{ _('Learn More') }}</a>
+                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal2')">{{ _('Learn More') }}</a>
                         </div>
 
                         <!-- School Support -->
                         <div class="service-card">
                             <img src="/static/permanent/icon3_Services.png" alt="{{ _('School support icon') }}" class="service-icon">
-                            <h3>{{ _('School Support') }}</h3>
-                            <p>
+                            <h3 style="font-size: 110%;">{{ _('School Support') }}</h3>
+                            <p style="font-size: 105%;">
                                 {{ _('Tutoring support and assistance within the school environment') }}
                             </p>
-                            <a href="#" class="service-btn" onclick="openServiceModal(event, 'serviceModal3')">{{ _('Learn More') }}</a>
+                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal3')">{{ _('Learn More') }}</a>
                         </div>
 
                         <!-- Psychological -->
                         <div class="service-card">
                             <img src="/static/permanent/icon4_Services.png" alt="{{ _('Psychological help icon') }}" class="service-icon">
-                            <h3>{{ _('Psychological Support') }}</h3>
-                            <p>
+                            <h3 style="font-size: 110%;">{{ _('Psychological Support') }}</h3>
+                            <p style="font-size: 105%;">
                                 {{ _('Individual, group, and family therapy') }}
                             </p>
-                            <a href="#" class="service-btn" onclick="openServiceModal(event, 'serviceModal4')">{{ _('Learn More') }}</a>
+                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal4')">{{ _('Learn More') }}</a>
                         </div>
 
                         <!-- Clubs -->
                         <div class="service-card">
                             <img src="/static/permanent/icon5_Services.png" alt="{{ _('Clubs icon') }}" class="service-icon">
-                            <h3>{{ _('Clubs') }}</h3>
-                            <p>
+                            <h3 style="font-size: 110%;">{{ _('Clubs') }}</h3>
+                            <p style="font-size: 105%;">
                                 {{ _('Club for mothers and club for teenagers') }}
                             </p>
-                            <a href="#" class="service-btn" onclick="openServiceModal(event, 'serviceModal5')">{{ _('Learn More') }}</a>
+                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal5')">{{ _('Learn More') }}</a>
                         </div>
 
                         <!-- Educational -->
                         <div class="service-card">
                             <img src="/static/permanent/icon6_Services.png" alt="{{ _('Education icon') }}" class="service-icon">
-                            <h3>{{ _('Educational Programs') }}</h3>
-                            <p>
+                            <h3 style="font-size: 110%;">{{ _('Educational Programs') }}</h3>
+                            <p style="font-size: 105%;">
                                 {{ _('Courses for specialists and parents') }}
                             </p>
-                            <a href="#" class="service-btn" onclick="openServiceModal(event, 'serviceModal6')">{{ _('Learn More') }}</a>
+                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal6')">{{ _('Learn More') }}</a>
                         </div>
                     </div>
                 </div>
@@ -2750,15 +2766,15 @@
                 {% else %}
                 <div class="gallery-item">
                     <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%23abc32f' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3ELearning Community%3C/text%3E%3C/svg%3E" alt="Learning Community" loading="lazy">
-                    <div class="gallery-caption">Our vibrant learning community</div>
+                    <div class="gallery-caption" style="font-size: 110%;">Our vibrant learning community</div>
                 </div>
                 <div class="gallery-item">
                     <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%234a90e2' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EInteractive Courses%3C/text%3E%3C/svg%3E" alt="Interactive Courses" loading="lazy">
-                    <div class="gallery-caption">Engage with interactive course content</div>
+                    <div class="gallery-caption" style="font-size: 110%;">Engage with interactive course content</div>
                 </div>
                 <div class="gallery-item">
                     <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%237ed321' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EStudy Groups%3C/text%3E%3C/svg%3E" alt="Study Groups" loading="lazy">
-                    <div class="gallery-caption">Collaborate in study groups</div>
+                    <div class="gallery-caption" style="font-size: 110%;">Collaborate in study groups</div>
                 </div>
                 {% endif %}
             </div>
@@ -3300,6 +3316,8 @@
 
             // Activate the page element
             pageElement.classList.add('active');
+            window.currentPageId = pageId;
+            window.dispatchEvent(new CustomEvent('yonca:pagechange', { detail: { pageId } }));
             console.log('Activated page:', pageId);
             
             const linkElement = document.getElementById(pageId + '-link');
@@ -5203,28 +5221,223 @@
         document.addEventListener('DOMContentLoaded', function() {
             const wrapper = document.querySelector('.gallery-wrapper');
             if (!wrapper) return;
+            const container = document.querySelector('.gallery-container');
+            const homePage = document.getElementById('home');
+            wrapper.classList.add('gallery-initializing');
+            const baseSlides = Array.from(wrapper.children).filter(c => c.classList.contains('gallery-item'));
+            if (!baseSlides.length) return;
+
+            const isLooping = baseSlides.length > 1;
+            const cloneCount = isLooping ? Math.min(2, baseSlides.length) : 0;
+            if (isLooping) {
+                const prependFragment = document.createDocumentFragment();
+                const appendFragment = document.createDocumentFragment();
+
+                for (let i = baseSlides.length - cloneCount; i < baseSlides.length; i++) {
+                    const clone = baseSlides[i].cloneNode(true);
+                    clone.classList.add('gallery-item-clone');
+                    prependFragment.appendChild(clone);
+                }
+
+                for (let i = 0; i < cloneCount; i++) {
+                    const clone = baseSlides[i].cloneNode(true);
+                    clone.classList.add('gallery-item-clone');
+                    appendFragment.appendChild(clone);
+                }
+
+                wrapper.insertBefore(prependFragment, wrapper.firstChild);
+                wrapper.appendChild(appendFragment);
+            }
+
             const slides = Array.from(wrapper.children).filter(c => c.classList.contains('gallery-item'));
+            const baseLength = baseSlides.length;
             const prev = document.querySelector('.gallery-control.prev');
             const next = document.querySelector('.gallery-control.next');
 
-            let current = 0;
+            let current = isLooping ? cloneCount : 0;
             let autoTimer = null;
             let pausedByInteraction = false;
+            let pausedByVisibility = document.hidden;
             const INTERVAL = 5000;
+            const TRANSITION_STYLE = 'transform 0.6s ease-in-out';
 
-            function goTo(index) {
-                if (!wrapper) return;
-                current = (index + slides.length) % slides.length;
-                wrapper.style.transform = `translateX(-${current * 100}%)`;
+            function isGalleryVisibleInViewport() {
+                if (!container) return true;
+
+                const rect = container.getBoundingClientRect();
+                const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+                const visibleHeight = Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0);
+                const minVisibleHeight = Math.min(rect.height * 0.2, 120);
+
+                return visibleHeight > minVisibleHeight;
             }
 
-            function nextSlide() { goTo(current + 1); }
-            function prevSlide() { goTo(current - 1); }
+            function isHomePageActive() {
+                if (window.currentPageId) return window.currentPageId === 'home';
+                return !!(homePage && homePage.classList.contains('active'));
+            }
+
+            function shouldAutoRun() {
+                return isHomePageActive() && !pausedByInteraction && !pausedByVisibility && isGalleryVisibleInViewport();
+            }
+
+            function getRealIndex(trackIndex) {
+                if (!isLooping) return trackIndex;
+                if (trackIndex < cloneCount) {
+                    return baseLength - (cloneCount - trackIndex);
+                }
+                if (trackIndex >= cloneCount + baseLength) {
+                    return trackIndex - (cloneCount + baseLength);
+                }
+                return trackIndex - cloneCount;
+            }
+
+            function goTo(index, skipAnimation = false) {
+                if (!wrapper) return;
+                if (isLooping) {
+                    current = ((index % slides.length) + slides.length) % slides.length;
+                } else {
+                    current = (index + slides.length) % slides.length;
+                }
+
+                wrapper.style.transition = skipAnimation ? 'none' : TRANSITION_STYLE;
+
+                const trackContainer = wrapper.parentElement;
+                const activeSlide = slides[current];
+                if (!activeSlide) return;
+
+                // Center the selected slide based on its real position in the wrapper.
+                const offset = activeSlide.offsetLeft + activeSlide.offsetWidth / 2 - trackContainer.clientWidth / 2;
+                wrapper.style.transform = `translateX(-${offset}px)`;
+
+                // Update center class for styling
+                slides.forEach((slide, idx) => {
+                    if (idx === current) {
+                        slide.classList.add('center');
+                    } else {
+                        slide.classList.remove('center');
+                    }
+                });
+            }
+
+            function nextSlide() {
+                if (isLooping && current === cloneCount + baseLength - 1) {
+                    // Wrap smoothly: jump to equivalent pre-clone, then animate to first real slide.
+                    goTo(current - baseLength, true);
+                    requestAnimationFrame(function() {
+                        goTo(cloneCount, false);
+                    });
+                    return;
+                }
+                goTo(current + 1);
+            }
+
+            function prevSlide() {
+                if (isLooping && current === cloneCount) {
+                    // Wrap smoothly: jump to equivalent post-clone, then animate to last real slide.
+                    goTo(current + baseLength, true);
+                    requestAnimationFrame(function() {
+                        goTo(cloneCount + baseLength - 1, false);
+                    });
+                    return;
+                }
+                goTo(current - 1);
+            }
+
+            function waitForMediaReady(root, timeoutMs = 700) {
+                const mediaEls = Array.from(root.querySelectorAll('img, video, iframe'));
+                if (!mediaEls.length) return Promise.resolve();
+
+                const mediaPromises = mediaEls.map((el) => {
+                    if (el.tagName === 'IMG') {
+                        if (el.complete) return Promise.resolve();
+                        return new Promise((resolve) => {
+                            el.addEventListener('load', resolve, { once: true });
+                            el.addEventListener('error', resolve, { once: true });
+                        });
+                    }
+
+                    if (el.tagName === 'VIDEO') {
+                        if (el.readyState >= 1) return Promise.resolve();
+                        return new Promise((resolve) => {
+                            el.addEventListener('loadeddata', resolve, { once: true });
+                            el.addEventListener('error', resolve, { once: true });
+                        });
+                    }
+
+                    // Iframe: load event fires when frame content is available.
+                    return new Promise((resolve) => {
+                        el.addEventListener('load', resolve, { once: true });
+                        el.addEventListener('error', resolve, { once: true });
+                    });
+                });
+
+                return Promise.race([
+                    Promise.allSettled(mediaPromises),
+                    new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+                ]);
+            }
+
+            function waitForStableCenter(index, maxFrames = 18) {
+                return new Promise((resolve) => {
+                    let prevOffset = null;
+                    let stableFrames = 0;
+                    let frames = 0;
+
+                    function tick() {
+                        const container = wrapper.parentElement;
+                        const activeSlide = slides[index];
+                        if (!container || !activeSlide) {
+                            resolve();
+                            return;
+                        }
+
+                        const offset = activeSlide.offsetLeft + activeSlide.offsetWidth / 2 - container.clientWidth / 2;
+                        wrapper.style.transition = 'none';
+                        wrapper.style.transform = `translateX(-${offset}px)`;
+
+                        if (prevOffset !== null && Math.abs(offset - prevOffset) < 0.5) {
+                            stableFrames += 1;
+                        } else {
+                            stableFrames = 0;
+                        }
+
+                        prevOffset = offset;
+                        frames += 1;
+
+                        if (stableFrames >= 2 || frames >= maxFrames) {
+                            resolve();
+                            return;
+                        }
+
+                        requestAnimationFrame(tick);
+                    }
+
+                    requestAnimationFrame(tick);
+                });
+            }
+
+            if (isLooping) {
+                wrapper.addEventListener('transitionend', function() {
+                    if (wrapper.classList.contains('gallery-initializing')) return;
+                    if (current < cloneCount) {
+                        goTo(current + baseLength, true);
+                    } else if (current >= cloneCount + baseLength) {
+                        goTo(current - baseLength, true);
+                    }
+                });
+            }
 
             function startAuto() {
                 stopAuto();
+                if (!shouldAutoRun()) return;
+
                 autoTimer = setInterval(() => {
-                    if (!pausedByInteraction) nextSlide();
+                    if (shouldAutoRun()) {
+                        nextSlide();
+                    } else {
+                        stopAuto();
+                    }
                 }, INTERVAL);
             }
 
@@ -5243,6 +5456,32 @@
                 startAuto();
             };
 
+            function handleVisibilityChange() {
+                pausedByVisibility = document.hidden;
+                if (pausedByVisibility) {
+                    stopAuto();
+                } else {
+                    startAuto();
+                }
+            }
+
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+            window.addEventListener('blur', function() {
+                pausedByVisibility = true;
+                stopAuto();
+            });
+            window.addEventListener('focus', function() {
+                pausedByVisibility = document.hidden;
+                startAuto();
+            });
+            window.addEventListener('yonca:pagechange', function() {
+                if (shouldAutoRun()) {
+                    startAuto();
+                } else {
+                    stopAuto();
+                }
+            });
+
             if (next) next.addEventListener('click', function() { pausedByInteraction = true; stopAuto(); nextSlide(); });
             if (prev) prev.addEventListener('click', function() { pausedByInteraction = true; stopAuto(); prevSlide(); });
 
@@ -5256,15 +5495,39 @@
             });
 
             // Also pause while user hovers over the gallery area; resume on leave
-            const container = document.querySelector('.gallery-container');
             if (container) {
                 container.addEventListener('mouseenter', function() { pausedByInteraction = true; stopAuto(); });
                 container.addEventListener('mouseleave', function() { pausedByInteraction = false; startAuto(); });
             }
 
+            window.addEventListener('resize', function() {
+                goTo(current, true);
+            });
+
+            // Reset gallery when switching to home page
+            window.addEventListener('yonca:pagechange', function(event) {
+                if (event.detail.pageId === 'home') {
+                    // Reset to first slide when returning to home page
+                    current = isLooping ? cloneCount : 0;
+                    goTo(current, true);
+                    pausedByInteraction = false;
+                    startAuto();
+                }
+            });
+
             // Initialize
-            goTo(0);
-            startAuto();
+            goTo(current, true);
+            waitForMediaReady(wrapper).then(function() {
+                return waitForStableCenter(current);
+            }).finally(function() {
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        wrapper.classList.remove('gallery-initializing');
+                        wrapper.style.transition = TRANSITION_STYLE;
+                        startAuto();
+                    });
+                });
+            });
         });
     </script>
     <script>
