@@ -20,6 +20,7 @@ services:
       retries: 5
 
   libretranslate:
+    profiles: [dev, prod]
     image: libretranslate/libretranslate
     restart: unless-stopped
     command: ["--load-only", "en,az,ru"]

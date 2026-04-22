@@ -216,6 +216,8 @@ class JobManager:
                 auto_translate_home_content
             )
             from yonca.models import Course, Resource, HomeContent
+            import logging
+            logger = logging.getLogger(__name__)
 
             # Get total counts for progress calculation
             total_courses = Course.query.count()
@@ -235,6 +237,7 @@ class JobManager:
 
             # Process all content types sequentially
             job.message = "Starting translation process..."
+            logger.info("🔄 Translation job started")
 
             # Process courses
             job.message = "Translating courses..."

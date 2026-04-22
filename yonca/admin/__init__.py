@@ -1307,7 +1307,7 @@ class TranslateContentView(BaseView):
 
     @expose('/delete-translations', methods=['POST'])
     def delete_translations(self):
-        """Delete all translations for Azerbaijani and Russian"""
+        """Delete all translations for Russian"""
         from flask import jsonify
         
         if not self.is_accessible():
@@ -1324,19 +1324,17 @@ class TranslateContentView(BaseView):
             total_before = ru_content_count + ru_cache_count
             
             # Delete from ContentTranslation table
-            ContentTranslation.query.filter(ContentTranslation.target_language.in_(SUPPORTED_LANGUAGES)).delete()
+            ContentTranslation.query.filter(ContentTranslation.target_language.in_(['az', 'ru'])).delete()
             
             # Delete from Translation cache table
-            Translation.query.filter(Translation.target_language.in_(SUPPORTED_LANGUAGES)).delete()
+            Translation.query.filter(Translation.target_language.in_(['az', 'ru'])).delete()
             
             db.session.commit()
             
             message = f"Deleted {total_before} total translations ({ru_content_count + ru_cache_count} Russian)."
             
             return jsonify({'success': True, 'message': message, 'stats': {
-                'az_content_translations': az_content_count,
                 'ru_content_translations': ru_content_count,
-                'az_cache_translations': az_cache_count,
                 'ru_cache_translations': ru_cache_count,
                 'total_deleted': total_before
             }})

@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('Enroll in') }} {{ course.title }} - {{ home_content.site_name }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        line-height: 1.8;
+        letter-spacing: 0.05em;
+        color: #212121;
+        background: rgba(255, 255, 255, 0.55);
+        font-size: 18px;
+    }
+
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 50%;
+        height: 100%;
+        background-image: url('/static/permanent/bg_texture.png');
+        background-repeat: repeat;
+        z-index: -1;
+    }
+
+    body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 50%;
+        width: 50%;
+        height: 100%;
+        background-image: url('/static/permanent/bg_texture.png');
+        background-repeat: repeat;
+        transform: scaleX(-1);
+        z-index: -1;
+    }
+
+    header {
+        background: rgba(254, 251, 250, 0);
+        border-bottom: 1px solid #e0e0e0;
+        padding: 1rem 0;
+        position: relative;
+        min-height: 80px;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        position: relative;
+    }
+
+    .logo-section {
+        flex-shrink: 0;
+        align-self: center;
+    }
+
+    .nav-auth-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        gap: 0.5rem;
+    }
+
+    .nav-section {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .auth-section {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .logo img {
+        height: 32px;
+        width: auto;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    @media (min-width: 768px) {
+        .container {
+            width: 100vw;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        footer .container {
+            width: auto;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+    }
+
+    .registration-container {
+        background-color: rgba(255, 255, 255, 0.4);
+        border-radius: 12px;
+        box-shadow: 0 2px 8px #e5e7eb;
+        padding: 3rem;
+        margin: 2rem auto;
+        max-width: 800px;
+    }
+
+    .registration-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .registration-header h1 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #337a2c;
+        margin-bottom: 0.5rem;
+    }
+
+    .registration-header p {
+        font-size: 1.1rem;
+        color: #666;
+    }
+
+    .course-info {
+        background: #f8f9fa;
+        border-left: 4px solid #337a2c;
+        padding: 1.5rem;
+        border-radius: 4px;
+        margin-bottom: 2rem;
+    }
+
+    .course-info h3 {
+        color: #337a2c;
+        font-size: 1.3rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .course-info p {
+        color: #555;
+        margin-bottom: 0.5rem;
+        line-height: 1.6;
+    }
+
+    .enrollment-section {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .btn-enroll {
+        background-color: #337a2c;
+        color: white;
+        padding: 12px 32px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-enroll:hover {
+        background-color: #1e5919;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .btn-enroll:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .already-enrolled {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .login-prompt {
+        background-color: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        color: #004085;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .login-prompt a {
+        color: #004085;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .login-prompt a:hover {
+        text-decoration: underline;
+    }
+
+    .benefits-section {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .benefits-section h3 {
+        color: #337a2c;
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+    }
+
+    .benefit-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .benefit-item i {
+        color: #337a2c;
+        font-size: 1.5rem;
+        margin-right: 1rem;
+        margin-top: 0.2rem;
+    }
+
+    .benefit-item p {
+        color: #555;
+        margin: 0;
+    }
+
+    .course-metadata {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .metadata-item {
+        text-align: center;
+    }
+
+    .metadata-item .label {
+        color: #999;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+    }
+
+    .metadata-item .value {
+        color: #337a2c;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'components/navbar.html' %}
+
+<div class="container" style="margin-top: 20px;">
+    <div class="registration-container">
+        <div class="registration-header">
+            <h1>{{ _('Enroll in Course') }}</h1>
+            <p>{{ _('Join our learning community') }}</p>
+        </div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'error' if category == 'error' else 'info' }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Course Information -->
+        <div class="course-info">
+            {% if course.profile_emoji %}
+            <div style="font-size: 3rem; margin-bottom: 1rem;">{{ course.profile_emoji }}</div>
+            {% endif %}
+            <h3>{{ course.title }}</h3>
+            {% if course.description %}
+            <p>{{ course.description }}</p>
+            {% endif %}
+            {% if course.time_slot %}
+            <p><strong>{{ _('Time Slot:') }}</strong> {{ course.time_slot }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Course Metadata -->
+        {% if course.users %}
+        <div class="course-metadata">
+            <div class="metadata-item">
+                <div class="label">{{ _('Enrolled Students') }}</div>
+                <div class="value">{{ course.users|length }}</div>
+            </div>
+            <div class="metadata-item">
+                <div class="label">{{ _('Course Status') }}</div>
+                <div class="value" style="color: #28a745;">{{ _('Active') }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Enrollment Section -->
+        {% if is_enrolled %}
+            <div class="already-enrolled">
+                <i class="fa fa-check-circle"></i>
+                <p><strong>{{ _('You are already enrolled in this course!') }}</strong></p>
+                <p style="margin-bottom: 0; margin-top: 0.5rem;">
+                    <a href="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="color: #155724; font-weight: 600; text-decoration: none;">
+                        {{ _('Go to Course') }} →
+                    </a>
+                </p>
+            </div>
+        {% elif current_user.is_authenticated %}
+            <div class="enrollment-section">
+                <h2 style="color: #333; margin-bottom: 1rem;">{{ _('Ready to start learning?') }}</h2>
+                <p style="color: #666; margin-bottom: 1.5rem;">{{ _('Click the button below to enroll in this course and gain access to all course materials.') }}</p>
+                <form method="POST" style="display: inline;">
+                    <button type="submit" class="btn-enroll">
+                        <i class="fa fa-lock"></i> {{ _('Enroll Now') }}
+                    </button>
+                </form>
+            </div>
+        {% else %}
+            <div class="login-prompt">
+                <h3 style="margin-top: 0;">{{ _('Sign in to enroll') }}</h3>
+                <p style="margin-bottom: 1rem;">{{ _('You need to be logged in to enroll in this course.') }}</p>
+                <a href="{{ url_for('auth.login', next=url_for('main.course_registration', course_id=course.id)) }}" class="btn btn-primary" style="display: inline-block; background-color: #337a2c; color: white; padding: 10px 24px; border-radius: 20px; text-decoration: none; font-weight: 600;">
+                    {{ _('Login') }}
+                </a>
+                <p style="margin-top: 1rem; font-size: 0.95rem;">
+                    {{ _('Don\'t have an account?') }}
+                    <a href="{{ url_for('auth.login') }}" style="color: #004085; font-weight: 600;">{{ _('Sign up here') }}</a>
+                </p>
+            </div>
+        {% endif %}
+
+        <!-- Benefits Section -->
+        <div class="benefits-section">
+            <h3><i class="fa fa-star"></i> {{ _('What you\'ll get') }}</h3>
+            <div class="benefit-item">
+                <i class="fa fa-book"></i>
+                <p><strong>{{ _('Course Materials') }}</strong> - {{ _('Access all course content, documents, and resources') }}</p>
+            </div>
+            <div class="benefit-item">
+                <i class="fa fa-users"></i>
+                <p><strong>{{ _('Community Forum') }}</strong> - {{ _('Connect with fellow students and instructors') }}</p>
+            </div>
+            <div class="benefit-item">
+                <i class="fa fa-comments"></i>
+                <p><strong>{{ _('Support') }}</strong> - {{ _('Get help from instructors and teaching assistants') }}</p>
+            </div>
+            <div class="benefit-item">
+                <i class="fa fa-tasks"></i>
+                <p><strong>{{ _('Assignments') }}</strong> - {{ _('Submit coursework and receive feedback') }}</p>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        {% if not is_enrolled and current_user.is_authenticated %}
+        <div style="text-align: center; background: #f0f8ff; padding: 1.5rem; border-radius: 8px;">
+            <p style="color: #333; font-size: 1.05rem; margin-bottom: 0;">
+                {{ _('Questions about this course?') }}
+                <a href="/" style="color: #337a2c; font-weight: 600; text-decoration: none;">{{ _('Contact us') }}</a>
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

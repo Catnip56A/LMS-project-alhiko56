@@ -16,7 +16,7 @@ except ImportError:
 from yonca.constants import SUPPORTED_LANGUAGES
 
 # Languages to automatically translate to
-TARGET_LANGUAGES = SUPPORTED_LANGUAGES
+TARGET_LANGUAGES = ['az', 'ru']
 
 # Fields to translate for each content type
 TRANSLATABLE_FIELDS = {
@@ -54,7 +54,6 @@ def detect_language(text):
         detected = detect(text)
         # Map common language codes
         lang_map = {
-            'az': 'az',  # Azerbaijani
             'ru': 'ru',  # Russian
             'en': 'en',  # English
         }
@@ -140,7 +139,10 @@ def translate_content(content_type, content_id, field_name, text, source_languag
             print(f"✓ Translated {content_type}:{content_id}.{field_name} -> {target_lang}")
             
         except Exception as e:
-            print(f"Error translating {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error translating {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
+            print(f"ERROR: Translation failed for {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
     
     # Flush translations to database
     try:
@@ -602,7 +604,7 @@ def get_translated_page_builder_data(course, target_language):
     lang_code = str(target_language)
     logger.warning(f"📖 RAW target_language: {repr(target_language)} (type: {type(target_language).__name__})")
     
-    # Handle Locale objects: Locale('az') -> 'az', or 'az_AZ' -> 'az'
+    # Handle Locale objects: Locale('ru') -> 'ru', or 'ru_RU' -> 'ru'
     if hasattr(target_language, 'language'):
         # It's a Flask-Babel Locale object
         lang_code = target_language.language

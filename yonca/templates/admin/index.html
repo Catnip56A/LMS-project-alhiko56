@@ -1126,7 +1126,7 @@ document.getElementById('translate-all').addEventListener('click', async functio
     const button = this;
     const originalHtml = button.innerHTML;
 
-    if (!confirm('This will translate all courses, resources, and home content to Azerbaijani and Russian. The system will automatically detect the source language of each content piece and create translations for all other languages. This process runs in the background and may take several minutes. Continue?')) {
+    if (!confirm('This will translate all courses, resources, and home content to Russian. The system will automatically detect the source language of each content piece and create translations for all other languages. This process runs in the background and may take several minutes. Continue?')) {
         return;
     }
 
@@ -1212,7 +1212,7 @@ document.getElementById('delete-translations').addEventListener('click', async f
     const button = this;
     const originalHtml = button.innerHTML;
     
-    if (!confirm('⚠️ WARNING: This will permanently delete ALL translations for Azerbaijani and Russian languages!\n\nThis action cannot be undone. Are you sure you want to continue?')) {
+    if (!confirm('⚠️ WARNING: This will permanently delete ALL translations for Russian language!\n\nThis action cannot be undone. Are you sure you want to continue?')) {
         return;
     }
     

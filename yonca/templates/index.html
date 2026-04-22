@@ -546,8 +546,8 @@
 
         .services {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
-            gap: 3rem;
+            grid-template-columns: repeat(auto-fit, minmax(153px, 1fr));
+            gap: 1.8rem;
             margin: 0;
             padding: 0.05rem;
         }
@@ -559,7 +559,7 @@
             background-attachment: fixed;
             border: 1px solid rgba(0,0,0,0.04);
             border-radius: 10px;
-            padding: 1.5rem;
+            padding: 0.9rem;
             text-align: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.04);
             display: flex;
@@ -569,21 +569,21 @@
 
         .service-card h3 {
             color: #000000;
-            margin-bottom: 1rem;
-            font-size: 1.125rem;
+            margin-bottom: 0.6rem;
+            font-size: 0.675rem;
         }
 
         .service-card p {
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
+            font-size: 0.54rem;
+            margin-bottom: 0.6rem;
             opacity: 0.9;
             flex-grow: 1;
         }
 
         .service-icon {
-            width: 84px;
-            height: 84px;
-            margin: 0 auto 1.125rem auto;
+            width: 50.4px;
+            height: 50.4px;
+            margin: 0 auto 0.675rem auto;
             object-fit: contain;
             display: block;
         }
@@ -593,14 +593,14 @@
             margin-top: auto;
             background: #63943e;
             color: #fff;
-            padding: 0.5625rem 1.125rem;
+            padding: 0.3375rem 0.675rem;
             border: 2px solid #63943e;
             border-radius: 20px;
             text-decoration: none;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 0.75rem;
+            font-size: 0.45rem;
         }
 
         .service-card .service-btn:hover {
@@ -803,8 +803,8 @@
 
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, 300px);
-            grid-template-rows: 300px;
+            grid-template-columns: repeat(auto-fit, 210px);
+            grid-template-rows: 210px;
             gap: 0;
             margin: 0;
             overflow-x: auto;
@@ -910,10 +910,10 @@
 
         .gallery-item {
             background: rgba(255, 255, 255, 0.55);
-            border-radius: 12px;
+            border-radius: 8.4px;
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            width: 300px;
+            width: 210px;
             position: relative;
             display: flex;
             flex-direction: column;
@@ -925,7 +925,7 @@
             height: 100%;
             object-fit: cover;
             display: block;
-            border-radius: 12px 12px 0 0;
+            border-radius: 8.4px 8.4px 0 0;
             pointer-events: none;
             user-select: none;
         }
@@ -944,20 +944,20 @@
             height: 100%;
             object-fit: cover;
             display: block;
-            border-radius: 12px 12px 0 0;
+            border-radius: 8.4px 8.4px 0 0;
         }
 
         .gallery-caption {
             position: static;
-            margin-top: 0.5rem;
-            padding: 0.5rem;
+            margin-top: 0.35rem;
+            padding: 0.35rem;
             background: rgba(249, 250, 251, 0.9);
             text-align: center;
-            font-size: 1.04rem;
+            font-size: 0.728rem;
             color: #000000;
             backdrop-filter: blur(4px);
-            border-radius: 8px;
-            max-height: 120px;
+            border-radius: 5.6px;
+            max-height: 84px;
             overflow-y: auto;
         }
 
@@ -966,11 +966,11 @@
             background: #fff3cd !important;
             color: #856404 !important;
             border: 1px solid #ffeaa7;
-            margin-top: 0.5rem;
-            border-radius: 8px;
-            padding: 0.75rem;
+            margin-top: 0.35rem;
+            border-radius: 5.6px;
+            padding: 0.525rem;
             flex: none;
-            max-height: 120px;
+            max-height: 84px;
             overflow-y: auto;
         }
 
@@ -1773,8 +1773,8 @@
             }
 
             .gallery-grid {
-                grid-template-columns: repeat(auto-fit, 300px);
-                grid-template-rows: 300px;
+                grid-template-columns: repeat(auto-fit, 210px);
+                grid-template-rows: 210px;
                 gap: 0;
                 margin: 0;
                 overflow-x: auto;
@@ -1783,7 +1783,7 @@
             }
 
             .gallery-item {
-                width: 300px;
+                width: 210px;
                 position: relative;
                 display: flex;
                 flex-direction: column;
@@ -1794,7 +1794,7 @@
             .gallery-item iframe {
                 max-height: none;
                 height: 100%;
-                border-radius: 12px 12px 0 0;
+                border-radius: 8.4px 8.4px 0 0;
             }
 
             .gallery-item img {
@@ -2380,7 +2380,6 @@
                                 <option value="none">{{ _("Don't translate") }}</option>
                                 <option value="en">{{ _("English") }}</option>
                                 <option value="ru">{{ _("Russian") }}</option>
-                                <option value="az">{{ _("Azerbaijani") }}</option>
                             </select>
                         </div>
                     </div>

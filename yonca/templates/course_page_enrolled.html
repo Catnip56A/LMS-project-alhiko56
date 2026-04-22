@@ -108,18 +108,16 @@
     .tab-pane {
         display: none !important;
         visibility: hidden !important;
-        position: absolute !important;
-        top: -9999px !important;
         opacity: 0 !important;
+        pointer-events: none !important;
     }
     
     /* Only show the active tab */
     .tab-pane.active {
         display: block !important;
         visibility: visible !important;
-        position: relative !important;
-        top: auto !important;
         opacity: 1 !important;
+        pointer-events: auto !important;
     }
     .folder-item[data-depth="0"] { margin-left: 0px; }
     .folder-item[data-depth="1"] { margin-left: 20px; }
@@ -577,6 +575,23 @@
             var tabLinks = document.querySelectorAll('[data-toggle="tab"]');
             var tabPanes = document.querySelectorAll('.tab-pane');
             
+            // Function to check and log which tab is active
+            function logActiveTab() {
+                var activeTab = document.querySelector('.tab-pane.active');
+                var visibleTab = null;
+                tabPanes.forEach(function(pane) {
+                    if (pane.style.display !== 'none' && pane.style.visibility !== 'hidden') {
+                        visibleTab = pane.id;
+                    }
+                });
+                console.log('Active Tab (by class):', activeTab ? activeTab.id : 'NONE');
+                console.log('Visible Tab (by style):', visibleTab || 'NONE');
+                console.log('All tab panes:');
+                tabPanes.forEach(function(pane) {
+                    console.log('  - ' + pane.id + ': display=' + pane.style.display + ', visible=' + pane.style.visibility + ', active=' + pane.classList.contains('active'));
+                });
+            }
+            
             // Ensure only the active tab is visible initially
             function hideAllTabs() {
                 tabPanes.forEach(function(pane) {
@@ -595,6 +610,19 @@
                     tabPane.style.visibility = 'visible';
                     tabPane.setAttribute('aria-hidden', 'false');
                 }
+                // Update debug display
+                var tabNameElement = document.getElementById('debug-tab-name');
+                if (tabNameElement) {
+                    var tabName = {
+                        '#features': 'Description',
+                        '#content': 'Content',
+                        '#assignments': 'Assignments',
+                        '#announcements': 'Announcements',
+                        '#reviews': 'Reviews'
+                    }[tabId] || tabId;
+                    tabNameElement.textContent = tabName;
+                }
+                logActiveTab();
             }
             
             // Set up click handlers for ALL tab links (including feature box buttons)
@@ -640,11 +668,20 @@
                 var targetId = activeLink.getAttribute('href');
                 showTab(targetId);
             }
+            
+            // Log initial state
+            console.log('=== INITIAL TAB STATE ===');
+            logActiveTab();
         }
         </script>
         
         <div class="tab-content" id="courseTabsContent">
         
+        <!-- DEBUG: Current Active Tab Display -->
+        <div id="debug-tab-info" style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 10px; margin-bottom: 10px; font-size: 0.9rem;">
+            <strong>🔍 Current Tab:</strong> <span id="debug-tab-name">Loading...</span>
+            <button type="button" onclick="document.getElementById('debug-tab-info').style.display='none';" style="float:right; background:none; border:none; cursor:pointer; font-size:1.2rem;">×</button>
+        </div>
         <div class="tab-pane fade" id="features" role="tabpanel">
             <div class="mt-4">
                 <section class="course-marketing" style="background-color: rgba(255, 255, 255, 0.4); border-radius: 12px; box-shadow: 0 2px 8px #e5e7eb; padding: 2rem; margin-bottom: 2rem;">
@@ -675,36 +712,8 @@
                         </div>
                     {% endif %}
                     {% endif %}
-                    {% if translated_page_features or course.page_features %}
-                    <div class="row" style="margin-top:2rem;">
-                        {% set features_to_display = translated_page_features or course.page_features %}
-                        {% for feature in features_to_display %}
-                        <div class="col-md-4" style="margin-bottom:1.5rem;">
-                            <div style="background:#f3f4f6; border-radius:8px; padding:1rem; height:100%;">
-                                {% if feature.image %}
-                                <div style="width:150px; height:150px; margin:0 auto 1rem; border-radius:50%; overflow:hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                    <img src="{{ feature.image }}" alt="{{ feature.title }}" style="width:100%; height:100%; object-fit:cover;" />
-                                </div>
-                                {% endif %}
-                                <h4 style="color:#337a2c; font-size:1.1rem; font-weight:600;">{{ feature.title | parse_buttons | safe }}</h4>
-                                <p style="color:#555;">{{ feature.description | parse_buttons | safe }}</p>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    {% if course.page_gallery_images and course.page_gallery_images|length > 0 %}
-                    <div class="course-gallery" style="margin-top:2rem;">
-                        <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
-                            {% for img in course.page_gallery_images %}
-                            <div style="width: 200px !important; height: 200px !important; border-radius: 50% !important; overflow: hidden !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important; flex-shrink: 0 !important; background: #f0f0f0 !important;">
-                                <img src="{{ img }}" alt="Course image" style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;" />
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
 
+                    
                     <!-- Course Features Section -->
                     <div style="margin-top:3rem; border-top: 2px solid #e5e7eb; padding-top: 2rem;">
                         <h3 style="font-size:1.8rem; font-weight:600; color:#374151; margin-bottom:1.5rem;">{{ _('Course Features') }}</h3>
