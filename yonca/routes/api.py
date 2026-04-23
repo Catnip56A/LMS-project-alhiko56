@@ -1179,7 +1179,7 @@ def serve_file(file_id):
 @login_required
 def import_drive_file_endpoint():
     """
-    Import a file or folder from Google Drive using drive.file scope.
+    Import a file or folder from Google Drive using full drive scope.
     The file must have been selected via Google Picker for access.
     """
     from yonca.google_drive_service import (

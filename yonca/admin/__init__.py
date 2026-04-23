@@ -21,6 +21,31 @@ import os
 from yonca.google_drive_service import authenticate, upload_file, create_view_only_link, set_file_permissions
 import secrets
 
+
+def _resolve_oauth_base_url():
+    """Select OAuth base URL from the current request host."""
+    try:
+        host = (request.host or '').lower()
+        scheme = request.scheme or 'https'
+    except RuntimeError:
+        host = ''
+        scheme = 'https'
+
+    if 'staging' in host:
+        return 'https://staging.yonca-sdc.com'
+    if host.startswith('localhost') or host.startswith('127.0.0.1') or 'local.yonca-sdc.com' in host:
+        return f"{scheme}://{host}"
+    if host:
+        return 'https://yonca-sdc.com'
+
+    # Fallback for CLI/tasks where request context is unavailable.
+    uri = os.environ.get('GOOGLE_REDIRECT_URI')
+    if not uri:
+        raise RuntimeError("GOOGLE_REDIRECT_URI environment variable is not set")
+    from urllib.parse import urlparse
+    parsed = urlparse(uri)
+    return f"{parsed.scheme}://{parsed.netloc}"
+
 def upload_gallery_image_to_drive(file, filename):
     """Upload a gallery image to Google Drive and return the public URL"""
     try:
@@ -89,12 +114,7 @@ def upload_gallery_image_to_drive(file, filename):
 def get_google_redirect_uri(redirect_uri=None):
     if redirect_uri:
         return redirect_uri
-    uri = os.environ.get('GOOGLE_REDIRECT_URI')
-    if not uri:
-        raise RuntimeError("GOOGLE_REDIRECT_URI environment variable is not set")
-    from urllib.parse import urlparse
-    parsed = urlparse(uri)
-    return f"{parsed.scheme}://{parsed.netloc}/admin/google_login/"
+    return f"{_resolve_oauth_base_url()}/admin/google_login/"
 from yonca.models import User, Course, ForumMessage, ForumChannel, TaviTest, Resource, db, HomeContent
 
 class AdminIndexView(AdminIndexView):

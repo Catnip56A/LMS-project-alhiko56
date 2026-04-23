@@ -1,5 +1,6 @@
 """
 Google Drive service for file uploads and sharing
+Build: 2026-04-23T12:45:00Z
 """
 from __future__ import print_function
 import os.path
@@ -12,9 +13,8 @@ from flask import url_for, current_app
 from datetime import datetime, timedelta, timedelta
 import requests
 
-# Google Drive API scopes - using drive.file scope for least privilege access
-# Only allows access to files created by the app or selected by user via Picker
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
+# Google Drive API scopes - using full drive scope for complete file access
+SCOPES = ['https://www.googleapis.com/auth/drive']
 FOLDER_ID = None  # Upload to root directory for OAuth users
 
 def authenticate(user=None):
@@ -249,7 +249,8 @@ def set_file_permissions(service, file_id, make_public=False, max_retries=3):
                 service.permissions().create(
                     fileId=file_id,
                     body=permission,
-                    fields='id'
+                    fields='id',
+                    supportsAllDrives=True
                 ).execute()
                 elapsed = time.time() - start_time
                 print(f"DEBUG: File {file_id} made public (took {elapsed:.2f}s)")
@@ -260,12 +261,12 @@ def set_file_permissions(service, file_id, make_public=False, max_retries=3):
                 # Remove public permissions to make file private
                 try:
                     # Get all permissions for the file
-                    permissions = service.permissions().list(fileId=file_id, fields='permissions(id,type)').execute()
+                    permissions = service.permissions().list(fileId=file_id, fields='permissions(id,type)', supportsAllDrives=True).execute()
                     
                     # Delete all 'anyone' permissions
                     for permission in permissions.get('permissions', []):
                         if permission.get('type') == 'anyone':
-                            service.permissions().delete(fileId=file_id, permissionId=permission['id']).execute()
+                            service.permissions().delete(fileId=file_id, permissionId=permission['id'], supportsAllDrives=True).execute()
                             print(f"DEBUG: Removed public permission from file {file_id}")
                     
                     elapsed = time.time() - start_time
@@ -301,7 +302,7 @@ def set_file_permissions(service, file_id, make_public=False, max_retries=3):
 def delete_file(service, file_id):
     """Delete a file from Google Drive"""
     try:
-        service.files().delete(fileId=file_id).execute()
+        service.files().delete(fileId=file_id, supportsAllDrives=True).execute()
         return True
     except HttpError as error:
         print(f'An error occurred: {error}')
@@ -313,7 +314,7 @@ def download_file(service, file_id, local_path):
     import io
     
     try:
-        request = service.files().get_media(fileId=file_id)
+        request = service.files().get_media(fileId=file_id, supportsAllDrives=True)
         with io.FileIO(local_path, 'wb') as fh:
             downloader = MediaIoBaseDownload(fh, request)
             done = False
@@ -331,20 +332,26 @@ def extract_file_id_from_url(drive_url):
     
     # Handle different Drive URL formats
     patterns = [
-        r'/d/([a-zA-Z0-9_-]+)',  # /d/FILE_ID
-        r'id=([a-zA-Z0-9_-]+)',  # ?id=FILE_ID
-        r'/folders/([a-zA-Z0-9_-]+)',  # /folders/FOLDER_ID
+        r'/d/([a-zA-Z0-9_-]+)(?:[/?]|$)',  # /d/FILE_ID with optional /? or end
+        r'/folders/([a-zA-Z0-9_-]+)(?:[/?]|$)',  # /folders/FOLDER_ID with optional /? or end
+        r'[?&]id=([a-zA-Z0-9_-]+)',  # ?id=FILE_ID or &id=FILE_ID
     ]
+    
+    print(f"DEBUG: extract_file_id_from_url input: {drive_url}")
     
     for pattern in patterns:
         match = re.search(pattern, drive_url)
         if match:
-            return match.group(1)
+            extracted_id = match.group(1)
+            print(f"DEBUG: Pattern '{pattern}' matched, extracted ID: {extracted_id}")
+            return extracted_id
     
-    # If no pattern matches, assume it's already a file ID
+    # If no pattern matches, assume it's already a file ID (direct ID format)
     if re.match(r'^[a-zA-Z0-9_-]+$', drive_url):
+        print(f"DEBUG: Treating input as direct ID: {drive_url}")
         return drive_url
     
+    print(f"DEBUG: Failed to extract ID from: {drive_url}")
     return None
 
 def get_file_metadata(service, file_id):
@@ -355,7 +362,8 @@ def get_file_metadata(service, file_id):
     try:
         file = service.files().get(
             fileId=file_id,
-            fields='id, name, mimeType, size, webViewLink, iconLink'
+            fields='id, name, mimeType, size, webViewLink, iconLink',
+            supportsAllDrives=True
         ).execute()
         
         elapsed = time.time() - start_time
@@ -382,7 +390,8 @@ def list_folder_contents(service, folder_id):
         results = service.files().list(
             q=f"'{folder_id}' in parents and trashed=false",
             fields='files(id, name, mimeType, size, webViewLink, iconLink)',
-            pageSize=1000  # Increase page size to handle more files
+            pageSize=1000,  # Increase page size to handle more files
+            supportsAllDrives=True
         ).execute()
         
         elapsed = time.time() - start_time
@@ -447,6 +456,9 @@ def import_drive_file(service, file_id_or_url):
     if not file_id:
         print("DEBUG: No file_id extracted, returning None")
         return None
+    
+    account = get_linked_google_account()
+    print(f"DEBUG: Google account being used: {account}")
     
     metadata = get_file_metadata(service, file_id)
     print(f"DEBUG: get_file_metadata returned: {metadata}")

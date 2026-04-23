@@ -11,21 +11,38 @@ import secrets
 import os
 from datetime import datetime, timedelta
 
+
+def _resolve_oauth_base_url():
+    """Select OAuth base URL from the current request host."""
+    try:
+        host = (request.host or '').lower()
+        scheme = request.scheme or 'https'
+    except RuntimeError:
+        host = ''
+        scheme = 'https'
+
+    if 'staging' in host:
+        return 'https://staging.yonca-sdc.com'
+    if host.startswith('localhost') or host.startswith('127.0.0.1') or 'local.yonca-sdc.com' in host:
+        return f"{scheme}://{host}"
+    if host:
+        return 'https://yonca-sdc.com'
+
+    # Fallback for CLI/tasks where request context is unavailable.
+    uri = os.environ.get('GOOGLE_REDIRECT_URI')
+    if not uri:
+        raise RuntimeError("GOOGLE_REDIRECT_URI environment variable is not set")
+    from urllib.parse import urlparse
+    parsed = urlparse(uri)
+    return f"{parsed.scheme}://{parsed.netloc}"
+
 def get_google_redirect_uri(redirect_uri=None):
     if redirect_uri:
         return redirect_uri
-    uri = os.environ.get('GOOGLE_REDIRECT_URI')
-    if not uri:
-        raise RuntimeError("GOOGLE_REDIRECT_URI environment variable is not set")
-    return uri
+    return f"{_resolve_oauth_base_url()}/auth/google/callback"
 
 def get_google_link_uri():
-    from urllib.parse import urlparse
-    uri = os.environ.get('GOOGLE_REDIRECT_URI')
-    if not uri:
-        raise RuntimeError("GOOGLE_REDIRECT_URI environment variable is not set")
-    parsed = urlparse(uri)
-    return f"{parsed.scheme}://{parsed.netloc}/auth/google/link"
+    return f"{_resolve_oauth_base_url()}/auth/google/link"
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -145,7 +162,7 @@ def link_google_account():
     
     redirect_uri = get_google_link_uri()
     
-    scope = 'openid email profile https://www.googleapis.com/auth/drive.file'
+    scope = 'openid email profile https://www.googleapis.com/auth/drive'
     state = secrets.token_urlsafe(32)  # Generate a secure state
     # Store state in session for verification
     from flask import session
