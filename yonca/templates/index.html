@@ -523,7 +523,7 @@
             background-attachment: fixed;
             border: 1px solid rgba(0,0,0,0.04);
             border-radius: 10px;
-            padding: 2rem;
+            padding: 1.5rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.04);
             text-align: center;
         }
@@ -536,7 +536,7 @@
             background-attachment: fixed;
             border: 1px solid rgba(0,0,0,0.04);
             border-radius: 10px;
-            padding: 2rem;
+            padding: 1.5rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.04);
             text-align: center;
         }
@@ -579,7 +579,29 @@
             font-size: 0.54rem;
             margin-bottom: 0.6rem;
             opacity: 0.9;
-            flex-grow: 1;
+            padding-right: 0.3rem;
+        }
+
+        .service-card p.scrollable {
+            max-height: 6.8rem;
+            overflow-y: auto;
+        }
+
+        .service-card p::-webkit-scrollbar {
+            width: 0.25rem;
+        }
+
+        .service-card p::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .service-card p::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0.125rem;
+        }
+
+        .service-card p::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.4);
         }
 
         .service-icon {
@@ -805,8 +827,8 @@
 
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, 157.5px);
-            grid-template-rows: 157.5px;
+            grid-template-columns: repeat(auto-fit, minmax(30.1vh, 1fr));
+            grid-template-rows: auto;
             gap: 0;
             margin: 0;
             overflow-x: auto;
@@ -927,25 +949,27 @@
         }
 
         .gallery-item {
-            background: rgba(255, 255, 255, 0.55);
+            background: rgba(255, 255, 255, 0);
             border-radius: 8.4px;
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            width: 210px;
             position: relative;
             display: flex;
             flex-direction: column;
+            max-height: 35vh;
+            aspect-ratio: 0.86;
         }
 
         .gallery-item img {
             width: 100%;
-            max-height: none;
+            max-height: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
             border-radius: 8.4px 8.4px 0 0;
             pointer-events: none;
             user-select: none;
+            aspect-ratio: 1 / 1;
         }
 
         .gallery-item img::-webkit-media-controls {
@@ -958,38 +982,35 @@
 
         .gallery-item video, .gallery-item iframe {
             width: 100%;
-            max-height: none;
+            max-height: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
             border-radius: 8.4px 8.4px 0 0;
+            aspect-ratio: 1 / 1;
         }
 
         .gallery-caption {
             position: static;
             margin-top: 0.35rem;
             padding: 0.35rem;
-            background: rgba(249, 250, 251, 0.9);
             text-align: center;
             font-size: 0.728rem;
             color: #000000;
             backdrop-filter: blur(4px);
             border-radius: 5.6px;
             max-height: 84px;
-            overflow-y: auto;
+            overflow-y: hidden;
         }
 
         .gallery-caption[style*="background: #fff3cd"] {
             position: static;
-            background: #fff3cd !important;
-            color: #856404 !important;
-            border: 1px solid #ffeaa7;
             margin-top: 0.35rem;
             border-radius: 5.6px;
             padding: 0.525rem;
             flex: none;
             max-height: 84px;
-            overflow-y: auto;
+            overflow-y: hidden;
         }
 
         .gallery-section {
@@ -1792,8 +1813,8 @@
             }
 
             .gallery-grid {
-                grid-template-columns: repeat(auto-fit, 210px);
-                grid-template-rows: 210px;
+                grid-template-columns: repeat(auto-fit, minmax(30.1vh, 1fr));
+                grid-template-rows: auto;
                 gap: 0;
                 margin: 0;
                 overflow-x: auto;
@@ -1802,7 +1823,8 @@
             }
 
             .gallery-item {
-                width: 210px;
+                width: calc(35vh * 0.86);
+                max-height: 35vh;
                 position: relative;
                 display: flex;
                 flex-direction: column;
@@ -1814,6 +1836,7 @@
                 max-height: none;
                 height: 100%;
                 border-radius: 8.4px 8.4px 0 0;
+                aspect-ratio: 1 / 1;
             }
 
             .gallery-item img {
@@ -1829,7 +1852,7 @@
                 backdrop-filter: blur(4px);
                 border-radius: 8px;
                 max-height: 120px;
-                overflow-y: auto;
+                overflow-y: hidden;
             }
 
             .gallery-caption[style*="background: #fff3cd"] {
@@ -1841,7 +1864,7 @@
                 padding: 0.75rem;
                 flex: none;
                 max-height: 120px;
-                overflow-y: auto;
+                overflow-y: hidden;
             }
 
             .gallery-caption {
@@ -2537,7 +2560,7 @@
                         <div class="service-card">
                             <img src="/static/permanent/icon1_Services.png" alt="{{ _('Assessment icon') }}" class="service-icon">
                             <h3 style="font-size: 110%;">{{ _('Assessment and Skill Evaluation') }}</h3>
-                            <p style="font-size: 105%;">
+                            <p class="scrollable" style="font-size: 105%;">
                                 {{ _('Comprehensive assessment of a child\'s development and creation of an individualized support plan') }}
                             </p>
                             <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal1')">{{ _('Learn More') }}</a>

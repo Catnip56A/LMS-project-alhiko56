@@ -129,43 +129,48 @@
 /* features detail panel removed */
 
 #about .gallery-grid .gallery-item {
-  flex: 0 0 320px;
+  flex: 0 0 35vh;
   scroll-snap-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+  max-height: 35vh;
+  margin-left: 60px;
 }
 
 #about .gallery-grid .gallery-item .gallery-media-viewport {
-  width: 288px !important;
-  height: 288px !important;
+  width: 25vh !important;
+  height: 35vh !important;
   border-radius: 50% !important;
   overflow: hidden !important;
-  background: #f0f0f0 !important;
+  background: rgba(240, 240, 240, 0.1) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  margin: 0 auto 1rem auto !important;
+  margin: 0 !important;
 }
 
 #about .gallery-grid .gallery-item img {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
+  aspect-ratio: 1 / 1 !important;
 }
 
 #about .gallery-grid .gallery-item iframe {
   width: 100% !important;
   height: 100% !important;
   border: none !important;
+  aspect-ratio: 1 / 1 !important;
 }
 
 #about .gallery-grid .gallery-item video {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
+  aspect-ratio: 1 / 1 !important;
 }
 
 /* hide scrollbar but keep accessible */
