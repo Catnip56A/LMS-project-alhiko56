@@ -297,6 +297,10 @@ class HomeContent(db.Model):
     about_gallery_title = db.Column(db.String(200), default="What's New")
     about_gallery_subtitle = db.Column(db.String(500), default="Discover the latest updates, new features, and exciting developments in our learning platform.")
     
+    # Services section
+    services_title = db.Column(db.String(200), default="Our Services")
+    services_subtitle = db.Column(db.String(500), default="Explore the comprehensive services we offer.")
+    
     # Navigation and branding
     site_logo_url = db.Column(db.String(500), default="https://lh3.googleusercontent.com/d/1abc123def456ghi789jkl012mno345pqr/view")
     site_name = db.Column(db.String(200), default="Yonca")

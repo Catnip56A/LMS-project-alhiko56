@@ -14,6 +14,164 @@
     <!-- Site-wide styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
 
+    <style>
+        .youtube-global-modal .modal-dialog {
+            max-width: min(96vw, 1400px);
+            width: auto;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .youtube-global-modal .modal-content {
+            background: #000;
+            border: none;
+        }
+
+        .youtube-global-modal .modal-header {
+            border-bottom: none;
+            color: #fff;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .youtube-global-modal .modal-title {
+            flex: 1;
+            margin-right: 1rem;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .youtube-global-modal .modal-header .btn {
+            flex-shrink: 0;
+        }
+
+        .youtube-global-modal .close {
+            color: #fff;
+            opacity: 0.9;
+            text-shadow: none;
+            font-size: 2rem;
+            line-height: 1;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        .youtube-global-modal .youtube-global-close-btn {
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .youtube-global-modal .modal-body {
+            padding: 0;
+            max-height: calc(100vh - 70px);
+            overflow-y: auto;
+        }
+
+        .youtube-global-frame-wrap {
+            position: relative;
+            width: 100vw;
+            max-width: 90vw;
+            aspect-ratio: 16/9;
+            background: #000;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .youtube-global-frame-wrap iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            aspect-ratio: 16/9;
+            max-width: 100vw;
+            max-height: 80vh;
+            background: #000;
+        }
+
+        /* Responsive adjustments for small screens */
+        @media (max-width: 900px) {
+            .youtube-global-frame-wrap {
+                max-width: 100vw;
+            }
+        }
+        @media (max-width: 600px), (max-height: 600px) {
+            .youtube-global-modal .modal-dialog {
+                max-width: 100vw;
+                margin: 0;
+            }
+            .youtube-global-frame-wrap {
+                max-width: 100vw;
+                aspect-ratio: 16/9;
+            }
+            .youtube-global-frame-wrap iframe {
+                max-width: 100vw;
+                max-height: 50vh;
+            }
+        }
+        @media (max-width: 400px), (max-height: 400px) {
+            .youtube-global-frame-wrap {
+                aspect-ratio: 1/1;
+            }
+            .youtube-global-frame-wrap iframe {
+                aspect-ratio: 1/1;
+            }
+        }
+
+        .youtube-open-large-btn {
+            display: inline-block;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .youtube-overlay-trigger {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.12);
+            z-index: 2;
+            border: 0;
+            padding: 0;
+        }
+
+        .youtube-overlay-trigger:hover {
+            background: rgba(0, 0, 0, 0.22);
+        }
+
+        .youtube-overlay-trigger .youtube-overlay-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.72);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            line-height: 1;
+        }
+
+    </style>
+
     {% block head %}
     <style>
         /* Active navigation styling */
@@ -27,6 +185,25 @@
 </head>
 <body>
     {% block content %}{% endblock %}
+
+    <div class="modal fade youtube-global-modal" id="youtubeGlobalModal" tabindex="-1" role="dialog" aria-labelledby="youtubeGlobalModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="youtubeGlobalModalLabel">{{ _('YouTube Video') }}</h5>
+                    <button type="button" class="btn btn-sm btn-outline-light youtube-global-close-btn" data-dismiss="modal">{{ _('Close Large View') }}</button>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="youtube-global-frame-wrap">
+                        <iframe id="youtubeGlobalModalFrame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -161,5 +338,89 @@
         });
     </script>
     {% endblock %}
+
+    <script>
+        function yoncaExtractYouTubeEmbed(rawUrl) {
+            try {
+                const url = new URL(rawUrl, window.location.origin);
+                const host = url.hostname.toLowerCase();
+                let videoId = '';
+
+                if (host.includes('youtu.be')) {
+                    videoId = url.pathname.replace('/', '').trim();
+                } else if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+                    if (url.pathname.startsWith('/watch')) {
+                        videoId = (url.searchParams.get('v') || '').trim();
+                    } else if (url.pathname.startsWith('/embed/')) {
+                        videoId = url.pathname.split('/embed/')[1].split('/')[0].trim();
+                    } else if (url.pathname.startsWith('/shorts/')) {
+                        videoId = url.pathname.split('/shorts/')[1].split('/')[0].trim();
+                    }
+                }
+
+                if (!videoId) return null;
+                return 'https://www.youtube.com/embed/' + encodeURIComponent(videoId) + '?autoplay=1&rel=0';
+            } catch (err) {
+                return null;
+            }
+        }
+
+        function yoncaOpenYouTubeLarge(embedUrl) {
+            if (!embedUrl) return;
+            $('#youtubeGlobalModalFrame').attr('src', embedUrl);
+            $('#youtubeGlobalModal').modal('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            $(document).on('click', 'a[href*="youtube.com/watch"], a[href*="youtu.be/"], a[href*="youtube.com/embed/"], a[href*="youtube.com/shorts/"], a[href*="youtube-nocookie.com/embed/"]', function(e) {
+                const embedUrl = yoncaExtractYouTubeEmbed(this.href);
+                if (!embedUrl) return;
+                e.preventDefault();
+                e.stopPropagation();
+                yoncaOpenYouTubeLarge(embedUrl);
+            });
+
+            document.querySelectorAll('iframe[src*="youtube.com/embed/"], iframe[src*="youtube-nocookie.com/embed/"]').forEach(function(iframe) {
+                if (iframe.dataset.yoncaLargeBound === '1') return;
+                iframe.dataset.yoncaLargeBound = '1';
+
+                const src = iframe.getAttribute('src') || '';
+                const embedUrl = yoncaExtractYouTubeEmbed(src);
+                if (!embedUrl) return;
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-sm btn-outline-primary youtube-open-large-btn';
+                button.textContent = '{{ _("Open in Large View") }}';
+                button.addEventListener('click', function() {
+                    yoncaOpenYouTubeLarge(embedUrl);
+                });
+
+                iframe.parentNode.insertBefore(button, iframe);
+
+                const parent = iframe.parentElement;
+                if (parent) {
+                    if (window.getComputedStyle(parent).position === 'static') {
+                        parent.style.position = 'relative';
+                    }
+
+                    const overlay = document.createElement('button');
+                    overlay.type = 'button';
+                    overlay.className = 'youtube-overlay-trigger';
+                    overlay.setAttribute('aria-label', '{{ _("Open video in large view") }}');
+                    overlay.innerHTML = '<span class="youtube-overlay-icon">▶</span>';
+                    overlay.addEventListener('click', function() {
+                        yoncaOpenYouTubeLarge(embedUrl);
+                    });
+
+                    parent.appendChild(overlay);
+                }
+            });
+
+            $('#youtubeGlobalModal').on('hidden.bs.modal', function() {
+                $('#youtubeGlobalModalFrame').attr('src', '');
+            });
+        });
+    </script>
 </body>
 </html>

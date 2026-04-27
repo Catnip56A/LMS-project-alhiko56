@@ -632,6 +632,9 @@ class HomeContentForm(FlaskForm):
     features_title = StringField('Features Title', [Optional()], default="Our Features")
     features_subtitle = TextAreaField('Features Subtitle', [Optional()], default="Discover what makes our platform special.")
 
+    services_title = StringField('Services Title', [Optional()], default="Our Services")
+    services_subtitle = TextAreaField('Services Subtitle', [Optional()], default="Explore the comprehensive services we offer.")
+
     about_section_title = StringField('About Section Title', [Optional()], default="About Yonca")
     about_section_description = TextAreaField('About Section Description', [Optional()], default="Learn about our mission and vision.")
     

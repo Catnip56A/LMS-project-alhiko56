@@ -97,6 +97,7 @@
     .list-group-item {
         font-size: 1rem;
         text-align: left;
+        background-color: #ffeedd;
     }
     .tab-content {
         margin-top: 24px;
@@ -125,6 +126,7 @@
     .folder-item[data-depth="3"] { margin-left: 60px; }
     .folder-item[data-depth="4"] { margin-left: 80px; }
     .folder-item[data-depth="5"] { margin-left: 100px; }
+    .folder-item .card { background-color: #fce6c5; }
     .reply-card[data-depth] { background: #f8f9fa; }
     .reply-card[data-depth="0"] { margin-left: 0px; }
     .reply-card[data-depth="1"] { margin-left: 20px; background: #e9ecef; }
@@ -158,6 +160,7 @@
     .star-display .star.filled {
         color: #ffc107;
     }
+
 
     /* Mobile responsive styles */
     @media (max-width: 768px) {
@@ -261,6 +264,7 @@
             padding: 0.375rem 0.75rem;
             font-size: 1.1375rem;
         }
+
     }
     /* Multilingual text handling */
     .course-marketing h1, .course-marketing h2, .course-marketing h4 {
@@ -382,7 +386,7 @@
     <div class="folder-item" data-depth="{{ depth }}" data-folder-id="{{ folder.id }}">
             <div class="card mb-2">
                     {% set is_locked = folder.locked_until_assignment_id and (folder.locked_until_assignment_id not in passed_assignment_ids) and not is_teacher_or_admin %}
-                    <div class="card-header" style="background: #e3f2fd; cursor: pointer; text-align: left;" {% if not is_locked %}data-toggle="collapse" data-target="#folder-{{ folder.id }}"{% endif %}>
+                    <div class="card-header" style="background: #fce6c5; cursor: pointer; text-align: left;" {% if not is_locked %}data-toggle="collapse" data-target="#folder-{{ folder.id }}"{% endif %}>
                         <strong>📁 {{ folder.title }} <span class="ml-1" id="icon-{{ folder.id }}">▼</span></strong>
                         {% if is_locked %}
                             <span class="badge badge-danger ml-2">🔒 {{ _('Locked') }}</span>
@@ -1778,7 +1782,9 @@
             </div>
         </div>
     </div>
+
     {% endif %}
+
 </div>
 
 <script>
@@ -2125,6 +2131,7 @@ $(document).ready(function() {
         e.preventDefault();
         $(this).tab('show');
     });
+
 });
 
 // Bulk actions functions for enrolled page

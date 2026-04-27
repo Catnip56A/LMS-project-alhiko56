@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ current_locale }}">
 <head>
     <meta charset="UTF-8">
@@ -1756,12 +1756,6 @@
 
             .mobile-menu-toggle:hover {
                 background: #e5e7eb;
-                border-color: #337a2c;
-                transform: scale(1.05);
-            }
-
-            .mobile-menu-toggle:hover {
-                background: #e5e7eb;
                 color: #337a2c;
             }
 
@@ -2103,6 +2097,69 @@
                 font-size: 1.5vw !important;
             }
         }
+
+        /* Standalone large video modal for homepage template */
+        .yonca-video-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 10001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .yonca-video-modal.show {
+            display: flex;
+        }
+
+        .yonca-video-modal-dialog {
+            width: min(96vw, 1400px);
+            max-height: 95vh;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .yonca-video-modal-frame-wrap {
+            position: relative;
+            width: min(90vw, calc((100vh - 140px) * 16 / 9));
+            height: min(calc(90vw * 9 / 16), calc(100vh - 140px));
+            max-height: calc(100vh - 140px);
+            background: #000;
+            margin: 0 auto;
+        }
+
+        .yonca-video-modal-frame-wrap iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #000;
+        }
+
+        @media (max-width: 600px), (max-height: 600px) {
+            .yonca-video-modal {
+                padding: 0.5rem;
+            }
+
+            .yonca-video-modal-dialog {
+                width: 98vw;
+            }
+
+            .yonca-video-modal-frame-wrap {
+                width: min(96vw, calc((100vh - 120px) * 16 / 9));
+                height: min(calc(96vw * 9 / 16), calc(100vh - 120px));
+                max-height: calc(100vh - 120px);
+            }
+        }
     </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/gallery-popup.css') }}">
 </head>
@@ -2225,10 +2282,16 @@
                     {% elif 'youtu.be/' in image.url %}
                         {% set video_id = image.url.split('youtu.be/')[1].split('?')[0] %}
                     {% endif %}
-                    <iframe width="100%" 
-                        src="https://www.youtube.com/embed/{{ video_id }}?enablejsapi=1&rel=0" 
-                        frameborder="0" allowfullscreen
-                        style="border-radius: 8px; max-width: 100%;"></iframe>
+                    <button type="button"
+                        onclick="yoncaOpenYouTubeLarge('https://www.youtube.com/embed/{{ video_id }}?autoplay=1&rel=0');"
+                        style="width:100%; height:100%; border:0; padding:0; background:#000; position:relative; cursor:pointer; border-radius:8px;">
+                        <img src="https://img.youtube.com/vi/{{ video_id }}/hqdefault.jpg"
+                             alt="YouTube video"
+                             style="width:100%; height:100%; object-fit:cover; border-radius:8px;" loading="lazy">
+                        <span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+                            <span style="width:64px; height:64px; border-radius:50%; background:rgba(0,0,0,.72); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:28px;">▶</span>
+                        </span>
+                    </button>
                     {% elif 'vimeo.com' in image.url %}
                     {% set video_id = image.url.split('vimeo.com/')[1].split('?')[0] %}
                     <iframe width="100%" 
@@ -2366,7 +2429,7 @@
 
             <!-- Course Filters -->
             <div class="course-filters" style="background: rgba(255, 255, 255, 0.55); padding: 1rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1rem;">
-                <h3 style="margin: 0 0 1rem 0; color: #212121;">📚 {{ _('Filter Courses') }}</h3>
+                <h3 style="margin: 0 0 1rem 0; color: #212121;">📚 {{ _('Filter Courses') }}</h2>
                 <div class="filter-section" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                     <div>
                         <label style="font-weight: 500; color: #353e45; margin-right: 0.5rem;">{{ _("Tags:") }}</label>
@@ -2746,10 +2809,16 @@
                     {% elif 'youtu.be/' in image.url %}
                         {% set video_id = image.url.split('youtu.be/')[1].split('?')[0] %}
                     {% endif %}
-                    <iframe width="100%" 
-                        src="https://www.youtube.com/embed/{{ video_id }}?enablejsapi=1&rel=0" 
-                        frameborder="0" allowfullscreen
-                        style="border-radius: 8px; max-width: 100%;"></iframe>
+                    <button type="button"
+                        onclick="yoncaOpenYouTubeLarge('https://www.youtube.com/embed/{{ video_id }}?autoplay=1&rel=0');"
+                        style="width:100%; height:100%; border:0; padding:0; background:#000; position:relative; cursor:pointer; border-radius:8px;">
+                        <img src="https://img.youtube.com/vi/{{ video_id }}/hqdefault.jpg"
+                             alt="YouTube video"
+                             style="width:100%; height:100%; object-fit:cover; border-radius:8px;" loading="lazy">
+                        <span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+                            <span style="width:64px; height:64px; border-radius:50%; background:rgba(0,0,0,.72); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:28px;">▶</span>
+                        </span>
+                    </button>
                     {% elif 'vimeo.com' in image.url %}
                     {% set video_id = image.url.split('vimeo.com/')[1].split('?')[0] %}
                     <iframe width="100%" 
@@ -2768,7 +2837,7 @@
                         style="border-radius: 8px; max-width: 100%;"></iframe>
                     <div class="gallery-caption" style="background: #fff3cd; color: #856404; border-color: #ffeaa7;">
                         <small><i class="fa fa-clock-o"></i> If video shows "still being processed," please wait 5-60 minutes for Google Drive to finish processing, then refresh the page.</small>
-                    </video>
+                    </div>
                     {% elif image.url.endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv', '.mp3', '.wav', '.ogg')) %}
                     <video controls style="width: 100%; height: auto;">
                         <source src="{{ image.url }}" type="video/mp4">
@@ -2934,7 +3003,7 @@
             }
         }
 
-        // Initialize gallery captions
+        // Initialize gallery buttons
         function initializeGalleryButtons() {
             const captionElements = document.querySelectorAll('.caption-bold-text');
             
@@ -5677,6 +5746,57 @@
             });
         });
     </script>
+    <div id="yoncaVideoModal" class="yonca-video-modal" aria-hidden="true">
+        <div class="yonca-video-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="yoncaVideoModalTitle">
+            <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                <div style="width: 100%; text-align: center; margin-bottom: 0.5rem; color: #fff; font-size: 1rem;">
+                    {{ _('To exit, click the black area outside the video.') }}
+                </div>
+                <div class="yonca-video-modal-frame-wrap">
+                    <iframe id="yoncaVideoModalFrame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.yoncaOpenYouTubeLarge = function(embedUrl) {
+            if (!embedUrl) return;
+            var modal = document.getElementById('yoncaVideoModal');
+            var frame = document.getElementById('yoncaVideoModalFrame');
+            if (!modal || !frame) return;
+
+            frame.src = embedUrl;
+            modal.classList.add('show');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.yoncaCloseYouTubeLarge = function() {
+            var modal = document.getElementById('yoncaVideoModal');
+            var frame = document.getElementById('yoncaVideoModalFrame');
+            if (!modal || !frame) return;
+
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            frame.src = '';
+            document.body.style.overflow = '';
+        };
+
+        document.addEventListener('click', function(e) {
+            var modal = document.getElementById('yoncaVideoModal');
+            if (modal && e.target === modal) {
+                window.yoncaCloseYouTubeLarge();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                window.yoncaCloseYouTubeLarge();
+            }
+        });
+    </script>
+
     <script src="{{ url_for('static', filename='js/gallery-popup.js') }}"></script>
     {% include 'components/footer.html' %}
 </body>
