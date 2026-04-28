@@ -381,6 +381,8 @@
             });
 
             document.querySelectorAll('iframe[src*="youtube.com/embed/"], iframe[src*="youtube-nocookie.com/embed/"]').forEach(function(iframe) {
+                // Skip the course guide video (uses auto-expand on play)
+                if (iframe.id === 'youtubeGuideIframe') return;
                 if (iframe.dataset.yoncaLargeBound === '1') return;
                 iframe.dataset.yoncaLargeBound = '1';
 

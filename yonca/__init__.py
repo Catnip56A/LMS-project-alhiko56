@@ -173,8 +173,164 @@ def create_app(config_name='development'):
     def inject_render_functions():
         """Make rendering functions available in templates"""
         from yonca.page_builder_utils import render_page_builder_blocks
+        import re
+        import os
+        from urllib.parse import urlparse, parse_qs
+
+        def add_file_emoji(item):
+            """Add emoji to file name based on extension or MIME type"""
+            # Get filename from title or drive_view_link
+            filename = getattr(item, 'title', '') or ''
+            drive_file_id = getattr(item, 'drive_file_id', '') or ''
+            drive_link = getattr(item, 'drive_view_link', '') or ''
+
+            # Import URL parsing functions
+            from urllib.parse import urlparse, parse_qs
+
+            # Try to get MIME type from Google Drive API first (most reliable)
+            mime_type = ''
+            if drive_file_id:
+                try:
+                    from yonca.google_drive_service import authenticate, get_file_metadata
+                    from flask_login import current_user
+
+                    # Only try API if user is authenticated with Google
+                    if current_user and current_user.google_access_token:
+                        service = authenticate(current_user)
+                        if service:
+                            metadata = get_file_metadata(service, drive_file_id)
+                            if metadata and 'mimeType' in metadata:
+                                mime_type = metadata['mimeType']
+                                print(f"DEBUG: Got MIME type {mime_type} for file {drive_file_id}")
+                except Exception as e:
+                    print(f"DEBUG: Could not get MIME type for {drive_file_id}: {e}")
+                    mime_type = ''
+
+            # If we got MIME type, map it to extension
+            ext = ''
+            if mime_type:
+                # MIME type to extension mapping
+                mime_to_ext = {
+                    # Images
+                    'image/jpeg': '.jpg',
+                    'image/png': '.png',
+                    'image/gif': '.gif',
+                    'image/svg+xml': '.svg',
+                    'image/webp': '.webp',
+
+                    # Videos
+                    'video/mp4': '.mp4',
+                    'video/quicktime': '.mov',
+                    'video/x-msvideo': '.avi',
+                    'video/webm': '.webm',
+
+                    # Audio
+                    'audio/mpeg': '.mp3',
+                    'audio/wav': '.wav',
+                    'audio/x-wav': '.wav',
+                    'audio/mp4': '.m4a',
+
+                    # Documents
+                    'application/pdf': '.pdf',
+                    'application/msword': '.doc',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+                    'application/vnd.ms-powerpoint': '.ppt',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+                    'application/vnd.ms-excel': '.xls',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+
+                    # Text/Data
+                    'text/plain': '.txt',
+                    'text/csv': '.csv',
+                    'application/json': '.json',
+                    'application/xml': '.xml',
+                    'text/xml': '.xml',
+
+                    # Adobe
+                    'image/vnd.adobe.photoshop': '.psd',
+                }
+                ext = mime_to_ext.get(mime_type, '')
+
+            # If no MIME type, fall back to URL parsing
+            if not ext and drive_link:
+                # Try to extract filename from URL parameters first (most reliable)
+                try:
+                    parsed_url = urlparse(drive_link)
+                    query_params = parse_qs(parsed_url.query)
+                    if 'filename' in query_params:
+                        filename_param = query_params['filename'][0]
+                        _, ext = os.path.splitext(filename_param.lower())
+                except:
+                    pass
+
+                # If no filename parameter, try extracting from URL path (avoid domain parts)
+                if not ext:
+                    try:
+                        parsed = urlparse(drive_link)
+                        path_parts = parsed.path.split('/')
+                        for part in reversed(path_parts):
+                            if '.' in part and len(part.split('.')[-1]) <= 4:  # Reasonable extension length
+                                # Remove query parameters
+                                filename_from_url = part.split('?')[0]
+                                _, ext = os.path.splitext(filename_from_url.lower())
+                                break
+                    except:
+                        pass
+
+            # If no extension from URL, try title
+            if not ext and filename:
+                try:
+                    _, ext = os.path.splitext(filename.lower())
+                except:
+                    # Fallback: extract extension manually
+                    parts = filename.lower().rsplit('.', 1)
+                    if len(parts) == 2:
+                        ext = '.' + parts[1]
+
+            # Emoji mappings based on file type
+            emoji_map = {
+                # Media files
+                '.mp3': '🎧',
+                '.wav': '🎧',
+                '.m4a': '🎧',
+                '.mp4': '🎥',
+                '.mov': '🎥',
+                '.avi': '🎥',
+                '.webm': '🎥',
+
+                # Documents & Text
+                '.txt': '📝',
+                '.pdf': '📕',
+                '.doc': '📄',
+                '.docx': '📄',
+                '.ppt': '📊',
+                '.pptx': '📊',
+                '.xml': '🗒️',
+                '.json': '🗒️',
+                '.csv': '📗',
+                '.xls': '📗',
+                '.xlsx': '📗',
+
+                # Images & Graphics
+                '.jpg': '📷',
+                '.jpeg': '📷',
+                '.png': '📷',
+                '.svg': '📷',
+                '.webp': '📷',
+                '.gif': '🎞️',
+                '.psd': '🎨',
+            }
+
+            emoji = emoji_map.get(ext, '')
+            result = f"{filename} {emoji}".strip()
+            if mime_type:
+                print(f"DEBUG: Used MIME type {mime_type} -> extension {ext} -> emoji {emoji}")
+            return result
+
         return {
             'render_page_builder_blocks': render_page_builder_blocks,
+            're': re,
+            'add_file_emoji': add_file_emoji,
         }
     
     @app.template_filter('parse_buttons')

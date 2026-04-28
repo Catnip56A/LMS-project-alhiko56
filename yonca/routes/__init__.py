@@ -1230,15 +1230,21 @@ def course_page_enrolled(course_id):
     # Generate folder paths for dropdown menus
     folder_paths = {folder.id: folder.title for folder in content_folders}
 
-    # Debugging folder paths
-    print("[DEBUG] Folder Paths:", folder_paths)
+    # --- YouTube Course Guide logic ---
+    import re
+    youtube_guide_video_id = None
+    # Only consider root-level folders (parent_folder_id is None)
+    root_folders = content_folders.filter_by(parent_folder_id=None).order_by(CourseContentFolder.created_at.asc()).all()
+    for folder in root_folders:
+        if folder.title == "youtube-CourseGuide" and folder.description:
+            # Extract YouTube video ID from description (support youtu.be and youtube.com links)
+            match = re.search(r'(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|v/|shorts/))([\w-]{11})', folder.description)
+            if match:
+                youtube_guide_video_id = match.group(1)
+                break
 
-    # Debugging content folders
-    print("[DEBUG] Content Folders:", content_folders)
-
-    # Debugging all folders in the database
-    all_folders = CourseContentFolder.query.all()
-    print("[DEBUG] All Folders in Database:", all_folders)
+    # Debugging YouTube guide video
+    print("[DEBUG] youtube_guide_video_id:", youtube_guide_video_id)
 
     # Debugging is_teacher_or_admin
     print("[DEBUG] is_teacher_or_admin:", is_teacher_or_admin)
@@ -1293,7 +1299,8 @@ def course_page_enrolled(course_id):
                           translated_title=translated_title,
                           translated_subtitle=translated_subtitle,
                           translated_page_features=translated_page_features,
-                          datetime=dt)
+                          datetime=dt,
+                          youtube_guide_video_id=youtube_guide_video_id)
     if user:
         user.is_teacher = is_teacher
         db.session.commit()
