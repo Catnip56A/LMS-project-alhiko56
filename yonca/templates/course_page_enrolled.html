@@ -590,7 +590,7 @@
                                     <input type="checkbox" class="content-checkbox-enrolled" value="{{ item.id }}" onchange="updateBulkActionsEnrolled()" style="flex-shrink: 0; cursor: pointer;">
                                     {% endif %}
                                     <div>
-                                        <strong>{{ add_file_emoji(item) | safe }} <small style="color: red; font-family: monospace;">[DEBUG: {{ item.drive_view_link | default('no-link') }}]</small></strong><br>
+                                        <strong>{{ add_file_emoji(item) | safe }}</strong><br>
                                         <small>{{ item.description }}</small>
                                     </div>
                                 </div>
@@ -812,9 +812,7 @@
         </script>
         
         <div class="tab-content" id="courseTabsContent">
-        
-        <!-- DEBUG: Current Active Tab Display -->
-        
+
         <div class="tab-pane fade" id="features" role="tabpanel">
             <div class="mt-4">
                 <section class="course-marketing" style="background-color: rgba(255, 255, 255, 0.4); border-radius: 12px; box-shadow: 0 2px 8px #e5e7eb; padding: 2rem; margin-bottom: 2rem;">

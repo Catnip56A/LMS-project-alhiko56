@@ -201,10 +201,8 @@ def create_app(config_name='development'):
                             metadata = get_file_metadata(service, drive_file_id)
                             if metadata and 'mimeType' in metadata:
                                 mime_type = metadata['mimeType']
-                                print(f"DEBUG: Got MIME type {mime_type} for file {drive_file_id}")
                 except Exception as e:
-                    print(f"DEBUG: Could not get MIME type for {drive_file_id}: {e}")
-                    mime_type = ''
+                    pass
 
             # If we got MIME type, map it to extension
             ext = ''
@@ -322,10 +320,7 @@ def create_app(config_name='development'):
             }
 
             emoji = emoji_map.get(ext, '')
-            result = f"{filename} {emoji}".strip()
-            if mime_type:
-                print(f"DEBUG: Used MIME type {mime_type} -> extension {ext} -> emoji {emoji}")
-            return result
+            return f"{filename} {emoji}".strip()
 
         return {
             'render_page_builder_blocks': render_page_builder_blocks,
