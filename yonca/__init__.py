@@ -91,12 +91,20 @@ def create_app(config_name='development'):
         lang = request.args.get('lang')
         if lang and lang in ['en', 'ru', 'az']:
             print(f"DEBUG: Babel get_locale from URL: {lang}")
+            # If language is Azerbaijani, switch to English unless on privacy/terms pages
+            if lang == 'az' and not _is_on_legal_page(request):
+                print(f"DEBUG: Babel overriding Azerbaijani to English (not on legal page)")
+                return 'en'
             return lang
 
         # Check if language is set in session
         lang = session.get('language')
         if lang and lang in ['en', 'ru', 'az']:
             print(f"DEBUG: Babel get_locale from session: {lang}")
+            # If language is Azerbaijani, switch to English unless on privacy/terms pages
+            if lang == 'az' and not _is_on_legal_page(request):
+                print(f"DEBUG: Babel overriding Azerbaijani to English (not on legal page)")
+                return 'en'
             return lang
         
         # Default to English
@@ -105,6 +113,12 @@ def create_app(config_name='development'):
     
     # Set locale selector using the correct attribute
     babel.init_app(app, locale_selector=get_locale)
+    
+    # Helper function to check if the current request is on a legal page (privacy/terms)
+    def _is_on_legal_page(request):
+        """Check if the current request path is for privacy policy or terms of use"""
+        path = request.path.lower()
+        return path in ['/privacy', '/privacy-policy', '/terms']
     
     # Add Babel's _ function to Jinja2 globals for template translations
     from flask_babel import gettext as _gettext
