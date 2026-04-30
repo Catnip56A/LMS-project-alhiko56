@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if current_locale == 'az' %}{{ _('İstifadə Şərtləri') }}{% elif current_locale == 'ru' %}{{ _('Условия использования') }}{% else %}{{ _('Terms of Use') }}{% endif %}</title>
+    <title>{% if current_locale == 'az' %}{{ _('Məxfilik siyasəti') }}{% elif current_locale == 'ru' %}{{ _('Политика конфиденциальности') }}{% else %}{{ _('Privacy policy') }}{% endif %}</title>
     <style>
         .pdf-container {
             width: 100%;
@@ -100,16 +100,16 @@
 </head>
 <body>
     <div class="container">
-        <h1>{% if current_locale == 'az' %}{{ _('İstifadə Şərtləri') }}{% elif current_locale == 'ru' %}{{ _('Условия использования') }}{% else %}{{ _('Terms of Use') }}{% endif %}</h1>
+        <h1>{% if current_locale == 'az' %}{{ _('Məxfilik siyasəti') }}{% elif current_locale == 'ru' %}{{ _('Политика конфиденциальности') }}{% else %}{{ _('Privacy policy') }}{% endif %}</h1>
         <div class="language-buttons">
             <a href="/set_language/az" class="{% if current_locale == 'az' %}active{% endif %}">Azərbaycan</a>
             <a href="/set_language/en" class="{% if current_locale == 'en' %}active{% endif %}">English</a>
             <a href="/set_language/ru" class="{% if current_locale == 'ru' %}active{% endif %}">Русский</a>
         </div>
         {% set pdf_filenames = {
-            'az': 'permanent/TERMS&POLICIES/Yonca Terms of Use AZ .pdf',
-            'en': 'permanent/TERMS&POLICIES/Yonca Terms of Use EN.pdf',
-            'ru': 'permanent/TERMS&POLICIES/Yonca Terms of Use RU.pdf'
+            'az': 'permanent/TERMS&POLICIES/Yonca политика конфиденциальности AZ.pdf',
+            'en': 'permanent/TERMS&POLICIES/Yonca Политика конфиденциальности EN.pdf',
+            'ru': 'permanent/TERMS&POLICIES/Yonca Политика конфиденциальности RU.pdf'
         } %}
         <embed src="{{ url_for('static', filename=pdf_filenames.get(current_locale, pdf_filenames.en)) }}" class="pdf-container" type="application/pdf">
         <a href="/" class="back-link">{{ _('Back to Home') }}</a>

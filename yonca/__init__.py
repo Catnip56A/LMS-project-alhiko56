@@ -89,13 +89,13 @@ def create_app(config_name='development'):
         
         # Check URL parameter first
         lang = request.args.get('lang')
-        if lang and lang in ['en', 'ru']:
+        if lang and lang in ['en', 'ru', 'az']:
             print(f"DEBUG: Babel get_locale from URL: {lang}")
             return lang
-        
+
         # Check if language is set in session
         lang = session.get('language')
-        if lang and lang in ['en', 'ru']:
+        if lang and lang in ['en', 'ru', 'az']:
             print(f"DEBUG: Babel get_locale from session: {lang}")
             return lang
         

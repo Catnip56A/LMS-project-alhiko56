@@ -1385,6 +1385,12 @@ def terms():
     """Serve terms of service page"""
     return render_template('terms.html')
 
+@main_bp.route('/privacy')
+@main_bp.route('/privacy-policy')
+def privacy():
+    """Serve privacy policy page"""
+    return render_template('privacyPolicy.html')
+
 @main_bp.route('/course/<slug>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_course_page(slug):
@@ -1963,7 +1969,7 @@ def set_language(lang):
     print(f"DEBUG: Attempting to set language to: {lang}")
     print(f"DEBUG: Session before: {dict(session)}")
     
-    if lang in ['en', 'ru']:
+    if lang in ['en', 'ru', 'az']:
         session['language'] = lang
         session.modified = True
         session.permanent = True
