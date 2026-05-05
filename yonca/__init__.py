@@ -118,7 +118,7 @@ def create_app(config_name='development'):
     def _is_on_legal_page(request):
         """Check if the current request path is for privacy policy or terms of use"""
         path = request.path.lower()
-        return path in ['/privacy', '/privacy-policy', '/terms']
+        return path in ['/privacy', '/privacy-policy', '/terms', '/login']
     
     # Add Babel's _ function to Jinja2 globals for template translations
     from flask_babel import gettext as _gettext
