@@ -146,7 +146,7 @@ class CourseAssignmentSubmission(db.Model):
     comment = db.Column(db.Text, nullable=True)
     passed = db.Column(db.Boolean, default=False)
     allow_others_to_view = db.Column(db.Boolean, default=False)  # Allow other users to view this file
-    assignment = db.relationship('CourseAssignment', backref=db.backref('submissions', lazy='dynamic'))
+    assignment = db.relationship('CourseAssignment', backref=db.backref('submissions', lazy='select'))
     user = db.relationship('User')
 
     def __repr__(self):
@@ -373,7 +373,7 @@ class CourseContent(db.Model):
     
     course = db.relationship('Course', backref=db.backref('contents', lazy='dynamic'))
     folder_id = db.Column(db.Integer, db.ForeignKey('course_content_folder.id'), nullable=True)
-    folder = db.relationship('CourseContentFolder', backref=db.backref('items', lazy='dynamic'))
+    folder = db.relationship('CourseContentFolder', backref=db.backref('items', lazy='select'))
     
     def __repr__(self):
         return f'<CourseContent {self.title}>'
@@ -389,7 +389,7 @@ class CourseContentFolder(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     course = db.relationship('Course', backref=db.backref('content_folders', lazy='dynamic'))
-    parent_folder = db.relationship('CourseContentFolder', remote_side=[id], backref=db.backref('subfolders', lazy='dynamic'))
+    parent_folder = db.relationship('CourseContentFolder', remote_side=[id], backref=db.backref('subfolders', lazy='select'))
     locked_until_assignment_id = db.Column(db.Integer, db.ForeignKey('course_assignment.id'), nullable=True)
     locked_until_assignment = db.relationship('CourseAssignment', foreign_keys=[locked_until_assignment_id])
 
@@ -437,9 +437,9 @@ class CourseAnnouncementReply(db.Model):
     parent_reply_id = db.Column(db.Integer, db.ForeignKey('course_announcement_reply.id'), nullable=True)
     message = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
-    announcement = db.relationship('CourseAnnouncement', backref=db.backref('replies', lazy='dynamic'))
+    announcement = db.relationship('CourseAnnouncement', backref=db.backref('replies', lazy='select'))
     user = db.relationship('User')
-    parent_reply = db.relationship('CourseAnnouncementReply', remote_side=[id], backref=db.backref('child_replies', lazy='dynamic'))
+    parent_reply = db.relationship('CourseAnnouncementReply', remote_side=[id], backref=db.backref('child_replies', lazy='select'))
 
     def __repr__(self):
         return f'<CourseAnnouncementReply {self.id}>'

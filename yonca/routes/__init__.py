@@ -1265,6 +1265,9 @@ def course_page_enrolled(course_id):
     for folder in content_folders:
         folder.items = [item for item in folder.items if item.is_published]
     
+    # Separate root folders from subfolders for template
+    root_folders = [f for f in content_folders if f.parent_folder_id is None]
+    
     # Load assignments with eager-loaded submissions
     assignments = CourseAssignment.query.filter_by(course_id=course.id, is_published=True).options(
         subqueryload(CourseAssignment.submissions)
@@ -1275,6 +1278,10 @@ def course_page_enrolled(course_id):
         subqueryload(CourseAnnouncement.replies).joinedload(CourseAnnouncementReply.user),
         joinedload(CourseAnnouncement.author)
     ).order_by(CourseAnnouncement.created_at.desc()).all()
+    
+    # Pre-filter top-level replies for each announcement (for template compatibility)
+    for ann in announcements:
+        ann.top_level_replies = [r for r in ann.replies if r.parent_reply_id is None]
     
     # Load reviews with eager-loaded users
     reviews = CourseReview.query.filter_by(course_id=course.id).options(
@@ -1305,6 +1312,7 @@ def course_page_enrolled(course_id):
         is_teacher_or_admin=is_teacher_or_admin,
         contents=contents,
         content_folders=content_folders,
+        root_folders=root_folders,
         assignments=assignments,
         announcements=announcements,
         reviews=reviews,
@@ -1315,7 +1323,8 @@ def course_page_enrolled(course_id):
         translated_subtitle=translated_subtitle,
         translated_page_features=translated_page_features,
         youtube_guide_video_id=youtube_guide_video_id,
-        datetime=dt
+        datetime=dt,
+        folder_paths=folder_paths
     )
     if user:
         user.is_teacher = is_teacher
