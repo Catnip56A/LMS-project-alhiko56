@@ -2241,8 +2241,8 @@
             <a href="javascript:void(0)" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-tavi-link">{{ _('TAVI Test') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-about-link">{{ _('About Company') }}</a>
-                            {% set lang_cycle = {'en': 'az', 'az': 'ru', 'ru': 'en'} %}
-                            {% set lang_names = {'en': 'English', 'az': 'Azərbaycan', 'ru': 'Russian'} %}
+            {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
+            {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
             <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}">
                 🌐 {{ lang_names.get(current_locale, 'English') }}
             </a>
