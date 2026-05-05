@@ -1257,9 +1257,13 @@ def course_page_enrolled(course_id):
     
     # Load content folders with their items using eager loading
     content_folders = CourseContentFolder.query.filter_by(course_id=course.id).options(
-        subqueryload(CourseContentFolder.items).filter_by(is_published=True),
+        subqueryload(CourseContentFolder.items),
         subqueryload(CourseContentFolder.subfolders)
     ).order_by(CourseContentFolder.order).all()
+    
+    # Filter items in Python after loading
+    for folder in content_folders:
+        folder.items = [item for item in folder.items if item.is_published]
     
     # Load assignments with eager-loaded submissions
     assignments = CourseAssignment.query.filter_by(course_id=course.id, is_published=True).options(
