@@ -1218,57 +1218,14 @@ def course_page_enrolled(course_id):
             flash(f'Visibility toggled for {toggled_count} items!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
-    home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
-    contents = CourseContent.query.filter_by(course_id=course.id, is_published=True).order_by(CourseContent.order).all()
-    content_folders = CourseContentFolder.query.filter_by(course_id=course.id).order_by(CourseContentFolder.order)
-    assignments = CourseAssignment.query.filter_by(course_id=course.id, is_published=True).order_by(CourseAssignment.due_date).all()
-    announcements = CourseAnnouncement.query.filter_by(course_id=course.id, is_published=True).order_by(CourseAnnouncement.created_at.desc()).all()
-    reviews = CourseReview.query.filter_by(course_id=course.id).order_by(CourseReview.created_at.desc()).all()
-
-    is_teacher_or_admin = getattr(current_user, 'is_teacher', False) or getattr(current_user, 'is_admin', False)
-    
-    # Generate folder paths for dropdown menus
-    folder_paths = {folder.id: folder.title for folder in content_folders}
-
-    # --- YouTube Course Guide logic ---
-    import re
-    youtube_guide_video_id = None
-    # Only consider root-level folders (parent_folder_id is None)
-    root_folders = content_folders.filter_by(parent_folder_id=None).order_by(CourseContentFolder.created_at.asc()).all()
-    for folder in root_folders:
-        if folder.title == "youtube-CourseGuide" and folder.description:
-            # Extract YouTube video ID from description (support youtu.be and youtube.com links)
-            match = re.search(r'(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|v/|shorts/))([\w-]{11})', folder.description)
-            if match:
-                youtube_guide_video_id = match.group(1)
-                break
-
-    # Debugging YouTube guide video
-    print("[DEBUG] youtube_guide_video_id:", youtube_guide_video_id)
-
-    # Debugging is_teacher_or_admin
-    print("[DEBUG] is_teacher_or_admin:", is_teacher_or_admin)
-    print("[DEBUG] current_user.is_admin:", getattr(current_user, 'is_admin', None))
-    print("[DEBUG] current_user.is_teacher:", getattr(current_user, 'is_teacher', None))
-
-    # General debug log to confirm route access
-    print("[DEBUG] course_page_enrolled route accessed")
-
-    # Determine which assignments the current user has passed (for folder lock checks)
-    passed_assignment_ids = set()
-    try:
-        if current_user.is_authenticated:
-            from yonca.models import CourseAssignmentSubmission
-            passed_subs = CourseAssignmentSubmission.query.filter_by(user_id=current_user.id, passed=True).all()
-            passed_assignment_ids = {s.assignment_id for s in passed_subs}
-    except Exception:
-        passed_assignment_ids = set()
-
+    # GET request - render the page
     # Get translated page builder data for current locale
-    current_locale = str(get_locale())  # Convert Locale object to string
+    from flask_babel import get_locale
+    current_locale = str(get_locale())
     page_builder_data_translated = None
     try:
         if course.page_builder_data:
+            from yonca.content_translator import get_translated_page_builder_data
             page_builder_data_translated = get_translated_page_builder_data(course, current_locale)
     except Exception as e:
         print(f"[WARNING] Failed to get translated page builder data: {e}")
@@ -1280,27 +1237,82 @@ def course_page_enrolled(course_id):
     
     # Get translated page features
     translated_page_features = get_translated_json_array('course', course.id, 'page_features', course.page_features, current_locale) if course.page_features else None
-
-    return render_template('course_page_enrolled.html',
-                          course=course,
-                          home_content=home_content,
-                          contents=contents,
-                          content_folders=content_folders,
-                          assignments=assignments,
-                          announcements=announcements,
-                          reviews=reviews,
-                          is_teacher_or_admin=is_teacher_or_admin,
-                          folder_paths=folder_paths,
-                          enrolled=enrolled,
-                          current_user=current_user,
-                          is_authenticated=current_user.is_authenticated,
-                          passed_assignment_ids=passed_assignment_ids,
-                          page_builder_data_translated=page_builder_data_translated,
-                          translated_title=translated_title,
-                          translated_subtitle=translated_subtitle,
-                          translated_page_features=translated_page_features,
-                          datetime=dt,
-                          youtube_guide_video_id=youtube_guide_video_id)
+    
+    # Get YouTube guide video ID from page builder
+    youtube_guide_video_id = None
+    if course.page_builder_data:
+        for block in course.page_builder_data:
+            if block.get('type') == 'youtube' and block.get('settings', {}).get('video_id'):
+                youtube_guide_video_id = block['settings']['video_id']
+                break
+    
+    # PERFORMANCE OPTIMIZATION: Use eager loading to avoid N+1 queries
+    # Load all related data in a single query where possible
+    from sqlalchemy.orm import joinedload, subqueryload
+    
+    # Load course content with folders using eager loading
+    contents = CourseContent.query.filter_by(course_id=course.id, is_published=True).options(
+        subqueryload(CourseContent.folder)
+    ).order_by(CourseContent.order).all()
+    
+    # Load content folders with their items using eager loading
+    content_folders = CourseContentFolder.query.filter_by(course_id=course.id).options(
+        subqueryload(CourseContentFolder.items).filter_by(is_published=True),
+        subqueryload(CourseContentFolder.subfolders)
+    ).order_by(CourseContentFolder.order).all()
+    
+    # Load assignments with eager-loaded submissions
+    assignments = CourseAssignment.query.filter_by(course_id=course.id, is_published=True).options(
+        subqueryload(CourseAssignment.submissions)
+    ).order_by(CourseAssignment.due_date).all()
+    
+    # Load announcements with eager-loaded replies and users
+    announcements = CourseAnnouncement.query.filter_by(course_id=course.id, is_published=True).options(
+        subqueryload(CourseAnnouncement.replies).joinedload(CourseAnnouncementReply.user),
+        joinedload(CourseAnnouncement.author)
+    ).order_by(CourseAnnouncement.created_at.desc()).all()
+    
+    # Load reviews with eager-loaded users
+    reviews = CourseReview.query.filter_by(course_id=course.id).options(
+        joinedload(CourseReview.user)
+    ).order_by(CourseReview.created_at.desc()).all()
+    
+    # Get passed assignment IDs for current user (for folder locking)
+    passed_subs = []
+    if current_user.is_authenticated:
+        passed_subs = CourseAssignmentSubmission.query.filter_by(
+            user_id=current_user.id, 
+            passed=True
+        ).all()
+    
+    # Check if user is teacher or admin
+    is_teacher_or_admin = current_user.is_authenticated and (current_user.is_teacher or current_user.is_admin)
+    
+    # Get home content
+    home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
+    
+    # Generate folder paths for dropdown menus
+    folder_paths = {folder.id: folder.title for folder in content_folders}
+    
+    return render_template('course_page_enrolled.html', 
+        course=course, 
+        home_content=home_content, 
+        enrolled=enrolled,
+        is_teacher_or_admin=is_teacher_or_admin,
+        contents=contents,
+        content_folders=content_folders,
+        assignments=assignments,
+        announcements=announcements,
+        reviews=reviews,
+        passed_assignment_ids=[sub.assignment_id for sub in passed_subs],
+        current_user=current_user,
+        page_builder_data_translated=page_builder_data_translated,
+        translated_title=translated_title,
+        translated_subtitle=translated_subtitle,
+        translated_page_features=translated_page_features,
+        youtube_guide_video_id=youtube_guide_video_id,
+        datetime=dt
+    )
     if user:
         user.is_teacher = is_teacher
         db.session.commit()

@@ -6,12 +6,19 @@ For the underlying translation logic (no Flask/DB), see core_translator.py.
 """
 import os
 import re
+from functools import lru_cache
 
 from flask import current_app
 
 from yonca import core_translator
 from yonca.constants import SUPPORTED_LANGUAGES, LANGUAGE_NAMES
 from yonca.models import Translation, db
+
+# In-memory cache for translations to reduce database queries
+# Key: (source_text, target_language), Value: translated_text
+_TRANSLATION_CACHE = {}
+_CACHE_ENABLED = os.getenv('TRANSLATION_CACHE_ENABLED', 'true').lower() in ('true', '1', 'yes')
+_CACHE_MAX_SIZE = int(os.getenv('TRANSLATION_CACHE_SIZE', '10000'))
 
 
 class TranslationService:
@@ -20,7 +27,7 @@ class TranslationService:
     SUPPORTED_LANGUAGES = SUPPORTED_LANGUAGES
 
     def get_translation(self, text: str, target_language: str, source_language: str = None) -> str:
-        """Return translation of text into target_language, using DB cache.
+        """Return translation of text into target_language, using DB cache and in-memory cache.
 
         On a cache miss, translates to all supported languages at once and
         persists the results so future requests are instant.
@@ -30,15 +37,23 @@ class TranslationService:
         if not text or len(text.strip()) < 2:
             return text
 
+        # Check in-memory cache first (fastest)
+        cache_key = (text, target_language)
+        if _CACHE_ENABLED and cache_key in _TRANSLATION_CACHE:
+            return _TRANSLATION_CACHE[cache_key]
+
         detected_source = core_translator.detect_language(text)
         if detected_source == target_language:
             return text
 
+        # Check database cache
         cached = Translation.query.filter_by(
             source_text=text,
             target_language=target_language,
         ).first()
         if cached:
+            if _CACHE_ENABLED:
+                self._add_to_cache(text, target_language, cached.translated_text)
             return cached.translated_text
 
         self._translate_and_cache_all(text, detected_source)
@@ -47,7 +62,20 @@ class TranslationService:
             source_text=text,
             target_language=target_language,
         ).first()
-        return cached.translated_text if cached else text
+        result = cached.translated_text if cached else text
+        
+        if _CACHE_ENABLED:
+            self._add_to_cache(text, target_language, result)
+        
+        return result
+
+    def _add_to_cache(self, text: str, target_language: str, translated_text: str) -> None:
+        """Add translation to in-memory cache with LRU eviction."""
+        cache_key = (text, target_language)
+        if len(_TRANSLATION_CACHE) >= _CACHE_MAX_SIZE:
+            # Remove oldest entry (FIFO - simple approach)
+            _TRANSLATION_CACHE.pop(next(iter(_TRANSLATION_CACHE)), None)
+        _TRANSLATION_CACHE[cache_key] = translated_text
 
     def _translate_and_cache_all(self, text: str, detected_source: str) -> None:
         """Translate text to every supported language and persist to DB."""
@@ -62,6 +90,8 @@ class TranslationService:
                 target_language=target_lang,
             ).first()
             if already_cached:
+                if _CACHE_ENABLED:
+                    self._add_to_cache(text, target_lang, already_cached.translated_text)
                 continue
 
             translated = core_translator.translate_text(
@@ -86,6 +116,9 @@ class TranslationService:
                     translation_service='libretranslate',
                 ))
                 db.session.commit()
+                
+                if _CACHE_ENABLED:
+                    self._add_to_cache(text, target_lang, translated)
             except Exception as exc:
                 db.session.rollback()
                 current_app.logger.error(f"Failed to cache translation: {exc}")
@@ -155,6 +188,12 @@ class TranslationService:
 
     def get_supported_languages(self) -> dict:
         return LANGUAGE_NAMES
+
+    @classmethod
+    def clear_cache(cls):
+        """Clear the in-memory translation cache."""
+        global _TRANSLATION_CACHE
+        _TRANSLATION_CACHE = {}
 
 
 # Global singleton used throughout the application

@@ -383,6 +383,7 @@ def get_translated_content(content_type, content_id, field_name, original_text, 
 def get_translated_json_array(content_type, content_id, field_name, json_array, target_language):
     """
     Get translated JSON array with text fields translated.
+    Uses batched queries to reduce database hits.
     
     Args:
         content_type: Type of content
@@ -397,8 +398,38 @@ def get_translated_json_array(content_type, content_id, field_name, json_array, 
     if not target_language or target_language == 'en' or not json_array:
         return json_array
     
-    translated_array = []
+    # Batch query all translations at once to reduce DB hits
+    # Build list of all sub-field names we need to query
+    sub_fields = []
+    for index, item in enumerate(json_array):
+        if not isinstance(item, dict):
+            continue
+        if 'title' in item:
+            sub_fields.append(f"{field_name}[{index}].title")
+        if 'description' in item:
+            sub_fields.append(f"{field_name}[{index}].description")
+        if 'caption' in item:
+            sub_fields.append(f"{field_name}[{index}].caption")
+        if 'text' in item:
+            sub_fields.append(f"{field_name}[{index}].text")
+        if 'button_text' in item:
+            sub_fields.append(f"{field_name}[{index}].button_text")
+        if 'tags' in item and isinstance(item['tags'], str) and item['tags'].strip():
+            sub_fields.append(f"{field_name}[{index}].tags")
     
+    # Single query to get all translations
+    translations = {}
+    if sub_fields:
+        from yonca.models import ContentTranslation
+        results = ContentTranslation.query.filter(
+            ContentTranslation.content_type == content_type,
+            ContentTranslation.content_id == content_id,
+            ContentTranslation.target_language == target_language,
+            ContentTranslation.field_name.in_(sub_fields)
+        ).all()
+        translations = {t.field_name: t.translated_text for t in results}
+    
+    translated_array = []
     for index, item in enumerate(json_array):
         if not isinstance(item, dict):
             translated_array.append(item)
@@ -409,39 +440,32 @@ def get_translated_json_array(content_type, content_id, field_name, json_array, 
         # Translate title if present
         if 'title' in item:
             sub_field_name = f"{field_name}[{index}].title"
-            translated_item['title'] = get_translated_content(
-                content_type, content_id, sub_field_name, item['title'], target_language
-            )
+            translated_item['title'] = translations.get(sub_field_name, item['title'])
         
         # Translate description if present
         if 'description' in item:
             sub_field_name = f"{field_name}[{index}].description"
-            translated_item['description'] = get_translated_content(
-                content_type, content_id, sub_field_name, item['description'], target_language
-            )
+            translated_item['description'] = translations.get(sub_field_name, item['description'])
         
         # Translate caption if present (for gallery items)
         if 'caption' in item:
             sub_field_name = f"{field_name}[{index}].caption"
-            translated_item['caption'] = get_translated_content(
-                content_type, content_id, sub_field_name, item['caption'], target_language
-            )
+            translated_item['caption'] = translations.get(sub_field_name, item['caption'])
         
         # Translate text if present (for dropdown menus)
         if 'text' in item:
             sub_field_name = f"{field_name}[{index}].text"
-            translated_item['text'] = get_translated_content(
-                content_type, content_id, sub_field_name, item['text'], target_language
-            )
-
+            translated_item['text'] = translations.get(sub_field_name, item['text'])
+        
         # Translate button_text if present (for features)
         if 'button_text' in item:
             sub_field_name = f"{field_name}[{index}].button_text"
-            translated_item['button_text'] = get_translated_content(
-                content_type, content_id, sub_field_name, item.get('button_text', ''), target_language
+            translated_item['button_text'] = translations.get(
+                sub_field_name, 
+                item.get('button_text', '')
             )
         
-        # Translate tags if present (for carousel items or other content)
+        # Translate tags if present
         if 'tags' in item:
             if isinstance(item['tags'], list):
                 # If tags is an array of strings, translate each tag
@@ -450,11 +474,9 @@ def get_translated_json_array(content_type, content_id, field_name, json_array, 
                     content_type, content_id, sub_field_name, item['tags'], target_language
                 )
             elif isinstance(item['tags'], str) and item['tags'].strip():
-                # If tags is a string (comma or space separated), translate it as text
+                # If tags is a string, translate it as text
                 sub_field_name = f"{field_name}[{index}].tags"
-                translated_item['tags'] = get_translated_content(
-                    content_type, content_id, sub_field_name, item['tags'], target_language
-                )
+                translated_item['tags'] = translations.get(sub_field_name, item['tags'])
         
         translated_array.append(translated_item)
     
@@ -464,6 +486,7 @@ def get_translated_json_array(content_type, content_id, field_name, json_array, 
 def get_translated_string_array(content_type, content_id, field_name, string_array, target_language):
     """
     Get translated string array where each string is translated individually.
+    Uses batched queries to reduce database hits.
     
     Args:
         content_type: Type of content
@@ -478,14 +501,24 @@ def get_translated_string_array(content_type, content_id, field_name, string_arr
     if not target_language or target_language == 'en' or not string_array:
         return string_array
     
-    translated_array = []
+    # Batch query all translations at once
+    sub_fields = [f"{field_name}[{index}]" for index in range(len(string_array))]
+    translations = {}
+    if sub_fields:
+        from yonca.models import ContentTranslation
+        results = ContentTranslation.query.filter(
+            ContentTranslation.content_type == content_type,
+            ContentTranslation.content_id == content_id,
+            ContentTranslation.target_language == target_language,
+            ContentTranslation.field_name.in_(sub_fields)
+        ).all()
+        translations = {t.field_name: t.translated_text for t in results}
     
+    translated_array = []
     for index, item in enumerate(string_array):
         if isinstance(item, str) and item.strip():
             sub_field_name = f"{field_name}[{index}]"
-            translated_item = get_translated_content(
-                content_type, content_id, sub_field_name, item, target_language
-            )
+            translated_item = translations.get(sub_field_name, item)
             translated_array.append(translated_item)
         else:
             translated_array.append(item)

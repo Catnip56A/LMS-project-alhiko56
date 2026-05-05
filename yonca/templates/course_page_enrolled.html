@@ -558,68 +558,68 @@
                             <div class="alert alert-warning">{{ _('This folder is locked until you complete the required assignment.') }}</div>
                         {% else %}
 
-                        {# Recursively render subfolders #}
-                        {% set subfolders = folder.subfolders.order_by('order').all() %}
-                        {% if subfolders %}
-                        <ul class="list-group folder-sortable" data-parent-folder-id="{{ folder.id }}">
-                            {% for subfolder in subfolders %}
-                            <li class="list-group-item" data-folder-id="{{ subfolder.id }}">
-                                <span class="drag-handle mr-2" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; margin-right:8px; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto;">☰</span>
-                                {{ render_folder(subfolder, depth + 1) }}
-                            </li>
-                            {% endfor %}
-                        </ul>
+            {# Recursively render subfolders - using preloaded data #}
+            {% set subfolders = folder.subfolders|list %}
+            {% if subfolders %}
+            <ul class="list-group folder-sortable" data-parent-folder-id="{{ folder.id }}">
+                {% for subfolder in subfolders %}
+                <li class="list-group-item" data-folder-id="{{ subfolder.id }}">
+                    <span class="drag-handle mr-2" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; margin-right:8px; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto; flex-shrink: 0;">☰</span>
+                    {{ render_folder(subfolder, depth + 1) }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% if is_teacher_or_admin %}
+            <form id="folder-order-form-{{ folder.id }}" method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display:none;">
+                <input type="hidden" name="action" value="reorder_folders">
+                <input type="hidden" name="parent_folder_id" value="{{ folder.id }}">
+                <input type="hidden" name="folder_order" value="">
+            </form>
+            {% endif %}
+            {% endif %}
+
+            {# Display files in this folder - using preloaded items #}
+            {% set folder_items = folder.items|selectattr('is_published')|list %}
+            {% if folder_items %}
+            <ul class="list-group mb-2 file-sortable" data-folder-id="{{ folder.id }}">
+                {% for item in folder_items %}
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-file-id="{{ item.id }}">
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                        <span class="drag-handle" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto; flex-shrink: 0;">☰</span>
                         {% if is_teacher_or_admin %}
-                        <form id="folder-order-form-{{ folder.id }}" method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display:none;">
-                            <input type="hidden" name="action" value="reorder_folders">
-                            <input type="hidden" name="parent_folder_id" value="{{ folder.id }}">
-                            <input type="hidden" name="folder_order" value="">
-                        </form>
+                        <input type="checkbox" class="content-checkbox-enrolled" value="{{ item.id }}" onchange="updateBulkActionsEnrolled()" style="flex-shrink: 0; cursor: pointer;">
                         {% endif %}
-                        {% endif %}
+                        <div>
+                            <strong>{{ add_file_emoji(item) | safe }}</strong><br>
+                            <small>{{ item.description }}</small>
+                        </div>
+                    </div>
+                    <div>
+                    {% if item.content_type == 'file' %}
+                    <a href="{{ url_for('api.serve_file', file_id=item.drive_file_id) }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
+                    {% else %}
+                    <a href="{{ item.content_data }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
+                    {% endif %}
+                    {% if is_teacher_or_admin %}
+                    <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#editFileModal" data-file-id="{{ item.id }}" data-file-name="{{ item.title }}" data-file-description="{{ item.description or '' }}">
+                        {{ _('Edit File') }}
+                    </button>
+                    <button type="button" class="btn btn-warning btn-sm ml-2" data-toggle="modal" data-target="#moveFileModal" data-file-id="{{ item.id }}" data-file-name="{{ item.title }}">
+                        {{ _('Move File') }}
+                    </button>
+                    <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline; margin-left: 0.5rem;" onsubmit="return confirm('{{ _('Are you sure you want to delete this file?') }}');">
+                        <input type="hidden" name="action" value="delete_content">
+                        <input type="hidden" name="content_id" value="{{ item.id }}">
+                        <button type="submit" class="btn btn-danger btn-sm ml-2">{{ _('Delete') }}</button>
+                    </form>
+                    {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
 
-                        {# Display files in this folder #}
-                        {% set folder_items = folder.items.filter_by(is_published=True).order_by('order').all() %}
-                        {% if folder_items %}
-                        <ul class="list-group mb-2 file-sortable" data-folder-id="{{ folder.id }}">
-                            {% for item in folder_items %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center" data-file-id="{{ item.id }}">
-                                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                                    <span class="drag-handle" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto; flex-shrink: 0;">☰</span>
-                                    {% if is_teacher_or_admin %}
-                                    <input type="checkbox" class="content-checkbox-enrolled" value="{{ item.id }}" onchange="updateBulkActionsEnrolled()" style="flex-shrink: 0; cursor: pointer;">
-                                    {% endif %}
-                                    <div>
-                                        <strong>{{ add_file_emoji(item) | safe }}</strong><br>
-                                        <small>{{ item.description }}</small>
-                                    </div>
-                                </div>
-                                <div>
-                                {% if item.content_type == 'file' %}
-                                <a href="{{ url_for('api.serve_file', file_id=item.drive_file_id) }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
-                                {% else %}
-                                <a href="{{ item.content_data }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
-                                {% endif %}
-                                {% if is_teacher_or_admin %}
-                                <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#editFileModal" data-file-id="{{ item.id }}" data-file-name="{{ item.title }}" data-file-description="{{ item.description or '' }}">
-                                    {{ _('Edit File') }}
-                                </button>
-                                <button type="button" class="btn btn-warning btn-sm ml-2" data-toggle="modal" data-target="#moveFileModal" data-file-id="{{ item.id }}" data-file-name="{{ item.title }}">
-                                    {{ _('Move File') }}
-                                </button>
-                                <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline; margin-left: 0.5rem;" onsubmit="return confirm('{{ _('Are you sure you want to delete this file?') }}');">
-                                    <input type="hidden" name="action" value="delete_content">
-                                    <input type="hidden" name="content_id" value="{{ item.id }}">
-                                    <button type="submit" class="btn btn-danger btn-sm ml-2">{{ _('Delete') }}</button>
-                                </form>
-                                {% endif %}
-                                </div>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-
-                        {# Removed the separate list section for root-level folders #}
+            {# Removed the separate list section for root-level folders #}
 
                         {% if not root_folders and not unassigned %}
                         <p class="text-muted">No course materials available yet.</p>
@@ -1018,35 +1018,364 @@
                                     <small class="text-muted">
                                         {% if assignment.due_date %}{{ _('Due:') }} {{ assignment.due_date.strftime('%b %d, %Y %I:%M %p') }}{% else %}{{ _('Due: N/A') }}{% endif %}
                                         • {{ assignment.points }} {{ _('pts') }}
-                                        {% if not is_teacher_or_admin %}
-                                            {% set user_submission = assignment.submissions.filter_by(user_id=current_user.id).first() %}
-                                            •
-                                            {% if user_submission %}
-                                                {% set is_late = false %}
-                                                {% if assignment.due_date and user_submission.submitted_at > assignment.due_date %}
-                                                    {% set is_late = true %}
-                                                {% endif %}
-                                                {% if is_late %}
-                                                    <i class="fas fa-times-circle text-danger"></i> <span class="text-danger">{{ _('Late') }}</span>
-                                                {% else %}
-                                                    <i class="fas fa-check-circle text-success"></i> <span class="text-success">{{ _('Submitted') }}</span>
-                                                {% endif %}
-                                                {% if user_submission.grade is not none %}
-                                                    &nbsp;•&nbsp;{{ _('Grade:') }} {{ user_submission.grade }}
-                                                {% endif %}
-                                            {% else %}
-                                                {% if assignment.due_date and assignment.due_date < datetime.now() %}
-                                                    <i class="fas fa-times-circle text-danger"></i> <span class="text-danger">{{ _('Overdue') }}</span>
-                                                {% else %}
-                                                    <i class="fas fa-times-circle text-danger"></i> <span class="text-danger">{{ _('Not submitted') }}</span>
+                {% if not is_teacher_or_admin %}
+                                {% set user_submission = none %}
+                                {% for sub in assignment.submissions if sub.user_id == current_user.id %}
+                                    {% set user_submission = sub %}
+                                {% endfor %}
+                                {% if user_submission %}
+                                    {% set is_late = false %}
+                                    {% if assignment.due_date and user_submission.submitted_at > assignment.due_date %}
+                                        {% set is_late = true %}
+                                    {% endif %}
+                                    <div class="mt-2">
+                                        {% if is_late %}
+                                            <div class="text-danger"><i class="fas fa-times-circle"></i> <strong>{{ _('Late') }}</strong> — {{ user_submission.submitted_at.strftime('%b %d, %Y %I:%M %p') }}</div>
+                                        {% else %}
+                                            <div class="text-success"><i class="fas fa-check-circle"></i> <strong>{{ _('Submitted') }}</strong> — {{ user_submission.submitted_at.strftime('%b %d, %Y %I:%M %p') }}</div>
+                                        {% endif %}
+                                        <a href="{{ url_for('api.serve_file', file_id=user_submission.drive_file_id) }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Your Submission') }}</a>
+                                        {% if user_submission.grade is not none %}
+                                            <div class="mt-2"><strong>{{ _('Grade:') }}</strong> {{ user_submission.grade }}/{{ assignment.points }}</div>
+                                        {% endif %}
+                                        {% if user_submission.comment %}
+                                            <div class="mt-1"><strong>{{ _('Feedback:') }}</strong> {{ user_submission.comment }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    {% if assignment.due_date and assignment.due_date < datetime.now() %}
+                                        <div class="text-danger"><i class="fas fa-times-circle"></i> <strong>{{ _('Overdue') }}</strong></div>
+                                    {% else %}
+                                        <div class="text-danger"><i class="fas fa-times-circle"></i> <strong>{{ _('Not submitted') }}</strong></div>
+                                    {% endif %}
+                                    <form method="post" enctype="multipart/form-data" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" class="mt-2">
+                                        <input type="hidden" name="action" value="submit_assignment">
+                                        <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                                        <div class="form-group">
+                                            <label for="submission_file_{{ assignment.id }}">{{ _('Upload Your Work:') }}</label>
+                                            <input type="file" id="submission_file_{{ assignment.id }}" class="form-control-file" name="submission_file" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-sm">{{ _('Submit Assignment') }}</button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline; margin-right: 0.5rem;" onsubmit="return confirm('{{ _('Are you sure you want to delete this assignment? This will also delete all submissions.') }}');">
+                                            <input type="hidden" name="action" value="delete_assignment">
+                                            <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">{{ _('Delete Assignment') }}</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-primary mt-2" type="button" data-toggle="collapse" data-target="#submissions-{{ assignment.id }}">
+                                    {{ _('View Submissions') }}
+                                </button>
+                                <div class="collapse mt-2" id="submissions-{{ assignment.id }}">
+                                    {% set submissions = assignment.submissions|list %}
+                                    {% if submissions %}
+                                    <ul class="list-group mt-2">
+                                        {% for submission in submissions %}
+                                        <li class="list-group-item">
+                                            {% set status = 'success' %}
+                                            {% set status_text = _('On Time') %}
+                                            {% if assignment.due_date %}
+                                                {% if submission.submitted_at > assignment.due_date %}
+                                                    {% set status = 'danger' %}
+                                                    {% set status_text = _('Late') %}
+                                                {% elif submission.submitted_at < assignment.due_date %}
+                                                    {% set status = 'warning' %}
+                                                    {% set status_text = _('Early') %}
                                                 {% endif %}
                                             {% endif %}
-                                        {% else %}
-                                            {% set submissions_count = assignment.submissions.count() %}
-                                            • {{ submissions_count }} {{ _('submissions') }}
-                                        {% endif %}
-                                    </small>
+                                            <strong>{{ submission.user.username }}</strong>
+                                            <span class="badge badge-{{ status }}">{{ status_text }}</span>
+                                            - {{ _('Submitted:') }} {{ submission.submitted_at.strftime('%b %d, %Y %I:%M %p') }}<br>
+                                            <a href="{{ url_for('api.serve_file', file_id=submission.drive_file_id) }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Submission') }}</a>
+                                            <form method="post" class="mt-2" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
+                                                <input type="hidden" name="action" value="grade_submission">
+                                                <input type="hidden" name="submission_id" value="{{ submission.id }}">
+                                                <div class="form-row">
+                                                    <div class="col-md-3">
+                                                        <input type="number" name="grade" class="form-control form-control-sm" placeholder="{{ _('Grade') }}" value="{{ submission.grade or '' }}" min="0" max="{{ assignment.points }}">
+                                                    </div>
+                                                    <div class="col-md-5">
+                                                        <input type="text" name="comment" class="form-control form-control-sm" placeholder="{{ _('Comment') }}" value="{{ submission.comment or '' }}">
+                                                    </div>
+                                                    <div class="col-md-2 d-flex align-items-center">
+                                                        <label class="mb-0 mr-2">{{ _('Passed') }}</label>
+                                                        <input type="checkbox" name="passed" {% if submission.passed %}checked{% endif %}>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <button type="submit" class="btn btn-sm btn-success">{{ _('Save Grade') }}</button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                            {% if submission.grade is not none %}
+                                            <div class="alert alert-success mt-2 mb-0">{{ _('Grade:') }} {{ submission.grade }}/{{ assignment.points }}</div>
+                                            {% endif %}
+                                            {% if submission.comment %}
+                                            <div class="alert alert-info mt-1 mb-0">{{ _('Comment:') }} {{ submission.comment }}</div>
+                                            {% endif %}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% else %}
+                                    <p class="text-muted mt-2">{{ _('No submissions yet.') }}</p>
+                                    {% endif %}
                                 </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <p>{{ _('No assignments available.') }}</p>
+            {% endif %}
+            {% else %}
+            <div class="mt-4">
+                <div class="alert alert-warning">
+                    <h4>{{ _('Enroll to Access Assignments') }}</h4>
+                    <p>{{ _('You need to be enrolled in this course to view and submit assignments.') }}</p>
+                    {% if not session.get('user_id') %}
+                    <a href="/login" class="btn btn-success">{{ _('Login to Enroll') }}</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% macro render_reply(reply, ann_id, depth=0) %}
+        <div class="card mb-2 reply-card" data-depth="{{ depth }}">
+            <div class="card-body p-2">
+                <strong>{{ reply.user.username }}</strong> <small class="text-muted">{{ reply.created_at.strftime('%b %d, %I:%M %p') }}</small>
+                <p class="mb-1">{{ reply.message }}</p>
+                
+                <!-- Reply button -->
+                <button class="btn btn-sm btn-link p-0" type="button" data-toggle="collapse" data-target="#reply-form-{{ ann_id }}-{{ reply.id }}">
+                    {{ _('Reply') }}
+                </button>
+                
+                <!-- Reply form -->
+                <div class="collapse" id="reply-form-{{ ann_id }}-{{ reply.id }}">
+                    <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" class="mt-2">
+                        <input type="hidden" name="action" value="add_reply">
+                        <input type="hidden" name="announcement_id" value="{{ ann_id }}">
+                        <input type="hidden" name="parent_reply_id" value="{{ reply.id }}">
+                        <div class="form-group">
+                            <textarea class="form-control form-control-sm" name="reply_message" rows="2" placeholder="{{ _('Write a reply...') }}" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary">{{ _('Post Reply') }}</button>
+                    </form>
+                </div>
+                
+                <!-- Recursively render child replies -->
+                {% set child_replies = reply.child_replies|list %}
+                {% if child_replies %}
+                <div class="mt-2">
+                    {% for child_reply in child_replies %}
+                        {{ render_reply(child_reply, ann_id, depth + 1) }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endmacro %}
+        
+        <div class="tab-pane fade" id="announcements" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+                <h4>{{ _('Announcements') }}</h4>
+                {% if is_teacher_or_admin %}
+                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addAnnouncementModal">
+                    + {{ _('Add Announcement') }}
+                </button>
+                {% endif %}
+            </div>
+            {% if announcements %}
+            <ul class="list-group mb-4">
+                {% for ann in announcements %}
+                <li class="list-group-item">
+                    <div><strong>{{ ann.title }}</strong></div>
+                    <div>{{ ann.message }}</div>
+                    <div><small>{{ _('Posted:') }} {{ ann.created_at.strftime('%b %d, %Y %I:%M %p') }}</small></div>
+                    
+                    {% if is_teacher_or_admin %}
+                    <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline; margin-right: 0.5rem;" onsubmit="return confirm('{{ _('Are you sure you want to delete this announcement? This will also delete all replies.') }}');">
+                        <input type="hidden" name="action" value="delete_announcement">
+                        <input type="hidden" name="announcement_id" value="{{ ann.id }}">
+                        <button type="submit" class="btn btn-danger btn-sm">{{ _('Delete Announcement') }}</button>
+                    </form>
+                    {% endif %}
+                    
+                    <!-- Reply button -->
+                    <button class="btn btn-sm btn-link" type="button" data-toggle="collapse" data-target="#reply-form-{{ ann.id }}">
+                        {{ _('Reply') }}
+                    </button>
+                    
+                    <!-- Reply form -->
+                    <div class="collapse" id="reply-form-{{ ann.id }}">
+                        <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" class="mt-2">
+                            <input type="hidden" name="action" value="add_reply">
+                            <input type="hidden" name="announcement_id" value="{{ ann.id }}">
+                            <div class="form-group">
+                                <textarea class="form-control" name="reply_message" rows="2" placeholder="{{ _('Write a reply...') }}" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary">{{ _('Post Reply') }}</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Display replies recursively -->
+                    {% set top_level_replies = ann.replies|selectattr('parent_reply_id', 'none')|list %}
+                    {% if top_level_replies %}
+                    <div class="mt-3">
+                        {% for reply in top_level_replies %}
+                            {{ render_reply(reply, ann.id, 0) }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>{{ _('No announcements yet.') }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Reviews Tab -->
+        <div class="tab-pane fade" id="reviews" role="tabpanel">
+            <div class="mt-4 mb-3">
+                <h4>{{ _('Course Reviews') }}</h4>
+            </div>
+            
+            <!-- Write Review Form -->
+            <div class="card mb-4" style="border: 2px solid #337a2c; border-radius: 8px;">
+                <div class="card-header" style="background-color: #e8f5e9;">
+                    <h5 class="mb-0">{{ _('Write Your Review') }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
+                        <input type="hidden" name="action" value="add_review">
+                        
+                        <div class="form-group">
+                            <label for="ratingValue">{{ _('Rating') }} *</label>
+                            <div class="star-rating" id="starRating">
+                                <span class="star" data-value="1">★</span>
+                                <span class="star" data-value="2">★</span>
+                                <span class="star" data-value="3">★</span>
+                                <span class="star" data-value="4">★</span>
+                                <span class="star" data-value="5">★</span>
+                            </div>
+                            <input type="hidden" name="rating" id="ratingValue" required>
+                            <small class="text-muted">{{ _('Click on a star to rate (1-5)') }}</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="review_title">{{ _('Review Title') }} *</label>
+                            <input type="text" class="form-control" name="review_title" id="review_title" required maxlength="200" placeholder="{{ _('Summarize your experience') }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="review_text">{{ _('Your Review') }} *</label>
+                            <textarea class="form-control" name="review_text" id="review_text" rows="5" required placeholder="{{ _('Share your thoughts about this course...') }}"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success">
+                            <i class="fa fa-paper-plane"></i> {{ _('Submit Review') }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Display Reviews -->
+            <div class="reviews-list">
+                <h5 class="mb-3">{{ _('Student Reviews') }}</h5>
+                {% if reviews %}
+                <div class="list-group">
+                    {% for review in reviews %}
+                    <div class="list-group-item mb-3" style="border-radius: 8px; border: 1px solid #dee2e6;">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <div class="star-display mb-1">
+                                    {% for i in range(1, 6) %}
+                                        <span class="star {% if i <= review.rating %}filled{% endif %}">★</span>
+                                    {% endfor %}
+                                </div>
+                                <h6 class="mb-1"><strong>{{ review.title }}</strong></h6>
+                                <small class="text-muted">
+                                    By {{ review.user.display_name or review.user.email.split('@')[0] }} • 
+                                    {{ review.created_at.strftime('%b %d, %Y') }}
+                                </small>
+                            </div>
+                            {% if review.user_id == current_user.id or is_teacher_or_admin %}
+                            <div>
+                                <button type="button" class="btn btn-sm btn-warning" data-toggle="modal" data-target="#editReviewModal{{ review.id }}">
+                                    <i class="fa fa-edit"></i> {{ _('Edit') }}
+                                </button>
+                                <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline;" onsubmit="return confirm('{{ _('Are you sure you want to delete this review?') }}');">
+                                    <input type="hidden" name="action" value="delete_review">
+                                    <input type="hidden" name="review_id" value="{{ review.id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fa fa-trash"></i> {{ _('Delete') }}
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <p class="mb-0">{{ review.review_text }}</p>
+                    </div>
+                    
+                    <!-- Edit Review Modal -->
+                    {% if review.user_id == current_user.id or is_teacher_or_admin %}
+                    <div class="modal fade" id="editReviewModal{{ review.id }}" tabindex="-1" role="dialog">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
+                                    <input type="hidden" name="action" value="edit_review">
+                                    <input type="hidden" name="review_id" value="{{ review.id }}">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">{{ _('Edit Review') }}</h5>
+                                        <button type="button" class="close" data-dismiss="modal">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="form-group">
+                                            <label for="editRatingValue{{ review.id }}">{{ _('Rating') }} *</label>
+                                            <div class="star-rating" id="editStarRating{{ review.id }}">
+                                                <span class="star" data-value="1">★</span>
+                                                <span class="star" data-value="2">★</span>
+                                                <span class="star" data-value="3">★</span>
+                                                <span class="star" data-value="4">★</span>
+                                                <span class="star" data-value="5">★</span>
+                                            </div>
+                                            <input type="hidden" name="rating" id="editRatingValue{{ review.id }}" value="{{ review.rating }}" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="edit_review_title_{{ review.id }}">{{ _('Review Title') }} *</label>
+                                            <input type="text" id="edit_review_title_{{ review.id }}" class="form-control" name="review_title" value="{{ review.title }}" required maxlength="200">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="edit_review_text_{{ review.id }}">{{ _('Your Review') }} *</label>
+                                            <textarea id="edit_review_text_{{ review.id }}" class="form-control" name="review_text" rows="5" required>{{ review.review_text }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
+                                        <button type="submit" class="btn btn-success">{{ _('Update Review') }}</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i> {{ _('No reviews yet. Be the first to review this course!') }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
                                 <div>
                                     {% if assignment.is_published and is_teacher_or_admin %}
                                         <span class="badge badge-success">{{ _('Published') }}</span>
