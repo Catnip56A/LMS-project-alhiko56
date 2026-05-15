@@ -1305,9 +1305,12 @@ def course_page_enrolled(course_id):
     # Generate folder paths for dropdown menus
     folder_paths = {folder.id: folder.title for folder in content_folders}
     
-    return render_template('course_page_enrolled.html', 
-        course=course, 
-        home_content=home_content, 
+    return render_template('course_page_enrolled.html',
+        course=course,
+        home_content=home_content,
+        is_authenticated=current_user.is_authenticated,
+        current_user=current_user,
+        current_locale=str(get_locale()),
         enrolled=enrolled,
         is_teacher_or_admin=is_teacher_or_admin,
         contents=contents,
@@ -1317,14 +1320,13 @@ def course_page_enrolled(course_id):
         announcements=announcements,
         reviews=reviews,
         passed_assignment_ids=[sub.assignment_id for sub in passed_subs],
-        current_user=current_user,
+        folder_paths=folder_paths,
         page_builder_data_translated=page_builder_data_translated,
         translated_title=translated_title,
         translated_subtitle=translated_subtitle,
         translated_page_features=translated_page_features,
         youtube_guide_video_id=youtube_guide_video_id,
         datetime=dt,
-        folder_paths=folder_paths
     )
     if user:
         user.is_teacher = is_teacher

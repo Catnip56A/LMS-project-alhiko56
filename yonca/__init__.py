@@ -90,25 +90,14 @@ def create_app(config_name='development'):
         # Check URL parameter first
         lang = request.args.get('lang')
         if lang and lang in ['en', 'ru', 'az']:
-            print(f"DEBUG: Babel get_locale from URL: {lang}")
-            # If language is Azerbaijani, switch to English unless on privacy/terms pages
-            if lang == 'az' and not _is_on_legal_page(request):
-                print(f"DEBUG: Babel overriding Azerbaijani to English (not on legal page)")
-                return 'en'
             return lang
-
+        
         # Check if language is set in session
         lang = session.get('language')
         if lang and lang in ['en', 'ru', 'az']:
-            print(f"DEBUG: Babel get_locale from session: {lang}")
-            # If language is Azerbaijani, switch to English unless on privacy/terms pages
-            if lang == 'az' and not _is_on_legal_page(request):
-                print(f"DEBUG: Babel overriding Azerbaijani to English (not on legal page)")
-                return 'en'
             return lang
         
         # Default to English
-        print("DEBUG: Babel get_locale defaulting to English")
         return 'en'
     
     # Set locale selector using the correct attribute
