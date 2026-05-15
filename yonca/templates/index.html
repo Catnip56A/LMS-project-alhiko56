@@ -2098,7 +2098,42 @@
             }
         }
 
-        /* Standalone large video modal for homepage template */
+        /* WhatsApp floating contact icon */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: none;
+            text-decoration: none;
+        }
+        .whatsapp-float.visible {
+            display: flex;
+        }
+        .whatsapp-float-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #25D366;
+            color: white;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .whatsapp-float-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+        .whatsapp-float-btn svg {
+            width: 32px;
+            height: 32px;
+            fill: white;
+        }
         .yonca-video-modal {
             position: fixed;
             inset: 0;
@@ -2878,6 +2913,13 @@
         </section>
     </main>
 
+    <!-- WhatsApp Floating Contact Icon -->
+    <a href="https://wa.me/994516237394" target="_blank" rel="noopener" class="whatsapp-float" id="whatsapp-float" aria-label="Contact us on WhatsApp">
+        <button class="whatsapp-float-btn" aria-label="Contact us on WhatsApp">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M16 0C7.163 0 0 7.163 0 16c0 2.765.708 5.388 1.967 7.635L.5 31.5l7.358-1.738A15.92 15.92 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm0 29.6a13.538 13.538 0 01-7.367-2.167l-5.3 1.252 1.437-5.126A13.49 13.49 0 012.4 16C2.4 8.874 8.874 2.4 16 2.4S29.6 8.874 29.6 16 23.126 29.6 16 29.6zm7.194-9.44c-.387-.194-2.294-1.129-2.652-1.257-.36-.132-.62-.194-.883.194-.26.387-1.012 1.257-1.24 1.516-.23.259-.46.29-.852.097-.387-.195-1.635-.603-3.113-1.923-1.156-1.036-1.936-2.317-2.166-2.714-.23-.387-.024-.598.175-.79.18-.167.387-.387.58-.58.195-.194.26-.387.387-.581.129-.194.065-.387-.033-.58-.097-.195-.883-2.129-1.21-2.915-.32-.774-.645-.708-.883-.712l-.749-.012c-.259 0-.674.097-1.025.581s-1.346 1.318-1.346 3.214c0 1.896 1.387 3.731 1.583 3.99.195.259 2.736 4.179 6.629 5.871.923.454 1.646.727 2.208.933.924.33 1.769.283 2.435.172.741-.12 2.293-.938 2.612-1.844.32-.904.32-1.677.223-1.844-.097-.167-.36-.26-.757-.456z"/></svg>
+        </button>
+    </a>
+
     <script>
         // API base URL
         const API_BASE = window.location.origin;
@@ -3413,6 +3455,17 @@
             pageElement.classList.add('active');
             window.currentPageId = pageId;
             window.dispatchEvent(new CustomEvent('yonca:pagechange', { detail: { pageId } }));
+
+            // Show/hide WhatsApp floating icon on home and about company pages
+            const waFloat = document.getElementById('whatsapp-float');
+            if (waFloat) {
+                if (pageId === 'home' || pageId === 'about') {
+                    waFloat.classList.add('visible');
+                } else {
+                    waFloat.classList.remove('visible');
+                }
+            }
+
             console.log('Activated page:', pageId);
             
             const linkElement = document.getElementById(pageId + '-link');

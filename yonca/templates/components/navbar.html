@@ -29,12 +29,6 @@
                     <a class="nav-link" href="/#about" data-nav="about">{{ _('About') }}</a>
                 </li>
 
-                <li class="nav-item">
-                    {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
-                    {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
-                    <a class="nav-link" href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">🌐 {{ lang_names.get(current_locale, 'English') }}</a>
-                </li>
-
                 {% if is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
@@ -51,8 +45,18 @@
                         </div>
                     </li>
                 {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/login">{{ _('Login') }}</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="authDropdown" role="button" data-toggle="dropdown">
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right">
+                            {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
+                            {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
+                            <a class="dropdown-item" href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">
+                                🌐 {{ lang_names.get(current_locale, 'English') }}
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="/login">{{ _('Login') }}</a>
+                        </div>
                     </li>
                 {% endif %}
             </ul>
