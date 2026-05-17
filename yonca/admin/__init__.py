@@ -115,7 +115,7 @@ def get_google_redirect_uri(redirect_uri=None):
     if redirect_uri:
         return redirect_uri
     return f"{_resolve_oauth_base_url()}/admin/google_login/"
-from yonca.models import User, Course, ForumMessage, ForumChannel, TaviTest, Resource, db, HomeContent
+from yonca.models import User, Course, ForumMessage, ForumChannel, TaviTest, Resource, db, HomeContent, ContentView, CourseContent
 
 class AdminIndexView(AdminIndexView):
     """Custom admin index view with authentication and home content management"""
@@ -619,7 +619,93 @@ class CourseManagementView(BaseView):
         # Fetch all courses
         courses = Course.query.all()
         return self.render('admin/course_management.html', courses=courses)
-    
+
+    @expose('/course/<int:course_id>')
+    def analytics(self, course_id):
+        """Viewing-time analytics for a single course"""
+        if not current_user.is_authenticated or not current_user.is_admin:
+            return redirect(url_for('auth.login'))
+
+        course = Course.query.get_or_404(course_id)
+
+        # ── Enrolled users ────────────────────────────────────────────────────
+        users = sorted(course.users, key=lambda u: u.username.lower())
+        user_list = [{'id': u.id, 'username': u.username} for u in users]
+
+        # ── All course content that has a Drive file ──────────────────────────
+        contents = (CourseContent.query
+                    .filter_by(course_id=course_id)
+                    .filter(CourseContent.drive_file_id.isnot(None))
+                    .order_by(CourseContent.order, CourseContent.id)
+                    .all())
+
+        file_list = []
+        total_per_user = {}
+        selected_user_id = request.args.get('user_id', type=int)
+
+        for cc in contents:
+            file_id   = cc.drive_file_id
+            file_title = cc.title
+
+            # ── Aggregate views for this file across all enrolled users ───────
+            rows = (db.session.query(
+                        ContentView.user_id,
+                        db.func.sum(ContentView.viewing_duration).label('total_dur'),
+                        db.func.count(ContentView.id).label('view_count'))
+                    .filter(
+                        ContentView.content_type == 'course_content',
+                        ContentView.content_id == file_id,
+                        ContentView.user_id.in_([u.id for u in users]))
+                    .group_by(ContentView.user_id)
+                    .all())
+            print(f"DEBUG: file {file_id} ({file_title}) has {len(rows)} user view rows")
+            for r in rows:
+                print(f"DEBUG:   user {r.user_id}: total_dur={r.total_dur}, view_count={r.view_count}")
+
+            views_per_user = {}
+            for r in rows:
+                dur = int(r.total_dur or 0)
+                cnt = int(r.view_count or 0)
+                views_per_user[r.user_id] = {'duration': dur, 'count': cnt}
+                total_per_user[r.user_id] = total_per_user.get(r.user_id, 0) + dur
+
+            file_list.append({
+                'file_id':   file_id,
+                'file_title': file_title,
+                'views_per_user': views_per_user,
+            })
+
+        # sort files alphabetically
+        file_list.sort(key=lambda x: x['file_title'].lower())
+
+        # ── Colour scale ──────────────────────────────────────────────────────
+        max_total = max((total_per_user.get(u.id, 0) for u in users), default=0)
+        user_colors = {}
+        for u in users:
+            t = total_per_user.get(u.id, 0)
+            if max_total == 0:
+                shade = 210          # light gray-blue for zero-data users
+            else:
+                pct   = t / max_total
+                green = int(120 + 100 * pct)   # 120→220  more green = higher pct
+                red   = int(220 - 130 * pct)   # 220→90   red is high when pct is low
+                blue  = int(130 -  80 * pct)   # 130→50  
+                shade  = (red << 16) + (green << 8) + blue
+            user_colors[u.id] = '#' + format(shade, '06x')
+
+        from yonca.models import HomeContent
+        home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
+        return self.render('admin/course_analytics.html',
+                   course=course,
+                   users=users,
+                   user_list=user_list,
+                   files=file_list,
+                   total_per_user=total_per_user,
+                   selected_user_id=selected_user_id,
+                   max_total=max_total,
+                   user_colors=user_colors,
+                   home_content=home_content)
+
     def is_accessible(self):
         return current_user.is_authenticated and current_user.is_admin
     
@@ -631,9 +717,6 @@ class HomeContentForm(FlaskForm):
     # Section content
     features_title = StringField('Features Title', [Optional()], default="Our Features")
     features_subtitle = TextAreaField('Features Subtitle', [Optional()], default="Discover what makes our platform special.")
-
-    services_title = StringField('Services Title', [Optional()], default="Our Services")
-    services_subtitle = TextAreaField('Services Subtitle', [Optional()], default="Explore the comprehensive services we offer.")
 
     about_section_title = StringField('About Section Title', [Optional()], default="About Yonca")
     about_section_description = TextAreaField('About Section Description', [Optional()], default="Learn about our mission and vision.")
@@ -713,8 +796,6 @@ class CourseView(SecureModelView):
             course.page_description = request.form.get('page_description', '')
             course.page_show_navigation = 'page_show_navigation' in request.form
             course.page_show_footer = 'page_show_footer' in request.form
-            course.page_show_title = 'page_show_title' in request.form
-            course.page_show_description = 'page_show_description' in request.form
             
             # Course tab labels
             course.tab_content_label = request.form.get('tab_content_label', 'Content')
@@ -773,8 +854,6 @@ class CourseView(SecureModelView):
             'page_description': get_translated_content('course', course.id, 'page_description', course.page_description or '', 'en') or course.page_description,
             'page_show_navigation': course.page_show_navigation,
             'page_show_footer': course.page_show_footer,
-            'page_show_title': course.page_show_title,
-            'page_show_description': course.page_show_description,
             'page_features': course.page_features,
             'dropdown_menu': course.dropdown_menu
         }
@@ -806,8 +885,6 @@ class CourseView(SecureModelView):
                 page_description=request.form.get('page_description', ''),
                 page_show_navigation='page_show_navigation' in request.form,
                 page_show_footer='page_show_footer' in request.form,
-                page_show_title='page_show_title' in request.form,
-                page_show_description='page_show_description' in request.form
             )
 
             # Handle course page features
