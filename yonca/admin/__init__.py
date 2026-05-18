@@ -115,7 +115,7 @@ def get_google_redirect_uri(redirect_uri=None):
     if redirect_uri:
         return redirect_uri
     return f"{_resolve_oauth_base_url()}/admin/google_login/"
-from yonca.models import User, Course, ForumMessage, ForumChannel, TaviTest, Resource, db, HomeContent, ContentView, CourseContent
+from yonca.models import User, Course, ForumMessage, ForumChannel, TaviTest, Resource, db, HomeContent
 
 class AdminIndexView(AdminIndexView):
     """Custom admin index view with authentication and home content management"""
@@ -619,6 +619,7 @@ class CourseManagementView(BaseView):
         # Fetch all courses
         courses = Course.query.all()
         return self.render('admin/course_management.html', courses=courses)
+<<<<<<< HEAD
 
     @expose('/course/<int:course_id>')
     def analytics(self, course_id):
@@ -717,6 +718,9 @@ class CourseManagementView(BaseView):
                    user_colors=user_colors,
                    home_content=home_content)
 
+=======
+    
+>>>>>>> 16e51aa7af95fd05189ee442286f8bda838acd4e
     def is_accessible(self):
         return current_user.is_authenticated and current_user.is_admin
     
@@ -728,6 +732,9 @@ class HomeContentForm(FlaskForm):
     # Section content
     features_title = StringField('Features Title', [Optional()], default="Our Features")
     features_subtitle = TextAreaField('Features Subtitle', [Optional()], default="Discover what makes our platform special.")
+
+    services_title = StringField('Services Title', [Optional()], default="Our Services")
+    services_subtitle = TextAreaField('Services Subtitle', [Optional()], default="Explore the comprehensive services we offer.")
 
     about_section_title = StringField('About Section Title', [Optional()], default="About Yonca")
     about_section_description = TextAreaField('About Section Description', [Optional()], default="Learn about our mission and vision.")
@@ -807,6 +814,8 @@ class CourseView(SecureModelView):
             course.page_description = request.form.get('page_description', '')
             course.page_show_navigation = 'page_show_navigation' in request.form
             course.page_show_footer = 'page_show_footer' in request.form
+            course.page_show_title = 'page_show_title' in request.form
+            course.page_show_description = 'page_show_description' in request.form
             
             # Course tab labels
             course.tab_content_label = request.form.get('tab_content_label', 'Content')
@@ -865,6 +874,8 @@ class CourseView(SecureModelView):
             'page_description': get_translated_content('course', course.id, 'page_description', course.page_description or '', 'en') or course.page_description,
             'page_show_navigation': course.page_show_navigation,
             'page_show_footer': course.page_show_footer,
+            'page_show_title': course.page_show_title,
+            'page_show_description': course.page_show_description,
             'page_features': course.page_features,
             'dropdown_menu': course.dropdown_menu
         }
@@ -896,6 +907,8 @@ class CourseView(SecureModelView):
                 page_description=request.form.get('page_description', ''),
                 page_show_navigation='page_show_navigation' in request.form,
                 page_show_footer='page_show_footer' in request.form,
+                page_show_title='page_show_title' in request.form,
+                page_show_description='page_show_description' in request.form
             )
 
             # Handle course page features
