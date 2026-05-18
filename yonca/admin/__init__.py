@@ -619,7 +619,6 @@ class CourseManagementView(BaseView):
         # Fetch all courses
         courses = Course.query.all()
         return self.render('admin/course_management.html', courses=courses)
-<<<<<<< HEAD
 
     @expose('/course/<int:course_id>')
     def analytics(self, course_id):
@@ -708,19 +707,15 @@ class CourseManagementView(BaseView):
         from yonca.models import HomeContent
         home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
         return self.render('admin/course_analytics.html',
-                   course=course,
-                   users=users,
-                   user_list=user_list,
-                   files=file_list,
-                   total_per_user=total_per_user,
-                   selected_user_id=selected_user_id,
-                   max_total=max_total,
-                   user_colors=user_colors,
-                   home_content=home_content)
-
-=======
-    
->>>>>>> 16e51aa7af95fd05189ee442286f8bda838acd4e
+                    course=course,
+                    users=users,
+                    user_list=user_list,
+                    files=file_list,
+                    total_per_user=total_per_user,
+                    selected_user_id=selected_user_id,
+                    max_total=max_total,
+                    user_colors=user_colors,
+                    home_content=home_content)
     def is_accessible(self):
         return current_user.is_authenticated and current_user.is_admin
     
