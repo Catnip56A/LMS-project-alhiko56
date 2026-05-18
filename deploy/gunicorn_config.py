@@ -18,8 +18,8 @@ graceful_timeout = 30
 keepalive = 5
 
 # Logging
-accesslog = "/app/logs/gunicorn-access.log"
-errorlog = "/app/logs/gunicorn-error.log"
+accesslog = os.environ.get("GUNICORN_ACCESS_LOG", "logs/gunicorn-access.log")
+errorlog = os.environ.get("GUNICORN_ERROR_LOG", "logs/gunicorn-error.log")
 loglevel = "info"
 
 # Process naming

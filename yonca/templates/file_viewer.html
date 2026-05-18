@@ -160,26 +160,66 @@
 </div>
 
 <script>
-// Disable right-click context menu
-document.addEventListener('contextmenu', event => event.preventDefault());
+// View tracking
+var viewStartTime   = Date.now();
+var totalVisibleMs  = 0;        // accumulated visible milliseconds
+var lastVisibleAt   = Date.now();  // start tracking immediately on page load
+var isHidden        = !!document.hidden;  // respect pre-existing hidden state
+var trackingSent    = false;
 
-// Disable common keyboard shortcuts for downloading/saving
-document.addEventListener('keydown', function(e) {
-    // Ctrl+S or Cmd+S (Save)
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        return false;
+function resumeTracking() {
+    if (isHidden) { isHidden = false; lastVisibleAt = Date.now(); }
+}
+
+function pauseTracking() {
+    if (!isHidden && lastVisibleAt !== null) {
+        totalVisibleMs += Date.now() - lastVisibleAt;
+        isHidden = true;
     }
-    // Ctrl+P or Cmd+P (Print)
-    if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-        e.preventDefault();
-        return false;
-    }
+}
+
+function computeDuration() {
+    var now        = Date.now();
+    var currentRun = (!isHidden && lastVisibleAt !== null) ? now - lastVisibleAt : 0;
+    var totalMs    = totalVisibleMs + currentRun;
+    return Math.max(1, Math.floor(totalMs / 1000));
+}
+
+function sendTrack(duration) {
+    if (trackingSent) return;
+    trackingSent = true;
+
+    // URLSearchParams is the only fully reliable sendBeacon payload type.
+    // Blob with type=application/json is dropped or stripped by browsers 
+    // (content-type negotiation failure → Flask get_json() returns None → 400).
+    var params = new URLSearchParams({
+        content_type:      'course_content',
+        content_id:        "{{ file_id }}",
+        viewing_duration:  duration
+    });
+
+    // sendBeacon fires in pagehide / beforeunload without blocking the UI.
+    // URLSearchParams guarantees application/x-www-form-urlencoded which Flask
+    // reads via request.form — no content-type guessing required.
+    navigator.sendBeacon('/api/content/view', params);
+}
+
+// Unload: try sendBeacon – fires in tab-close / back-navigation (but NOT refresh)
+window.addEventListener('pagehide',   function _unload() {
+    sendTrack(computeDuration());
+    window.removeEventListener('pagehide', _unload);
+    window.removeEventListener('visibilitychange', _vis);
+});
+window.addEventListener('beforeunload', function _legacy() {
+    sendTrack(computeDuration());
+    window.removeEventListener('beforeunload', _legacy);
+    window.removeEventListener('visibilitychange', _vis);
 });
 
-// Disable drag and drop for images
-document.querySelectorAll('img').forEach(img => {
-    img.addEventListener('dragstart', e => e.preventDefault());
+// Visibility: fire on every blur so a tab that never returns still sends
+window.addEventListener('visibilitychange', function _vis() {
+    if (document.hidden) pauseTracking();
+    else resumeTracking();
 });
 </script>
 {% endblock %}

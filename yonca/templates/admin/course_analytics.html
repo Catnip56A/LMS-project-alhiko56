@@ -71,12 +71,13 @@
 </div>
 {% endblock %}
 
+{% block scripts %}
 {{ super() }}
 <script>
 const USER_LIST   = {{ user_list | tojson }};
 const FILE_LIST   = {{ files | tojson }};
 const TOTAL_MAP   = {{ total_per_user | tojson }};
-const SELECTED_ID = {{ selected_user_id | tojson }};
+window.SELECTED_ID = {{ selected_user_id | tojson }};
 const MAX_TOTAL   = {{ max_total }};
 
 const USER_COLORS = {};
@@ -125,6 +126,8 @@ document.addEventListener('DOMContentLoaded', function() {
         filterEl.addEventListener('change', function() {
             var uid = this.value ? parseInt(this.value) : null;
             console.log('[ FILTER ] rebuild with userId:', uid);
+            // Update SELECTED_ID for use in setupCharts
+            window.SELECTED_ID = uid;
             // Rebuild: destroy and re-init
             if (window.c1) { window.c1.destroy(); delete window.c1; }
             if (window.c2) { window.c2.destroy(); delete window.c2; }
@@ -147,22 +150,22 @@ function setupCharts() {
         return;
     }
     
-    var l1 = [], d1 = [], b1 = [];
-    try {
-        if (SELECTED_ID) {
-            var u = USER_LIST.find(function(x){ return x.id === SELECTED_ID; });
-            if (!u) {
-                status('chart1-status', 'NO_USER');
-                return;
-            }
-            l1 = [u.username];
-            d1 = [TOTAL_MAP[SELECTED_ID] || 0];
-            b1 = [USER_COLORS[SELECTED_ID] || '#ccc'];
-        } else {
-            l1 = USER_LIST.map(function(v){ return v.username; });
-            d1 = USER_LIST.map(function(v){ return TOTAL_MAP[v.id] || 0; });
-            b1 = USER_LIST.map(function(v){ return USER_COLORS[v.id] || '#ccc'; });
-        }
+     var l1 = [], d1 = [], b1 = [];
+     try {
+         if (window.SELECTED_ID) {
+             var u = USER_LIST.find(function(x){ return x.id === window.SELECTED_ID; });
+             if (!u) {
+                 status('chart1-status', 'NO_USER');
+                 return;
+             }
+             l1 = [u.username];
+             d1 = [TOTAL_MAP[window.SELECTED_ID] || 0];
+             b1 = [USER_COLORS[window.SELECTED_ID] || '#ccc'];
+         } else {
+             l1 = USER_LIST.map(function(v){ return v.username; });
+             d1 = USER_LIST.map(function(v){ return TOTAL_MAP[v.id] || 0; });
+             b1 = USER_LIST.map(function(v){ return USER_COLORS[v.id] || '#ccc'; });
+         }
         
         window.c1 = new Chart(ctx1, {
             type: 'bar',
@@ -187,18 +190,18 @@ function setupCharts() {
         return;
     }
     
-    try {
-        var selectedUser = SELECTED_ID ? USER_LIST.find(function(x){ return x.id === SELECTED_ID; }) : null;
-        var l2 = selectedUser ? [selectedUser.username] : USER_LIST.map(function(v){ return v.username; });
-        var ds = FILE_LIST.map(function(f) {
-            if (SELECTED_ID) {
-                var v = f.views_per_user && f.views_per_user[SELECTED_ID] ? f.views_per_user[SELECTED_ID].duration : 0;
-                return { label: f.file_title, data: [v], backgroundColor: [USER_COLORS[SELECTED_ID] || '#ccc'], borderRadius: 5 };
-            } else {
-                var uVals = USER_LIST.map(function(u) { return f.views_per_user && f.views_per_user[u.id] ? f.views_per_user[u.id].duration : 0; });
-                return { label: f.file_title, data: uVals, backgroundColor: USER_LIST.map(function(u){ return USER_COLORS[u.id] || '#ccc'; }), borderRadius: 5 };
-            }
-        });
+     try {
+         var selectedUser = window.SELECTED_ID ? USER_LIST.find(function(x){ return x.id === window.SELECTED_ID; }) : null;
+         var l2 = selectedUser ? [selectedUser.username] : USER_LIST.map(function(v){ return v.username; });
+         var ds = FILE_LIST.map(function(f) {
+             if (window.SELECTED_ID) {
+                 var v = f.views_per_user && f.views_per_user[window.SELECTED_ID] ? f.views_per_user[window.SELECTED_ID].duration : 0;
+                 return { label: f.file_title, data: [v], backgroundColor: [USER_COLORS[window.SELECTED_ID] || '#ccc'], borderRadius: 5 };
+             } else {
+                 var uVals = USER_LIST.map(function(u) { return f.views_per_user && f.views_per_user[u.id] ? f.views_per_user[u.id].duration : 0; });
+                 return { label: f.file_title, data: uVals, backgroundColor: USER_LIST.map(function(u){ return USER_COLORS[u.id] || '#ccc'; }), borderRadius: 5 };
+             }
+         });
 
         window.c2 = new Chart(ctx2, {
             type: 'bar',
@@ -212,5 +215,6 @@ function setupCharts() {
     }
 }
 
-
-</script>
+ 
+   </script>
+{% endblock %}

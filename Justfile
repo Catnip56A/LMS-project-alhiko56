@@ -69,7 +69,7 @@ db-pull-backup:
     echo "Done!"
 
 # Derived vars for local (non-Docker) execution — mirrors docker-compose behaviour
-_db_url  := "postgresql://" + env('POSTGRES_USER', 'yonca_user') + ":" + env('POSTGRES_PASSWORD', 'changeme') + "@localhost:5432/" + env('POSTGRES_DB', 'yonca_db')
+_db_url  := "postgresql://" + env('POSTGRES_USER', 'yonca_user') + ":" + env('POSTGRES_PASSWORD', 'changeme') + "@127.0.0.1:5432/" + env('POSTGRES_DB', 'yonca_db')
 _redir   := "http://localhost:5000/auth/google/callback"
 
 # Install dependencies
@@ -105,6 +105,10 @@ shell:
 # Create admin user (local)
 create-admin:
     DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run python scripts/admin/create_admin.py
+
+# Analytics scripts (local)
+analytics-views:
+    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run python scripts/analytics/view_times.py
 
 # Database migrations (via Docker)
 migrate:

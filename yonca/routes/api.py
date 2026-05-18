@@ -4,6 +4,7 @@ API routes for courses, forum, and resources
 import os
 import time
 import re
+import logging
 import requests
 from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify, current_app, redirect, url_for, Response
@@ -912,6 +913,49 @@ def translate_batch():
 def get_supported_languages():
     """Get list of supported languages for translation"""
     return jsonify(translation_service.get_supported_languages())
+
+
+@api_bp.route('/content/view', methods=['POST'])
+@login_required
+def track_content_view():
+    """Track user viewing of content and record viewing duration.
+
+    Accepts both JSON (application/json) and URLSearchParams (application/x-www-form-urlencoded)
+    payloads so that navigator.sendBeacon works reliably across all browsers.
+    """
+    from yonca.models import ContentView, db
+
+    # sendBeacon with URLSearchParams sends form-urlencoded; JSON browser sends application/json
+    data = request.get_json(silent=True) or request.form
+
+    content_type = data.get('content_type')
+    content_id   = data.get('content_id')
+    viewing_duration = data.get('viewing_duration', 0)
+
+    if not content_type or not content_id:
+        return jsonify({'error': 'Content type and content ID are required'}), 400
+
+    try:
+        # Create a new content view record
+        content_view = ContentView(
+            user_id=current_user.id,
+            content_type=content_type,
+            content_id=content_id,
+            viewing_duration=int(viewing_duration)
+        )
+        
+        db.session.add(content_view)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'View tracking data recorded successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error tracking content view: {str(e)}")
+        return jsonify({'error': 'Failed to record view tracking data'}), 500
 
 @api_bp.route('/user/language', methods=['POST'])
 @login_required

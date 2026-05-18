@@ -4,7 +4,7 @@
 <div class="container-fluid">
     <h2><i class="fa fa-graduation-cap"></i> Course Management</h2>
     <p>Manage student-facing course pages and content.</p>
-    
+
     <div class="row" style="margin-top: 20px;">
         {% if courses %}
             {% for course in courses %}
@@ -15,9 +15,12 @@
                         {% if course.description %}
                         <p class="card-text">{{ course.description[:100] }}{% if course.description|length > 100 %}...{% endif %}</p>
                         {% endif %}
-                        <div class="btn-group" role="group">
+                        <div class="btn-group" role="group" aria-label="Course actions">
                             <a href="/course/{{ course.id }}" class="btn btn-primary btn-sm" target="_blank">
                                 <i class="fa fa-eye"></i> View Course Page
+                            </a>
+                            <a href="{{ url_for('course_management.analytics', course_id=course.id) }}" class="btn btn-info btn-sm">
+                                <i class="fa fa-chart-bar"></i> Analytics
                             </a>
                         </div>
                     </div>

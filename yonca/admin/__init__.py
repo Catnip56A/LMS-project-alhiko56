@@ -679,19 +679,30 @@ class CourseManagementView(BaseView):
         file_list.sort(key=lambda x: x['file_title'].lower())
 
         # ── Colour scale ──────────────────────────────────────────────────────
+        import colorsys
         max_total = max((total_per_user.get(u.id, 0) for u in users), default=0)
         user_colors = {}
         for u in users:
             t = total_per_user.get(u.id, 0)
             if max_total == 0:
-                shade = 210          # light gray-blue for zero-data users
+                # For zero data, we use a neutral light gray
+                h_norm, l, s = 0, 0.8, 0.0   # H doesn't matter, S=0, L=0.8 -> light gray
             else:
-                pct   = t / max_total
-                green = int(120 + 100 * pct)   # 120→220  more green = higher pct
-                red   = int(220 - 130 * pct)   # 220→90   red is high when pct is low
-                blue  = int(130 -  80 * pct)   # 130→50  
-                shade  = (red << 16) + (green << 8) + blue
-            user_colors[u.id] = '#' + format(shade, '06x')
+                pct = t / max_total
+                # Distinct hue per user: use the golden angle approximation
+                h = (u.id * 137.508) % 360   # in degrees
+                h_norm = h / 360.0           # to [0,1] for colorsys
+                # Saturation: from 0.4 (low) to 0.9 (high)
+                s = 0.4 + 0.5 * pct
+                # Lightness: from 0.7 (light) to 0.3 (dark) as pct increases
+                l = 0.7 - 0.4 * pct
+            # Convert HLS to RGB
+            r, g, b = colorsys.hls_to_rgb(h_norm, l, s)
+            # Convert to 0-255 integers
+            r = int(round(r * 255))
+            g = int(round(g * 255))
+            b = int(round(b * 255))
+            user_colors[u.id] = '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
         from yonca.models import HomeContent
         home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()

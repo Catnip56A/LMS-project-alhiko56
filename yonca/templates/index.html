@@ -2643,80 +2643,8 @@
 
         <!-- About Company Page -->
         <section id="about" class="page">
-            <!-- Services Section -->
-            <div class="services-section">
-                <h2 class="section-title" style="color: #000000;">{{ translate_field('home_content', home_content.id, 'services_title', home_content.services_title or _('Our Services')) }}</h2>
-                <p style="text-align: center;">{{ translate_field('home_content', home_content.id, 'services_subtitle', home_content.services_subtitle or _('Explore the comprehensive services we offer.')) }}</p>
+            <!-- About Company Page -->
 
-                <div class="services">
-                    <section class="services">
-
-    
-
-
-                        <!-- Assessment -->
-                        <div class="service-card">
-                            <img src="/static/permanent/icon1_Services.png" alt="{{ _('Assessment icon') }}" class="service-icon">
-                            <h3 style="font-size: 110%;">{{ _('Assessment and Skill Evaluation') }}</h3>
-                            <p class="scrollable" style="font-size: 105%;">
-                                {{ _('Comprehensive assessment of a child\'s development and creation of an individualized support plan') }}
-                            </p>
-                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal1')">{{ _('Learn More') }}</a>
-                        </div>
-
-                        <!-- Correction -->
-                        <div class="service-card">
-                            <img src="/static/permanent/icon2_Services.png" alt="{{ _('Therapeutic sessions icon') }}" class="service-icon">
-                            <h3 style="font-size: 110%;">{{ _('Therapeutic Sessions') }}</h3>
-                            <p style="font-size: 105%;">
-                                {{ _('Individual work with the child and targeted skill development') }}
-                            </p>
-                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal2')">{{ _('Learn More') }}</a>
-                        </div>
-
-                        <!-- School Support -->
-                        <div class="service-card">
-                            <img src="/static/permanent/icon3_Services.png" alt="{{ _('School support icon') }}" class="service-icon">
-                            <h3 style="font-size: 110%;">{{ _('School Support') }}</h3>
-                            <p style="font-size: 105%;">
-                                {{ _('Tutoring support and assistance within the school environment') }}
-                            </p>
-                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal3')">{{ _('Learn More') }}</a>
-                        </div>
-
-                        <!-- Psychological -->
-                        <div class="service-card">
-                            <img src="/static/permanent/icon4_Services.png" alt="{{ _('Psychological help icon') }}" class="service-icon">
-                            <h3 style="font-size: 110%;">{{ _('Psychological Support') }}</h3>
-                            <p style="font-size: 105%;">
-                                {{ _('Individual, group, and family therapy') }}
-                            </p>
-                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal4')">{{ _('Learn More') }}</a>
-                        </div>
-
-                        <!-- Clubs -->
-                        <div class="service-card">
-                            <img src="/static/permanent/icon5_Services.png" alt="{{ _('Clubs icon') }}" class="service-icon">
-                            <h3 style="font-size: 110%;">{{ _('Clubs') }}</h3>
-                            <p style="font-size: 105%;">
-                                {{ _('Club for mothers and club for teenagers') }}
-                            </p>
-                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal5')">{{ _('Learn More') }}</a>
-                        </div>
-
-                        <!-- Educational -->
-                        <div class="service-card">
-                            <img src="/static/permanent/icon6_Services.png" alt="{{ _('Education icon') }}" class="service-icon">
-                            <h3 style="font-size: 110%;">{{ _('Educational Programs') }}</h3>
-                            <p style="font-size: 105%;">
-                                {{ _('Courses for specialists and parents') }}
-                            </p>
-                            <a href="#" class="service-btn" style="font-size: 110%;" onclick="openServiceModal(event, 'serviceModal6')">{{ _('Learn More') }}</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Service Modals -->
             <!-- Modal 1: Assessment and Skill Evaluation -->
             <div id="serviceModal1" class="service-modal" onclick="closeServiceModal(event, 'serviceModal1')">

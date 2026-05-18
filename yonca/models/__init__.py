@@ -91,8 +91,6 @@ class Course(db.Model):
     page_gallery_images = db.Column(db.JSON, default=[])
     page_show_navigation = db.Column(db.Boolean, default=True)
     page_show_footer = db.Column(db.Boolean, default=True)
-    page_show_title = db.Column(db.Boolean, default=True)  # Show/hide course name and subtitle
-    page_show_description = db.Column(db.Boolean, default=True)  # Show/hide description/page content
     
     # Tags for course filtering
     tags = db.Column(db.JSON, default=[])
@@ -296,10 +294,6 @@ class HomeContent(db.Model):
     about_gallery_images = db.Column(db.JSON, default=[])
     about_gallery_title = db.Column(db.String(200), default="What's New")
     about_gallery_subtitle = db.Column(db.String(500), default="Discover the latest updates, new features, and exciting developments in our learning platform.")
-    
-    # Services section
-    services_title = db.Column(db.String(200), default="Our Services")
-    services_subtitle = db.Column(db.String(500), default="Explore the comprehensive services we offer.")
     
     # Navigation and branding
     site_logo_url = db.Column(db.String(500), default="https://lh3.googleusercontent.com/d/1abc123def456ghi789jkl012mno345pqr/view")
@@ -505,3 +499,19 @@ class AppSetting(db.Model):
 
     def __repr__(self):
         return f'<AppSetting {self.key}>'
+
+
+class ContentView(db.Model):
+    """Model for tracking user views of course content"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content_type = db.Column(db.String(50), nullable=False)  # 'course_content', 'resource', 'pdf', etc.
+    content_id = db.Column(db.String(255), nullable=False)  # File / resource identifier (Google Drive ID)
+    viewed_at = db.Column(db.DateTime, server_default=db.func.now())  # When viewing started
+    viewing_duration = db.Column(db.Integer, default=0)  # Duration in seconds
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('content_views', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<ContentView {self.user_id}:{self.content_type}:{self.content_id}>'

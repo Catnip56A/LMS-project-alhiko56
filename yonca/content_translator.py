@@ -33,8 +33,7 @@ TRANSLATABLE_FIELDS = {
         'about_welcome_title', 'about_subtitle',
         'about_features_title', 'about_features_subtitle',
         'features_title', 'features_subtitle',
-        'about_gallery_title', 'about_gallery_subtitle',
-        'services_title', 'services_subtitle'
+        'about_gallery_title', 'about_gallery_subtitle'
     ],
     'gallery_item': ['caption', 'title', 'description']
 }
