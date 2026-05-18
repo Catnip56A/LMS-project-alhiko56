@@ -323,7 +323,7 @@ def create_app(config_name='development'):
             }
 
             emoji = emoji_map.get(ext, '')
-            return f"{filename} {emoji}".strip()
+            return emoji
 
         return {
             'render_page_builder_blocks': render_page_builder_blocks,

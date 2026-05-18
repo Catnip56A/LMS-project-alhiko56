@@ -1358,3 +1358,86 @@ def import_drive_file_to_resource():
             'error': 'Failed to import file to resource',
             'message': str(e)
         }), 500
+
+
+@api_bp.route('/folder/<int:folder_id>/contents', methods=['GET'])
+def get_folder_contents(folder_id):
+    """
+    API endpoint to fetch folder contents on-demand for lazy loading.
+    
+    Returns published CourseContent items for the specified folder,
+    with related folder data eager-loaded to prevent N+1 queries.
+    
+    Args:
+        folder_id: The ID of the folder whose contents to retrieve
+        
+    Returns:
+        JSON response with folder contents data
+    """
+    from yonca.models import CourseContent, CourseContentFolder
+    from sqlalchemy.orm import subqueryload
+    
+    try:
+        # Get folder and verify it exists
+        folder = CourseContentFolder.query.get(folder_id)
+        if not folder:
+            return jsonify({'error': 'Folder not found'}), 404
+        
+        # Check if user has access to this course
+        course_id = folder.course_id
+        if not current_user.is_authenticated:
+            return jsonify({'error': 'Authentication required'}), 401
+        
+        # Check enrollment or teacher/admin status
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({'error': 'Course not found'}), 404
+            
+        enrolled = current_user.is_authenticated and (current_user in course.users or current_user.is_teacher or current_user.is_admin)
+        if not enrolled:
+            return jsonify({'error': 'You must be enrolled in this course to view its contents'}), 403
+        
+        # Fetch only published contents for this folder with eager loading
+        contents = CourseContent.query.filter_by(
+            folder_id=folder_id,
+            is_published=True
+        ).options(
+            subqueryload(CourseContent.folder)
+        ).order_by(CourseContent.order).all()
+        
+        # Format response
+        contents_data = []
+        for content in contents:
+            content_dict = {
+                'id': content.id,
+                'title': content.title,
+                'description': content.description,
+                'content_type': content.content_type,
+                'content_data': content.content_data,
+                'drive_file_id': content.drive_file_id,
+                'drive_view_link': content.drive_view_link,
+                'allow_others_to_view': content.allow_others_to_view,
+                'order': content.order,
+                'is_published': content.is_published,
+                'created_at': content.created_at.isoformat() if content.created_at else None,
+                'folder_id': content.folder_id,
+                'course_id': content.course_id,
+            }
+            contents_data.append(content_dict)
+        
+        return jsonify({
+            'success': True,
+            'folder_id': folder_id,
+            'course_id': course_id,
+            'contents': contents_data,
+            'count': len(contents_data)
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        print(f'Error fetching folder contents for folder {folder_id}: {str(e)}')
+        print(traceback.format_exc())
+        return jsonify({
+            'error': 'Failed to fetch folder contents',
+            'message': str(e)
+        }), 500

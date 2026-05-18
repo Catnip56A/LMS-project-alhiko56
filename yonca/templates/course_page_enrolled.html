@@ -430,10 +430,14 @@
                         iframe.addEventListener('click', function(e) {
                             e.stopPropagation();
                         });
+                        html += '</ul>';
+                        placeholder.innerHTML = html;
+                        // Re-attach event listeners for newly created elements
+                        attachContentEventListeners();
                     }
-                    
-                    // Click on dark background (container itself) to close
-                    container.addEventListener('click', function(e) {
+
+                    // Function to get file emoji based on file type
+                    function getFileEmoji(item) {
                         if (e.target === container) {
                             e.stopPropagation();
                             container.classList.remove('expanded');
@@ -473,9 +477,53 @@
                  <div class="modal-content">
                      <iframe id="youtubeGuideIframe" src="https://www.youtube.com/embed/{{ youtube_guide_video_id }}?rel=0" frameborder="0" allowfullscreen title="Course Guide Video"></iframe>
                  </div>
-             </div>
-        {% endif %}
-    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            {# Pagination controls for reviews in tab #}
+            {% if reviews_pagination.pages > 1 %}
+            <nav aria-label="Review pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if reviews_pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, review_page=reviews_pagination.prev_num) }}" aria-label="{{ _('Previous') }}">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">&laquo;</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in reviews_pagination.iter_pages() %}
+                    {% if page_num %}
+                        {% if reviews_pagination.page == page_num %}
+                        <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                        {% else %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, review_page=page_num) }}">{{ page_num }}</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if reviews_pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, review_page=reviews_pagination.next_num) }}" aria-label="{{ _('Next') }}">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">&raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
     <div style="display: flex; align-items: center; margin-left: 5%; margin-right: 5%;">
     <ul class="nav nav-tabs" id="courseTabs" role="tablist" style="flex:1;">
         <li class="nav-item">
@@ -578,45 +626,16 @@
             {% endif %}
             {% endif %}
 
-            {# Display files in this folder - using preloaded items #}
-            {% set folder_items = folder.items|selectattr('is_published')|list %}
-            {% if folder_items %}
-            <ul class="list-group mb-2 file-sortable" data-folder-id="{{ folder.id }}">
-                {% for item in folder_items %}
-                <li class="list-group-item d-flex justify-content-between align-items-center" data-file-id="{{ item.id }}">
-                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                        <span class="drag-handle" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto; flex-shrink: 0;">☰</span>
-                        {% if is_teacher_or_admin %}
-                        <input type="checkbox" class="content-checkbox-enrolled" value="{{ item.id }}" onchange="updateBulkActionsEnrolled()" style="flex-shrink: 0; cursor: pointer;">
-                        {% endif %}
-                        <div>
-                            <strong>{{ add_file_emoji(item) | safe }}</strong><br>
-                            <small>{{ item.description }}</small>
-                        </div>
-                    </div>
-                    <div>
-                    {% if item.content_type == 'file' %}
-                    <a href="{{ url_for('api.serve_file', file_id=item.drive_file_id) }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
-                    {% else %}
-                    <a href="{{ item.content_data }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
-                    {% endif %}
-                    {% if is_teacher_or_admin %}
-                    <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#editFileModal" data-file-id="{{ item.id }}" data-file-name="{{ item.title }}" data-file-description="{{ item.description or '' }}">
-                        {{ _('Edit File') }}
-                    </button>
-                    <button type="button" class="btn btn-warning btn-sm ml-2" data-toggle="modal" data-target="#moveFileModal" data-file-id="{{ item.id }}" data-file-name="{{ item.title }}">
-                        {{ _('Move File') }}
-                    </button>
-                    <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline; margin-left: 0.5rem;" onsubmit="return confirm('{{ _('Are you sure you want to delete this file?') }}');">
-                        <input type="hidden" name="action" value="delete_content">
-                        <input type="hidden" name="content_id" value="{{ item.id }}">
-                        <button type="submit" class="btn btn-danger btn-sm ml-2">{{ _('Delete') }}</button>
-                    </form>
-                    {% endif %}
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
+            {# Display files in this folder - lazy loaded when folder is expanded #}
+            {% if is_locked %}
+                {# Show locked message - do not allow loading contents #}
+            {% else %}
+            <div class="folder-contents-placeholder" data-folder-id="{{ folder.id }}" data-course-id="{{ course.id }}" data-is-teacher-or-admin="{{ is_teacher_or_admin|tojson }}">
+                <div class="text-center text-muted py-2">
+                    <i class="fas fa-spinner fa-spin me-2"></i>
+                    <small>{{ _('loading') }}</small>
+                </div>
+            </div>
             {% endif %}
 
             {# Removed the separate list section for root-level folders #}
@@ -705,6 +724,15 @@
                 });
             });
             {% endif %}
+
+            // Add event handler for folder expand to trigger AJAX load
+            $(document).on('show.bs.collapse', '[id^="folder-"]', function(e) {
+                var folderId = $(this).attr('id').replace('folder-', '');
+                var courseId = window.CURRENT_COURSE_ID;
+                if (folderId && courseId) {
+                    handleFolderExpand(folderId, courseId);
+                }
+            });
         });
         
         // Robust tab switching function
@@ -938,16 +966,16 @@
                             {% if is_teacher_or_admin %}
                             <input type="checkbox" class="content-checkbox-enrolled" value="{{ item.id }}" onchange="updateBulkActionsEnrolled()" style="flex-shrink: 0; cursor: pointer;">
                             {% endif %}
-                            <div>
-                                <strong>{{ add_file_emoji(item) | safe }}</strong><br>
-                                <small>{{ item.description }}</small>
-                            </div>
+                        <div>
+                            <strong>{{ item.title }} {{ add_file_emoji(item) | safe }}</strong><br>
+                            <small>{{ item.description or '' }}</small>
+                        </div>
                         </div>
                         <div>
                         {% if item.content_type == 'assignment' %}
                         <button class="btn btn-sm btn-info" onclick="viewAssignment('{{ item.content_data }}')">{{ _('View Assignment') }}</button>
                         {% elif item.content_type == 'file' %}
-                        <a href="{{ url_for('api.serve_file', file_id=item.drive_file_id) }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
+                        <a href="/api/file/{{ item.drive_file_id }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
                         {% else %}
                         <a href="{{ item.content_data }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
                         {% endif %}
@@ -977,6 +1005,8 @@
                     {% endfor %}
                 </ul>
             {% endif %}
+            
+            {# Pagination controls for contents removed: only one page #}
             
             {# Removed the separate list section for root-level folders #}
             
@@ -1038,7 +1068,7 @@
                                     {% else %}
                                         <div class="text-success"><i class="fas fa-check-circle"></i> <strong>{{ _('Submitted') }}</strong> — {{ user_submission.submitted_at.strftime('%b %d, %Y %I:%M %p') }}</div>
                                     {% endif %}
-                                    <a href="{{ url_for('api.serve_file', file_id=user_submission.drive_file_id) }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Your Submission') }}</a>
+                                    <a href="/api/file/{{ user_submission.drive_file_id }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Your Submission') }}</a>
                                     {% if user_submission.grade is not none %}
                                         <div class="mt-2"><strong>{{ _('Grade:') }}</strong> {{ user_submission.grade }}/{{ assignment.points }}</div>
                                     {% endif %}
@@ -1095,7 +1125,7 @@
                                         <strong>{{ submission.user.username }}</strong>
                                         <span class="badge badge-{{ status }}">{{ status_text }}</span>
                                         - {{ _('Submitted:') }} {{ submission.submitted_at.strftime('%b %d, %Y %I:%M %p') }}<br>
-                                        <a href="{{ url_for('api.serve_file', file_id=submission.drive_file_id) }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Submission') }}</a>
+                                        <a href="/api/file/{{ submission.drive_file_id }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Submission') }}</a>
                                         <form method="post" class="mt-2" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
                                             <input type="hidden" name="action" value="grade_submission">
                                             <input type="hidden" name="submission_id" value="{{ submission.id }}">
@@ -1127,13 +1157,99 @@
                                 {% else %}
                                 <p class="text-muted mt-2">{{ _('No submissions yet.') }}</p>
                                 {% endif %}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            {# Pagination controls for reviews in tab #}
+            {% if reviews_pagination.pages > 1 %}
+            <nav aria-label="Review pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if reviews_pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, review_page=reviews_pagination.prev_num) }}" aria-label="{{ _('Previous') }}">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">&laquo;</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in reviews_pagination.iter_pages() %}
+                    {% if page_num %}
+                        {% if reviews_pagination.page == page_num %}
+                        <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                        {% else %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, review_page=page_num) }}">{{ page_num }}</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if reviews_pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, review_page=reviews_pagination.next_num) }}" aria-label="{{ _('Next') }}">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">&raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
                 </div>
                 {% endfor %}
             </div>
+            
+            {# Pagination controls for assignments #}
+            {% if assignments_pagination.pages > 1 %}
+            <nav aria-label="Assignment pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if assignments_pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, assignment_page=assignments_pagination.prev_num) }}" aria-label="{{ _('Previous') }}">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">&laquo;</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in assignments_pagination.iter_pages() %}
+                    {% if page_num %}
+                        {% if assignments_pagination.page == page_num %}
+                        <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                        {% else %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, assignment_page=page_num) }}">{{ page_num }}</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if assignments_pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, assignment_page=assignments_pagination.next_num) }}" aria-label="{{ _('Next') }}">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">&raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
             {% else %}
             <p>{{ _('No assignments available.') }}</p>
             {% endif %}
@@ -1240,6 +1356,49 @@
                 </li>
                 {% endfor %}
             </ul>
+            
+            {# Pagination controls for announcements #}
+            {% if announcements_pagination.pages > 1 %}
+            <nav aria-label="Announcement pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if announcements_pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, announcement_page=announcements_pagination.prev_num) }}" aria-label="{{ _('Previous') }}">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">&laquo;</span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in announcements_pagination.iter_pages() %}
+                    {% if page_num %}
+                        {% if announcements_pagination.page == page_num %}
+                        <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                        {% else %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, announcement_page=page_num) }}">{{ page_num }}</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if announcements_pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, announcement_page=announcements_pagination.next_num) }}" aria-label="{{ _('Next') }}">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link" aria-hidden="true">&raquo;</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
             {% else %}
             <p>{{ _('No announcements yet.') }}</p>
             {% endif %}
@@ -1415,11 +1574,11 @@
     </div>
 
     <!-- Reviews Section - Below Tabs -->
-    {% if reviews and reviews|length > 0 %}
+    {% if reviews_pagination and reviews_pagination.total > 0 %}
     <div id="reviews-section" style="margin-top:3rem; margin-left: 5%; margin-right: 5%; border-top: 2px solid #e5e7eb; padding-top: 2rem;">
         <h3 style="font-size:1.8rem; font-weight:600; color:#374151; margin-bottom:1.5rem;">
             <i class="fa fa-star" style="color:#ffc107;"></i> {{ _('Student Reviews') }}
-            <span style="font-size:1rem; color:#6c757d; font-weight:400;">({{ reviews|length }} {{ ngettext('review', 'reviews', reviews|length) }})</span>
+            <span style="font-size:1rem; color:#6c757d; font-weight:400;">({{ reviews_pagination.total }} {{ ngettext('review', 'reviews', reviews_pagination.total) }})</span>
         </h3>
 
         {% if reviews|length > 0 %}
@@ -1436,7 +1595,7 @@
                     <span class="star {% if i <= avg_rating|round %}filled{% endif %}">★</span>
                 {% endfor %}
             </div>
-            <small style="color:#856404;">{{ _('Average Rating') }}</small>
+            <small style="color:#856404;">{{ _('Average Rating') }}{% if reviews_pagination.pages > 1 %} ({{ _('on this page') }}){% endif %}</small>
         </div>
         {% endif %}
 
@@ -1462,6 +1621,49 @@
             </div>
             {% endfor %}
         </div>
+        
+        {# Pagination controls for reviews section below tabs #}
+        {% if reviews_pagination.pages > 1 %}
+        <nav aria-label="Review pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if reviews_pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, review_page=reviews_pagination.prev_num) }}" aria-label="{{ _('Previous') }}">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-hidden="true">&laquo;</span>
+                </li>
+                {% endif %}
+                
+                {% for page_num in reviews_pagination.iter_pages() %}
+                {% if page_num %}
+                    {% if reviews_pagination.page == page_num %}
+                    <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                    {% else %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, review_page=page_num) }}">{{ page_num }}</a></li>
+                    {% endif %}
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+                {% endfor %}
+                
+                {% if reviews_pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, review_page=reviews_pagination.next_num) }}" aria-label="{{ _('Next') }}">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link" aria-hidden="true">&raquo;</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     </div>
     {% endif %}
 
@@ -2331,6 +2533,202 @@ function bulkToggleVisibilityEnrolled() {
             }
         }, 300);
     };
+</script>
+
+{# Lazy loading of folder contents script #}
+<script>
+    // Store loaded folder IDs to avoid fetching the same folder multiple times
+    const loadedFolders = new Set();
+    window.CURRENT_COURSE_ID = {{ course.id }};
+    const coursePageUrl = "{{ url_for('main.course_page_enrolled', course_id=course.id) }}";
+    const i18n = {
+        viewFile: "{{ _('View File') }}",
+        editFile: "{{ _('Edit File') }}",
+        moveFile: "{{ _('Move File') }}",
+        delete: "{{ _('Delete') }}",
+        loading: "{{ _('loading') }}",
+        thisFolderIsEmpty: "{{ _('This folder is empty') }}",
+        failedToLoadContents: "{{ _('Failed to load contents. Please try again.') }}",
+        confirmDeleteFile: "{{ _('Are you sure you want to delete this file?') }}",
+        errorLoadingContents: "{{ _('Error loading contents') }}"
+    };
+    
+    // Function to load folder contents via AJAX
+    async function loadFolderContents(folderId, courseId) {
+        try {
+            const url = `/api/folder/${folderId}/contents?course_id=${courseId}`;
+            console.log('Fetching folder contents:', url);
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            });
+            
+            console.log('Response status:', response.status);
+            const data = await response.json();
+            console.log('Response data:', data);
+            
+            if (!response.ok) {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            }
+            
+            return data.contents || [];
+        } catch (error) {
+            console.error('Error loading folder contents:', error);
+            return null;
+        }
+    }
+    
+    // Function to render folder contents
+    function renderFolderContents(folderId, contents) {
+            console.log('[DEBUG] Rendering folder contents:', { folderId, contents });
+        const placeholder = document.querySelector(`.folder-contents-placeholder[data-folder-id="${folderId}"]`);
+        if (!placeholder) return;
+        const isTeacherOrAdmin = placeholder.dataset.isTeacherOrAdmin === 'true';
+        if (!contents || contents.length === 0) {
+            placeholder.innerHTML = `
+                <div class="text-center text-muted py-2">
+                    <small>${i18n.thisFolderIsEmpty}</small>
+                </div>
+            `;
+            return;
+        }
+        // Create the file list HTML
+        let html = '<ul class="list-group mb-2 file-sortable" data-folder-id="' + folderId + '">';
+        contents.forEach(item => {
+            const viewLink = item.content_type === 'file' && item.drive_file_id 
+                ? `/api/file/${item.drive_file_id}` 
+                : (item.content_data || '#');
+            html += `
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-file-id="${item.id}">
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                        <span class="drag-handle" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto; flex-shrink: 0;">☰</span>
+            `;
+            if (isTeacherOrAdmin) {
+                html += `
+                        <input type="checkbox" class="content-checkbox-enrolled" value="${item.id}" onchange="updateBulkActionsEnrolled()" style="flex-shrink: 0; cursor: pointer;">
+                `;
+            }
+            html += `
+                        <div>
+                            <strong>
+                                ${item.title || ''} ${getFileEmoji(item)}<br>
+                            </strong>
+                            <small>${item.description || ''}</small>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="${viewLink}" class="btn btn-sm btn-primary" target="_blank">${i18n.viewFile}</a>
+            `;
+            if (isTeacherOrAdmin) {
+                html += `
+                        <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#editFileModal" data-file-id="${item.id}" data-file-name="${item.title}" data-file-description="${item.description || ''}">
+                            ${i18n.editFile}
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm ml-2" data-toggle="modal" data-target="#moveFileModal" data-file-id="${item.id}" data-file-name="${item.title}">
+                            ${i18n.moveFile}
+                        </button>
+                        <form method="post" action="${coursePageUrl}" style="display: inline; margin-left: 0.5rem;" onsubmit="return confirm('${i18n.confirmDeleteFile}');">
+                            <input type="hidden" name="action" value="delete_content">
+                            <input type="hidden" name="content_id" value="${item.id}">
+                            <button type="submit" class="btn btn-danger btn-sm ml-2">${i18n.delete}</button>
+                        </form>
+                `;
+            }
+            html += `
+                    </div>
+                </li>
+            `;
+        });
+        html += '</ul>';
+        placeholder.innerHTML = html;
+        // Re-attach event listeners for newly created elements if needed
+        // attachContentEventListeners();
+    }
+
+// Function to get file emoji based on file type
+function getFileEmoji(item) {
+    const type = (item.content_type || '').toLowerCase();
+    if (type === 'assignment') return '📝';
+    
+    // Try to get extension from title
+    const title = item.title || '';
+    const extMatch = title.toLowerCase().match(/\.([a-zA-Z0-9]+)$/);
+    const ext = extMatch ? '.' + extMatch[1] : '';
+    
+    // Media files
+    if (['.mp3', '.wav', '.m4a'].includes(ext)) return '🎧';
+    if (['.mp4', '.mov', '.avi', '.webm'].includes(ext)) return '🎥';
+    if (['.jpg', '.jpeg', '.png', '.svg', '.webp', '.gif'].includes(ext)) {
+        return ext === '.gif' ? '🎞️' : '📷';
+    }
+    if (ext === '.psd') return '🎨';
+    
+    // Documents & Text
+    if (ext === '.txt') return '📝';
+    if (ext === '.pdf') return '📕';
+    if (ext === '.doc' || ext === '.docx') return '📄';
+    if (ext === '.ppt' || ext === '.pptx') return '📊';
+    if (ext === '.xls' || ext === '.xlsx') return '📗';
+    
+    // Fallback: check content_type for mime-type hints
+    const mime = (item.content_data || '').toLowerCase();
+    if (mime.startsWith('image/')) return '🖼️';
+    if (mime.startsWith('video/')) return '🎬';
+    if (mime.startsWith('audio/')) return '🎵';
+    if (mime.includes('pdf')) return '📕';
+    if (type.includes('document') || type.includes('word')) return '📝';
+    if (type.includes('spreadsheet') || type.includes('excel')) return '📗';
+    if (type.includes('presentation') || type.includes('powerpoint')) return '📙';
+    if (type.includes('zip') || type.includes('compressed')) return '🗜️';
+    
+    return '📄';
+}
+
+// Function to handle folder expansion
+async function handleFolderExpand(folderId, courseId) {
+    console.log('Folder expanded:', folderId, 'Course:', courseId);
+    if (loadedFolders.has(folderId)) {
+        console.log('Folder already loaded, skipping');
+        return;
+    }
+    const placeholder = document.querySelector(`.folder-contents-placeholder[data-folder-id="${folderId}"]`);
+    if (!placeholder) {
+        console.error('Placeholder not found for folder:', folderId);
+        return;
+    }
+    placeholder.innerHTML = `
+        <div class="text-center text-muted py-2">
+            <i class="fas fa-spinner fa-spin me-2"></i>
+            <small>${i18n.loading}</small>
+        </div>
+    `;
+    try {
+        const contents = await loadFolderContents(folderId, courseId);
+        if (contents !== null) {
+            renderFolderContents(folderId, contents);
+            loadedFolders.add(folderId);
+            console.log('Folder loaded successfully:', folderId, 'Items:', contents.length);
+        } else {
+            placeholder.innerHTML = `
+                <div class="text-center text-danger py-2">
+                    <small>${i18n.failedToLoadContents}</small>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error handling folder expand:', error);
+        placeholder.innerHTML = `
+            <div class="text-center text-danger py-2">
+                <small>${i18n.errorLoadingContents}</small>
+            </div>
+        `;
+    }
+}
+
+// ...existing code up to the end of the last valid script block...
 </script>
 <div style="margin-bottom: 10rem;"></div>
 {% include 'components/footer.html' %}

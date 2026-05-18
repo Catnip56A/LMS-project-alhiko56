@@ -148,12 +148,7 @@ def course_page_enrolled(course_id):
     if not course:
         abort(404)
 
-    # Debug user and enrollment status
-    print(f"DEBUG: current_user.is_authenticated: {getattr(current_user, 'is_authenticated', None)}")
-    print(f"DEBUG: current_user.is_teacher: {getattr(current_user, 'is_teacher', None)}")
-    print(f"DEBUG: current_user.id: {getattr(current_user, 'id', None)}")
-    print(f"DEBUG: course.users: {[getattr(u, 'id', None) for u in getattr(course, 'users', [])]}")
-    print(f"DEBUG: current_user in course.users: {current_user in getattr(course, 'users', [])}")
+
 
     # Check enrollment status
     enrolled = current_user.is_authenticated and (current_user in course.users or current_user.is_teacher)
@@ -350,11 +345,7 @@ def course_page_enrolled(course_id):
             folder_title = request.form.get('folder_title')
             folder_description = request.form.get('folder_description')
             
-            # Debugging logs for create_folder
-            print("[DEBUG] Create Folder Action Triggered")
-            print("[DEBUG] Parent Folder ID:", parent_folder_id)
-            print("[DEBUG] Folder Title:", folder_title)
-            print("[DEBUG] Folder Description:", folder_description)
+
 
             new_folder = CourseContentFolder(
                 course_id=course.id,
@@ -379,12 +370,7 @@ def course_page_enrolled(course_id):
             allow_others_to_view = request.form.get('allow_others_to_view') == 'on'
             uploaded_file = request.files.get('content_file')
             
-            # Debugging logs for upload_file
-            print("[DEBUG] Upload File Action Triggered")
-            print("[DEBUG] File Folder ID:", file_folder_id)
-            print("[DEBUG] File Title:", file_title)
-            print("[DEBUG] File Description:", file_description)
-            print("[DEBUG] Uploaded File:", uploaded_file.filename if uploaded_file else "No file uploaded")
+
             
             if not uploaded_file:
                 flash('Please select a file to upload.', 'error')
@@ -1249,44 +1235,54 @@ def course_page_enrolled(course_id):
     # PERFORMANCE OPTIMIZATION: Use eager loading to avoid N+1 queries
     # Load all related data in a single query where possible
     from sqlalchemy.orm import joinedload, subqueryload
-    
-    # Load course content with folders using eager loading
+
+    # Only one page for course content (no pagination)
+    assignment_page = request.args.get('assignment_page', 1, type=int)
+    announcement_page = request.args.get('announcement_page', 1, type=int)
+    review_page = request.args.get('review_page', 1, type=int)
+
+    # Items per page for assignments, announcements, reviews
+    per_page = 10  # Can be adjusted or made configurable
+
+    # Load all course content with folders using eager loading (no pagination)
     contents = CourseContent.query.filter_by(course_id=course.id, is_published=True).options(
         subqueryload(CourseContent.folder)
     ).order_by(CourseContent.order).all()
-    
-    # Load content folders with their items using eager loading
+
+    # Load content folders with their subfolders using eager loading
+    # Note: folder items are loaded lazily when folders are expanded
     content_folders = CourseContentFolder.query.filter_by(course_id=course.id).options(
-        subqueryload(CourseContentFolder.items),
         subqueryload(CourseContentFolder.subfolders)
     ).order_by(CourseContentFolder.order).all()
-    
-    # Filter items in Python after loading
-    for folder in content_folders:
-        folder.items = [item for item in folder.items if item.is_published]
-    
+
     # Separate root folders from subfolders for template
     root_folders = [f for f in content_folders if f.parent_folder_id is None]
-    
-    # Load assignments with eager-loaded submissions
-    assignments = CourseAssignment.query.filter_by(course_id=course.id, is_published=True).options(
+
+    # Load assignments with eager-loaded submissions and pagination
+    assignments_pagination = CourseAssignment.query.filter_by(course_id=course.id, is_published=True).options(
         subqueryload(CourseAssignment.submissions)
-    ).order_by(CourseAssignment.due_date).all()
-    
-    # Load announcements with eager-loaded replies and users
-    announcements = CourseAnnouncement.query.filter_by(course_id=course.id, is_published=True).options(
-        subqueryload(CourseAnnouncement.replies).joinedload(CourseAnnouncementReply.user),
-        joinedload(CourseAnnouncement.author)
-    ).order_by(CourseAnnouncement.created_at.desc()).all()
-    
-    # Pre-filter top-level replies for each announcement (for template compatibility)
-    for ann in announcements:
-        ann.top_level_replies = [r for r in ann.replies if r.parent_reply_id is None]
-    
-    # Load reviews with eager-loaded users
-    reviews = CourseReview.query.filter_by(course_id=course.id).options(
+    ).order_by(CourseAssignment.due_date).paginate(
+        page=assignment_page, per_page=per_page, error_out=False
+    )
+    assignments = assignments_pagination.items
+
+    # Load announcements with eager-loaded replies and users and pagination
+    # We'll filter replies in Python for simplicity, but limit the data loaded
+    announcements_pagination = CourseAnnouncement.query.filter_by(course_id=course.id, is_published=True).options(
+        joinedload(CourseAnnouncement.author),
+        subqueryload(CourseAnnouncement.replies).joinedload(CourseAnnouncementReply.user)
+    ).order_by(CourseAnnouncement.created_at.desc()).paginate(
+        page=announcement_page, per_page=per_page, error_out=False
+    )
+    announcements = announcements_pagination.items
+
+    # Load reviews with eager-loaded users and pagination
+    reviews_pagination = CourseReview.query.filter_by(course_id=course.id).options(
         joinedload(CourseReview.user)
-    ).order_by(CourseReview.created_at.desc()).all()
+    ).order_by(CourseReview.created_at.desc()).paginate(
+        page=review_page, per_page=per_page, error_out=False
+    )
+    reviews = reviews_pagination.items
     
     # Get passed assignment IDs for current user (for folder locking)
     passed_subs = []
@@ -1317,8 +1313,11 @@ def course_page_enrolled(course_id):
         content_folders=content_folders,
         root_folders=root_folders,
         assignments=assignments,
+        assignments_pagination=assignments_pagination,
         announcements=announcements,
+        announcements_pagination=announcements_pagination,
         reviews=reviews,
+        reviews_pagination=reviews_pagination,
         passed_assignment_ids=[sub.assignment_id for sub in passed_subs],
         folder_paths=folder_paths,
         page_builder_data_translated=page_builder_data_translated,
@@ -1328,13 +1327,6 @@ def course_page_enrolled(course_id):
         youtube_guide_video_id=youtube_guide_video_id,
         datetime=dt,
     )
-    if user:
-        user.is_teacher = is_teacher
-        db.session.commit()
-        flash('User updated successfully!', 'success')
-    else:
-        flash('User not found.', 'error')
-    return redirect(request.referrer or url_for('main.index'))
 
 
 @main_bp.route('/site')
