@@ -373,7 +373,11 @@ def get_file_metadata(service, file_id):
         return file
     except HttpError as error:
         elapsed = time.time() - start_time
-        print(f'An error occurred getting file metadata after {elapsed:.2f}s: {error}')
+        if error.resp.status == 404:
+            # File not found - log at debug level to avoid cluttering logs
+            print(f"DEBUG: File {file_id} not found (404) after {elapsed:.2f}s")
+        else:
+            print(f'An error occurred getting file metadata after {elapsed:.2f}s: {error}')
         # Return error information for better handling
         return {'error': str(error), 'error_code': error.resp.status}
     except (ConnectionResetError, ConnectionError, TimeoutError, OSError) as error:

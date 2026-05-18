@@ -115,7 +115,7 @@ def get_google_redirect_uri(redirect_uri=None):
     if redirect_uri:
         return redirect_uri
     return f"{_resolve_oauth_base_url()}/admin/google_login/"
-from yonca.models import User, Course, ForumMessage, ForumChannel, TaviTest, Resource, db, HomeContent
+from yonca.models import User, Course, ForumMessage, ForumChannel, TaviTest, Resource, db, HomeContent, CourseContent, ContentView
 
 class AdminIndexView(AdminIndexView):
     """Custom admin index view with authentication and home content management"""
