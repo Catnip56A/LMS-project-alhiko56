@@ -679,30 +679,24 @@ class CourseManagementView(BaseView):
         file_list.sort(key=lambda x: x['file_title'].lower())
 
         # ── Colour scale ──────────────────────────────────────────────────────
-        import colorsys
+        # Use predefined list of 100 distinct colors
+        color_list = [
+            "#E6194B", "#3CB44B", "#FFE119", "#4363D8", "#F58231", "#911EB4", "#42D4F4", "#F032E6", "#BFEF45", "#FABED4",
+            "#469990", "#DCBEFF", "#9A6324", "#FFFAC8", "#800000", "#AAFFC3", "#808000", "#FFD8B1", "#000075", "#FF6F61",
+            "#40E0D0", "#4B0082", "#FFD700", "#FA8072", "#DA70D6", "#87CEEB", "#228B22", "#FF6347", "#6A5ACD", "#FF1493",
+            "#2E8B57", "#1E90FF", "#FF69B4", "#C71585", "#4682B4", "#F4A460", "#BDB76B", "#9370DB", "#20B2AA", "#CD853F",
+            "#D2691E", "#FF8C00", "#00FF7F", "#7FFFD4", "#B22222", "#9400D3", "#7CFC00", "#F08080", "#00BFFF", "#BC8F8F",
+            "#5F9EA0", "#9ACD32", "#DDA0DD", "#E9967A", "#3CB371", "#6495ED", "#EE82EE", "#00CED1", "#BA55D3", "#98FB98",
+            "#CD5C5C", "#7851A9", "#CCFF00", "#CC5500", "#E30B5C", "#007BA7", "#FFBF00", "#50C878", "#E0115F", "#0F52BA",
+            "#00A86B", "#FFDB58", "#C54B8C", "#005F99", "#8DB600", "#FF7518", "#FF00FF", "#007FFF", "#7FFF00", "#E34234",
+            "#614051", "#0047AB", "#8A9A5B", "#F28500", "#FF007F", "#5DADEC", "#93C572", "#B87333", "#FF6EC7", "#1560BD",
+            "#4F7942", "#FFCBA4", "#FF77FF", "#4F42B5", "#8EE53F", "#FD5E53", "#C8A2C8", "#99FFFF", "#7BB661", "#FF2400"
+        ]
         max_total = max((total_per_user.get(u.id, 0) for u in users), default=0)
         user_colors = {}
-        for u in users:
-            t = total_per_user.get(u.id, 0)
-            if max_total == 0:
-                # For zero data, we use a neutral light gray
-                h_norm, l, s = 0, 0.8, 0.0   # H doesn't matter, S=0, L=0.8 -> light gray
-            else:
-                pct = t / max_total
-                # Distinct hue per user: use the golden angle approximation
-                h = (u.id * 137.508) % 360   # in degrees
-                h_norm = h / 360.0           # to [0,1] for colorsys
-                # Saturation: from 0.4 (low) to 0.9 (high)
-                s = 0.4 + 0.5 * pct
-                # Lightness: from 0.7 (light) to 0.3 (dark) as pct increases
-                l = 0.7 - 0.4 * pct
-            # Convert HLS to RGB
-            r, g, b = colorsys.hls_to_rgb(h_norm, l, s)
-            # Convert to 0-255 integers
-            r = int(round(r * 255))
-            g = int(round(g * 255))
-            b = int(round(b * 255))
-            user_colors[u.id] = '#{:02x}{:02x}{:02x}'.format(r, g, b)
+        for idx, u in enumerate(users):
+            # Assign color from list, cycle if more users than colors
+            user_colors[u.id] = color_list[idx % len(color_list)]
 
         from yonca.models import HomeContent
         home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
