@@ -30,6 +30,7 @@ Thumbs.db
 
 # Project noise
 docs/
+scripts/
 instance/
 Additional_scripts/
 *.zip
