@@ -1,121 +1,103 @@
 #!/usr/bin/env python3
 """
-Fix placeholder name mismatches by reprocessing .po files with proper parsing.
+Fix placeholder name mismatches in translated .po files.
+
+After auto-translation, placeholder names like %(username)s or {count} may
+be translated by the engine. This script restores the original names by
+matching placeholders positionally. Skips entries where the placeholder
+count differs between msgid and msgstr (can't fix safely).
 """
 import re
+import sys
 from pathlib import Path
 
+try:
+    import polib
+except ImportError:
+    print("Error: polib is required. Install with: uv add polib")
+    sys.exit(1)
 
-def fix_po_content(content):
-    """Fix placeholder names in .po file content."""
-    lines = content.split('\n')
-    result = []
-    i = 0
-    fixes_made = 0
-    
-    while i < len(lines):
-        line = lines[i]
-        
-        # Match msgid_plural or msgid (including commented lines with #~)
-        msgid_match = re.match(r'(#~\s+)?(msgid_plural|msgid)\s+"(.+)"', line)
-        if msgid_match:
-            comment_prefix = msgid_match.group(1)  # captures '#~ ' if present
-            is_plural = msgid_match.group(2) == 'msgid_plural'
-            msgid_base = msgid_match.group(2)
-            msgid_content = msgid_match.group(3)
-            
-            # Append the msgid line
-            result.append(line)
-            i += 1
-            
-            # Handle multiline msgid
-            while i < len(lines) and lines[i].startswith('"') and not re.match(r'#*~?\s*msgstr', lines[i]):
-                msgid_content += lines[i]
-                result.append(lines[i])
-                i += 1
-            
-            # Extract placeholders from msgid (both %(name)s and {name} styles)
-            py_placeholder_pattern = r'%\(([a-zA-Z_][a-zA-Z0-9_]*)\)s'
-            jinja_placeholder_pattern = r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}'
-            
-            py_placeholders = re.findall(py_placeholder_pattern, msgid_content)
-            jinja_placeholders = re.findall(jinja_placeholder_pattern, msgid_content)
-            
-            # Process corresponding msgstr
-            if i < len(lines) and re.match(r'#*~?\s*msgstr(\[\d+\])?\s+"', lines[i]):
-                # Handle potentially multiple msgstr (for plurals)
-                while i < len(lines) and re.match(r'#*~?\s*msgstr', lines[i]):
-                    msgstr_line = lines[i]
-                    msgstr_match = re.match(r'(#~\s+)?(msgstr(?:\[\d+\])?)\s+"(.+)"', msgstr_line)
-                    
-                    if msgstr_match:
-                        msgstr_prefix = msgstr_match.group(1)  # captures '#~ ' if present
-                        msgstr_base = msgstr_match.group(2)
-                        msgstr_content = msgstr_match.group(3)
-                        
-                        # Collect multiline msgstr
-                        i += 1
-                        while i < len(lines) and lines[i].startswith('"'):
-                            msgstr_content += lines[i]
-                            i += 1
-                        
-                        # Fix Python-style placeholders
-                        msgstr_py_placeholders = re.findall(py_placeholder_pattern, msgstr_content)
-                        for idx, msgstr_ph in enumerate(msgstr_py_placeholders):
-                            if idx < len(py_placeholders) and msgstr_ph != py_placeholders[idx]:
-                                old_ph = f'%({msgstr_ph})s'
-                                new_ph = f'%({py_placeholders[idx]})s'
-                                msgstr_content = msgstr_content.replace(old_ph, new_ph, 1)
-                                fixes_made += 1
-                        
-                        # Fix Jinja2-style placeholders
-                        msgstr_jinja_placeholders = re.findall(jinja_placeholder_pattern, msgstr_content)
-                        for idx, msgstr_ph in enumerate(msgstr_jinja_placeholders):
-                            if idx < len(jinja_placeholders) and msgstr_ph != jinja_placeholders[idx]:
-                                old_ph = f'{{{msgstr_ph}}}'
-                                new_ph = f'{{{jinja_placeholders[idx]}}}'
-                                msgstr_content = msgstr_content.replace(old_ph, new_ph, 1)
-                                fixes_made += 1
-                        
-                        # Reconstruct msgstr line(s)
-                        # Split content by lines if it's very long
-                        if len(msgstr_content) > 100:
-                            # Wrap long lines
-                            parts = [msgstr_content[i:i+80] for i in range(0, len(msgstr_content), 80)]
-                            result.append(f'{msgstr_prefix or ""}{msgstr_base} "{parts[0]}"')
-                            for part in parts[1:]:
-                                result.append(f'"{part}"')
-                        else:
-                            result.append(f'{msgstr_prefix or ""}{msgstr_base} "{msgstr_content}"')
-                    else:
-                        result.append(msgstr_line)
-                        i += 1
+
+_PY_PH = re.compile(r'%\(([a-zA-Z_][a-zA-Z0-9_]*)\)s')
+_JINJA_PH = re.compile(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}')
+# Matches leftover protection artifacts from old {PROTECTED_N} / {PROTECTED N} scheme
+_BROKEN_PROTECTED = re.compile(r'\{PROTECTED[_\s]*\d+\}')
+
+
+def fix_msgstr(msgid: str, msgstr: str) -> tuple[str, int]:
+    """Restore placeholder names in msgstr to match those in msgid.
+
+    Returns (fixed_msgstr, number_of_fixes).
+    """
+    if not msgstr:
+        return msgstr, 0
+
+    fixes = 0
+
+    for pattern in (_PY_PH, _JINJA_PH):
+        correct = pattern.findall(msgid)
+        wrong = pattern.findall(msgstr)
+
+        if not correct or len(correct) != len(wrong):
+            continue
+
+        for src, dst in zip(wrong, correct):
+            if src == dst:
+                continue
+            if pattern is _PY_PH:
+                msgstr = msgstr.replace(f'%({src})s', f'%({dst})s')
             else:
-                # No msgstr found, just continue
-                pass
+                msgstr = msgstr.replace(f'{{{src}}}', f'{{{dst}}}')
+            fixes += 1
+
+    return msgstr, fixes
+
+
+def fix_protected_artifacts(msgstr: str) -> tuple[str, int]:
+    """Replace leftover {PROTECTED N} / {PROTECTED_N} artifacts with 'Yonca'."""
+    count = len(_BROKEN_PROTECTED.findall(msgstr))
+    return _BROKEN_PROTECTED.sub('Yonca', msgstr), count
+
+
+def fix_po_file(po_path: Path) -> int:
+    po = polib.pofile(str(po_path))
+    total = 0
+
+    for entry in po:
+        if not entry.msgid or not entry.translated():
+            continue
+
+        if entry.msgstr_plural:
+            for idx, msgstr in entry.msgstr_plural.items():
+                s, n1 = fix_protected_artifacts(msgstr)
+                s, n2 = fix_msgstr(entry.msgid, s)
+                entry.msgstr_plural[idx] = s
+                total += n1 + n2
         else:
-            result.append(line)
-            i += 1
-    
-    return '\n'.join(result), fixes_made
+            s, n1 = fix_protected_artifacts(entry.msgstr)
+            s, n2 = fix_msgstr(entry.msgid, s)
+            entry.msgstr = s
+            total += n1 + n2
+
+    if total:
+        po.save()
+
+    return total
 
 
-# Fix all .po files
-po_dir = Path('yonca/translations')
-total_fixes = 0
+def main() -> None:
+    po_dir = Path(__file__).parent.parent.parent / 'yonca' / 'translations'
+    grand_total = 0
 
-for po_file in po_dir.glob('*/LC_MESSAGES/messages.po'):
-    print(f'Fixing: {po_file}')
-    
-    with open(po_file, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    fixed_content, fixes = fix_po_content(content)
-    total_fixes += fixes
-    
-    with open(po_file, 'w', encoding='utf-8') as f:
-        f.write(fixed_content)
-    
-    print(f'  ✓ Fixed {fixes} placeholder issues')
+    for po_file in sorted(po_dir.glob('*/LC_MESSAGES/messages.po')):
+        rel = po_file.relative_to(po_dir.parent.parent)
+        print(f'Checking: {rel}')
+        fixes = fix_po_file(po_file)
+        grand_total += fixes
+        print(f'  {"fixed " + str(fixes) + " placeholder(s)" if fixes else "nothing to fix"}')
 
-print(f'\n✓ Total fixes made: {total_fixes}')
+    print(f'\nTotal fixes: {grand_total}')
+
+
+if __name__ == '__main__':
+    main()

@@ -22,8 +22,13 @@ except ImportError:
 
 SUPPORTED_LANGUAGES = ['en', 'ru']
 
-# Terms that must survive translation unchanged
-PROTECTED_TERMS = ['Yonca', 'YONCA', 'yonca']
+# Terms that must survive translation unchanged.
+# Each entry is (pattern_to_match, placeholder, canonical_form).
+# All-caps placeholder with no underscores/digits — translation engines treat
+# these as opaque constants and leave them alone.
+_PROTECTED_TERMS: list[tuple[re.Pattern, str, str]] = [
+    (re.compile(r'Yonca', re.IGNORECASE), '{YONCA}', 'Yonca'),
+]
 
 
 # ── Term protection ────────────────────────────────────────────────────────────
@@ -32,18 +37,14 @@ def protect_terms(text: str) -> tuple[str, dict]:
     """Replace protected terms with placeholders before translation.
 
     Returns (protected_text, replacements) where replacements maps
-    each placeholder back to the original token.
+    each placeholder back to its canonical form.
     """
     replacements: dict[str, str] = {}
     protected = text
-    for i, term in enumerate(PROTECTED_TERMS):
-        placeholder = f"{{PROTECTED_{i}}}"
-        pattern = re.compile(re.escape(term), re.IGNORECASE)
-        for match in pattern.finditer(protected):
-            original = match.group()
-            if placeholder not in replacements:
-                replacements[placeholder] = original
-                protected = protected.replace(original, placeholder, 1)
+    for pattern, placeholder, canonical in _PROTECTED_TERMS:
+        if pattern.search(protected):
+            replacements[placeholder] = canonical
+            protected = pattern.sub(placeholder, protected)
     return protected, replacements
 
 

@@ -168,8 +168,9 @@ translate-all: libre-ready
     uv run python scripts/translations/clear_all_po_translations.py
     uv run pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot yonca
     uv run pybabel update -i yonca/translations/messages.pot -d yonca/translations
-    uv run pybabel compile -f -d yonca/translations
     uv run python scripts/translations/auto_translate_po.py
+    uv run python scripts/translations/fix_placeholders_v2.py
+    uv run pybabel compile -f -d yonca/translations
     docker stop yonca-libretranslate
 
 translate-fix-placeholders: libre-ready
