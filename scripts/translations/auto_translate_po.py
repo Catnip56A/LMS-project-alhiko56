@@ -7,7 +7,6 @@ Reads LIBRETRANSLATE_URL from the environment (set via .env / just).
 """
 import os
 import sys
-import time
 import importlib.util
 
 # Add project root to path so we can import yonca modules
@@ -43,41 +42,57 @@ LANGUAGE_NAMES = _constants.LANGUAGE_NAMES
 LANGUAGES = {lang: LANGUAGE_NAMES.get(lang, lang) for lang in SUPPORTED_LANGUAGES}
 TRANSLATIONS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'yonca', 'translations')
 LIBRE_URL = os.environ.get('LIBRETRANSLATE_URL') or None
-# Seconds between API calls — keeps us under Google's unofficial rate limit
-REQUEST_DELAY = 0.2
+CHUNK_SIZE = 50
+SOURCE_LANG = 'en'
 
 
 def translate_po_file(po_file_path: str, lang_code: str) -> None:
     po = polib.pofile(po_file_path)
-    updated = 0
 
-    for entry in po:
-        if not entry.msgid:
-            continue
+    # For the source language just copy msgid → msgstr — no API call needed.
+    if lang_code == SOURCE_LANG:
+        updated = 0
+        for entry in po:
+            if entry.msgid and not entry.msgid_plural and not entry.translated():
+                entry.msgstr = entry.msgid
+                updated += 1
+        if updated:
+            po.save()
+        print(f"  {os.path.relpath(po_file_path)}: {updated} entries copied (source lang)")
+        return
 
+    # Collect entries that still need translation.
+    untranslated = [
+        e for e in po
+        if e.msgid and (
+            (e.msgid_plural and not all(v for v in e.msgstr_plural.values()))
+            or (not e.msgid_plural and not e.translated())
+        )
+    ]
+
+    if not untranslated:
+        print(f"  {os.path.relpath(po_file_path)}: already complete")
+        return
+
+    print(f"  {os.path.relpath(po_file_path)}: translating {len(untranslated)} entries...", flush=True)
+
+    texts = [e.msgid for e in untranslated]
+    translated_texts = _core_translator.translate_batch(
+        texts,
+        lang_code,
+        libretranslate_url=LIBRE_URL,
+        chunk_size=CHUNK_SIZE,
+    )
+
+    for entry, translated in zip(untranslated, translated_texts):
         if entry.msgid_plural:
-            if not any(not v for v in entry.msgstr_plural.values()):
-                continue
-            translated = _core_translator.translate_text(
-                entry.msgid, lang_code, libretranslate_url=LIBRE_URL
-            )
             for idx in entry.msgstr_plural:
                 entry.msgstr_plural[idx] = translated
-            updated += 1
         else:
-            if entry.translated():
-                continue
-            translated = _core_translator.translate_text(
-                entry.msgid, lang_code, libretranslate_url=LIBRE_URL
-            )
             entry.msgstr = translated
-            updated += 1
 
-        time.sleep(REQUEST_DELAY)
-
-    if updated:
-        po.save()
-    print(f"  {os.path.relpath(po_file_path)}: {updated} entries translated")
+    po.save()
+    print(f"  {os.path.relpath(po_file_path)}: done ({len(untranslated)} entries)")
 
 
 def main() -> None:
@@ -85,7 +100,7 @@ def main() -> None:
     if LIBRE_URL:
         print(f"  LibreTranslate: {LIBRE_URL}")
     else:
-        print("  LibreTranslate not configured — using GoogleTranslator only")
+        print("  WARNING: LIBRETRANSLATE_URL not set — translations will be skipped")
     print()
 
     for lang_code, lang_name in LANGUAGES.items():

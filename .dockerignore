@@ -28,6 +28,11 @@ data/
 .DS_Store
 Thumbs.db
 
+# Translation sources — only compiled .mo files are needed at runtime
+yonca/translations/**/*.po
+yonca/translations/**/*.po.*
+yonca/translations/messages.pot
+
 # Project noise
 docs/
 scripts/

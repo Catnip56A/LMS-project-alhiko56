@@ -135,3 +135,76 @@ def translate_text(
         logger = logging.getLogger(__name__)
         logger.error(f"LibreTranslate error translating to {target_lang}: {e} (URL: {url})")
         return text
+
+
+def translate_batch(
+    texts: list[str],
+    target_lang: str,
+    *,
+    libretranslate_url: str | None = None,
+    libretranslate_api_key: str = '',
+    chunk_size: int = 50,
+) -> list[str]:
+    """Translate a list of texts to target_lang using LibreTranslate's batch API.
+
+    Sends up to chunk_size strings per request. Returns a list of the same
+    length as texts; falls back to the original string on any failure.
+    """
+    if not texts:
+        return []
+
+    url = libretranslate_url or os.environ.get('LIBRETRANSLATE_URL') or ''
+    if not url:
+        import logging
+        logging.getLogger(__name__).warning(
+            "LIBRETRANSLATE_URL not configured — returning originals unchanged"
+        )
+        return list(texts)
+
+    results: list[str] = []
+
+    for start in range(0, len(texts), chunk_size):
+        chunk = texts[start : start + chunk_size]
+        protected_chunk: list[str] = []
+        replacement_maps: list[dict] = []
+
+        for text in chunk:
+            if not text or len(text.strip()) < 2:
+                protected_chunk.append(text)
+                replacement_maps.append({})
+            else:
+                protected, replacements = protect_terms(text)
+                protected_chunk.append(protected)
+                replacement_maps.append(replacements)
+
+        try:
+            payload: dict = {
+                'q': protected_chunk,
+                'source': 'auto',
+                'target': target_lang,
+                'format': 'text',
+            }
+            if libretranslate_api_key:
+                payload['api_key'] = libretranslate_api_key
+
+            resp = requests.post(
+                f"{url.rstrip('/')}/translate",
+                json=payload,
+                timeout=60,
+            )
+            resp.raise_for_status()
+            translated = resp.json().get('translatedText', [])
+            if not isinstance(translated, list):
+                translated = [translated]
+
+            for orig, trans, repl in zip(chunk, translated, replacement_maps):
+                results.append(restore_terms(trans, repl) if trans else orig)
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(
+                f"LibreTranslate batch error ({len(chunk)} texts → {target_lang}): {e}"
+            )
+            results.extend(chunk)
+
+    return results

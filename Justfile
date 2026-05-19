@@ -1,6 +1,7 @@
 set dotenv-load
 
-_ssh_host := env('SSH_HOST', 'yonca-sdc.com')
+_ssh_host  := env('SSH_HOST', 'yonca-sdc.com')
+_libre_url := env('LIBRETRANSLATE_URL', 'http://localhost:5050')
 
 default:
    just --list
@@ -135,10 +136,26 @@ libre:
         -p 127.0.0.1:5050:5000 \
         -v "$(pwd)/data/libretranslate:/home/libretranslate/.local/share" \
         libretranslate/libretranslate \
-        --load-only en,az,ru
+        --load-only en,ru  # az disabled — translation quality insufficient
       echo "LibreTranslate starting at http://localhost:5050 (may take a minute to load models)"
       echo "Stop with: docker stop yonca-libretranslate"
     fi
+
+# Poll LibreTranslate until it responds (max 2 min). Depends on libre so it
+# can be used as a dependency instead of libre directly.
+libre-ready: libre
+    #!/usr/bin/env bash
+    echo "Waiting for LibreTranslate to be ready..."
+    for i in $(seq 1 40); do
+        if curl -sf "{{_libre_url}}/languages" > /dev/null 2>&1; then
+            echo "LibreTranslate is ready."
+            exit 0
+        fi
+        echo "  ($i/40) not ready yet, retrying in 3s..."
+        sleep 3
+    done
+    echo "ERROR: LibreTranslate did not become ready within 2 minutes."
+    exit 1
 
 # Compile translations
 translate-compile:
@@ -147,7 +164,7 @@ translate-compile:
 extract-messages:
     uv run pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot yonca
 
-translate-all: libre
+translate-all: libre-ready
     uv run python scripts/translations/clear_all_po_translations.py
     uv run pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot yonca
     uv run pybabel update -i yonca/translations/messages.pot -d yonca/translations
@@ -155,7 +172,7 @@ translate-all: libre
     uv run python scripts/translations/auto_translate_po.py
     docker stop yonca-libretranslate
 
-translate-fix-placeholders: libre
+translate-fix-placeholders: libre-ready
     uv run python scripts/translations/fix_placeholders_v2.py
     
 
