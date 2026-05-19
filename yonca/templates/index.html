@@ -2099,7 +2099,7 @@
         }
 
         /* WhatsApp floating contact icon */
-        .whatsapp-float {
+        #whatsapp-float.whatsapp-float {
             position: fixed;
             bottom: 24px;
             right: 24px;
@@ -2107,32 +2107,41 @@
             display: none;
             text-decoration: none;
         }
-        .whatsapp-float.visible {
+        #whatsapp-float.whatsapp-float.visible {
             display: flex;
         }
         .whatsapp-float-btn {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: #25D366;
-            color: white;
-            font-size: 32px;
+            background: white;
+            color: #25D366;
+            font-size: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             border: none;
             cursor: pointer;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
         }
         .whatsapp-float-btn:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
         }
         .whatsapp-float-btn svg {
-            width: 32px;
-            height: 32px;
-            fill: white;
+            width: 32px !important;
+            height: 32px !important;
+            max-width: 32px !important;
+            max-height: 32px !important;
+            min-width: 32px !important;
+            min-height: 32px !important;
+            fill: #25D366 !important;
+            display: block;
         }
         .yonca-video-modal {
             position: fixed;
