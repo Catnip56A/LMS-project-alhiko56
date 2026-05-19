@@ -68,76 +68,69 @@
         .logo-section {
             flex-shrink: 0;
             align-self: center;
-            margin-left: 1.5rem;
-            margin-right: -0.75rem;
+            margin-left: 0.875rem;
+            margin-right: 3.625rem;
+            transform: translateY(0.4rem);
         }
 
         .nav-auth-container {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
             flex: 1;
             gap: 0.5rem;
+            min-width: 0;
         }
 
         .nav-section {
             display: flex;
-            justify-content: center;
-            width: 100%;
+            justify-content: flex-start;
+            flex-shrink: 0;
         }
 
         .auth-section {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
             gap: 0.5rem;
+            flex-shrink: 0;
+            margin-left: auto;
+            padding-right: 1rem;
+            transform: translateY(5px);
+        }
+
+        #auth-buttons {
+            margin-left: 0.75rem;
+        }
+
+        /* Language pills */
+        .lang-pills {
+            display: flex;
+            gap: 0.3rem;
             flex-shrink: 0;
         }
 
-        .auth-toggle-btn {
-            background: none;
-            border: none;
+        .lang-pill {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
             color: #353e45;
-            font-size: 1rem;
-            cursor: pointer;
-            padding: 0.5rem 0.75rem;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-            display: none;
-            margin-left: 0.5rem;
+            background: #fffcf0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-decoration: none;
+            transition: all 0.2s ease;
         }
 
-        .auth-toggle-btn:hover {
-            background: #f0f0f0;
+        .lang-pill:hover {
+            background: #1e5919;
+            color: #fafbed;
+            text-decoration: none;
         }
 
-        @media (min-width: 480px) {
-            .auth-toggle-btn {
-                display: block;
-            }
-
-            .auth-section {
-                display: none;
-            }
-
-            .auth-section.show {
-                display: flex;
-                position: absolute;
-                top: 100%;
-                left: 50%;
-                transform: translateX(-50%);
-                background: white;
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                z-index: 9999;
-                min-width: 200px;
-                padding: 0.5rem;
-                max-width: calc(100vw - 2rem);
-                max-height: calc(100vh - 6rem); /* Ensure it doesn't exceed viewport height */
-                overflow-y: auto; /* Add scroll if needed */
-                box-sizing: border-box;
-            }
+        .lang-pill.active {
+            background: #337a2c;
+            color: #fafbed;
+            font-weight: 600;
         }
 
         .container {
@@ -219,7 +212,7 @@
             display: block;
             padding: 1rem;
             margin-bottom: 0.5rem;
-            border-radius: 20px;
+            border-radius: 6px;
             text-align: center;
             font-size: 1.1rem;
         }
@@ -276,7 +269,7 @@
             text-decoration: none;
             font-weight: 500;
             padding: 0.3rem 1.5rem;
-            border-radius: 20px;
+            border-radius: 6px;
             transition: all 0.3s ease;
             position: relative;
             background-color: #fffcf0;
@@ -494,6 +487,7 @@
         /* Home features container styled like gallery items (rounded rectangle background) */
         .features-section {
             margin: 0;
+            padding: 0 1.5rem;
         }
 
         .features-section .features {
@@ -544,6 +538,7 @@
         /* Services Section Styles */
         .services-section {
             margin: 0;
+            padding: 0 2rem;
         }
 
         .services {
@@ -839,12 +834,20 @@
         }
 
         /* Carousel styles for single large gallery box */
+        .gallery-outer {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
         .gallery-container {
             position: relative;
             width: 65.6%;
             overflow: hidden;
             border-radius: 0;
-            margin: 0 auto;
+            margin: 0;
             background: transparent;
             padding: 0;
         }
@@ -914,9 +917,7 @@
         }
 
         .gallery-control {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
+            flex-shrink: 0;
             background: rgba(0,0,0,0.45);
             color: #fff;
             border: none;
@@ -925,10 +926,12 @@
             z-index: 10;
             border-radius: 6px;
             font-size: 1.25rem;
+            transition: background 0.2s ease;
+            margin: 0 1.25rem;
+            transform: translateY(-25px);
         }
 
-        .gallery-control.prev { left: 12px; }
-        .gallery-control.next { right: 12px; }
+        .gallery-control:hover { background: rgba(0,0,0,0.7); }
 
         .gallery-grid::-webkit-scrollbar {
             height: 8px;
@@ -1260,7 +1263,7 @@
             color: white;
             border: 2px solid #63943e;
             padding: 0.75rem 1.5rem;
-            border-radius: 20px;
+            border-radius: 6px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
@@ -1638,83 +1641,37 @@
 
             header {
                 padding: 0.75rem 0;
-                min-height: auto; /* Allow flexible height on mobile */
                 position: relative;
-                min-height: 70px; /* Ensure adequate height for mobile toggle */
+                min-height: 70px;
+                margin-bottom: 1.5rem;
             }
 
             .header-content {
-                flex-direction: column;
-                gap: 0.75rem;
-                align-items: stretch;
+                flex-direction: row;
+                align-items: center;
+                gap: 0;
             }
 
             .logo-section {
-                justify-content: center;
                 order: 1;
-                margin-left: 0;
-            }
-
-            .logo {
-                font-size: 1.5rem;
+                margin-left: 1rem;
+                flex-shrink: 0;
             }
 
             .logo img {
                 height: 40px;
             }
 
+            /* Hide entire nav+auth bar — mobile menu handles everything */
             .nav-auth-container {
-                order: 2;
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 0.5rem;
-            }
-
-            .nav-section {
-                order: 1;
-                width: 100%;
-            }
-
-            .auth-section {
-                order: 2;
-                justify-content: center;
-                padding: 0.5rem 0;
-                border-top: 1px solid #e5e7eb;
-                border-bottom: 1px solid #e5e7eb;
-                margin: 0.5rem 0;
-                background: #f9fafb;
-                border-radius: 8px;
-                width: 100%;
-            }
-
-            #user-info {
-                flex-direction: column;
-                gap: 0.5rem;
-                align-items: center;
-            }
-
-            #user-info span {
-                margin-right: 0;
-                margin-bottom: 0.5rem;
-                text-align: center;
-            }
-
-            #user-info button {
-                width: auto;
-                min-width: 80px;
-            }
-
-            /* Hide desktop nav, show mobile toggle */
-            #main-nav {
                 display: none;
             }
 
             .mobile-menu-container {
                 display: block;
                 margin-left: auto;
-                order: 3;
+                margin-right: 1rem;
+                order: 2;
             }
 
             .mobile-menu-toggle {
@@ -1805,6 +1762,43 @@
                 font-size: 0.9375rem;
                 margin-bottom: 0.5625rem;
             }
+
+            .gallery-outer {
+                display: block;
+                position: relative;
+            }
+
+            .gallery-container {
+                width: 94%;
+                margin: 0 auto 1.5rem;
+            }
+
+            .gallery-wrapper {
+                --gallery-item-width: 100%;
+                padding: 0;
+            }
+
+            .gallery-media-viewport {
+                width: 100%;
+                max-height: 50vw;
+            }
+
+            .gallery-control {
+                position: absolute;
+                top: 38%;
+                transform: translateY(-50%);
+                margin: 0;
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .gallery-control.prev { left: calc(3% + 20px); }
+            .gallery-control.next { right: calc(3% + 20px); }
 
             .gallery-grid {
                 grid-template-columns: repeat(auto-fit, minmax(30.1vh, 1fr));
@@ -2232,28 +2226,29 @@
                             <a href="javascript:void(0)" class="nav-link" id="resources-link">{{ _('Resources') }}</a>
                             <a href="javascript:void(0)" class="nav-link" id="tavi-link">{{ _('TAVI Test') }}</a>
                             <a href="javascript:void(0)" class="nav-link" id="about-link">{{ _('About Company') }}</a>
-                            <button class="auth-toggle-btn" id="auth-toggle-btn" title="Toggle user menu">▼</button>
                         </nav>
                     </div>
 
                     <div class="auth-section" id="auth-section">
-                        <div id="auth-buttons" style="display: block;">
-                            {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
-                            {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
-                            <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" id="lang-toggle-btn" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}" style="margin-right: 0.5rem;">
-                                🌐 {{ lang_names.get(current_locale, 'English') }}
+                        {# Language pills #}
+                        {% set lang_labels = {'en': 'EN', 'ru': 'RU'} %}
+                        <div class="lang-pills">
+                            {% for code, label in lang_labels.items() %}
+                            <a href="/set_language/{{ code }}"
+                               class="lang-pill {% if code == current_locale %}active{% endif %}"
+                               onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">
+                                {{ label }}
                             </a>
+                            {% endfor %}
+                        </div>
+
+                        <div id="auth-buttons" style="display: block;">
                             <button id="login-btn" onclick="window.location.href='/login'">{{ _('Login') }}</button>
                         </div>
-                         <div id="user-info" style="display: none; align-items: center;">
-                             {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
-                             {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
-                             <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" id="lang-toggle-btn-logged" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}" style="margin-right: 0.5rem;">
-                                 🌐 {{ lang_names.get(current_locale, 'English') }}
-                             </a>
-                            <span style="color: #353e45; margin-right: 0.5rem; white-space: nowrap;">{{ _('Welcome') }}, <span id="user-name"></span>!</span>
-                            <button id="admin-btn" onclick="window.location.href='/admin'" style="margin-right: 0.25rem; display: none;">{{ _('Admin') }}</button>
-                            <a href="{{ url_for('auth.google_account_info') }}" style="margin-right: 0.25rem; background: #337A2C; color: white; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; display: inline-block;">{{ _('Link Google Account') }}</a>
+                        <div id="user-info" style="display: none; align-items: center; gap: 0.25rem;">
+                            <span style="color: #353e45; white-space: nowrap;">{{ _('Welcome') }}, <span id="user-name"></span>!</span>
+                            <button id="admin-btn" onclick="window.location.href='/admin'" style="display: none;">{{ _('Admin') }}</button>
+                            <a href="{{ url_for('auth.google_account_info') }}" style="background: #337A2C; color: white; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; display: inline-block;">{{ _('Link Google Account') }}</a>
                             <button onclick="window.location.href='/logout'">{{ _('Logout') }}</button>
                         </div>
                     </div>
@@ -2285,15 +2280,21 @@
             <a href="javascript:void(0)" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-tavi-link">{{ _('TAVI Test') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-about-link">{{ _('About Company') }}</a>
-            {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
-            {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
-            <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}">
-                🌐 {{ lang_names.get(current_locale, 'English') }}
-            </a>
-            <div id="mobile-auth-buttons" style="margin-top: 2rem; text-align: center;">
+            {# Language picker — same style as navbar component #}
+            {% set lang_names = {'en': 'English', 'ru': 'Русский'} %}
+            <div class="mobile-lang-picker">
+                {% for code, name in lang_names.items() %}
+                <a href="/set_language/{{ code }}"
+                   class="mobile-lang-btn {% if code == current_locale %}active{% endif %}">
+                    {{ name }}
+                </a>
+                {% endfor %}
+            </div>
+
+            <div id="mobile-auth-buttons" style="margin-top: 1.5rem; text-align: center;">
                 <button id="mobile-login-btn" onclick="window.location.href='/login'" style="width: 100%; margin-bottom: 0.5rem;">{{ _('Login') }}</button>
             </div>
-            <div id="mobile-user-info" style="margin-top: 2rem; text-align: center; display: none;">
+            <div id="mobile-user-info" style="margin-top: 1.5rem; text-align: center; display: none;">
                 <p style="color: #353e45; margin-bottom: 1rem;">{{ _('Welcome') }}, <span id="mobile-user-name"></span>!</p>
                 <button id="mobile-admin-btn" onclick="window.location.href='/admin'" style="width: 100%; margin-bottom: 0.5rem; display: none;">{{ _('Admin') }}</button>
                 <a href="{{ url_for('auth.google_account_info') }}" style="display: block; width: 100%; margin-bottom: 0.5rem; background: #337A2C; color: white; text-decoration: none; padding: 0.75rem 1rem; border-radius: 4px; cursor: pointer; text-align: center;">{{ _('Link Google Account') }}</a>
@@ -2310,6 +2311,8 @@
             <h2 class="section-title" style="color: #000000;">{{ _('What\'s New') }}</h2>
             <p class="section-description">{{ _('Discover the latest updates, new features, and exciting developments in our learning platform.') }}</p>
 
+            <div class="gallery-outer">
+            <button class="gallery-control prev" aria-label="Previous">&#10094;</button>
             <div class="gallery-container">
                 <div class="gallery-wrapper gallery-initializing">
                 {% if home_content.gallery_images %}
@@ -2390,8 +2393,8 @@
                 </div>
                 {% endif %}
                 </div>
-                <button class="gallery-control prev" aria-label="Previous">&#10094;</button>
-                <button class="gallery-control next" aria-label="Next">&#10095;</button>
+            </div>
+            <button class="gallery-control next" aria-label="Next">&#10095;</button>
             </div>
         
 
@@ -5697,27 +5700,7 @@
         });
     </script>
     <script>
-        // Auth section toggle functionality
         document.addEventListener('DOMContentLoaded', function() {
-            const authToggleBtn = document.getElementById('auth-toggle-btn');
-            const authSection = document.getElementById('auth-section');
-
-            if (authToggleBtn && authSection) {
-                authToggleBtn.addEventListener('click', function() {
-                    authSection.classList.toggle('show');
-                    // Change arrow direction
-                    authToggleBtn.textContent = authSection.classList.contains('show') ? '▲' : '▼';
-                });
-
-                // Close auth section when clicking outside
-                document.addEventListener('click', function(e) {
-                    if (!authToggleBtn.contains(e.target) && !authSection.contains(e.target)) {
-                        authSection.classList.remove('show');
-                        authToggleBtn.textContent = '▼';
-                    }
-                });
-            }
-
             // Initialize first slide text immediately (before carousel starts rotating)
             updateCourseSlide(0);
             

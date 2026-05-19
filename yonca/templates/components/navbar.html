@@ -29,42 +29,44 @@
                     <a class="nav-link" href="/#about" data-nav="about">{{ _('About') }}</a>
                 </li>
 
-                {% if current_user and current_user.is_authenticated %}
+                {# ── Language picker ── #}
+                {% set lang_labels = {'en': 'EN', 'ru': 'RU'} %}
+                {% set lang_names  = {'en': 'English', 'ru': 'Русский'} %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="langDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        🌐 {{ lang_labels.get(current_locale, 'EN') }}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="langDropdown">
+                        {% for code, name in lang_names.items() %}
+                        <a class="dropdown-item {% if code == current_locale %}active{% endif %}"
+                           href="/set_language/{{ code }}"
+                           onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">
+                            {{ name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </li>
 
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown">
-                            {{ current_user.username }}
-                        </a>
-                        <div class="dropdown-menu">
-                            {% if current_user.is_admin %}
-                            <a class="dropdown-item" href="/admin/">{{ _('Admin Panel') }}</a>
-                            <div class="dropdown-divider"></div>
-                            {% endif %}
-                            {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
-                            {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
-                            <a class="dropdown-item" href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">
-                                🌐 {{ lang_names.get(current_locale, 'English') }}
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="{{ url_for('auth.google_account_info') }}" style="color: #337A2C; font-weight: 600;">{{ _('Link Google Account') }}</a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="/logout">{{ _('Logout') }}</a>
-                        </div>
-                    </li>
+                {# ── Auth ── #}
+                {% if current_user and current_user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {{ current_user.username }}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                        {% if current_user.is_admin %}
+                        <a class="dropdown-item" href="/admin/">{{ _('Admin Panel') }}</a>
+                        <div class="dropdown-divider"></div>
+                        {% endif %}
+                        <a class="dropdown-item" href="{{ url_for('auth.google_account_info') }}" style="color: #337A2C; font-weight: 600;">{{ _('Link Google Account') }}</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/logout">{{ _('Logout') }}</a>
+                    </div>
+                </li>
                 {% else %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="authDropdown" role="button" data-toggle="dropdown">
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-right">
-                            {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
-                            {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
-                            <a class="dropdown-item" href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">
-                                🌐 {{ lang_names.get(current_locale, 'English') }}
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="/login">{{ _('Login') }}</a>
-                        </div>
-                    </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/login">{{ _('Login') }}</a>
+                </li>
                 {% endif %}
             </ul>
         </div>
@@ -87,25 +89,33 @@
         <button class="mobile-nav-close" id="mobile-nav-close">
             <i class="fas fa-times"></i>
         </button>
+
         <a href="javascript:void(0)" class="nav-link active" id="mobile-home-link">{{ _('Home') }}</a>
         <a href="javascript:void(0)" class="nav-link" id="mobile-courses-link">{{ _('Courses') }}</a>
         <a href="javascript:void(0)" class="nav-link" id="mobile-forum-link">{{ _('Forum') }}</a>
         <a href="javascript:void(0)" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
         <a href="javascript:void(0)" class="nav-link" id="mobile-tavi-link">{{ _('TAVI Test') }}</a>
         <a href="javascript:void(0)" class="nav-link" id="mobile-about-link">{{ _('About Company') }}</a>
-        {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
-        {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
-        <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}">
-            🌐 {{ lang_names.get(current_locale, 'English') }}
-        </a>
-        <div id="mobile-auth-buttons" style="margin-top: 2rem; text-align: center;">
-            <button id="mobile-login-btn" onclick="window.location.href='/login'" style="width: 100%; margin-bottom: 0.5rem;">{{ _('Login') }}</button>
+
+        {# Language picker #}
+        {% set lang_names = {'en': 'English', 'ru': 'Русский'} %}
+        <div class="mobile-lang-picker">
+            {% for code, name in lang_names.items() %}
+            <a href="/set_language/{{ code }}"
+               class="mobile-lang-btn {% if code == current_locale %}active{% endif %}">
+                {{ name }}
+            </a>
+            {% endfor %}
         </div>
-        <div id="mobile-user-info" style="margin-top: 2rem; text-align: center; display: none;">
+
+        <div id="mobile-auth-buttons" style="margin-top: 1.5rem; text-align: center;">
+            <button id="mobile-login-btn" onclick="window.location.href='/login'">{{ _('Login') }}</button>
+        </div>
+        <div id="mobile-user-info" style="margin-top: 1.5rem; text-align: center; display: none;">
             <p style="color: #353e45; margin-bottom: 1rem;">{{ _('Welcome') }}, <span id="mobile-user-name"></span>!</p>
-            <button id="mobile-admin-btn" onclick="window.location.href='/admin'" style="width: 100%; margin-bottom: 0.5rem; display: none;">{{ _('Admin') }}</button>
-            <a href="{{ url_for('auth.google_account_info') }}" style="display: block; width: 100%; margin-bottom: 0.5rem; background: #337A2C; color: white; text-decoration: none; padding: 0.75rem 1rem; border-radius: 4px; cursor: pointer; text-align: center;">{{ _('Link Google Account') }}</a>
-            <button onclick="window.location.href='/logout'" style="width: 100%;">{{ _('Logout') }}</button>
+            <button id="mobile-admin-btn" onclick="window.location.href='/admin'" style="display: none;">{{ _('Admin') }}</button>
+            <a href="{{ url_for('auth.google_account_info') }}" class="mobile-action-link">{{ _('Link Google Account') }}</a>
+            <button onclick="window.location.href='/logout'">{{ _('Logout') }}</button>
         </div>
     </div>
 </div>
@@ -116,83 +126,82 @@
         border-bottom: 1px solid #e0e0e0;
         padding: 0.5rem 0;
     }
-    
+
     .navbar-brand {
         color: #337a2c !important;
         font-weight: bold;
         font-size: 1.5rem;
     }
-    
+
     .navbar-brand img {
         height: 50px;
         width: auto;
     }
-    
+
     .navbar .nav-link {
         color: #353e45 !important;
-        text-decoration: none;
         font-weight: 500;
         padding: 0.5rem 1.4rem !important;
-        border-radius: 20px !important;
+        border-radius: 6px !important;
         transition: all 0.3s ease;
-        position: relative;
         background-color: #fffcf0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin: 0 0.25rem;
         font-size: 0.9rem;
+        text-decoration: none;
     }
-    
+
     .navbar .nav-link:hover {
         background-color: #1e5919 !important;
         color: #fafbed !important;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         transform: translateY(-1px);
     }
-    
+
     .navbar .nav-link.active {
         background-color: #337a2c !important;
         color: #fafbed !important;
-        border-color: #337a2c !important;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
 
     .navbar .dropdown-menu {
         border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         border: 1px solid #e0e0e0;
         margin-top: 0.5rem;
         background-color: white;
         padding: 0.5rem 0;
         right: 0 !important;
         left: auto !important;
+        min-width: 130px;
     }
-    
+
     .navbar .dropdown-item {
-        padding: 0.75rem 1rem;
-        transition: all 0.3s ease;
+        padding: 0.6rem 1rem;
+        transition: all 0.2s ease;
         color: #353e45;
         font-weight: 500;
     }
-    
+
     .navbar .dropdown-item:hover {
         background-color: #fafbed;
         color: #337a2c;
     }
-    
+
     .navbar .dropdown-item.active,
     .navbar .dropdown-item:active {
-        background-color: transparent;
+        background-color: #f0f7ee;
         color: #337a2c;
+        font-weight: 600;
     }
-    
+
     .navbar .dropdown-divider {
-        margin: 0.5rem 0;
+        margin: 0.4rem 0;
         border-color: #e0e0e0;
     }
 
-    .mobile-menu-container {
-        display: none;
-    }
+    /* ── Mobile ── */
+    .mobile-menu-container { display: none; }
 
     .mobile-menu-toggle {
         background: #f3f4f6;
@@ -227,30 +236,18 @@
         transition: all 0.3s ease;
     }
 
-    .mobile-menu-toggle:hover .hamburger-icon span {
-        background-color: #337a2c;
-    }
-
-    .mobile-menu-toggle:hover {
-        background: #e5e7eb;
-        border-color: #337a2c;
-        transform: scale(1.05);
-    }
+    .mobile-menu-toggle:hover .hamburger-icon span { background-color: #337a2c; }
+    .mobile-menu-toggle:hover { background: #e5e7eb; border-color: #337a2c; transform: scale(1.05); }
 
     .mobile-nav-overlay {
         display: none;
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
+        inset: 0;
+        background: rgba(0,0,0,0.5);
         z-index: 1000;
     }
 
-    .mobile-nav-overlay.active {
-        display: block;
-    }
+    .mobile-nav-overlay.active { display: block; }
 
     .mobile-nav-menu {
         position: fixed;
@@ -259,35 +256,32 @@
         width: 280px;
         height: 100%;
         background: white;
-        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+        box-shadow: -2px 0 10px rgba(0,0,0,0.1);
         transition: right 0.3s ease;
         z-index: 1001;
         padding: 2rem 1rem;
         overflow-y: auto;
     }
 
-    .mobile-nav-menu.active {
-        right: 0;
-    }
+    .mobile-nav-menu.active { right: 0; }
 
     .mobile-nav-menu .nav-link {
         display: block;
-        padding: 1rem;
+        padding: 0.9rem 1rem;
         margin-bottom: 0.5rem;
-        border-radius: 20px;
+        border-radius: 6px;
         text-align: center;
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         color: #353e45;
         text-decoration: none;
         background-color: #fffcf0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         transition: all 0.3s ease;
     }
 
     .mobile-nav-menu .nav-link:hover {
         background-color: #1e5919;
         color: #fafbed;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         transform: translateY(-1px);
     }
 
@@ -306,151 +300,119 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s ease;
+        transition: color 0.2s ease;
     }
 
-    .mobile-nav-close:hover {
-        color: #337a2c;
-        transform: scale(1.2);
-    }
+    .mobile-nav-close:hover { color: #337a2c; }
 
-    #mobile-login-btn {
-        background: #337A2C;
-        color: white;
-        border: none;
+    #mobile-auth-buttons button,
+    #mobile-user-info button {
+        width: 100%;
+        margin-bottom: 0.5rem;
         padding: 0.75rem 1rem;
         border-radius: 4px;
+        border: none;
         cursor: pointer;
         font-weight: 500;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
     }
 
-    #mobile-login-btn:hover {
-        background: #1e5919;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
+    #mobile-login-btn { background: #337A2C; color: white; }
+    #mobile-login-btn:hover { background: #1e5919; }
 
-    #mobile-admin-btn {
-        background: #1e5919;
-        color: white;
-        border: none;
+    #mobile-admin-btn { background: #1e5919; color: white; }
+    #mobile-admin-btn:hover { background: #337A2C; }
+
+    #mobile-user-info button:last-child { background: #f3f4f6; color: #353e45; }
+    #mobile-user-info button:last-child:hover { background: #e5e7eb; }
+
+    .mobile-action-link {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.5rem;
         padding: 0.75rem 1rem;
         border-radius: 4px;
-        cursor: pointer;
+        background: #337A2C;
+        color: white;
+        text-decoration: none;
+        text-align: center;
         font-weight: 500;
-        transition: all 0.3s ease;
+        transition: background 0.2s ease;
     }
 
-    #mobile-admin-btn:hover {
-        background: #337A2C;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
+    .mobile-action-link:hover { background: #1e5919; color: white; text-decoration: none; }
 
     @media (max-width: 991px) {
-        #navbarNav {
-            display: none !important;
-        }
-        
-        .mobile-menu-container {
-            display: block;
-        }
+        #navbarNav { display: none !important; }
+        .mobile-menu-container { display: block; }
     }
 </style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Mobile menu functionality
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-        const mobileNavMenu = document.getElementById('mobile-nav-menu');
-        const mobileNavClose = document.getElementById('mobile-nav-close');
-
-        // Mobile menu toggle
-        if (mobileMenuToggle) {
-            mobileMenuToggle.addEventListener('click', () => {
-                mobileNavOverlay.classList.add('active');
-                mobileNavMenu.classList.add('active');
-            });
-        }
-
-        // Close mobile menu
-        if (mobileNavClose) {
-            mobileNavClose.addEventListener('click', () => {
-                closeMobileMenu();
-            });
-        }
-
-        // Close mobile menu when clicking overlay
-        if (mobileNavOverlay) {
-            mobileNavOverlay.addEventListener('click', (e) => {
-                if (e.target === mobileNavOverlay) {
-                    closeMobileMenu();
-                }
-            });
-        }
-
-        // Mobile navigation links
-        const mobileNavLinks = document.querySelectorAll('#mobile-nav-menu .nav-link');
-        mobileNavLinks.forEach(link => {
-            link.addEventListener('click', (event) => {
-                // Skip language button - let it navigate normally
-                if (link.href?.includes('/set_language/')) {
-                    return;
-                }
-                event.preventDefault();
-                closeMobileMenu();
-                // For course pages, just redirect to home
-                if (link.id === 'mobile-home-link') {
-                    window.location.href = '/';
-                } else if (link.id === 'mobile-courses-link') {
-                    window.location.href = '/#courses';
-                } else if (link.id === 'mobile-forum-link') {
-                    window.location.href = '/#forum';
-                } else if (link.id === 'mobile-resources-link') {
-                    window.location.href = '/#resources';
-                } else if (link.id === 'mobile-tavi-link') {
-                    window.location.href = '/#tavi-test';
-                } else if (link.id === 'mobile-about-link') {
-                    window.location.href = '/#about';
-                }
-            });
-        });
+        const mobileNavMenu    = document.getElementById('mobile-nav-menu');
+        const mobileNavClose   = document.getElementById('mobile-nav-close');
 
         function closeMobileMenu() {
             mobileNavOverlay.classList.remove('active');
             mobileNavMenu.classList.remove('active');
         }
 
-        // Update mobile auth buttons on page load
+        if (mobileMenuToggle) mobileMenuToggle.addEventListener('click', () => {
+            mobileNavOverlay.classList.add('active');
+            mobileNavMenu.classList.add('active');
+        });
+
+        if (mobileNavClose)   mobileNavClose.addEventListener('click', closeMobileMenu);
+        if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', e => {
+            if (e.target === mobileNavOverlay) closeMobileMenu();
+        });
+
+        const destinations = {
+            'mobile-home-link':      '/',
+            'mobile-courses-link':   '/#courses',
+            'mobile-forum-link':     '/#forum',
+            'mobile-resources-link': '/#resources',
+            'mobile-tavi-link':      '/#tavi-test',
+            'mobile-about-link':     '/#about',
+        };
+
+        document.querySelectorAll('#mobile-nav-menu .nav-link').forEach(link => {
+            link.addEventListener('click', e => {
+                const dest = destinations[link.id];
+                if (!dest) return;
+                e.preventDefault();
+                closeMobileMenu();
+                window.location.href = dest;
+            });
+        });
+
         updateMobileAuthButtons();
 
-        // Override checkUser if it exists to also update mobile auth buttons
         if (window.checkUser) {
-            const originalCheckUser = window.checkUser;
+            const orig = window.checkUser;
             window.checkUser = function() {
-                return originalCheckUser().then(() => {
-                    updateMobileAuthButtons();
-                });
+                return orig().then(() => updateMobileAuthButtons());
             };
         }
     });
 
     function updateMobileAuthButtons() {
-        const mobileAuthButtons = document.getElementById('mobile-auth-buttons');
-        const mobileUserInfo = document.getElementById('mobile-user-info');
-        const mobileUserName = document.getElementById('mobile-user-name');
-        const mobileAdminBtn = document.getElementById('mobile-admin-btn');
+        const authDiv  = document.getElementById('mobile-auth-buttons');
+        const userDiv  = document.getElementById('mobile-user-info');
+        const userName = document.getElementById('mobile-user-name');
+        const adminBtn = document.getElementById('mobile-admin-btn');
 
         if (window.currentUser) {
-            mobileAuthButtons.style.display = 'none';
-            mobileUserInfo.style.display = 'block';
-            mobileUserName.textContent = window.currentUser.username;
-            if (window.currentUser.is_admin) {
-                mobileAdminBtn.style.display = 'block';
-            }
+            authDiv.style.display = 'none';
+            userDiv.style.display = 'block';
+            userName.textContent = window.currentUser.username;
+            if (adminBtn) adminBtn.style.display = window.currentUser.is_admin ? 'block' : 'none';
         } else {
-            mobileAuthButtons.style.display = 'block';
-            mobileUserInfo.style.display = 'none';
+            authDiv.style.display = 'block';
+            userDiv.style.display = 'none';
         }
     }
 </script>
