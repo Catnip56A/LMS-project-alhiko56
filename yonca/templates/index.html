@@ -2236,12 +2236,12 @@
                             </a>
                             <button id="login-btn" onclick="window.location.href='/login'">{{ _('Login') }}</button>
                         </div>
-                        <div id="user-info" style="display: none; align-items: center;">
-                            {% set lang_cycle = {'en': 'az', 'az': 'ru', 'ru': 'en'} %}
-                            {% set lang_names = {'en': 'English', 'az': 'Azərbaycan', 'ru': 'Russian'} %}
-                            <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" id="lang-toggle-btn-logged" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}" style="margin-right: 0.5rem;">
-                                🌐 {{ lang_names.get(current_locale, 'English') }}
-                            </a>
+                         <div id="user-info" style="display: none; align-items: center;">
+                             {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
+                             {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
+                             <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" class="nav-link" id="lang-toggle-btn-logged" title="Switch to {{ lang_names.get(lang_cycle.get(current_locale, 'en'), 'English') }}" style="margin-right: 0.5rem;">
+                                 🌐 {{ lang_names.get(current_locale, 'English') }}
+                             </a>
                             <span style="color: #353e45; margin-right: 0.5rem; white-space: nowrap;">{{ _('Welcome') }}, <span id="user-name"></span>!</span>
                             <button id="admin-btn" onclick="window.location.href='/admin'" style="margin-right: 0.25rem; display: none;">{{ _('Admin') }}</button>
                             <a href="{{ url_for('auth.google_account_info') }}" style="margin-right: 0.25rem; background: #337A2C; color: white; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; display: inline-block;">{{ _('Link Google Account') }}</a>
