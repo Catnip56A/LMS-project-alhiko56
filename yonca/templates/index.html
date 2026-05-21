@@ -52,25 +52,25 @@
         header {
             background: rgba(254, 251, 250, 0);
             border-bottom: 1px solid #e0e0e0;
-            padding: 1rem 0;
+            padding: 0.5rem 0;
             position: relative;
-            min-height: 80px; /* Ensure minimum height for content */
+            min-height: auto;
         }
 
         .header-content {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            gap: 1rem;
+            align-items: center;
+            gap: 0.25rem;
             position: relative; /* For absolute positioning context */
         }
 
         .logo-section {
             flex-shrink: 0;
             align-self: center;
-            margin-left: 0.875rem;
-            margin-right: 3.625rem;
-            transform: translateY(0.4rem);
+            margin-left: 0.75rem;
+            margin-right: 1rem;
+            transform: translateY(0);
         }
 
         .nav-auth-container {
@@ -78,24 +78,24 @@
             flex-direction: row;
             align-items: center;
             flex: 1;
-            gap: 0.5rem;
+            gap: 0.25rem;
             min-width: 0;
+            justify-content: space-between;
         }
 
         .nav-section {
             display: flex;
-            justify-content: flex-start;
-            flex-shrink: 0;
+            flex: 1;
+            gap: 0;
+            min-width: 0;
         }
 
         .auth-section {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.25rem;
             flex-shrink: 0;
-            margin-left: auto;
-            padding-right: 1rem;
-            transform: translateY(5px);
+            padding-right: 0.5rem;
         }
 
         #auth-buttons {
@@ -258,17 +258,18 @@
         }
 
         nav {
-            margin-top: 1rem;
+            margin: 0;
             display: flex;
-            gap: 2rem;
+            gap: 0.6rem;
             flex-wrap: wrap;
+            flex: 1;
         }
 
         .nav-link {
             color: #353e45;
             text-decoration: none;
             font-weight: 500;
-            padding: 0.3rem 1.5rem;
+            padding: 0.4rem 1.2rem;
             border-radius: 6px;
             transition: all 0.3s ease;
             position: relative;
@@ -276,6 +277,15 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             display: inline-block;
             cursor: pointer;
+            font-size: 1.125rem;
+        }
+
+        nav .nav-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            flex: 1;
         }
 
         .nav-link:hover {
@@ -304,31 +314,62 @@
             margin-left: 0.25rem;
         }
 
+        .dropdown-toggle {
+            border-radius: 12px;
+            padding: 0.4rem 1.2rem !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: auto;
+            height: auto;
+            font-size: 1.125rem;
+            font-weight: 500;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
         .dropdown-menu {
             display: none;
             position: absolute;
             top: 100%;
-            left: 0;
+            right: 0;
             background: white;
             min-width: 160px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 6px;
             z-index: 1000;
             border: 1px solid #e0e0e0;
+            margin-top: 0.2rem;
+            padding: 0.35rem 0;
         }
 
         .dropdown-menu .dropdown-item {
             display: block;
-            color: #353e45;
+            color: #576671;
             text-decoration: none;
-            padding: 0.75rem 1rem;
+            padding: 0.5rem 0.8rem;
             border-radius: 0;
             transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
         .dropdown-menu .dropdown-item:hover {
-            background-color: #fafbed;
+            background-color: #f0f7ee;
             color: #337a2c;
+        }
+
+        .dropdown-menu .dropdown-item.inverse-hover:hover {
+            background-color: #337a2c;
+            color: white;
+        }
+
+        .dropdown-menu .dropdown-item.active {
+            background-color: #ffffff;
+            color: #337a2c;
+            font-weight: 600;
         }
 
         .dropdown-menu .dropdown-item:first-child {
@@ -339,6 +380,12 @@
             border-radius: 0 0 6px 6px;
         }
 
+        .dropdown-divider {
+            margin: 0.4rem 0;
+            border: none;
+            border-top: 1px solid #e0e0e0;
+        }
+
         .dropdown:hover .dropdown-menu {
             display: block;
         }
@@ -346,6 +393,7 @@
         /* Mobile Dropdown Styles */
         .mobile-dropdown {
             position: relative;
+            margin: 0.5rem 0;
         }
 
         .mobile-dropdown-menu {
@@ -354,6 +402,38 @@
             border-radius: 6px;
             margin: 0.5rem 0;
             overflow: hidden;
+            padding: 0;
+            border: 1px solid #e0e0e0;
+        }
+
+        .mobile-dropdown-menu .dropdown-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: #353e45;
+            text-decoration: none;
+            border-bottom: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-dropdown-menu .dropdown-item:hover {
+            background-color: #fafbed;
+            color: #337a2c;
+        }
+
+        .mobile-dropdown-menu .dropdown-item.active {
+            background-color: #f0f7ee;
+            color: #337a2c;
+            font-weight: 600;
+        }
+
+        .mobile-dropdown-menu .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .mobile-dropdown-menu .dropdown-divider {
+            margin: 0.4rem 0;
+            border: none;
+            border-top: 1px solid #e0e0e0;
         }
 
         .mobile-dropdown-menu .mobile-dropdown-item {
@@ -1668,10 +1748,13 @@
             }
 
             .mobile-menu-container {
-                display: block;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 margin-left: auto;
-                margin-right: 1rem;
+                margin-right: 0.5rem;
                 order: 2;
+                flex-shrink: 0;
             }
 
             .mobile-menu-toggle {
@@ -1947,6 +2030,14 @@
 
         /* Extra small screens */
         @media (max-width: 480px) {
+            .logo-section {
+                margin-left: 0.5rem;
+            }
+
+            .mobile-menu-container {
+                margin-right: 0.25rem;
+            }
+
             .hero h1 {
                 font-size: 1.75rem;
             }
@@ -2230,32 +2321,48 @@
                     </div>
 
                     <div class="auth-section" id="auth-section">
-                        {# Language pills #}
+                        {# Language dropdown #}
                         {% set lang_labels = {'en': 'EN', 'ru': 'RU'} %}
-                        <div class="lang-pills">
-                            {% for code, label in lang_labels.items() %}
-                            <a href="/set_language/{{ code }}"
-                               class="lang-pill {% if code == current_locale %}active{% endif %}"
-                               onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">
-                                {{ label }}
-                            </a>
-                            {% endfor %}
+                        {% set lang_names  = {'en': 'English', 'ru': 'Русский'} %}
+                        <div class="dropdown">
+                            <button type="button" class="nav-link dropdown-toggle" id="langDropdown" role="button">
+                                🌐 {{ lang_labels.get(current_locale, 'EN') }}
+                            </button>
+                            <div class="dropdown-menu" id="langDropdown-menu" style="display: none;">
+                                {% for code, name in lang_names.items() %}
+                                <a class="dropdown-item {% if code == current_locale %}active{% endif %}"
+                                   href="/set_language/{{ code }}"
+                                   onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">
+                                    {{ name }}
+                                </a>
+                                {% endfor %}
+                            </div>
                         </div>
 
-                        <div id="auth-buttons" style="display: block;">
-                            <button id="login-btn" onclick="window.location.href='/login'">{{ _('Login') }}</button>
+                        {# Auth dropdown or login button #}
+                        {% if current_user and current_user.is_authenticated %}
+                        <div class="dropdown">
+                            <button type="button" class="nav-link dropdown-toggle" id="userDropdown" role="button">
+                                {{ current_user.username }}
+                            </button>
+                            <div class="dropdown-menu" id="userDropdown-menu" style="display: none;">
+                                {% if current_user.is_admin %}
+                                <button type="button" class="dropdown-item" onclick="window.location.href='/admin/';">{{ _('Admin Panel') }}</button>
+                                <div class="dropdown-divider"></div>
+                                {% endif %}
+                                <button type="button" class="dropdown-item inverse-hover" onclick="window.location.href='{{ url_for('auth.google_account_info') }}';" style="color: #337A2C; font-weight: 600;">{{ _('Link Google Account') }}</button>
+                                <div class="dropdown-divider"></div>
+                                <button type="button" class="dropdown-item" onclick="window.location.href='/logout';">{{ _('Logout') }}</button>
+                            </div>
                         </div>
-                        <div id="user-info" style="display: none; align-items: center; gap: 0.25rem;">
-                            <span style="color: #353e45; white-space: nowrap;">{{ _('Welcome') }}, <span id="user-name"></span>!</span>
-                            <button id="admin-btn" onclick="window.location.href='/admin'" style="display: none;">{{ _('Admin') }}</button>
-                            <a href="{{ url_for('auth.google_account_info') }}" style="background: #337A2C; color: white; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; display: inline-block;">{{ _('Link Google Account') }}</a>
-                            <button onclick="window.location.href='/logout'">{{ _('Logout') }}</button>
-                        </div>
+                        {% else %}
+                        <button id="login-btn" class="nav-link" onclick="window.location.href='/login'">{{ _('Login') }}</button>
+                        {% endif %}
                     </div>
                 </div>
 
                 <div class="mobile-menu-container">
-                    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                    <button type="button" class="mobile-menu-toggle" id="mobile-menu-toggle">
                         <span class="hamburger-icon">
                             <span></span>
                             <span></span>
@@ -2280,26 +2387,44 @@
             <a href="javascript:void(0)" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-tavi-link">{{ _('TAVI Test') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-about-link">{{ _('About Company') }}</a>
-            {# Language picker — same style as navbar component #}
+
+            {# Language dropdown for mobile #}
+            {% set lang_labels = {'en': 'EN', 'ru': 'RU'} %}
             {% set lang_names = {'en': 'English', 'ru': 'Русский'} %}
-            <div class="mobile-lang-picker">
-                {% for code, name in lang_names.items() %}
-                <a href="/set_language/{{ code }}"
-                   class="mobile-lang-btn {% if code == current_locale %}active{% endif %}">
-                    {{ name }}
-                </a>
-                {% endfor %}
+            <div class="mobile-dropdown">
+                <button type="button" class="nav-link dropdown-toggle" id="mobile-langDropdown" style="width: 100%; text-align: center;">
+                    🌐 {{ lang_labels.get(current_locale, 'EN') }}
+                </button>
+                <div class="mobile-dropdown-menu" id="mobile-langDropdown-menu" style="display: none;">
+                    {% for code, name in lang_names.items() %}
+                    <a class="dropdown-item {% if code == current_locale %}active{% endif %}"
+                       href="/set_language/{{ code }}"
+                       onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">
+                        {{ name }}
+                    </a>
+                    {% endfor %}
+                </div>
             </div>
 
-            <div id="mobile-auth-buttons" style="margin-top: 1.5rem; text-align: center;">
-                <button id="mobile-login-btn" onclick="window.location.href='/login'" style="width: 100%; margin-bottom: 0.5rem;">{{ _('Login') }}</button>
+            {# Auth dropdown for mobile #}
+            {% if current_user and current_user.is_authenticated %}
+            <div class="mobile-dropdown">
+                <button type="button" class="nav-link dropdown-toggle" id="mobile-userDropdown" style="width: 100%; text-align: center;">
+                    {{ current_user.username }}
+                </button>
+                <div class="mobile-dropdown-menu" id="mobile-userDropdown-menu" style="display: none;">
+                    {% if current_user.is_admin %}
+                                <button type="button" class="dropdown-item" onclick="window.location.href='/admin/';">{{ _('Admin Panel') }}</button>
+                                <div class="dropdown-divider"></div>
+                                {% endif %}
+                                <button type="button" class="dropdown-item inverse-hover" onclick="window.location.href='{{ url_for('auth.google_account_info') }}';" style="color: #337A2C; font-weight: 600;">{{ _('Link Google Account') }}</button>
+                                <div class="dropdown-divider"></div>
+                                <button type="button" class="dropdown-item" onclick="window.location.href='/logout';">{{ _('Logout') }}</button>
+                </div>
             </div>
-            <div id="mobile-user-info" style="margin-top: 1.5rem; text-align: center; display: none;">
-                <p style="color: #353e45; margin-bottom: 1rem;">{{ _('Welcome') }}, <span id="mobile-user-name"></span>!</p>
-                <button id="mobile-admin-btn" onclick="window.location.href='/admin'" style="width: 100%; margin-bottom: 0.5rem; display: none;">{{ _('Admin') }}</button>
-                <a href="{{ url_for('auth.google_account_info') }}" style="display: block; width: 100%; margin-bottom: 0.5rem; background: #337A2C; color: white; text-decoration: none; padding: 0.75rem 1rem; border-radius: 4px; cursor: pointer; text-align: center;">{{ _('Link Google Account') }}</a>
-                <button onclick="window.location.href='/logout'" style="width: 100%;">{{ _('Logout') }}</button>
-            </div>
+            {% else %}
+            <button id="mobile-login-btn" class="nav-link" onclick="window.location.href='/login'" style="width: 100%; text-align: center; margin-top: 1rem;">{{ _('Login') }}</button>
+            {% endif %}
         </div>
     </div>
 
@@ -4690,31 +4815,30 @@
                         id: index + 1 // Simple ID for URL generation
                     };
                     
-                    populateCourseDropdown(dropdown, mockCourse, isEnrolled);
+populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                 }
             });
         }
+
         // Update mobile auth buttons when user status changes
-        function updateMobileAuthButtons() {
-            const mobileAuthButtons = document.getElementById('mobile-auth-buttons');
-            const mobileUserInfo = document.getElementById('mobile-user-info');
-            const mobileUserName = document.getElementById('mobile-user-name');
-            const mobileAdminBtn = document.getElementById('mobile-admin-btn');
+         function updateMobileAuthButtons() {
+             const mobileAuthButtons = document.getElementById('mobile-auth-buttons');
+             const mobileUserInfo = document.getElementById('mobile-user-info');
+             const mobileUserName = document.getElementById('mobile-user-name');
+             const mobileAdminBtn = document.getElementById('mobile-admin-btn');
+ 
+             if (window.currentUser) {
+                 if (mobileAuthButtons) mobileAuthButtons.style.display = 'none';
+                 if (mobileUserInfo) mobileUserInfo.style.display = 'block';
+                 if (mobileUserName) mobileUserName.textContent = window.currentUser.username;
+                 if (mobileAdminBtn) mobileAdminBtn.style.display = window.currentUser.is_admin ? 'inline-block' : 'none';
+             } else {
+                 if (mobileAuthButtons) mobileAuthButtons.style.display = 'block';
+                 if (mobileUserInfo) mobileUserInfo.style.display = 'none';
+             }
+         }
 
-            if (window.currentUser) {
-                mobileAuthButtons.style.display = 'none';
-                mobileUserInfo.style.display = 'block';
-                mobileUserName.textContent = window.currentUser.username;
-                if (window.currentUser.is_admin) {
-                    mobileAdminBtn.style.display = 'block';
-                }
-            } else {
-                mobileAuthButtons.style.display = 'block';
-                mobileUserInfo.style.display = 'none';
-            }
-        }
-
-        async function checkUser() {
+         async function checkUser() {
             try {
                 console.log('Checking user login status...');
                 const response = await fetch(`${API_BASE}/api/user`, {
@@ -4728,9 +4852,12 @@
                     if (user) {
                         // User is logged in
                         console.log('User logged in:', user);
-                        document.getElementById('auth-buttons').style.display = 'none';
-                        document.getElementById('user-info').style.display = 'block';
-                        document.getElementById('user-name').textContent = user.username;
+                        const authButtons = document.getElementById('auth-buttons');
+                        const userInfo = document.getElementById('user-info');
+                        if (authButtons) authButtons.style.display = 'none';
+                        if (userInfo) userInfo.style.display = 'block';
+                        const userName = document.getElementById('user-name');
+                        if (userName) userName.textContent = user.username;
                         window.currentUser = user;
                         updateForumForm(true);
                         showHomeCourses(user.courses);
@@ -4746,12 +4873,14 @@
                         }
 
                         // Show admin button for admin users
+                        const adminBtn = document.getElementById('admin-btn');
+                        const resourceUploadSection = document.getElementById('resource-upload-section');
                         if (user.is_admin) {
-                            document.getElementById('admin-btn').style.display = 'inline-block';
-                            document.getElementById('resource-upload-section').style.display = 'block';
+                            if (adminBtn) adminBtn.style.display = 'inline-block';
+                            if (resourceUploadSection) resourceUploadSection.style.display = 'block';
                         } else {
-                            document.getElementById('admin-btn').style.display = 'none';
-                            document.getElementById('resource-upload-section').style.display = 'none';
+                            if (adminBtn) adminBtn.style.display = 'none';
+                            if (resourceUploadSection) resourceUploadSection.style.display = 'none';
                         }
                         
                         // Load forum messages for authenticated user
@@ -4762,15 +4891,19 @@
                     } else {
                         // User is not logged in - anonymous visitor
                         console.log('User is not logged in (anonymous visitor)');
-                        document.getElementById('auth-buttons').style.display = 'block';
-                        document.getElementById('user-info').style.display = 'none';
-                        document.getElementById('admin-btn').style.display = 'none';
+                        const authButtons = document.getElementById('auth-buttons');
+                        const userInfo = document.getElementById('user-info');
+                        if (authButtons) authButtons.style.display = 'block';
+                        if (userInfo) userInfo.style.display = 'none';
+                        const adminBtn = document.getElementById('admin-btn');
+                        if (adminBtn) adminBtn.style.display = 'none';
                         window.currentUser = null;
                         updateForumForm(false);
                         hideHomeCourses();
                         updateMobileAuthButtons(); // Update mobile auth buttons
                         // Hide resource upload section for anonymous users
-                        document.getElementById('resource-upload-section').style.display = 'none';
+                        const resourceUploadSection = document.getElementById('resource-upload-section');
+                        if (resourceUploadSection) resourceUploadSection.style.display = 'none';
                         
                         // Load forum messages for anonymous user
                         loadForumMessages(currentChannel);
@@ -4781,14 +4914,18 @@
                 } else {
                     // API error
                     console.warn('API error checking user status:', response.status);
-                    document.getElementById('auth-buttons').style.display = 'block';
-                    document.getElementById('user-info').style.display = 'none';
-                    document.getElementById('admin-btn').style.display = 'none';
+                    const authButtons = document.getElementById('auth-buttons');
+                    const userInfo = document.getElementById('user-info');
+                    if (authButtons) authButtons.style.display = 'block';
+                    if (userInfo) userInfo.style.display = 'none';
+                    const adminBtn = document.getElementById('admin-btn');
+                    if (adminBtn) adminBtn.style.display = 'none';
                     window.currentUser = null;
                     updateForumForm(false);
                     hideHomeCourses();
                     updateMobileAuthButtons(); // Update mobile auth buttons
-                    document.getElementById('resource-upload-section').style.display = 'none';
+                    const resourceUploadSection = document.getElementById('resource-upload-section');
+                    if (resourceUploadSection) resourceUploadSection.style.display = 'none';
                     
                     // Load forum messages for anonymous user (API error)
                     loadForumMessages(currentChannel);
@@ -4796,14 +4933,18 @@
             } catch (error) {
                 console.error('Network error checking user:', error);
                 // Assume anonymous user on network errors
-                document.getElementById('auth-buttons').style.display = 'block';
-                document.getElementById('user-info').style.display = 'none';
-                document.getElementById('admin-btn').style.display = 'none';
+                const authButtons = document.getElementById('auth-buttons');
+                const userInfo = document.getElementById('user-info');
+                if (authButtons) authButtons.style.display = 'block';
+                if (userInfo) userInfo.style.display = 'none';
+                const adminBtn = document.getElementById('admin-btn');
+                if (adminBtn) adminBtn.style.display = 'none';
                 window.currentUser = null;
                 updateForumForm(false);
                 hideHomeCourses();
                 updateMobileAuthButtons(); // Update mobile auth buttons
-                document.getElementById('resource-upload-section').style.display = 'none';
+                const resourceUploadSection = document.getElementById('resource-upload-section');
+                if (resourceUploadSection) resourceUploadSection.style.display = 'none';
                 
                 // Load forum messages for anonymous user (network error)
                 loadForumMessages(currentChannel);
@@ -4812,6 +4953,8 @@
 
         function updateForumForm(isLoggedIn) {
             const usernameGroup = document.getElementById('username-group');
+            if (!usernameGroup) return; // Element doesn't exist on this page
+            
             if (isLoggedIn) {
                 usernameGroup.style.display = 'none';
             } else {
@@ -5262,19 +5405,16 @@
                 });
             }
 
-            // Mobile navigation links (including dropdown items, excluding language button)
-            const mobileNavLinks = document.querySelectorAll('#mobile-nav-menu .nav-link:not(.mobile-dropdown-toggle)');
+            // Mobile navigation links (excluding dropdown toggle buttons and dropdown items)
+            const mobileNavLinks = document.querySelectorAll('#mobile-nav-menu > a.nav-link');
             mobileNavLinks.forEach(link => {
                 link.addEventListener('click', (event) => {
-                    // Skip language button - let it navigate normally
-                    if (link.href?.includes('/set_language/')) {
-                        console.log('Mobile language button clicked - allowing navigation');
-                        return; // Don't preventDefault
-                    }
                     event.preventDefault();
                     closeMobileMenu();
                     const pageId = link.id.replace('mobile-', '').replace('-link', '');
-                    showPage(pageId, event);
+                    if (pageId) {
+                        showPage(pageId, event);
+                    }
                 });
             });
 
@@ -5766,6 +5906,98 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 window.yoncaCloseYouTubeLarge();
+            }
+        });
+
+        // Dropdown toggle function
+        // Attach event listeners to dropdown buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Desktop language dropdown
+            const langDropdown = document.getElementById('langDropdown');
+            if (langDropdown) {
+                langDropdown.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const menu = document.getElementById('langDropdown-menu');
+                    if (menu) {
+                        // Close other dropdowns
+                        document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+                        // Toggle this one
+                        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+                    }
+                    return false;
+                });
+            }
+
+            // Desktop user dropdown
+            const userDropdown = document.getElementById('userDropdown');
+            if (userDropdown) {
+                userDropdown.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const menu = document.getElementById('userDropdown-menu');
+                    if (menu) {
+                        // Close other dropdowns
+                        document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+                        // Toggle this one
+                        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+                    }
+                    return false;
+                });
+            }
+
+            // Mobile language dropdown
+            const mobileLanguageDropdown = document.getElementById('mobile-langDropdown');
+            if (mobileLanguageDropdown) {
+                mobileLanguageDropdown.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const menu = document.getElementById('mobile-langDropdown-menu');
+                    if (menu) {
+                        // Close other mobile dropdowns
+                        document.querySelectorAll('.mobile-dropdown-menu').forEach(m => m.style.display = 'none');
+                        // Toggle this one
+                        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+                    }
+                    return false;
+                });
+            }
+
+            // Mobile user dropdown
+            const mobileUserDropdown = document.getElementById('mobile-userDropdown');
+            if (mobileUserDropdown) {
+                mobileUserDropdown.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const menu = document.getElementById('mobile-userDropdown-menu');
+                    if (menu) {
+                        // Close other mobile dropdowns
+                        document.querySelectorAll('.mobile-dropdown-menu').forEach(m => m.style.display = 'none');
+                        // Toggle this one
+                        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+                    }
+                    return false;
+                });
+            }
+        });
+
+        // Mobile dropdown items - allow default link navigation
+        const mobileDropdownItems = document.querySelectorAll('#mobile-nav-menu .dropdown-item');
+        mobileDropdownItems.forEach(item => {
+            item.addEventListener('click', (event) => {
+                // Stop propagation to prevent document listener from interfering,
+                // but DO NOT preventDefault - allow default link behavior
+                event.stopPropagation();
+            });
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown-menu').forEach(menu => menu.style.display = 'none');
+            }
+            if (!event.target.closest('.mobile-dropdown')) {
+                document.querySelectorAll('.mobile-dropdown-menu').forEach(menu => menu.style.display = 'none');
             }
         });
     </script>
