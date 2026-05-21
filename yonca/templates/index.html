@@ -348,8 +348,10 @@
 
         .dropdown-menu .dropdown-item {
             display: block;
-            color: #576671;
+            background-color: white;
+            color: black;
             text-decoration: none;
+            text-align: left;
             padding: 0.5rem 0.8rem;
             border-radius: 0;
             transition: all 0.3s ease;
@@ -357,18 +359,13 @@
         }
 
         .dropdown-menu .dropdown-item:hover {
-            background-color: #f0f7ee;
-            color: #337a2c;
-        }
-
-        .dropdown-menu .dropdown-item.inverse-hover:hover {
             background-color: #337a2c;
             color: white;
         }
 
         .dropdown-menu .dropdown-item.active {
-            background-color: #ffffff;
-            color: #337a2c;
+            background-color: #337a2c;
+            color: #fafbed;
             font-weight: 600;
         }
 
@@ -409,20 +406,22 @@
         .mobile-dropdown-menu .dropdown-item {
             display: block;
             padding: 0.75rem 1rem;
-            color: #353e45;
+            background-color: white;
+            color: black;
             text-decoration: none;
+            text-align: left;
             border-bottom: 1px solid #e0e0e0;
             transition: all 0.3s ease;
         }
 
         .mobile-dropdown-menu .dropdown-item:hover {
-            background-color: #fafbed;
-            color: #337a2c;
+            background-color: #337a2c;
+            color: white;
         }
 
         .mobile-dropdown-menu .dropdown-item.active {
-            background-color: #f0f7ee;
-            color: #337a2c;
+            background-color: #337a2c;
+            color: #fafbed;
             font-weight: 600;
         }
 
@@ -446,8 +445,8 @@
         }
 
         .mobile-dropdown-menu .mobile-dropdown-item:hover {
-            background-color: #fafbed;
-            color: #337a2c;
+            background-color: #337a2c;
+            color: #fafbed;
         }
 
         .mobile-dropdown-menu .mobile-dropdown-item:last-child {
@@ -2170,7 +2169,7 @@
         }
 
         .dropdown-item:hover {
-            background-color: #f8f9fa !important;
+            background-color: #337a2c !important;
         }
 
         
@@ -2350,7 +2349,7 @@
                                 <button type="button" class="dropdown-item" onclick="window.location.href='/admin/';">{{ _('Admin Panel') }}</button>
                                 <div class="dropdown-divider"></div>
                                 {% endif %}
-                                <button type="button" class="dropdown-item inverse-hover" onclick="window.location.href='{{ url_for('auth.google_account_info') }}';" style="color: #337A2C; font-weight: 600;">{{ _('Link Google Account') }}</button>
+                                <button type="button" class="dropdown-item" onclick="window.location.href='{{ url_for('auth.google_account_info') }}';">{{ _('Link Google Account') }}</button>
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item" onclick="window.location.href='/logout';">{{ _('Logout') }}</button>
                             </div>
@@ -2414,12 +2413,12 @@
                 </button>
                 <div class="mobile-dropdown-menu" id="mobile-userDropdown-menu" style="display: none;">
                     {% if current_user.is_admin %}
-                                <button type="button" class="dropdown-item" onclick="window.location.href='/admin/';">{{ _('Admin Panel') }}</button>
-                                <div class="dropdown-divider"></div>
-                                {% endif %}
-                                <button type="button" class="dropdown-item inverse-hover" onclick="window.location.href='{{ url_for('auth.google_account_info') }}';" style="color: #337A2C; font-weight: 600;">{{ _('Link Google Account') }}</button>
-                                <div class="dropdown-divider"></div>
-                                <button type="button" class="dropdown-item" onclick="window.location.href='/logout';">{{ _('Logout') }}</button>
+                    <button type="button" class="dropdown-item" onclick="window.location.href='/admin/';">{{ _('Admin Panel') }}</button>
+                    <div class="dropdown-divider"></div>
+                    {% endif %}
+                    <button type="button" class="dropdown-item" onclick="window.location.href='{{ url_for('auth.google_account_info') }}';">{{ _('Link Google Account') }}</button>
+                    <div class="dropdown-divider"></div>
+                    <button type="button" class="dropdown-item" onclick="window.location.href='/logout';">{{ _('Logout') }}</button>
                 </div>
             </div>
             {% else %}
