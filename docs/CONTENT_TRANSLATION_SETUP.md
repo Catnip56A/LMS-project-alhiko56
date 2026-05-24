@@ -59,7 +59,7 @@ A comprehensive automatic content translation system has been successfully creat
 
 **Home Content (HomeContent model)**
 - 30+ text fields
-- features, logged_out_features, about_features (JSON)
+- features, logged_out_features
 - gallery_images, about_gallery_images (JSON with captions)
 
 **Course Content & Folders**

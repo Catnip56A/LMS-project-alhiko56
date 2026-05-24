@@ -64,13 +64,10 @@ The system automatically translates dynamic content when it's created or updated
 - `about_section_description`
 - `about_welcome_title`
 - `about_subtitle`
-- `about_features_title`
-- `about_features_subtitle`
 - `about_gallery_title`
 - `about_gallery_subtitle`
 - `features` (JSON array)
 - `logged_out_features` (JSON array)
-- `about_features` (JSON array)
 - `gallery_images` (JSON array with captions)
 - `about_gallery_images` (JSON array with captions)
 

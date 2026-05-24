@@ -1226,8 +1226,7 @@ class AboutCompanyView(BaseView):
         if not home_content:
             home_content = HomeContent(
                 about_welcome_title="Welcome to Yonca",
-                about_subtitle="Join our learning community and discover amazing features designed to enhance your educational experience.",
-                about_features=[{"title": "Interactive Courses", "description": "Engage with dynamic course content and interactive learning materials."}, {"title": "Study Groups", "description": "Collaborate with fellow learners in our vibrant study communities."}, {"title": "Expert Support", "description": "Get help from our team of educational experts and specialists."}]
+                about_subtitle="Join our learning community and discover amazing features designed to enhance your educational experience."
             )
             db.session.add(home_content)
             db.session.commit()
@@ -1240,34 +1239,12 @@ class AboutCompanyView(BaseView):
                 home_content.about_welcome_title = form.about_welcome_title.data
                 home_content.about_subtitle = form.about_subtitle.data
                 
-                # About features section
-                home_content.about_features_title = form.about_features_title.data
-                home_content.about_features_subtitle = form.about_features_subtitle.data
-                
-                # About gallery section
                 home_content.about_gallery_title = form.about_gallery_title.data
                 home_content.about_gallery_subtitle = form.about_gallery_subtitle.data
                 
                 # About gallery 2 section
                 home_content.about_gallery_2_title = form.about_gallery_2_title.data
                 home_content.about_gallery_2_subtitle = form.about_gallery_2_subtitle.data
-                
-                # Process about features dynamically
-                about_features = []
-                form_data = request.form
-                
-                # Process about features
-                about_feature_titles = [key for key in form_data.keys() if key.startswith('about_feature_title_')]
-                for i in range(len(about_feature_titles)):
-                    title_key = f'about_feature_title_{i}'
-                    desc_key = f'about_feature_desc_{i}'
-                    if title_key in form_data and desc_key in form_data:
-                        title = form_data[title_key].strip()
-                        desc = form_data[desc_key].strip()
-                        if title or desc:  # Only add if there's content
-                            about_features.append({'title': title, 'description': desc})
-                
-                home_content.about_features = about_features
                 
                 # Process About Company gallery
                 # Use a dictionary to collect images by their index to maintain order
@@ -1414,8 +1391,6 @@ class AboutCompanyView(BaseView):
         # Populate form with existing data
         form.about_welcome_title.data = home_content.about_welcome_title
         form.about_subtitle.data = home_content.about_subtitle
-        form.about_features_title.data = home_content.about_features_title
-        form.about_features_subtitle.data = home_content.about_features_subtitle
         form.about_gallery_title.data = home_content.about_gallery_title
         form.about_gallery_subtitle.data = home_content.about_gallery_subtitle
         form.about_gallery_2_title.data = home_content.about_gallery_2_title
@@ -1430,9 +1405,6 @@ class AboutCompanyForm(FlaskForm):
     about_welcome_title = StringField('About Page Welcome Title', [Optional()], default="Welcome to Yonca")
     about_subtitle = TextAreaField('About Page Subtitle', [Optional()], default="Join our learning community and discover amazing features designed to enhance your educational experience.")
     
-    # About features section
-    about_features_title = StringField('About Features Title', [Optional()], default="Our Features")
-    about_features_subtitle = TextAreaField('About Features Subtitle', [Optional()], default="Discover what makes our platform special.")
     
     # About gallery section
     about_gallery_title = StringField('About Gallery Title', [Optional()], default="What's New")

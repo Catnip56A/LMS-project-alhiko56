@@ -31,7 +31,6 @@ TRANSLATABLE_FIELDS = {
         'moxo_test_section_title', 'moxo_test_section_description',
         'about_section_title', 'about_section_description',
         'about_welcome_title', 'about_subtitle',
-        'about_features_title', 'about_features_subtitle',
         'features_title', 'features_subtitle',
         'about_gallery_title', 'about_gallery_subtitle'
     ],
@@ -325,8 +324,6 @@ def auto_translate_home_content(home_content, session=None):
     if home_content.logged_out_features:
         translate_json_array('home_content', home_content.id, 'logged_out_features', home_content.logged_out_features, session=session)
     
-    if home_content.about_features:
-        translate_json_array('home_content', home_content.id, 'about_features', home_content.about_features, session=session)
     
     # Translate gallery images (captions)
     if home_content.gallery_images:

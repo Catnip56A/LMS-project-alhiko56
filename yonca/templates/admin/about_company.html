@@ -165,40 +165,6 @@
                     </div>
                 </div>
 
-                <!-- About Features Section Heading -->
-                <div class="content-section">
-                    <div class="section-header">
-                        <h4 class="section-title"><i class="fa fa-star"></i> {{ _('About Features Section') }}</h4>
-                    </div>
-
-                    <div class="form-group-inline">
-                        <label for="about_features_title">{{ _('Features Title:') }}</label>
-                        <input type="text" id="about_features_title" name="about_features_title" class="form-control"
-                               value="{{ form.about_features_title.data or _('Our Features') }}">
-                        <small class="text-muted">{{ _('The heading that appears above the features') }}</small>
-                    </div>
-
-                    <div class="form-group-inline">
-                        <label for="about_features_subtitle">{{ _('Features Subtitle:') }}</label>
-                        <textarea id="about_features_subtitle" name="about_features_subtitle" class="form-control" rows="2">{{ form.about_features_subtitle.data or _('Discover what makes our platform special.') }}</textarea>
-                        <small class="text-muted">{{ _('The subtitle that appears below the features title') }}</small>
-                    </div>
-                </div>
-
-                <!-- About Features Section -->
-                <div class="content-section">
-                    <div class="section-header">
-                        <h4 class="section-title"><i class="fa fa-star"></i> {{ _('About Features') }}</h4>
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="add-about-feature">
-                            <i class="fa fa-plus"></i> {{ _('Add Feature') }}
-                        </button>
-                    </div>
-
-                    <div id="about-features-container">
-                        <!-- About features will be dynamically added here -->
-                    </div>
-                </div>
-
                 <!-- About Gallery Section Heading -->
                 <div class="content-section">
                     <div class="section-header">
@@ -284,10 +250,6 @@
 <script>
 // Translation strings for JavaScript
 const TRANSLATIONS = {
-    feature_title: '{{ _("Title:") }}',
-    feature_description: '{{ _("Description:") }}',
-    feature_placeholder_title: '{{ _("Feature title") }}',
-    feature_placeholder_desc: '{{ _("Feature description") }}',
     choose_input_type: '{{ _("Choose input type:") }}',
     upload_file: '{{ _("Upload File") }}',
     enter_url: '{{ _("Enter URL") }}',
@@ -312,14 +274,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Basic JSON validation for features field (removed since we now use dynamic features)
     
     // Initialize dynamic features and gallery
-    initializeAboutFeatures();
     initializeAboutGallery();
     initializeAboutGallery2();
     
     // Add feature button
-    document.getElementById('add-about-feature').addEventListener('click', function() {
-        addAboutFeature('about-features-container', 'about_feature');
-    });
     
     // Add gallery image button
     document.getElementById('add-about-gallery-image').addEventListener('click', function() {
@@ -332,109 +290,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Make features and gallery sortable
-    makeSortable('about-features-container');
     makeSortable('about-gallery-container');
     makeSortable('about-gallery-2-container');
 });
 
-function initializeAboutFeatures() {
-    // Initialize about features
-    {% if home_content.about_features %}
-    {% for feature in home_content.about_features %}
-    addAboutFeatureFromData('about-features-container', 'about_feature', {{ feature.title|tojson }}, {{ feature.description|tojson }});
-    {% endfor %}
-    {% endif %}
-}
-
-function initializeAboutGallery() {
-    // Initialize About Company gallery
-    {% if home_content.about_gallery_images %}
-    {% for image in home_content.about_gallery_images %}
-    addAboutGalleryImageFromData('about-gallery-container', 'about_gallery', {{ image.url|tojson }}, {{ image.alt|tojson }}, {{ image.caption|tojson }});
-    {% endfor %}
-    {% endif %}
-}
-
-function initializeAboutGallery2() {
-    // Initialize About Company gallery 2
-    {% if home_content.about_gallery_2_images %}
-    {% for image in home_content.about_gallery_2_images %}
-    addAboutGalleryImageFromData('about-gallery-2-container', 'about_gallery_2', {{ image.url|tojson }}, {{ image.alt|tojson }}, {{ image.caption|tojson }});
-    {% endfor %}
-    {% endif %}
-}
-
-function addAboutFeature(containerId, prefix) {
-    const container = document.getElementById(containerId);
-    const featureIndex = container.children.length;
-
-    const featureDiv = document.createElement('div');
-    featureDiv.className = 'feature-item';
-    featureDiv.draggable = true;
-    featureDiv.innerHTML = `
-        <div class="feature-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span class="drag-handle" style="cursor: move; color: #6c757d;"><i class="fa fa-grip-vertical"></i></span>
-            <button type="button" class="btn btn-sm btn-outline-danger remove-feature">
-                <i class="fa fa-trash"></i>
-            </button>
-        </div>
-        <div class="form-group-inline">
-            <label for="${prefix}_title_${featureIndex}">${TRANSLATIONS.feature_title}</label>
-            <input type="text" id="${prefix}_title_${featureIndex}" name="${prefix}_title_${featureIndex}" class="form-control feature-title"
-                   placeholder="${TRANSLATIONS.feature_placeholder_title}" value="">
-        </div>
-        <div class="form-group-inline">
-            <label for="${prefix}_desc_${featureIndex}">${TRANSLATIONS.feature_description}</label>
-            <textarea id="${prefix}_desc_${featureIndex}" name="${prefix}_desc_${featureIndex}" class="form-control feature-desc" rows="2"
-                      placeholder="${TRANSLATIONS.feature_placeholder_desc}"></textarea>
-        </div>
-    `;
-
-    container.appendChild(featureDiv);
-
-    // Add event listeners
-    featureDiv.querySelector('.remove-feature').addEventListener('click', function() {
-        featureDiv.remove();
-    });
-}
-
-function addAboutFeatureFromData(containerId, prefix, title, description) {
-    const container = document.getElementById(containerId);
-    const featureIndex = container.children.length;
-
-    // Escape quotes for HTML attributes
-    const escapedTitle = title.replace(/"/g, '&quot;');
-    const escapedDescription = description.replace(/"/g, '&quot;');
-
-    const featureDiv = document.createElement('div');
-    featureDiv.className = 'feature-item';
-    featureDiv.draggable = true;
-    featureDiv.innerHTML = `
-        <div class="feature-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span class="drag-handle" style="cursor: move; color: #6c757d;"><i class="fa fa-grip-vertical"></i></span>
-            <button type="button" class="btn btn-sm btn-outline-danger remove-feature">
-                <i class="fa fa-trash"></i>
-            </button>
-        </div>
-        <div class="form-group-inline">
-            <label for="${prefix}_title_${featureIndex}">${TRANSLATIONS.feature_title}</label>
-            <input type="text" id="${prefix}_title_${featureIndex}" name="${prefix}_title_${featureIndex}" class="form-control feature-title"
-                   placeholder="${TRANSLATIONS.feature_placeholder_title}" value="${escapedTitle}">
-        </div>
-        <div class="form-group-inline">
-            <label for="${prefix}_desc_${featureIndex}">${TRANSLATIONS.feature_description}</label>
-            <textarea id="${prefix}_desc_${featureIndex}" name="${prefix}_desc_${featureIndex}" class="form-control feature-desc" rows="2"
-                      placeholder="${TRANSLATIONS.feature_placeholder_desc}">${escapedDescription}</textarea>
-        </div>
-    `;
-
-    container.appendChild(featureDiv);
-
-    // Add event listeners
-    featureDiv.querySelector('.remove-feature').addEventListener('click', function() {
-        featureDiv.remove();
-    });
-}
 
 // About Gallery Functions
 function addAboutGalleryImage(containerId, prefix) {
