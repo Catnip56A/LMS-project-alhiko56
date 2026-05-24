@@ -708,6 +708,40 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
 
+        /* Services horizontal rotating carousel (3 visible, auto every 5s on about page) */
+        #servicesCarouselViewport {
+            width: 100%;
+        }
+        #servicesCarouselWrapper {
+            flex-wrap: nowrap;
+        }
+        #servicesCarouselWrapper .service-card {
+            flex: 0 0 auto;
+            margin: 0 !important;
+            box-sizing: border-box;
+        }
+        .services-carousel-outer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            max-width: 1200px;
+            margin: 0 auto 3rem;
+        }
+        .services-control {
+            background: rgba(0,0,0,0.45);
+            color: #fff;
+            border: none;
+            padding: 0.35rem 0.55rem;
+            cursor: pointer;
+            z-index: 10;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            transition: background 0.2s ease;
+            flex-shrink: 0;
+        }
+        .services-control:hover { background: rgba(0,0,0,0.7); }
+
         /* Modal Styles */
         .service-modal {
             display: none;
@@ -2815,6 +2849,64 @@
         <!-- About Company Page -->
         <section id="about" class="page">
             <!-- About Company Page -->
+
+            <!-- Services Carousel -->
+            <h2 class="section-title" style="color: #000000; margin-top: 2rem;">{{ _('Our Services') }}</h2>
+            <div class="services-carousel-outer">
+                <button class="services-control prev" onclick="servicesPrev()" aria-label="Previous">‹</button>
+                <div id="servicesCarouselViewport" style="overflow: hidden; flex: 1; min-width: 0;">
+                    <div id="servicesCarouselWrapper" style="display: flex; gap: 2rem; transition: transform 0.6s ease-in-out; will-change: transform;">
+                    <!-- Service Card 1 -->
+                <div class="service-card" style="background: rgba(255, 255, 255, 0.8); border-radius: 12px; padding: 2rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; box-sizing: border-box;" onclick="openServiceModal(event, 'serviceModal1')">
+                    <img src="/static/permanent/icon1_Services.png" alt="Assessment Icon" style="width: 64px; height: 64px; margin-bottom: 1rem;">
+                    <h3 style="color: #1e5919; margin-bottom: 1rem; text-align: center;">{{ _('Assessment and Skill Evaluation') }}</h3>
+                    <p style="color: #555; font-size: 0.95rem; margin-bottom: 1.5rem; text-align: center;">{{ _('Comprehensive assessment of a child\'s development to create an individualized support plan') }}</p>
+                    <button type="button" class="service-btn" style="background: #337a2c; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s ease;">{{ _('Learn More') }}</button>
+                </div>
+
+                <!-- Service Card 2 -->
+                <div class="service-card" style="background: rgba(255, 255, 255, 0.8); border-radius: 12px; padding: 2rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; box-sizing: border-box;" onclick="openServiceModal(event, 'serviceModal2')">
+                    <img src="/static/permanent/icon2_Services.png" alt="Therapeutic Icon" style="width: 64px; height: 64px; margin-bottom: 1rem;">
+                    <h3 style="color: #1e5919; margin-bottom: 1rem; text-align: center;">{{ _('Therapeutic and Developmental Sessions') }}</h3>
+                    <p style="color: #555; font-size: 0.95rem; margin-bottom: 1.5rem; text-align: center;">{{ _('Individualized development and intervention programs') }}</p>
+                    <button type="button" class="service-btn" style="background: #337a2c; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s ease;">{{ _('Learn More') }}</button>
+                </div>
+
+                <!-- Service Card 3 -->
+                <div class="service-card" style="background: rgba(255, 255, 255, 0.8); border-radius: 12px; padding: 2rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; box-sizing: border-box;" onclick="openServiceModal(event, 'serviceModal3')">
+                    <img src="/static/permanent/icon3_Services.png" alt="School Support Icon" style="width: 64px; height: 64px; margin-bottom: 1rem;">
+                    <h3 style="color: #1e5919; margin-bottom: 1rem; text-align: center;">{{ _('School Support') }}</h3>
+                    <p style="color: #555; font-size: 0.95rem; margin-bottom: 1.5rem; text-align: center;">{{ _('Comprehensive support for a child in the educational environment') }}</p>
+                    <button type="button" class="service-btn" style="background: #337a2c; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s ease;">{{ _('Learn More') }}</button>
+                </div>
+
+                <!-- Service Card 4 -->
+                <div class="service-card" style="background: rgba(255, 255, 255, 0.8); border-radius: 12px; padding: 2rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; box-sizing: border-box;" onclick="openServiceModal(event, 'serviceModal4')">
+                    <img src="/static/permanent/icon4_Services.png" alt="Psychological Support Icon" style="width: 64px; height: 64px; margin-bottom: 1rem;">
+                    <h3 style="color: #1e5919; margin-bottom: 1rem; text-align: center;">{{ _('Psychological Support') }}</h3>
+                    <p style="color: #555; font-size: 0.95rem; margin-bottom: 1.5rem; text-align: center;">{{ _('Professional psychological counseling and therapy services') }}</p>
+                    <button type="button" class="service-btn" style="background: #337a2c; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s ease;">{{ _('Learn More') }}</button>
+                </div>
+
+                <!-- Service Card 5 -->
+                <div class="service-card" style="background: rgba(255, 255, 255, 0.8); border-radius: 12px; padding: 2rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; box-sizing: border-box;" onclick="openServiceModal(event, 'serviceModal5')">
+                    <img src="/static/permanent/icon5_Services.png" alt="Clubs Icon" style="width: 64px; height: 64px; margin-bottom: 1rem;">
+                    <h3 style="color: #1e5919; margin-bottom: 1rem; text-align: center;">{{ _('Clubs') }}</h3>
+                    <p style="color: #555; font-size: 0.95rem; margin-bottom: 1.5rem; text-align: center;">{{ _('Community clubs for mothers and teenagers') }}</p>
+                    <button type="button" class="service-btn" style="background: #337a2c; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s ease;">{{ _('Learn More') }}</button>
+                </div>
+
+                <!-- Service Card 6 -->
+                <div class="service-card" style="background: rgba(255, 255, 255, 0.8); border-radius: 12px; padding: 2rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; box-sizing: border-box;" onclick="openServiceModal(event, 'serviceModal6')">
+                    <img src="/static/permanent/icon6_Services.png" alt="Educational Programs Icon" style="width: 64px; height: 64px; margin-bottom: 1rem;">
+                    <h3 style="color: #1e5919; margin-bottom: 1rem; text-align: center;">{{ _('Educational Programs') }}</h3>
+                    <p style="color: #555; font-size: 0.95rem; margin-bottom: 1.5rem; text-align: center;">{{ _('Professional training courses for educators and parents') }}</p>
+                    <button type="button" class="service-btn" style="background: #337a2c; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s ease;">{{ _('Learn More') }}</button>
+                </div>
+                    </div> <!-- /servicesCarouselWrapper -->
+                </div> <!-- /servicesCarouselViewport -->
+                <button class="services-control next" onclick="servicesNext()" aria-label="Next">›</button>
+            </div> <!-- /services-carousel-outer -->
 
             <!-- Service Modals -->
             <!-- Modal 1: Assessment and Skill Evaluation -->
@@ -6136,6 +6228,161 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
             if (!event.target.closest('.mobile-dropdown')) {
                 document.querySelectorAll('.mobile-dropdown-menu').forEach(menu => menu.style.display = 'none');
             }
+        });
+    </script>
+
+    <script>
+        // Services cards carousel: 3 visible at a time, horizontal auto-rotate every 5s on #about page, circles indefinitely. Equal height cards + manual prev/next buttons.
+        document.addEventListener('DOMContentLoaded', function() {
+            const viewport = document.getElementById('servicesCarouselViewport');
+            const wrapper = document.getElementById('servicesCarouselWrapper');
+            if (!viewport || !wrapper) return;
+            let cards = Array.from(wrapper.querySelectorAll(':scope > .service-card'));
+            if (!cards.length) return;
+            const VISIBLE = 3;
+            const INTERVAL_MS = 5000;
+            const GAP_PX = 32;
+            let currentGroup = 0;
+            let timer = null;
+            let cardW = 300;
+            // Append clones of first group for seamless infinite forward rotation (no jump on wrap)
+            const clonesToAppend = cards.slice(0, VISIBLE).map(function(c){ return c.cloneNode(true); });
+            clonesToAppend.forEach(function(clone){ wrapper.appendChild(clone); });
+            cards = Array.from(wrapper.querySelectorAll(':scope > .service-card'));
+
+            function equalizeCardHeights() {
+                cards.forEach(function(c) { c.style.height = 'auto'; });
+                let maxH = 0;
+                cards.forEach(function(c) {
+                    const h = c.offsetHeight;
+                    if (h > maxH) maxH = h;
+                });
+                if (maxH > 50) {
+                    cards.forEach(function(c) {
+                        c.style.height = maxH + 'px';
+                    });
+                }
+            }
+
+            function computeCardWidth() {
+                let w = viewport.clientWidth;
+                if (!w || w < 100) w = 960;
+                const totalGaps = (VISIBLE - 1) * GAP_PX;
+                cardW = Math.max(180, Math.floor((w - totalGaps) / VISIBLE));
+            }
+            function applyCardWidths() {
+                cards.forEach(function(c) {
+                    c.style.width = cardW + 'px';
+                    c.style.flex = '0 0 auto';
+                });
+                equalizeCardHeights();
+            }
+            function getOffsetForGroup(group) {
+                return group * VISIBLE * (cardW + GAP_PX);
+            }
+            function slideTo(group, animate) {
+                if (typeof animate === 'undefined') animate = true;
+                currentGroup = group;
+                wrapper.style.transition = animate ? 'transform 0.6s ease-in-out' : 'none';
+                const offset = getOffsetForGroup(group);
+                wrapper.style.transform = 'translateX(-' + offset + 'px)';
+            }
+            function goNext() {
+                let nextGroup = currentGroup + 1;
+                const totalGroups = Math.ceil(cards.length / VISIBLE);
+                if (nextGroup >= totalGroups) nextGroup = 0;
+                slideTo(nextGroup);
+            }
+            function goPrev() {
+                let prevGroup = currentGroup - 1;
+                const totalGroups = Math.ceil(cards.length / VISIBLE);
+                if (prevGroup < 0) {
+                    prevGroup = totalGroups - 2; // real last unique group before clones
+                }
+                slideTo(prevGroup);
+            }
+            function shouldRun() {
+                return window.currentPageId === 'about' && !document.hidden;
+            }
+            function startAuto() {
+                stopAuto();
+                if (!shouldRun()) return;
+                timer = setInterval(function() {
+                    if (shouldRun()) {
+                        goNext();
+                    } else {
+                        stopAuto();
+                    }
+                }, INTERVAL_MS);
+            }
+            function stopAuto() {
+                if (timer) { clearInterval(timer); timer = null; }
+            }
+            // Seamless reset: after sliding into the cloned first-set, instantly jump back to real first set (identical visuals)
+            wrapper.addEventListener('transitionend', function() {
+                const totalGroups = Math.ceil(cards.length / VISIBLE);
+                if (currentGroup === totalGroups - 1) {
+                    slideTo(0, false);
+                }
+            });
+            // Manual controls exposed for the arrow buttons (pause auto, slide, resume)
+            window.servicesPrev = function() {
+                stopAuto();
+                goPrev();
+                setTimeout(function() {
+                    if (shouldRun()) startAuto();
+                }, 650);
+            };
+            window.servicesNext = function() {
+                stopAuto();
+                goNext();
+                setTimeout(function() {
+                    if (shouldRun()) startAuto();
+                }, 650);
+            };
+            function initCarousel() {
+                computeCardWidth();
+                applyCardWidths();
+                slideTo(0, false);
+                if (window.currentPageId === 'about') {
+                    setTimeout(function() {
+                        computeCardWidth();
+                        applyCardWidths();
+                        slideTo(0, false);
+                        startAuto();
+                    }, 80);
+                }
+            }
+            window.addEventListener('yonca:pagechange', function(e) {
+                const pid = e.detail && e.detail.pageId;
+                if (pid === 'about') {
+                    setTimeout(function() {
+                        computeCardWidth();
+                        applyCardWidths();
+                        slideTo(0, false);
+                        startAuto();
+                    }, 50);
+                } else {
+                    stopAuto();
+                }
+            });
+            let resizeT;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeT);
+                resizeT = setTimeout(function() {
+                    computeCardWidth();
+                    applyCardWidths();
+                    slideTo(currentGroup, false);
+                }, 120);
+            });
+            viewport.addEventListener('mouseenter', stopAuto);
+            viewport.addEventListener('mouseleave', function() { if (shouldRun()) startAuto(); });
+            viewport.addEventListener('focusin', stopAuto);
+            viewport.addEventListener('focusout', function() { if (shouldRun()) startAuto(); });
+            document.addEventListener('visibilitychange', function() {
+                if (shouldRun()) startAuto(); else stopAuto();
+            });
+            initCarousel();
         });
     </script>
 
