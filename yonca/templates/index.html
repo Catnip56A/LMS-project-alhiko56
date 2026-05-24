@@ -708,7 +708,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
 
-        /* Services horizontal rotating carousel (3 visible, auto every 5s on about page) */
+        /* Services horizontal rotating carousel (adaptive 1/2/3 visible based on width, auto every 5s on about page) */
         #servicesCarouselViewport {
             width: 100%;
         }
@@ -6232,33 +6232,56 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
     </script>
 
     <script>
-        // Services cards carousel: 3 visible at a time, horizontal auto-rotate every 5s on #about page, circles indefinitely. Equal height cards + manual prev/next buttons.
+        // Services cards carousel: visible count (1/2/3) adapts to screen width (<520px:1, <850px:2, else:3).
+        // Horizontal auto-rotate every 5s on #about page, circles indefinitely. Equal height + manual prev/next.
         document.addEventListener('DOMContentLoaded', function() {
             const viewport = document.getElementById('servicesCarouselViewport');
             const wrapper = document.getElementById('servicesCarouselWrapper');
             if (!viewport || !wrapper) return;
-            let cards = Array.from(wrapper.querySelectorAll(':scope > .service-card'));
-            if (!cards.length) return;
-            const VISIBLE = 3;
+            let originalCards = Array.from(wrapper.querySelectorAll(':scope > .service-card'));
+            if (!originalCards.length) return;
+            let currentVisible = 3;
             const INTERVAL_MS = 5000;
             const GAP_PX = 32;
             let currentGroup = 0;
             let timer = null;
             let cardW = 300;
-            // Append clones of first group for seamless infinite forward rotation (no jump on wrap)
-            const clonesToAppend = cards.slice(0, VISIBLE).map(function(c){ return c.cloneNode(true); });
-            clonesToAppend.forEach(function(clone){ wrapper.appendChild(clone); });
-            cards = Array.from(wrapper.querySelectorAll(':scope > .service-card'));
 
-            function equalizeCardHeights() {
-                cards.forEach(function(c) { c.style.height = 'auto'; });
+            function getVisibleCount() {
+                const w = viewport.clientWidth || window.innerWidth || 1200;
+                if (w < 520) return 1;
+                if (w < 850) return 2;
+                return 3;
+            }
+
+            function cleanupClones() {
+                const all = Array.from(wrapper.querySelectorAll(':scope > .service-card'));
+                if (all.length > originalCards.length) {
+                    all.slice(originalCards.length).forEach(function(c) { c.remove(); });
+                }
+            }
+
+            function cloneForCurrentVisible() {
+                cleanupClones();
+                const v = currentVisible;
+                const clones = originalCards.slice(0, v).map(function(c) { return c.cloneNode(true); });
+                clones.forEach(function(clone) { wrapper.appendChild(clone); });
+            }
+
+            function getAllCards() {
+                return Array.from(wrapper.querySelectorAll(':scope > .service-card'));
+            }
+
+            function equalizeCardHeights(cardsList) {
+                if (!cardsList || !cardsList.length) cardsList = getAllCards();
+                cardsList.forEach(function(c) { c.style.height = 'auto'; });
                 let maxH = 0;
-                cards.forEach(function(c) {
+                cardsList.forEach(function(c) {
                     const h = c.offsetHeight;
                     if (h > maxH) maxH = h;
                 });
                 if (maxH > 50) {
-                    cards.forEach(function(c) {
+                    cardsList.forEach(function(c) {
                         c.style.height = maxH + 'px';
                     });
                 }
@@ -6267,18 +6290,27 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
             function computeCardWidth() {
                 let w = viewport.clientWidth;
                 if (!w || w < 100) w = 960;
-                const totalGaps = (VISIBLE - 1) * GAP_PX;
-                cardW = Math.max(180, Math.floor((w - totalGaps) / VISIBLE));
+                const v = currentVisible;
+                const totalGaps = (v - 1) * GAP_PX;
+                let desired = Math.floor((w - totalGaps) / v);
+                let minW = (v === 1) ? 260 : (v === 2 ? 210 : 180);
+                cardW = Math.max(minW, desired);
+                const totalNeeded = cardW * v + totalGaps;
+                if (totalNeeded > w + 40) {
+                    cardW = Math.max(100, Math.floor((w - totalGaps) / v));
+                }
             }
             function applyCardWidths() {
-                cards.forEach(function(c) {
+                const cardsToApply = getAllCards();
+                cardsToApply.forEach(function(c) {
                     c.style.width = cardW + 'px';
                     c.style.flex = '0 0 auto';
                 });
-                equalizeCardHeights();
+                equalizeCardHeights(cardsToApply);
             }
             function getOffsetForGroup(group) {
-                return group * VISIBLE * (cardW + GAP_PX);
+                const v = currentVisible;
+                return group * v * (cardW + GAP_PX);
             }
             function slideTo(group, animate) {
                 if (typeof animate === 'undefined') animate = true;
@@ -6289,15 +6321,20 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
             }
             function goNext() {
                 let nextGroup = currentGroup + 1;
-                const totalGroups = Math.ceil(cards.length / VISIBLE);
+                const cardsLen = getAllCards().length;
+                const v = currentVisible;
+                const totalGroups = Math.ceil(cardsLen / v);
                 if (nextGroup >= totalGroups) nextGroup = 0;
                 slideTo(nextGroup);
             }
             function goPrev() {
                 let prevGroup = currentGroup - 1;
-                const totalGroups = Math.ceil(cards.length / VISIBLE);
+                const cardsLen = getAllCards().length;
+                const v = currentVisible;
+                const totalGroups = Math.ceil(cardsLen / v);
                 if (prevGroup < 0) {
-                    prevGroup = totalGroups - 2; // real last unique group before clones
+                    prevGroup = totalGroups - 2;
+                    if (prevGroup < 0) prevGroup = 0;
                 }
                 slideTo(prevGroup);
             }
@@ -6320,7 +6357,9 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
             }
             // Seamless reset: after sliding into the cloned first-set, instantly jump back to real first set (identical visuals)
             wrapper.addEventListener('transitionend', function() {
-                const totalGroups = Math.ceil(cards.length / VISIBLE);
+                const cardsLen = getAllCards().length;
+                const v = currentVisible;
+                const totalGroups = Math.ceil(cardsLen / v);
                 if (currentGroup === totalGroups - 1) {
                     slideTo(0, false);
                 }
@@ -6340,41 +6379,56 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                     if (shouldRun()) startAuto();
                 }, 650);
             };
-            function initCarousel() {
+            function setupCarousel() {
+                currentVisible = getVisibleCount();
+                cloneForCurrentVisible();
                 computeCardWidth();
                 applyCardWidths();
-                slideTo(0, false);
+                const cardsLen = getAllCards().length;
+                const totalG = Math.ceil(cardsLen / currentVisible);
+                if (currentGroup >= totalG || currentGroup < 0) currentGroup = 0;
+                slideTo(currentGroup, false);
+            }
+
+            function initCarousel() {
+                setupCarousel();
                 if (window.currentPageId === 'about') {
                     setTimeout(function() {
-                        computeCardWidth();
-                        applyCardWidths();
-                        slideTo(0, false);
+                        setupCarousel();
                         startAuto();
                     }, 80);
                 }
             }
+
             window.addEventListener('yonca:pagechange', function(e) {
                 const pid = e.detail && e.detail.pageId;
                 if (pid === 'about') {
                     setTimeout(function() {
-                        computeCardWidth();
-                        applyCardWidths();
-                        slideTo(0, false);
+                        setupCarousel();
                         startAuto();
                     }, 50);
                 } else {
                     stopAuto();
                 }
             });
+
             let resizeT;
             window.addEventListener('resize', function() {
                 clearTimeout(resizeT);
                 resizeT = setTimeout(function() {
+                    const newVis = getVisibleCount();
+                    const visChanged = (newVis !== currentVisible);
+                    if (visChanged) {
+                        currentVisible = newVis;
+                        cloneForCurrentVisible();
+                        currentGroup = 0;
+                    }
                     computeCardWidth();
                     applyCardWidths();
                     slideTo(currentGroup, false);
-                }, 120);
+                }, 150);
             });
+
             viewport.addEventListener('mouseenter', stopAuto);
             viewport.addEventListener('mouseleave', function() { if (shouldRun()) startAuto(); });
             viewport.addEventListener('focusin', stopAuto);
