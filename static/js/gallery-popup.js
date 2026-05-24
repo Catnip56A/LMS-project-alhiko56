@@ -114,73 +114,7 @@
 
   initAboutHorizontal();
 
-  function addArrowsAndKeyboard(selector){
-    const container = document.querySelector(selector);
-    if (!container) return;
-
-    let wrapper = container.closest('.about-scroll-wrapper');
-    if (!wrapper) {
-      wrapper = document.createElement('div');
-      wrapper.className = 'about-scroll-wrapper';
-      container.parentNode.insertBefore(wrapper, container);
-      wrapper.appendChild(container);
-    }
-
-    container.tabIndex = 0;
-
-    function makeButton(side){
-      const btn = document.createElement('button');
-      btn.className = `about-scroll-arrow gallery-control ${side === 'left' ? 'prev' : 'next'}`;
-      btn.setAttribute('aria-label', side === 'left' ? 'Scroll left' : 'Scroll right');
-      btn.innerHTML = side === 'left' ? '&#10094;' : '&#10095;';
-      return btn;
-    }
-
-    const leftBtn = makeButton('left');
-    const rightBtn = makeButton('right');
-    wrapper.appendChild(leftBtn);
-    wrapper.appendChild(rightBtn);
-
-    function scrollByAmount(amount){
-      container.scrollBy({ left: amount, behavior: 'smooth' });
-    }
-
-    leftBtn.addEventListener('click', () => scrollByAmount(-Math.round(container.clientWidth * 0.8)));
-    rightBtn.addEventListener('click', () => scrollByAmount(Math.round(container.clientWidth * 0.8)));
-
-    function updateArrowVisibility(){
-      wrapper.classList.toggle('can-left', container.scrollLeft > 8);
-      wrapper.classList.toggle('can-right', (container.scrollWidth - container.clientWidth - container.scrollLeft) > 8);
-    }
-
-    container.addEventListener('scroll', updateArrowVisibility, { passive: true });
-    window.addEventListener('resize', updateArrowVisibility);
-    container.addEventListener('mouseenter', updateArrowVisibility);
-
-    const medias = container.querySelectorAll('img, iframe, video');
-    medias.forEach(m => {
-      if (m.tagName.toLowerCase() === 'img') m.addEventListener('load', updateArrowVisibility);
-      if (m.tagName.toLowerCase() === 'iframe') m.addEventListener('load', updateArrowVisibility);
-      if (m.tagName.toLowerCase() === 'video') {
-        m.addEventListener('loadedmetadata', updateArrowVisibility);
-        m.addEventListener('loadeddata', updateArrowVisibility);
-      }
-    });
-
-    setTimeout(updateArrowVisibility, 250);
-    window.addEventListener('load', updateArrowVisibility);
-
-    container.addEventListener('keydown', (ev) => {
-      if (ev.key === 'ArrowLeft') { ev.preventDefault(); scrollByAmount(-Math.round(container.clientWidth * 0.45)); }
-      if (ev.key === 'ArrowRight') { ev.preventDefault(); scrollByAmount(Math.round(container.clientWidth * 0.45)); }
-    });
-
-    container.addEventListener('mouseenter', () => { container.focus(); });
-    container.addEventListener('mouseleave', () => { container.blur(); });
-  }
-
-  function initArrows(){ addArrowsAndKeyboard('#about .gallery-grid'); }
-  if (document.readyState === 'complete' || document.readyState === 'interactive') initArrows(); else document.addEventListener('DOMContentLoaded', initArrows);
+  // Arrow buttons removed per request (static buttons now in index.html template for both galleries)
 
   function initFeatureSelection(){
     const list = document.querySelector('#about .features-list');

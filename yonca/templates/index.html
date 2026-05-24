@@ -2288,6 +2288,41 @@
                 max-height: calc(100vh - 120px);
             }
         }
+
+        /* Scrolling buttons on left/right sides for the two About galleries (grid style) */
+        .gallery-outer.about-gallery {
+            position: relative;
+            display: block;
+        }
+        .gallery-outer.about-gallery .gallery-grid {
+            width: 100%;
+            margin: 0;
+            padding-left: 3rem;
+            padding-right: 3rem;
+            box-sizing: border-box;
+        }
+        .gallery-outer.about-gallery .gallery-control {
+            position: absolute;
+            top: 38%;
+            transform: translateY(-50%);
+            z-index: 20;
+            margin: 0;
+            font-size: 1.1rem;
+            padding: 0.35rem 0.55rem;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .gallery-outer.about-gallery .gallery-control:hover {
+            background: rgba(0,0,0,0.75);
+        }
+        .gallery-outer.about-gallery .gallery-control.prev {
+            left: 0.4rem;
+        }
+        .gallery-outer.about-gallery .gallery-control.next {
+            right: 0.4rem;
+        }
     </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/gallery-popup.css') }}">
 </head>
@@ -2883,8 +2918,7 @@
             <!-- Empty space for layout -->
             <div style="margin-bottom: 3rem;"></div>
             
-            <!-- Gallery Section -->
-        
+            <!-- Gallery Section (deleted old HTML; rewritten based on gallery 2 structure) -->
             <h2 class="section-title" style="color: #000000;">{{ translate_field('home_content', home_content.id, 'about_gallery_title', home_content.about_gallery_title or _('What\'s New')) }}</h2>
             {% set gallery_subtitle = translate_field('home_content', home_content.id, 'about_gallery_subtitle', home_content.about_gallery_subtitle or _('Discover the latest updates, new features, and exciting developments in our learning platform.')) %}
             {% for paragraph in gallery_subtitle.split('\n') %}
@@ -2893,84 +2927,88 @@
             {% endif %}
             {% endfor %}
 
-            <div class="gallery-grid">
-                {% if home_content.about_gallery_images %}
-                {% for image in translate_json('home_content', home_content.id, 'about_gallery_images', home_content.about_gallery_images) %}
-                <div class="gallery-item">
-                    {% if image.url %}
-                    <div class="gallery-media-viewport">
-                    {% if 'youtube.com' in image.url or 'youtu.be' in image.url %}
-                    {% set video_id = '' %}
-                    {% if 'youtube.com/watch?v=' in image.url %}
-                        {% set video_id = image.url.split('v=')[1].split('&')[0] %}
-                    {% elif 'youtube.com/shorts/' in image.url %}
-                        {% set video_id = image.url.split('shorts/')[1].split('?')[0] %}
-                    {% elif 'youtu.be/' in image.url %}
-                        {% set video_id = image.url.split('youtu.be/')[1].split('?')[0] %}
-                    {% endif %}
-                    <button type="button"
-                        onclick="yoncaOpenYouTubeLarge('https://www.youtube.com/embed/{{ video_id }}?autoplay=1&rel=0');"
-                        style="width:100%; height:100%; border:0; padding:0; background:#000; position:relative; cursor:pointer; border-radius:8px;">
-                        <img src="https://img.youtube.com/vi/{{ video_id }}/hqdefault.jpg"
-                             alt="YouTube video"
-                             style="width:100%; height:100%; object-fit:cover; border-radius:8px;" loading="lazy">
-                        <span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
-                            <span style="width:64px; height:64px; border-radius:50%; background:rgba(0,0,0,.72); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:28px;">▶</span>
-                        </span>
-                    </button>
-                    {% elif 'vimeo.com' in image.url %}
-                    {% set video_id = image.url.split('vimeo.com/')[1].split('?')[0] %}
-                    <iframe width="100%" 
-                        src="https://player.vimeo.com/video/{{ video_id }}" 
-                        frameborder="0" allowfullscreen
-                        style="border-radius: 8px; max-width: 100%;"></iframe>
-                    {% elif 'drive.google.com' in image.url %}
-                    {% set file_id = '' %}
-                    {% if '/d/' in image.url %}
-                    {% set file_id = image.url.split('/d/')[1].split('/')[0] %}
-                    {% elif 'id=' in image.url %}
-                    {% set file_id = image.url.split('id=')[1].split('&')[0] %}
-                    {% endif %}
-                    <iframe src="https://drive.google.com/file/d/{{ file_id }}/preview" 
-                        width="100%" frameborder="0" allowfullscreen
-                        style="border-radius: 8px; max-width: 100%;"></iframe>
-                    <div class="gallery-caption" style="background: #fff3cd; color: #856404; border-color: #ffeaa7;">
-                        <small><i class="fa fa-clock-o"></i> If video shows "still being processed," please wait 5-60 minutes for Google Drive to finish processing, then refresh the page.</small>
+            <div class="gallery-outer about-gallery">
+                <button class="gallery-control prev" aria-label="Previous" onclick="scrollGallery(this, -1)">&#10094;</button>
+                <div class="gallery-grid">
+                    {% if home_content.about_gallery_images %}
+                    {% for image in translate_json('home_content', home_content.id, 'about_gallery_images', home_content.about_gallery_images) %}
+                    <div class="gallery-item">
+                        {% if image.url %}
+                        <div class="gallery-media-viewport">
+                        {% if 'youtube.com' in image.url or 'youtu.be' in image.url %}
+                        {% set video_id = '' %}
+                        {% if 'youtube.com/watch?v=' in image.url %}
+                            {% set video_id = image.url.split('v=')[1].split('&')[0] %}
+                        {% elif 'youtube.com/shorts/' in image.url %}
+                            {% set video_id = image.url.split('shorts/')[1].split('?')[0] %}
+                        {% elif 'youtu.be/' in image.url %}
+                            {% set video_id = image.url.split('youtu.be/')[1].split('?')[0] %}
+                        {% endif %}
+                        <button type="button"
+                            onclick="yoncaOpenYouTubeLarge('https://www.youtube.com/embed/{{ video_id }}?autoplay=1&rel=0');"
+                            style="width:100%; height:100%; border:0; padding:0; background:#000; position:relative; cursor:pointer; border-radius:8px;">
+                            <img src="https://img.youtube.com/vi/{{ video_id }}/hqdefault.jpg"
+                                 alt="YouTube video"
+                                 style="width:100%; height:100%; object-fit:cover; border-radius:8px;" loading="lazy">
+                            <span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+                                <span style="width:64px; height:64px; border-radius:50%; background:rgba(0,0,0,.72); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:28px;">▶</span>
+                            </span>
+                        </button>
+                        {% elif 'vimeo.com' in image.url %}
+                        {% set video_id = image.url.split('vimeo.com/')[1].split('?')[0] %}
+                        <iframe width="100%" 
+                            src="https://player.vimeo.com/video/{{ video_id }}" 
+                            frameborder="0" allowfullscreen
+                            style="border-radius: 8px; max-width: 100%;"></iframe>
+                        {% elif 'drive.google.com' in image.url %}
+                        {% set file_id = '' %}
+                        {% if '/d/' in image.url %}
+                        {% set file_id = image.url.split('/d/')[1].split('/')[0] %}
+                        {% elif 'id=' in image.url %}
+                        {% set file_id = image.url.split('id=')[1].split('&')[0] %}
+                        {% endif %}
+                        <iframe src="https://drive.google.com/file/d/{{ file_id }}/preview" 
+                            width="100%" frameborder="0" allowfullscreen
+                            style="border-radius: 8px; max-width: 100%;"></iframe>
+                        <div class="gallery-caption" style="background: #fff3cd; color: #856404; border-color: #ffeaa7;">
+                            <small><i class="fa fa-clock-o"></i> If video shows "still being processed," please wait 5-60 minutes for Google Drive to finish processing, then refresh the page.</small>
+                        </div>
+                        {% elif image.url.endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv', '.mp3', '.wav', '.ogg')) %}
+                        <video controls style="width: 100%; height: auto;">
+                            <source src="{{ image.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        {% else %}
+                        <img src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
+                        {% endif %}
+                        </div>
+                        {% else %}
+                        <img src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
+                        {% endif %}
+                        {% if image.caption and image.caption.strip() %}
+                        <div class="gallery-caption gallery-caption-with-modal" data-caption-index="{{ loop.index0 }}" data-full-caption="{{ image.caption | safe }}">
+                            <span class="caption-bold-text">{{ image.caption | safe }}</span>
+                            <button class="gallery-learn-more-btn">{{ _('Learn More') }}</button>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% elif image.url.endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv', '.mp3', '.wav', '.ogg')) %}
-                    <video controls style="width: 100%; height: auto;">
-                        <source src="{{ image.url }}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
+                    {% endfor %}
                     {% else %}
-                    <img src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
-                    {% endif %}
+                    <div class="gallery-item">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%23abc32f' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3ELearning Community%3C/text%3E%3C/svg%3E" alt="Learning Community" loading="lazy">
+                        <div class="gallery-caption" style="font-size: 110%;">Our vibrant learning community</div>
                     </div>
-                    {% else %}
-                    <img src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
-                    {% endif %}
-                    {% if image.caption and image.caption.strip() %}
-                    <div class="gallery-caption gallery-caption-with-modal" data-caption-index="{{ loop.index0 }}" data-full-caption="{{ image.caption | safe }}">
-                        <span class="caption-bold-text">{{ image.caption | safe }}</span>
-                        <button class="gallery-learn-more-btn">{{ _('Learn More') }}</button>
+                    <div class="gallery-item">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%234a90e2' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EInteractive Courses%3C/text%3E%3C/svg%3E" alt="Interactive Courses" loading="lazy">
+                        <div class="gallery-caption" style="font-size: 110%;">Engage with interactive course content</div>
+                    </div>
+                    <div class="gallery-item">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%237ed321' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EStudy Groups%3C/text%3E%3C/svg%3E" alt="Study Groups" loading="lazy">
+                        <div class="gallery-caption" style="font-size: 110%;">Collaborate in study groups</div>
                     </div>
                     {% endif %}
                 </div>
-                {% endfor %}
-                {% else %}
-                <div class="gallery-item">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%23abc32f' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3ELearning Community%3C/text%3E%3C/svg%3E" alt="Learning Community" loading="lazy">
-                    <div class="gallery-caption" style="font-size: 110%;">Our vibrant learning community</div>
-                </div>
-                <div class="gallery-item">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%234a90e2' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EInteractive Courses%3C/text%3E%3C/svg%3E" alt="Interactive Courses" loading="lazy">
-                    <div class="gallery-caption" style="font-size: 110%;">Engage with interactive course content</div>
-                </div>
-                <div class="gallery-item">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%237ed321' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EStudy Groups%3C/text%3E%3C/svg%3E" alt="Study Groups" loading="lazy">
-                    <div class="gallery-caption" style="font-size: 110%;">Collaborate in study groups</div>
-                </div>
-                {% endif %}
+                <button class="gallery-control next" aria-label="Next" onclick="scrollGallery(this, 1)">&#10095;</button>
             </div>
             
             <!-- Second Gallery Section -->
@@ -2982,84 +3020,88 @@
             {% endif %}
             {% endfor %}
 
-            <div class="gallery-grid">
-                {% if home_content.about_gallery_2_images %}
-                {% for image in translate_json('home_content', home_content.id, 'about_gallery_2_images', home_content.about_gallery_2_images) %}
-                <div class="gallery-item">
-                    {% if image.url %}
-                    <div class="gallery-media-viewport">
-                    {% if 'youtube.com' in image.url or 'youtu.be' in image.url %}
-                    {% set video_id = '' %}
-                    {% if 'youtube.com/watch?v=' in image.url %}
-                        {% set video_id = image.url.split('v=')[1].split('&')[0] %}
-                    {% elif 'youtube.com/shorts/' in image.url %}
-                        {% set video_id = image.url.split('shorts/')[1].split('?')[0] %}
-                    {% elif 'youtu.be/' in image.url %}
-                        {% set video_id = image.url.split('youtu.be/')[1].split('?')[0] %}
-                    {% endif %}
-                    <button type="button"
-                        onclick="yoncaOpenYouTubeLarge('https://www.youtube.com/embed/{{ video_id }}?autoplay=1&rel=0');"
-                        style="width:100%; height:100%; border:0; padding:0; background:#000; position:relative; cursor:pointer; border-radius:8px;">
-                        <img src="https://img.youtube.com/vi/{{ video_id }}/hqdefault.jpg"
-                             alt="YouTube video"
-                             style="width:100%; height:100%; object-fit:cover; border-radius:8px;" loading="lazy">
-                        <span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
-                            <span style="width:64px; height:64px; border-radius:50%; background:rgba(0,0,0,.72); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:28px;">▶</span>
-                        </span>
-                    </button>
-                    {% elif 'vimeo.com' in image.url %}
-                    {% set video_id = image.url.split('vimeo.com/')[1].split('?')[0] %}
-                    <iframe width="100%" 
-                        src="https://player.vimeo.com/video/{{ video_id }}" 
-                        frameborder="0" allowfullscreen
-                        style="border-radius: 8px; max-width: 100%;"></iframe>
-                    {% elif 'drive.google.com' in image.url %}
-                    {% set file_id = '' %}
-                    {% if '/d/' in image.url %}
-                    {% set file_id = image.url.split('/d/')[1].split('/')[0] %}
-                    {% elif 'id=' in image.url %}
-                    {% set file_id = image.url.split('id=')[1].split('&')[0] %}
-                    {% endif %}
-                    <iframe src="https://drive.google.com/file/d/{{ file_id }}/preview" 
-                        width="100%" frameborder="0" allowfullscreen
-                        style="border-radius: 8px; max-width: 100%;"></iframe>
-                    <div class="gallery-caption" style="background: #fff3cd; color: #856404; border-color: #ffeaa7;">
-                        <small><i class="fa fa-clock-o"></i> If video shows "still being processed," please wait 5-60 minutes for Google Drive to finish processing, then refresh the page.</small>
+            <div class="gallery-outer about-gallery">
+                <button class="gallery-control prev" aria-label="Previous" onclick="scrollGallery(this, -1)">&#10094;</button>
+                <div class="gallery-grid">
+                    {% if home_content.about_gallery_2_images %}
+                    {% for image in translate_json('home_content', home_content.id, 'about_gallery_2_images', home_content.about_gallery_2_images) %}
+                    <div class="gallery-item">
+                        {% if image.url %}
+                        <div class="gallery-media-viewport">
+                        {% if 'youtube.com' in image.url or 'youtu.be' in image.url %}
+                        {% set video_id = '' %}
+                        {% if 'youtube.com/watch?v=' in image.url %}
+                            {% set video_id = image.url.split('v=')[1].split('&')[0] %}
+                        {% elif 'youtube.com/shorts/' in image.url %}
+                            {% set video_id = image.url.split('shorts/')[1].split('?')[0] %}
+                        {% elif 'youtu.be/' in image.url %}
+                            {% set video_id = image.url.split('youtu.be/')[1].split('?')[0] %}
+                        {% endif %}
+                        <button type="button"
+                            onclick="yoncaOpenYouTubeLarge('https://www.youtube.com/embed/{{ video_id }}?autoplay=1&rel=0');"
+                            style="width:100%; height:100%; border:0; padding:0; background:#000; position:relative; cursor:pointer; border-radius:8px;">
+                            <img src="https://img.youtube.com/vi/{{ video_id }}/hqdefault.jpg"
+                                 alt="YouTube video"
+                                 style="width:100%; height:100%; object-fit:cover; border-radius:8px;" loading="lazy">
+                            <span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+                                <span style="width:64px; height:64px; border-radius:50%; background:rgba(0,0,0,.72); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:28px;">▶</span>
+                            </span>
+                        </button>
+                        {% elif 'vimeo.com' in image.url %}
+                        {% set video_id = image.url.split('vimeo.com/')[1].split('?')[0] %}
+                        <iframe width="100%" 
+                            src="https://player.vimeo.com/video/{{ video_id }}" 
+                            frameborder="0" allowfullscreen
+                            style="border-radius: 8px; max-width: 100%;"></iframe>
+                        {% elif 'drive.google.com' in image.url %}
+                        {% set file_id = '' %}
+                        {% if '/d/' in image.url %}
+                        {% set file_id = image.url.split('/d/')[1].split('/')[0] %}
+                        {% elif 'id=' in image.url %}
+                        {% set file_id = image.url.split('id=')[1].split('&')[0] %}
+                        {% endif %}
+                        <iframe src="https://drive.google.com/file/d/{{ file_id }}/preview" 
+                            width="100%" frameborder="0" allowfullscreen
+                            style="border-radius: 8px; max-width: 100%;"></iframe>
+                        <div class="gallery-caption" style="background: #fff3cd; color: #856404; border-color: #ffeaa7;">
+                            <small><i class="fa fa-clock-o"></i> If video shows "still being processed," please wait 5-60 minutes for Google Drive to finish processing, then refresh the page.</small>
+                        </div>
+                        {% elif image.url.endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv', '.mp3', '.wav', '.ogg')) %}
+                        <video controls style="width: 100%; height: auto;">
+                            <source src="{{ image.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        {% else %}
+                        <img src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
+                        {% endif %}
+                        </div>
+                        {% else %}
+                        <img src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
+                        {% endif %}
+                        {% if image.caption and image.caption.strip() %}
+                        <div class="gallery-caption gallery-caption-with-modal" data-caption-index="{{ loop.index0 }}" data-full-caption="{{ image.caption | safe }}">
+                            <span class="caption-bold-text">{{ image.caption | safe }}</span>
+                            <button class="gallery-learn-more-btn">{{ _('Learn More') }}</button>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% elif image.url.endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv', '.mp3', '.wav', '.ogg')) %}
-                    <video controls style="width: 100%; height: auto;">
-                        <source src="{{ image.url }}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
+                    {% endfor %}
                     {% else %}
-                    <img src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
-                    {% endif %}
+                    <div class="gallery-item">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%23abc32f' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EFeatured Content%3C/text%3E%3C/svg%3E" alt="Featured Content" loading="lazy">
+                        <div class="gallery-caption" style="font-size: 110%;">Discover featured content</div>
                     </div>
-                    {% else %}
-                    <img src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
-                    {% endif %}
-                    {% if image.caption and image.caption.strip() %}
-                    <div class="gallery-caption gallery-caption-with-modal" data-caption-index="{{ loop.index0 }}" data-full-caption="{{ image.caption | safe }}">
-                        <span class="caption-bold-text">{{ image.caption | safe }}</span>
-                        <button class="gallery-learn-more-btn">{{ _('Learn More') }}</button>
+                    <div class="gallery-item">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%234a90e2' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EExplore More%3C/text%3E%3C/svg%3E" alt="Explore More" loading="lazy">
+                        <div class="gallery-caption" style="font-size: 110%;">Explore more resources</div>
+                    </div>
+                    <div class="gallery-item">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%237ed321' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3ELearn More%3C/text%3E%3C/svg%3E" alt="Learn More" loading="lazy">
+                        <div class="gallery-caption" style="font-size: 110%;">Continue learning</div>
                     </div>
                     {% endif %}
                 </div>
-                {% endfor %}
-                {% else %}
-                <div class="gallery-item">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%23abc32f' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EFeatured Content%3C/text%3E%3C/svg%3E" alt="Featured Content" loading="lazy">
-                    <div class="gallery-caption" style="font-size: 110%;">Discover featured content</div>
-                </div>
-                <div class="gallery-item">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%234a90e2' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EExplore More%3C/text%3E%3C/svg%3E" alt="Explore More" loading="lazy">
-                    <div class="gallery-caption" style="font-size: 110%;">Explore more resources</div>
-                </div>
-                <div class="gallery-item">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250'%3E%3Crect fill='%237ed321' width='400' height='250'/%3E%3Ctext fill='%23ffffff' font-family='Arial' font-size='24' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3ELearn More%3C/text%3E%3C/svg%3E" alt="Learn More" loading="lazy">
-                    <div class="gallery-caption" style="font-size: 110%;">Continue learning</div>
-                </div>
-                {% endif %}
+                <button class="gallery-control next" aria-label="Next" onclick="scrollGallery(this, 1)">&#10095;</button>
             </div>
             
         </section>
@@ -5995,6 +6037,14 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                 window.yoncaCloseYouTubeLarge();
             }
         });
+
+        window.scrollGallery = function(btn, direction) {
+            const outer = (btn.closest && btn.closest('.gallery-outer')) || btn.parentElement;
+            const grid = outer ? outer.querySelector('.gallery-grid') : null;
+            if (!grid) return;
+            const amount = grid.clientWidth ? grid.clientWidth * 0.8 : 280;
+            grid.scrollBy({ left: direction * amount, behavior: 'smooth' });
+        };
 
         // Dropdown toggle function
         // Attach event listeners to dropdown buttons
