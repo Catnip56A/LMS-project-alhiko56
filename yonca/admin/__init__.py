@@ -1248,6 +1248,10 @@ class AboutCompanyView(BaseView):
                 home_content.about_gallery_title = form.about_gallery_title.data
                 home_content.about_gallery_subtitle = form.about_gallery_subtitle.data
                 
+                # About gallery 2 section
+                home_content.about_gallery_2_title = form.about_gallery_2_title.data
+                home_content.about_gallery_2_subtitle = form.about_gallery_2_subtitle.data
+                
                 # Process about features dynamically
                 about_features = []
                 form_data = request.form
@@ -1333,6 +1337,73 @@ class AboutCompanyView(BaseView):
                 
                 home_content.about_gallery_images = about_gallery_images
                 
+                # Process About Company gallery 2
+                about_gallery_2_images_dict = {}
+                existing_about_images_2 = home_content.about_gallery_2_images or []
+                
+                # Get all gallery 2 indices from form data
+                gallery_2_indices = set()
+                for key in form_data.keys():
+                    if key.startswith('about_gallery_2_alt_'):
+                        index = key.replace('about_gallery_2_alt_', '')
+                        gallery_2_indices.add(index)
+                    elif key.startswith('about_gallery_2_caption_'):
+                        index = key.replace('about_gallery_2_caption_', '')
+                        gallery_2_indices.add(index)
+                    elif key.startswith('about_gallery_2_url_'):
+                        index = key.replace('about_gallery_2_url_', '')
+                        gallery_2_indices.add(index)
+                
+                # Process each gallery 2 index found in the form
+                for index in sorted(gallery_2_indices, key=lambda x: int(x) if x.isdigit() else 0):
+                    file_key = f'about_gallery_2_file_{index}'
+                    url_key = f'about_gallery_2_url_{index}'
+                    alt_key = f'about_gallery_2_alt_{index}'
+                    caption_key = f'about_gallery_2_caption_{index}'
+                    
+                    alt = form_data.get(alt_key, '').strip()
+                    caption = form_data.get(caption_key, '').strip()
+                    
+                    # Check if a URL was provided
+                    url = form_data.get(url_key, '').strip()
+                    if url:
+                        # Handle direct URL (YouTube, Vimeo, direct video/image links)
+                        about_gallery_2_images_dict[index] = {'url': url, 'alt': alt, 'caption': caption}
+                        continue
+                    
+                    # Check if a file was uploaded for this index
+                    if file_key in request.files and request.files[file_key].filename:
+                        file = request.files[file_key]
+                        if file and file.filename:
+                            # Upload to Google Drive instead of local storage
+                            drive_url = upload_gallery_image_to_drive(file, file.filename)
+                            if drive_url:
+                                # Add image with uploaded URL
+                                about_gallery_2_images_dict[index] = {'url': drive_url, 'alt': alt, 'caption': caption, 'drive_file_id': None}
+                            else:
+                                flash(f'Failed to upload about gallery 2 image {file.filename} to Google Drive', 'error')
+                    else:
+                        # No new file uploaded - keep existing image but update alt/caption if provided
+                        try:
+                            index_num = int(index)
+                            if index_num < len(existing_about_images_2):
+                                # Get existing image and update only the alt/caption
+                                existing_image = existing_about_images_2[index_num].copy()
+                                if alt:
+                                    existing_image['alt'] = alt
+                                if caption:
+                                    existing_image['caption'] = caption
+                                about_gallery_2_images_dict[index] = existing_image
+                        except (ValueError, IndexError):
+                            pass  # Skip invalid indices
+                
+                # Convert dictionary to ordered list based on numeric indices
+                about_gallery_2_images = []
+                for idx in sorted(about_gallery_2_images_dict.keys(), key=lambda x: int(x) if x.isdigit() else 999):
+                    about_gallery_2_images.append(about_gallery_2_images_dict[idx])
+                
+                home_content.about_gallery_2_images = about_gallery_2_images
+                
                 db.session.commit()
                 flash('About Company content updated successfully!', 'success')
                 return redirect(url_for('about_company.index'))
@@ -1347,6 +1418,8 @@ class AboutCompanyView(BaseView):
         form.about_features_subtitle.data = home_content.about_features_subtitle
         form.about_gallery_title.data = home_content.about_gallery_title
         form.about_gallery_subtitle.data = home_content.about_gallery_subtitle
+        form.about_gallery_2_title.data = home_content.about_gallery_2_title
+        form.about_gallery_2_subtitle.data = home_content.about_gallery_2_subtitle
         
         return self.render('admin/about_company.html', form=form, home_content=home_content)
 
@@ -1364,6 +1437,10 @@ class AboutCompanyForm(FlaskForm):
     # About gallery section
     about_gallery_title = StringField('About Gallery Title', [Optional()], default="What's New")
     about_gallery_subtitle = TextAreaField('About Gallery Subtitle', [Optional()], default="Discover the latest updates, new features, and exciting developments in our learning platform.")
+    
+    # About gallery 2 section
+    about_gallery_2_title = StringField('About Gallery 2 Title', [Optional()], default="Featured Content")
+    about_gallery_2_subtitle = TextAreaField('About Gallery 2 Subtitle', [Optional()], default="Explore more exciting content and resources.")
 
 class TranslateContentView(BaseView):
     """View for translating all content with one click"""

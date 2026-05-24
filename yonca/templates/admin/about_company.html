@@ -233,6 +233,40 @@
                     </div>
                 </div>
 
+                <!-- About Gallery 2 Section Heading -->
+                <div class="content-section">
+                    <div class="section-header">
+                        <h4 class="section-title"><i class="fa fa-heading"></i> {{ _('About Gallery 2 Section') }}</h4>
+                    </div>
+
+                    <div class="form-group-inline">
+                        <label for="about_gallery_2_title">{{ _('Gallery Title:') }}</label>
+                        <input type="text" id="about_gallery_2_title" name="about_gallery_2_title" class="form-control"
+                               value="{{ form.about_gallery_2_title.data or _('Featured Content') }}">
+                        <small class="text-muted">{{ _('The heading that appears above the gallery') }}</small>
+                    </div>
+
+                    <div class="form-group-inline">
+                        <label for="about_gallery_2_subtitle">{{ _('Gallery Subtitle:') }}</label>
+                        <textarea id="about_gallery_2_subtitle" name="about_gallery_2_subtitle" class="form-control" rows="2">{{ form.about_gallery_2_subtitle.data or _('Explore more exciting content and resources.') }}</textarea>
+                        <small class="text-muted">{{ _('The subtitle that appears below the gallery title') }}</small>
+                    </div>
+                </div>
+
+                <!-- About Gallery 2 Media Section -->
+                <div class="content-section">
+                    <div class="section-header">
+                        <h4 class="section-title"><i class="fa fa-image"></i> {{ _('About Gallery 2 (Images, Videos, YouTube, Vimeo)') }}</h4>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="add-about-gallery-2-image">
+                            <i class="fa fa-plus"></i> {{ _('Add Media') }}
+                        </button>
+                    </div>
+
+                    <div id="about-gallery-2-container">
+                        <!-- About gallery 2 media will be dynamically added here -->
+                    </div>
+                </div>
+
                 <!-- Submit Button -->
                 <div class="content-section">
                     <button type="submit" class="btn btn-success">
@@ -280,6 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize dynamic features and gallery
     initializeAboutFeatures();
     initializeAboutGallery();
+    initializeAboutGallery2();
     
     // Add feature button
     document.getElementById('add-about-feature').addEventListener('click', function() {
@@ -291,9 +326,15 @@ document.addEventListener('DOMContentLoaded', function() {
         addAboutGalleryImage('about-gallery-container', 'about_gallery');
     });
     
+    // Add gallery 2 image button
+    document.getElementById('add-about-gallery-2-image').addEventListener('click', function() {
+        addAboutGalleryImage('about-gallery-2-container', 'about_gallery_2');
+    });
+    
     // Make features and gallery sortable
     makeSortable('about-features-container');
     makeSortable('about-gallery-container');
+    makeSortable('about-gallery-2-container');
 });
 
 function initializeAboutFeatures() {
@@ -310,6 +351,15 @@ function initializeAboutGallery() {
     {% if home_content.about_gallery_images %}
     {% for image in home_content.about_gallery_images %}
     addAboutGalleryImageFromData('about-gallery-container', 'about_gallery', {{ image.url|tojson }}, {{ image.alt|tojson }}, {{ image.caption|tojson }});
+    {% endfor %}
+    {% endif %}
+}
+
+function initializeAboutGallery2() {
+    // Initialize About Company gallery 2
+    {% if home_content.about_gallery_2_images %}
+    {% for image in home_content.about_gallery_2_images %}
+    addAboutGalleryImageFromData('about-gallery-2-container', 'about_gallery_2', {{ image.url|tojson }}, {{ image.alt|tojson }}, {{ image.caption|tojson }});
     {% endfor %}
     {% endif %}
 }
