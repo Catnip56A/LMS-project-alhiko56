@@ -99,16 +99,11 @@ Use Flask-Babel's `_()` function with protected terms:
 
 ### Protected Terms List
 
-Edit `yonca/translation_service.py` to add more protected terms:
+Edit `yonca/core_translator.py` to add more protected terms:
 ```python
-PROTECTED_TERMS = [
-    'Yonca',
-    'YONCA',
-    'yonca',
-    'Tavi',
-    'TAVI',
-    'tavi',
-    # Add more brand terms here
+_PROTECTED_TERMS: list[tuple[re.Pattern, str, str]] = [
+    (re.compile(r'Yonca', re.IGNORECASE), '{YONCA}', 'Yonca'),
+    (re.compile(r'Moxo', re.IGNORECASE), '{MOXO}', 'MOXO'),
 ]
 ```
 

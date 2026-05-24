@@ -115,7 +115,7 @@ def get_google_redirect_uri(redirect_uri=None):
     if redirect_uri:
         return redirect_uri
     return f"{_resolve_oauth_base_url()}/admin/google_login/"
-from yonca.models import User, Course, ForumMessage, ForumChannel, TaviTest, Resource, db, HomeContent, CourseContent, ContentView
+from yonca.models import User, Course, ForumMessage, ForumChannel, MoxoTest, Resource, db, HomeContent, CourseContent, ContentView
 
 class AdminIndexView(AdminIndexView):
     """Custom admin index view with authentication and home content management"""
@@ -1177,8 +1177,8 @@ class ResourceView(SecureModelView):
             delattr(form, 'preview_image')
         return form
 
-class TaviTestView(SecureModelView):
-    """Admin view for TaviTest model"""
+class MoxoTestView(SecureModelView):
+    """Admin view for MoxoTest model"""
     column_list = ('id', 'user_id', 'result', 'timestamp')
     column_searchable_list = ['result']
     form_excluded_columns = ('timestamp',)
@@ -1468,7 +1468,7 @@ def init_admin(app):
     admin.add_view(ForumChannelView(ForumChannel, db.session))
     admin.add_view(SecureModelView(ForumMessage, db.session))
     admin.add_view(ResourceView(Resource, db.session))
-    admin.add_view(TaviTestView(TaviTest, db.session))
+    admin.add_view(MoxoTestView(MoxoTest, db.session))
     admin.add_view(AboutCompanyView(name='About Company', endpoint='about_company'))
     admin.add_view(GoogleLoginView(name='Google Login', endpoint='google_login'))
     admin.add_view(TranslateContentView(name='Translate', endpoint='translate'))

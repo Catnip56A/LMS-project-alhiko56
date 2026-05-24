@@ -2314,7 +2314,7 @@
                             <a href="javascript:void(0)" class="nav-link" id="courses-link">{{ _('Courses') }}</a>
                             <a href="javascript:void(0)" class="nav-link" id="forum-link">{{ _('Forum') }}</a>
                             <a href="javascript:void(0)" class="nav-link" id="resources-link">{{ _('Resources') }}</a>
-                            <a href="javascript:void(0)" class="nav-link" id="tavi-link">{{ _('TAVI Test') }}</a>
+                            <a href="javascript:void(0)" class="nav-link" id="moxo-link">{{ _('MOXO Test') }}</a>
                             <a href="javascript:void(0)" class="nav-link" id="about-link">{{ _('About Company') }}</a>
                         </nav>
                     </div>
@@ -2384,7 +2384,7 @@
             <a href="javascript:void(0)" class="nav-link" id="mobile-courses-link">{{ _('Courses') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-forum-link">{{ _('Forum') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
-            <a href="javascript:void(0)" class="nav-link" id="mobile-tavi-link">{{ _('TAVI Test') }}</a>
+            <a href="javascript:void(0)" class="nav-link" id="mobile-moxo-link">{{ _('MOXO Test') }}</a>
             <a href="javascript:void(0)" class="nav-link" id="mobile-about-link">{{ _('About Company') }}</a>
 
             {# Language dropdown for mobile #}
@@ -2769,11 +2769,11 @@
             </div>
         </section>
 
-        <!-- TAVI Test Page -->
-        <section id="tavi" class="page">
-            <h2 class="section-title">{{ _('TAVI Test') }}</h2>
+        <!-- MOXO Test Page -->
+        <section id="moxo" class="page">
+            <h2 class="section-title">{{ _('MOXO Test') }}</h2>
             <div class="empty-section">
-                <p>{{ _('TAVI Test section is coming soon.') }}</p>
+                <p>{{ _('MOXO Test section is coming soon.') }}</p>
             </div>
         </section>
 
@@ -3478,7 +3478,7 @@
             if (pageId !== 'home') {
                 // Map page ID to URL hash
                 let hash = pageId;
-                if (pageId === 'tavi') hash = 'tavi-test';
+                if (pageId === 'moxo') hash = 'moxo-test';
                 window.location.hash = hash;
             } else {
                 // For home, remove the hash
@@ -5253,12 +5253,12 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
             const hash = window.location.hash.substring(1); // Remove the '#'
             if (hash && hash !== 'home') {
                 // Valid page hashes - must match section IDs in HTML
-                const validPages = ['courses', 'coursesAll', 'forum', 'resources', 'tavi-test', 'about'];
+                const validPages = ['courses', 'coursesAll', 'forum', 'resources', 'moxo-test', 'about'];
                 if (validPages.includes(hash)) {
                     console.log('Loading page from URL hash:', hash);
                     // Map hash to actual page ID
                     let pageId = hash;
-                    if (hash === 'tavi-test') pageId = 'tavi';
+                    if (hash === 'moxo-test') pageId = 'moxo';
                     showPage(pageId);
                 } else {
                     console.log('Invalid hash, loading initial page:', initialPage);
@@ -5298,12 +5298,12 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                 const hash = window.location.hash.substring(1); // Remove the '#'
                 if (hash) {
                     // Valid page hashes - must match navbar hrefs
-                    const validPages = ['courses', 'coursesAll', 'forum', 'resources', 'tavi-test', 'contact', 'about'];
+                    const validPages = ['courses', 'coursesAll', 'forum', 'resources', 'moxo-test', 'contact', 'about'];
                     if (validPages.includes(hash)) {
                         console.log('Hash changed to:', hash, '- showing page');
                         // Map hash to actual page ID
                         let pageId = hash;
-                        if (hash === 'tavi-test') pageId = 'tavi';
+                        if (hash === 'moxo-test') pageId = 'moxo';
                         showPage(pageId);
                     }
                 } else {

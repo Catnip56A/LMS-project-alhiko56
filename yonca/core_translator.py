@@ -28,6 +28,7 @@ SUPPORTED_LANGUAGES = ['en', 'ru']
 # these as opaque constants and leave them alone.
 _PROTECTED_TERMS: list[tuple[re.Pattern, str, str]] = [
     (re.compile(r'Yonca', re.IGNORECASE), '{YONCA}', 'Yonca'),
+    (re.compile(r'Moxo', re.IGNORECASE), '{MOXO}', 'MOXO'),
 ]
 
 

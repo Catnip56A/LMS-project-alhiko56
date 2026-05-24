@@ -28,7 +28,7 @@ TRANSLATABLE_FIELDS = {
         'courses_section_title', 'courses_section_description',
         'forum_section_title', 'forum_section_description',
         'resources_section_title', 'resources_section_description',
-        'tavi_test_section_title', 'tavi_test_section_description',
+        'moxo_test_section_title', 'moxo_test_section_description',
         'about_section_title', 'about_section_description',
         'about_welcome_title', 'about_subtitle',
         'about_features_title', 'about_features_subtitle',

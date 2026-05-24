@@ -907,8 +907,8 @@ msgstr "Курсы"
 #: yonca/templates/components/navbar.html:26
 #: yonca/templates/components/navbar.html:83 yonca/templates/index.html:2189
 #: yonca/templates/index.html:2242 yonca/templates/index.html:2603
-msgid "TAVI Test"
-msgstr "Тави Тест"
+msgid "MOXO Test"
+msgstr "Моксо Тест"
 
 #: yonca/templates/admin/about_company.html:151
 #: yonca/templates/components/navbar.html:84 yonca/templates/index.html:2190
@@ -1251,8 +1251,8 @@ msgid "Upload Material"
 msgstr "Скачать материал"
 
 #: yonca/templates/index.html:2605
-msgid "TAVI Test section is coming soon."
-msgstr "Тави Тестовый раздел скоро появится."
+msgid "MOXO Test section is coming soon."
+msgstr "Моксо Тестовый раздел скоро появится."
 
 #: yonca/templates/index.html:2613
 msgid "Our Services"

@@ -883,7 +883,7 @@ msgstr ""
 #: yonca/templates/components/navbar.html:26
 #: yonca/templates/components/navbar.html:83 yonca/templates/index.html:2189
 #: yonca/templates/index.html:2242 yonca/templates/index.html:2603
-msgid "TAVI Test"
+msgid "MOXO Test"
 msgstr ""
 
 #: yonca/templates/admin/about_company.html:151
@@ -1197,7 +1197,7 @@ msgid "Upload Material"
 msgstr ""
 
 #: yonca/templates/index.html:2605
-msgid "TAVI Test section is coming soon."
+msgid "MOXO Test section is coming soon."
 msgstr ""
 
 #: yonca/templates/index.html:2613

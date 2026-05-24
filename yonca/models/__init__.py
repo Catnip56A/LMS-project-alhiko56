@@ -201,15 +201,16 @@ class Resource(db.Model):
     def __repr__(self):
         return f'<Resource {self.title}>'
 
-class TaviTest(db.Model):
+class MoxoTest(db.Model):
     """Test result model for user assessments"""
+    __tablename__ = 'tavi_test'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     result = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, server_default=db.func.now())
 
     def __repr__(self):
-        return f'<TaviTest {self.id}>'
+        return f'<MoxoTest {self.id}>'
 
 class PDFDocument(db.Model):
     """PDF document model for secure document management"""
@@ -266,8 +267,8 @@ class HomeContent(db.Model):
     resources_section_title = db.Column(db.String(200), default="Learning Resources")
     resources_section_description = db.Column(db.Text, default="Access a comprehensive library of learning materials, guides, and educational resources.")
     
-    tavi_test_section_title = db.Column(db.String(200), default="TAVI Test")
-    tavi_test_section_description = db.Column(db.Text, default="Take our interactive assessment to discover your learning style and get personalized recommendations.")
+    moxo_test_section_title = db.Column('tavi_test_section_title', db.String(200), default="MOXO Test")
+    moxo_test_section_description = db.Column('tavi_test_section_description', db.Text, default="Take our interactive assessment to discover your learning style and get personalized recommendations.")
     
     contact_info = db.Column(db.JSON, default={
         "whatsapp": "+994 51 623 73 94",
@@ -303,7 +304,7 @@ class HomeContent(db.Model):
         {"name": "Courses", "url": "/#courses", "active": True},
         {"name": "Forum", "url": "/#forum", "active": True},
         {"name": "Resources", "url": "/#resources", "active": True},
-        {"name": "TAVI Test", "url": "/#tavi", "active": True},
+        {"name": "MOXO Test", "url": "/#moxo", "active": True},
         {"name": "About", "url": "/#about", "active": True}
     ])
     

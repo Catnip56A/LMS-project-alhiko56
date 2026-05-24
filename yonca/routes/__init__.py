@@ -1373,18 +1373,18 @@ def resources():
                          is_authenticated=current_user.is_authenticated, 
                          home_content=home_content, initial_page='resources')
 
-@main_bp.route('/tavi-test')
-def tavi_test():
-    """Serve TAVI test page"""
+@main_bp.route('/moxo-test')
+def moxo_test():
+    """Serve MOXO test page"""
     from yonca.models import HomeContent
     try:
         home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
     except Exception as e:
-        print(f"Database error in tavi-test route: {e}")
+        print(f"Database error in moxo-test route: {e}")
         home_content = HomeContent()
     return render_template('index.html', 
                          is_authenticated=current_user.is_authenticated, 
-                         home_content=home_content, initial_page='tavi-test')
+                         home_content=home_content, initial_page='moxo-test')
 
 @main_bp.route('/about')
 def about():

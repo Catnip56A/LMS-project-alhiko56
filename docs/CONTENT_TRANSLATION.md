@@ -56,8 +56,8 @@ The system automatically translates dynamic content when it's created or updated
 - `forum_section_description`
 - `resources_section_title`
 - `resources_section_description`
-- `tavi_test_section_title`
-- `tavi_test_section_description`
+- `moxo_test_section_title`
+- `moxo_test_section_description`
 - `contacts_section_title`
 - `contacts_section_description`
 - `about_section_title`
