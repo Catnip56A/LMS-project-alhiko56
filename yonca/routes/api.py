@@ -1207,10 +1207,12 @@ def serve_file(file_id):
                 file_type = 'unsupported'
         
         return render_template('file_viewer.html', 
-                             file_id=file_id, 
-                             file_title=file_title,
-                             file_type=file_type,
-                             back_url=back_url)
+                              file_id=file_id, 
+                              file_title=file_title,
+                              file_type=file_type,
+                              back_url=back_url,
+                              current_user=current_user)
+
     
     # For other files (submissions, resources, etc.), redirect to the drive_view_link
     if hasattr(file_record, 'drive_view_link') and file_record.drive_view_link:

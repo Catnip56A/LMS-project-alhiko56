@@ -109,10 +109,44 @@
     }
 </style>
 
+{% if not (current_user and current_user.is_admin) %}
+<style id="protection-styles">
+    /* Anti right-click / anti-screenshot protections for non-admins */
+    .file-viewer-container,
+    .file-viewer-frame,
+    .file-viewer-frame * {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-drag: none !important;
+    }
+    .file-viewer-frame iframe {
+        pointer-events: auto; /* allow interaction inside viewer but selection blocked by google */
+    }
+    @media print {
+        body * { display: none !important; }
+        body::after {
+            content: "Printing disabled for protected course content.";
+            display: block !important;
+            color: red;
+            font-size: 2rem;
+            text-align: center;
+            margin-top: 40vh;
+        }
+    }
+</style>
+{% endif %}
+
 <div class="container-fluid">
     <div class="file-viewer-container">
         <div class="viewer-notice">
-            <i class="fa fa-info-circle"></i> This file is for viewing only. Downloads are disabled to protect course content.
+            {% if current_user and current_user.is_admin %}
+            <i class="fa fa-shield-alt"></i> Admin view — right-click, copy, print and screenshots are enabled.
+            {% else %}
+            <i class="fa fa-info-circle"></i> This file is for viewing only. Downloads, right-click, copy, print and screenshots are disabled to protect course content.
+            {% endif %}
         </div>
         <div class="file-viewer-header">
             <h3><i class="fa fa-file"></i> {{ file_title }}</h3>
@@ -217,9 +251,152 @@ window.addEventListener('beforeunload', function _legacy() {
 });
 
 // Visibility: fire on every blur so a tab that never returns still sends
-window.addEventListener('visibilitychange', function _vis() {
-    if (document.hidden) pauseTracking();
-    else resumeTracking();
-});
+    window.addEventListener('visibilitychange', function _vis() {
+        if (document.hidden) pauseTracking();
+        else resumeTracking();
+    });
 </script>
+
+{% if not (current_user and current_user.is_admin) %}
+<script>
+// Right-click and screenshot protection for non-admin users (students + teachers)
+(function() {
+    function initProtections() {
+        // 1. Disable right-click context menu globally
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        }, {capture: true});
+
+        // 2. Prevent text selection and drag
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+            return false;
+        }, {capture: true});
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        }, {capture: true});
+
+        // 3. Block keyboard shortcuts: Print, Save, PrintScreen, DevTools
+        document.addEventListener('keydown', function(e) {
+            const key = (e.key || '').toLowerCase();
+            if (
+                (e.ctrlKey && (key === 'p' || key === 's')) ||   // Ctrl+P, Ctrl+S
+                e.keyCode === 44 ||                              // PrintScreen (some browsers)
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && (key === 'i' || key === 'j' || key === 'c')) // devtools-ish
+            ) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                showProtectionWarning('This action (print/save/screenshot/devtools) is disabled.');
+                return false;
+            }
+        }, {capture: true});
+
+        // 4. PrintScreen keyup detection (keyCode 44)
+        document.addEventListener('keyup', function(e) {
+            if (e.keyCode === 44 || e.key === 'PrintScreen' || e.key === 'PrtSc' || e.key === 'PrtScn') {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                showProtectionWarning('Screenshot attempt detected — this content is protected.');
+                // Brief blur as deterrent
+                const frame = document.querySelector('.file-viewer-frame');
+                if (frame) {
+                    frame.style.transition = 'filter 0.1s';
+                    frame.style.filter = 'blur(8px) brightness(0.3)';
+                    setTimeout(function() {
+                        if (frame) frame.style.filter = '';
+                    }, 1800);
+                }
+                return false;
+            }
+        }, {capture: true});
+
+        // 5. Also try to block on the iframe (limited effect due to cross-origin)
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(function(iframe) {
+            try {
+                iframe.addEventListener('load', function() {
+                    // Can't access contentWindow for cross-origin, but we can re-apply some attrs
+                });
+            } catch (err) {}
+        });
+
+        // 6. Moving semi-transparent "NO UNAUTHORIZED REPRODUCTION: USERNAME" popup (cycles every ~8s)
+        const NO_REPRO_TEXT = "NO UNAUTHORIZED REPRODUCTION: " + 
+            ("{{ current_user.username | upper }}" || "USER");
+        let reproPopup = null;
+        let reproTimer = null;
+
+        function createReproPopup() {
+            if (reproPopup) return reproPopup;
+            reproPopup = document.createElement('div');
+            reproPopup.style.cssText = 'position:fixed;opacity:0.38;background:rgba(0,0,0,0.78);color:#ffeb3b;padding:5px 12px;border-radius:3px;font-weight:700;font-size:12.5px;letter-spacing:0.6px;pointer-events:none;z-index:2147483640;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.6);user-select:none;';
+            reproPopup.textContent = NO_REPRO_TEXT;
+            document.body.appendChild(reproPopup);
+            return reproPopup;
+        }
+
+        function placeReproPopup() {
+            const pop = createReproPopup();
+            const container = document.querySelector('.file-viewer-frame') || document.body;
+            const rect = container.getBoundingClientRect();
+            const vw = window.innerWidth, vh = window.innerHeight;
+            const pad = 30;
+            const minL = Math.max(pad, rect.left + 8);
+            const minT = Math.max(pad + 60, rect.top + 8);
+            const maxL = Math.max(minL, Math.min(vw - 260, rect.right - 220));
+            const maxT = Math.max(minT, Math.min(vh - 50, rect.bottom - 40));
+            pop.style.left = (minL + Math.random() * (maxL - minL)) + 'px';
+            pop.style.top  = (minT + Math.random() * (maxT - minT)) + 'px';
+        }
+
+        function showReproCycle() {
+            const pop = createReproPopup();
+            placeReproPopup();
+            pop.style.transition = 'opacity .18s linear';
+            pop.style.opacity = '0.38';
+            pop.style.display = 'block';
+            clearTimeout(reproTimer);
+            reproTimer = setTimeout(function() {
+                if (!pop) return;
+                pop.style.opacity = '0';
+                reproTimer = setTimeout(function() {
+                    if (pop) pop.style.display = 'none';
+                    reproTimer = setTimeout(showReproCycle, 5000);
+                }, 280);
+            }, 3000);
+        }
+
+        // kick off the moving watermark after initial load
+        setTimeout(showReproCycle, 900);
+    }
+
+    function showProtectionWarning(msg) {
+        let box = document.getElementById('protection-warning-box');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'protection-warning-box';
+            box.style.cssText = 'position:fixed;top:20%;left:50%;transform:translate(-50%,0);z-index:2147483647;background:#dc3545;color:#fff;padding:16px 24px;border-radius:6px;font-size:15px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:420px;';
+            document.body.appendChild(box);
+        }
+        box.innerHTML = '<strong>🔒 Protected content</strong><br>' + msg;
+        box.style.display = 'block';
+        clearTimeout(box._hideTimer);
+        box._hideTimer = setTimeout(function() {
+            if (box) box.style.display = 'none';
+        }, 2800);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initProtections);
+    } else {
+        initProtections();
+    }
+})();
+</script>
+{% endif %}
+
 {% endblock %}
+
