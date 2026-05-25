@@ -91,6 +91,8 @@ class Course(db.Model):
     page_gallery_images = db.Column(db.JSON, default=[])
     page_show_navigation = db.Column(db.Boolean, default=True)
     page_show_footer = db.Column(db.Boolean, default=True)
+    page_show_title = db.Column(db.Boolean, default=True)
+    page_show_description = db.Column(db.Boolean, default=True)
     
     # Tags for course filtering
     tags = db.Column(db.JSON, default=[])
@@ -288,6 +290,11 @@ class HomeContent(db.Model):
     about_gallery_images = db.Column(db.JSON, default=[])
     about_gallery_title = db.Column(db.String(200), default="What's New")
     about_gallery_subtitle = db.Column(db.String(500), default="Discover the latest updates, new features, and exciting developments in our learning platform.")
+    
+    # About gallery 2 section
+    about_gallery_2_title = db.Column(db.String(200), default="Featured Content")
+    about_gallery_2_subtitle = db.Column(db.String(500), default="Explore more exciting content and resources.")
+    about_gallery_2_images = db.Column(db.JSON, default=[])
     
     # Navigation and branding
     site_logo_url = db.Column(db.String(500), default="https://lh3.googleusercontent.com/d/1abc123def456ghi789jkl012mno345pqr/view")
