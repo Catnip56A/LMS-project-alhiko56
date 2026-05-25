@@ -208,6 +208,48 @@ def course_page_enrolled(course_id):
             flash('Assignment created successfully!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
+        # Edit assignment
+        elif action == 'edit_assignment' and (current_user.is_teacher or current_user.is_admin):
+            from yonca.models import CourseAssignment
+            assignment_id = request.form.get('assignment_id')
+            if not assignment_id:
+                flash('Invalid assignment ID.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+            try:
+                assignment_id = int(assignment_id)
+            except (ValueError, TypeError):
+                flash('Invalid assignment ID.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+            assignment = CourseAssignment.query.get(assignment_id)
+            
+            if not assignment or assignment.course_id != course.id:
+                flash('Assignment not found.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+            
+            assignment.title = request.form.get('assignment_title', assignment.title)
+            assignment.description = request.form.get('assignment_description', assignment.description)
+            
+            due_date_str = request.form.get('assignment_due_date')
+            if due_date_str:
+                try:
+                    assignment.due_date = datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M')
+                except ValueError:
+                    pass
+            else:
+                assignment.due_date = None
+            
+            try:
+                assignment.points = int(request.form.get('assignment_points', assignment.points or 100))
+            except (ValueError, TypeError):
+                pass
+            
+            assignment.is_published = request.form.get('assignment_published') == 'on'
+            
+            db.session.commit()
+            flash('Assignment updated successfully!', 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+        
         # Grade and comment on submission
         elif action == 'grade_submission' and (current_user.is_teacher or current_user.is_admin):
             from yonca.models import CourseAssignmentSubmission
@@ -676,6 +718,15 @@ def course_page_enrolled(course_id):
             from yonca.models import CourseAssignment
             from yonca.google_drive_service import authenticate, delete_file
             assignment_id = request.form.get('assignment_id')
+            if not assignment_id:
+                flash('Invalid assignment ID.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+            try:
+                assignment_id = int(assignment_id)
+            except (ValueError, TypeError):
+                flash('Invalid assignment ID.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
             assignment = CourseAssignment.query.get(assignment_id)
             
             if not assignment:
@@ -1141,6 +1192,14 @@ def course_page_enrolled(course_id):
             folder_id = request.form.get('import_assignment_folder_id')
             lock_assignment_id = request.form.get('import_assignment_lock_assignment_id')
             lock_folder_ids = request.form.getlist('import_lock_folder_ids')
+            if not assignment_id:
+                flash('Invalid assignment ID.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+            try:
+                assignment_id = int(assignment_id)
+            except (ValueError, TypeError):
+                flash('Invalid assignment ID.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             assignment = CourseAssignment.query.get(assignment_id)
             if assignment and assignment.course_id == course.id:
                 # Prevent importing the same assignment into course content more than once

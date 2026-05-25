@@ -1054,8 +1054,11 @@
                         </h5>
                     </div>
                     <div id="assignCollapse{{ assignment.id }}" class="collapse show" aria-labelledby="assignHeading{{ assignment.id }}" data-parent="#assignmentsAccordionEnrolled">
-                        <div class="card-body">
-                            {% if not is_teacher_or_admin %}
+                         <div class="card-body">
+                             {% if assignment.description %}
+                             <p class="text-muted mb-3" id="assignment-desc-{{ assignment.id }}">{{ assignment.description }}</p>
+                             {% endif %}
+                             {% if not is_teacher_or_admin %}
                             {% set user_submission = assignment.submissions | selectattr('user_id', 'equalto', current_user.id) | first %}
                             {% if user_submission %}
                                 {% set is_late = false %}
@@ -1092,16 +1095,25 @@
                                     <button type="submit" class="btn btn-primary btn-sm">{{ _('Submit Assignment') }}</button>
                                 </form>
                             {% endif %}
-                            {% else %}
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div>
-                                    <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline; margin-right: 0.5rem;" onsubmit="return confirm('{{ _('Are you sure you want to delete this assignment? This will also delete all submissions.') }}');">
-                                        <input type="hidden" name="action" value="delete_assignment">
-                                        <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
-                                        <button type="submit" class="btn btn-danger btn-sm">{{ _('Delete Assignment') }}</button>
-                                    </form>
-                                </div>
-                            </div>
+                             {% else %}
+                             <div class="d-flex justify-content-between align-items-center mb-2">
+                                 <div>
+                                     <button type="button" class="btn btn-primary btn-sm mr-2" 
+                                             data-toggle="modal" data-target="#editAssignmentModal"
+                                             data-assignment-id="{{ assignment.id }}"
+                                             data-title="{{ assignment.title | replace('\"', '&quot;') | replace('\n', ' ') }}"
+                                             data-due-date="{% if assignment.due_date %}{{ assignment.due_date.strftime('%Y-%m-%dT%H:%M') }}{% endif %}"
+                                             data-points="{{ assignment.points }}"
+                                             data-published="{{ 'true' if assignment.is_published else 'false' }}">
+                                         {{ _('Edit Assignment') }}
+                                     </button>
+                                     <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline; margin-right: 0.5rem;" onsubmit="return confirm('{{ _('Are you sure you want to delete this assignment? This will also delete all submissions.') }}');">
+                                         <input type="hidden" name="action" value="delete_assignment">
+                                         <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                                         <button type="submit" class="btn btn-danger btn-sm">{{ _('Delete Assignment') }}</button>
+                                     </form>
+                                 </div>
+                             </div>
                             <button class="btn btn-sm btn-primary mt-2" type="button" data-toggle="collapse" data-target="#submissions-{{ assignment.id }}">
                                 {{ _('View Submissions') }}
                             </button>
@@ -1884,12 +1896,56 @@
               <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
               <button type="submit" class="btn btn-primary">{{ _('Create Assignment') }}</button>
             </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-        <!-- Import Assignment Modal -->
+             </form>
+         </div>
+       </div>
+     </div>
+ 
+     <!-- Edit Assignment Modal -->
+     <div class="modal fade" id="editAssignmentModal" tabindex="-1" role="dialog" aria-labelledby="editAssignmentModalLabel" aria-hidden="true">
+       <div class="modal-dialog" role="document">
+         <div class="modal-content">
+           <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
+             <input type="hidden" name="action" value="edit_assignment">
+             <input type="hidden" name="assignment_id" id="edit_assignment_id">
+             <div class="modal-header">
+               <h5 class="modal-title" id="editAssignmentModalLabel">{{ _('Edit Assignment') }}</h5>
+               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                 <span aria-hidden="true">&times;</span>
+               </button>
+             </div>
+             <div class="modal-body">
+               <div class="form-group">
+                 <label for="edit_assignment_title">{{ _('Title') }} *</label>
+                 <input type="text" id="edit_assignment_title" class="form-control" name="assignment_title" required>
+               </div>
+               <div class="form-group">
+                 <label for="edit_assignment_description">{{ _('Description') }}</label>
+                 <textarea id="edit_assignment_description" class="form-control" name="assignment_description" rows="4"></textarea>
+               </div>
+               <div class="form-group">
+                 <label for="edit_assignment_due_date">{{ _('Due Date') }}</label>
+                 <input type="datetime-local" id="edit_assignment_due_date" class="form-control" name="assignment_due_date">
+               </div>
+               <div class="form-group">
+                 <label for="edit_assignment_points">{{ _('Points') }}</label>
+                 <input type="number" id="edit_assignment_points" class="form-control" name="assignment_points" min="0">
+               </div>
+               <div class="form-check">
+                 <input type="checkbox" class="form-check-input" name="assignment_published" id="editAssignmentPublished">
+                 <label class="form-check-label" for="editAssignmentPublished">{{ _('Published') }}</label>
+               </div>
+             </div>
+             <div class="modal-footer">
+               <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
+               <button type="submit" class="btn btn-primary">{{ _('Save Changes') }}</button>
+             </div>
+           </form>
+         </div>
+       </div>
+     </div>
+ 
+         <!-- Import Assignment Modal -->
         <div class="modal fade" id="importAssignmentModal" tabindex="-1" role="dialog" aria-labelledby="importAssignmentModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">
@@ -2532,10 +2588,36 @@ function bulkToggleVisibilityEnrolled() {
                 }
             }
         }, 300);
-    };
-</script>
+     };
+ </script>
+ 
+ <script>
+     // Populate Edit Assignment modal from button data attributes (robust for special chars in description)
+      $('#editAssignmentModal').on('show.bs.modal', function (event) {
+          var button = $(event.relatedTarget);
+          var id = button.attr('data-assignment-id');
+          var title = button.attr('data-title') || '';
+          var dueDate = button.attr('data-due-date') || '';
+          var points = button.attr('data-points') || '';
+          var published = button.attr('data-published') === 'true';
 
-{# Lazy loading of folder contents script #}
+          // Description may contain newlines/quotes — read from the rendered paragraph in the DOM instead of data attr
+          var description = '';
+          var descEl = document.getElementById('assignment-desc-' + id);
+          if (descEl) {
+              description = descEl.textContent || descEl.innerText || '';
+          }
+
+          $('#edit_assignment_id').val(id || '');
+          $('#edit_assignment_title').val(title);
+          $('#edit_assignment_description').val(description);
+          $('#edit_assignment_due_date').val(dueDate);
+          $('#edit_assignment_points').val(points);
+          $('#editAssignmentPublished').prop('checked', published);
+      });
+ </script>
+ 
+ {# Lazy loading of folder contents script #}
 <script>
     // Store loaded folder IDs to avoid fetching the same folder multiple times
     const loadedFolders = new Set();
