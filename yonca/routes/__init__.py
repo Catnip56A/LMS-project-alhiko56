@@ -613,7 +613,7 @@ def course_page_enrolled(course_id):
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             else:
                 # Check if folder has contents or subfolders
-                if folder.items.count() > 0 or folder.subfolders.count() > 0:
+                if len(folder.items) > 0 or len(folder.subfolders) > 0:
                     flash('Cannot delete folder that contains files or subfolders. Please delete them first, or use the delete with contents option.', 'error')
                     return redirect(url_for('main.course_page_enrolled', course_id=course.id))
                 db.session.delete(folder)
