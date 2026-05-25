@@ -1,8 +1,8 @@
-"""Add second gallery fields to about_company
+"""Add about_gallery_2_* columns to HomeContent
 
-Revision ID: 20260524_add_about_gallery_2_fields
-Revises: 20260519_fix_protected_placeholders
-Create Date: 2026-05-24 00:00:00.000000
+Revision ID: a7d3e1c8f042
+Revises: add_page_show_title_description_to_course
+Create Date: 2026-05-24
 
 """
 from alembic import op
