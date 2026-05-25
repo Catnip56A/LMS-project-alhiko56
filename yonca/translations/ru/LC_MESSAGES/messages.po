@@ -1651,18 +1651,9 @@ msgstr "Я признаю, что прочитал и согласен с"
 
 #: yonca/templates/login.html:247 yonca/templates/terms.html:6
 #: yonca/templates/terms.html:103
-msgid "Условия использования"
-msgstr "Следовательно"
-
-#: yonca/templates/login.html:247 yonca/templates/terms.html:6
-#: yonca/templates/terms.html:103
 msgid "Terms of Use"
 msgstr "Условия использования"
 
-#: yonca/templates/login.html:248 yonca/templates/privacyPolicy.html:6
-#: yonca/templates/privacyPolicy.html:103
-msgid "Политика конфиденциальности"
-msgstr "Криптовалюта"
 
 #: yonca/templates/login.html:248 yonca/templates/privacyPolicy.html:6
 #: yonca/templates/privacyPolicy.html:103
