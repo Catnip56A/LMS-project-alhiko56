@@ -8,8 +8,8 @@ Create Date: 2026-05-24 00:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 
-revision = '20260524_add_about_gallery_2_fields'
-down_revision = '20260519_fix_protected_placeholders'
+revision = 'a7d3e1c8f042'
+down_revision = 'e5c4a2b1f039'
 branch_labels = None
 depends_on = None
 

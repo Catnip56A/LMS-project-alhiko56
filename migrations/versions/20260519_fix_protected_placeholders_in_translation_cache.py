@@ -8,8 +8,8 @@ Create Date: 2026-05-19 00:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 
-revision = '20260519_fix_protected_placeholders'
-down_revision = '20260518_1506_fix_content_view_content_id_type'
+revision = 'e5c4a2b1f039'
+down_revision = 'c3a1b2d40518'
 branch_labels = None
 depends_on = None
 

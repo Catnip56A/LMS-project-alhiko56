@@ -1,15 +1,15 @@
 """Remove unused About Features section columns from HomeContent
 
-Revision ID: remove_about_features_20260524
-Revises: 20260524_add_about_gallery_2_fields
+Revision ID: b8f6c2e3a051
+Revises: a7d3e1c8f042
 Create Date: 2026-05-24 09:05:00
 """
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = 'remove_about_features_20260524'
-down_revision = '20260524_add_about_gallery_2_fields'
+revision = 'b8f6c2e3a051'
+down_revision = 'a7d3e1c8f042'
 branch_labels = None
 depends_on = None
 
