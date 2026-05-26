@@ -231,7 +231,7 @@
                                         {% endfor %}
                                     {% endif %}
                                 </select>
-                                <button type="submit" class="btn btn-sm btn-primary">Move to Folder</button>
+                                <button type="submit" class="btn btn-sm btn-primary" onclick="setBulkMoveIds(event)">Move to Folder</button>
                             </form>
                         </div>
                     </div>
@@ -738,6 +738,19 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        // Set selected_ids for bulk move before submitting the form
+        function setBulkMoveIds(event) {
+            const checkboxes = document.querySelectorAll('.content-checkbox:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value).filter(v => v && !isNaN(v));
+            if (ids.length === 0) {
+                event.preventDefault();
+                alert('No files selected for moving.');
+                return false;
+            }
+            document.getElementById('bulk-move-ids').value = ids.join(',');
+            return true;
+        }
+
         function updateBulkActions() {
             const checkboxes = document.querySelectorAll('.content-checkbox:checked');
             const bulkActions = document.querySelector('.bulk-actions');
@@ -816,13 +829,6 @@
             document.body.appendChild(form);
             form.submit();
         }
-        
-        // Update bulk move IDs when showing move controls
-        document.getElementById('bulk-move-controls').addEventListener('show', function() {
-            const checkboxes = document.querySelectorAll('.content-checkbox:checked');
-            const ids = Array.from(checkboxes).map(cb => cb.value);
-            document.getElementById('bulk-move-ids').value = ids.join(',');
-        });
     </script>
 </body>
 </html>

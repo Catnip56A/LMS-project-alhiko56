@@ -1167,6 +1167,9 @@ def course_page_enrolled(course_id):
                 db.session.commit()
                 flash('Folder order updated!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+        
+        # Bulk move content
+        elif action == 'bulk_move_content' and (current_user.is_teacher or current_user.is_admin):
             from yonca.models import CourseContent
             
             content_ids_raw = request.form.get('selected_ids', '')
@@ -1926,12 +1929,20 @@ def edit_course_page(slug):
         elif action == 'bulk_move_content' and (current_user.is_teacher or current_user.is_admin):
             from yonca.models import CourseContent
             
-            content_ids = request.form.get('selected_ids').split(',')
+            selected_ids = request.form.get('selected_ids', '')
+            if not selected_ids:
+                flash('No items selected for moving.', 'warning')
+                return redirect(request.referrer or url_for('main.index'))
+            
+            content_ids = selected_ids.split(',')
             target_folder_id = request.form.get('target_folder_id')
             moved_count = 0
             
             for content_id in content_ids:
-                content = CourseContent.query.get(content_id.strip())
+                content_id = content_id.strip()
+                if not content_id or not content_id.isdigit():
+                    continue
+                content = CourseContent.query.get(int(content_id))
                 if content and content.course_id == course.id:
                     content.folder_id = int(target_folder_id) if target_folder_id else None
                     moved_count += 1
