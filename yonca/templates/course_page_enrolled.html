@@ -1056,7 +1056,7 @@
                     <div id="assignCollapse{{ assignment.id }}" class="collapse show" aria-labelledby="assignHeading{{ assignment.id }}" data-parent="#assignmentsAccordionEnrolled">
                          <div class="card-body">
                              {% if assignment.description %}
-                             <p class="text-muted mb-3" id="assignment-desc-{{ assignment.id }}">{{ assignment.description }}</p>
+                             <p class="text-muted mb-3" id="assignment-desc-{{ assignment.id }}" style="white-space: pre-wrap;">{{ assignment.description | nl2br }}</p>
                              {% endif %}
                              {% if not is_teacher_or_admin %}
                             {% set user_submission = assignment.submissions | selectattr('user_id', 'equalto', current_user.id) | list | last %}

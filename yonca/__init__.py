@@ -113,6 +113,22 @@ def create_app(config_name='development'):
     from flask_babel import gettext as _gettext
     app.jinja_env.globals['_'] = _gettext
     
+    # Add custom Jinja2 filter to convert \n escape sequences to actual newlines
+    from markupsafe import Markup
+    def nl2br_filter(text):
+        """Convert \\n escape sequences to <br> tags for display"""
+        if text is None:
+            return ''
+        # Convert string to str if needed
+        text = str(text)
+        # Replace literal \n with actual line breaks, then convert to HTML
+        text = text.replace('\\n', '\n')
+        # Split by newlines and join with <br> tags
+        lines = text.split('\n')
+        return Markup('<br>'.join(lines))
+    
+    app.jinja_env.filters['nl2br'] = nl2br_filter
+    
     # Enable CORS with credentials support
     CORS(app, supports_credentials=True)
     

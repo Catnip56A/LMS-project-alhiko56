@@ -414,7 +414,7 @@
                             <div id="collapse{{ item.id }}" class="collapse" aria-labelledby="heading{{ item.id }}" data-parent="#assignmentsAccordion">
                                 <div class="card-body">
                                     {% if item.description %}
-                                    <p class="text-muted mb-3">{{ item.description }}</p>
+                                    <p class="text-muted mb-3" style="white-space: pre-wrap;">{{ item.description | nl2br }}</p>
                                     {% endif %}
                                     
                                     <div class="d-flex justify-content-between align-items-center mb-3">
