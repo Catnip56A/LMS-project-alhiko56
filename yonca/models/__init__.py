@@ -146,6 +146,7 @@ class CourseAssignmentSubmission(db.Model):
     comment = db.Column(db.Text, nullable=True)
     passed = db.Column(db.Boolean, default=False)
     allow_others_to_view = db.Column(db.Boolean, default=False)  # Allow other users to view this file
+    declined = db.Column(db.Boolean, default=False)  # Submission declined by teacher/admin
     assignment = db.relationship('CourseAssignment', backref=db.backref('submissions', lazy='select'))
     user = db.relationship('User')
 

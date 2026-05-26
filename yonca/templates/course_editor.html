@@ -444,6 +444,9 @@
                                                         <li style="margin-bottom: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 4px;">
                                                             <div><b>{{ sub.user.username if sub.user else 'User' }}</b> <small class="text-muted">{{ sub.submitted_at.strftime('%b %d, %Y %I:%M %p') }}</small></div>
                                                             <div><a href="{{ sub.drive_view_link }}" target="_blank" class="btn btn-sm btn-outline-primary">View Submission</a></div>
+                                                            {% if sub.declined %}
+                                                            <div class="alert alert-warning mt-2 mb-2"><i class="fas fa-exclamation-circle"></i> {{ _('Submission Declined') }}</div>
+                                                            {% endif %}
                                                             <form method="POST" class="mt-2">
                                                                 <input type="hidden" name="action" value="grade_submission">
                                                                 <input type="hidden" name="submission_id" value="{{ sub.id }}">
@@ -464,6 +467,15 @@
                                                                             <button type="submit" class="btn btn-sm btn-success">Save</button>
                                                                         </div>
                                                                 </div>
+                                                            </form>
+                                                            <form method="POST" style="display: inline;">
+                                                                <input type="hidden" name="action" value="decline_submission">
+                                                                <input type="hidden" name="submission_id" value="{{ sub.id }}">
+                                                                {% if sub.declined %}
+                                                                <button type="submit" class="btn btn-sm btn-secondary mt-2" onclick="return confirm('{{ _('Confirm to remove declined status?') }}')">{{ _('Clear Declined') }}</button>
+                                                                {% else %}
+                                                                <button type="submit" class="btn btn-sm btn-warning mt-2" onclick="return confirm('{{ _('Are you sure you want to decline this submission?') }}')">{{ _('Decline Submission') }}</button>
+                                                                {% endif %}
                                                             </form>
                                                             {% if sub.grade is not none or sub.comment %}
                                                                 <div class="mt-2">

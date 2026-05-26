@@ -269,6 +269,31 @@ def course_page_enrolled(course_id):
                 flash('Grade and comment saved successfully!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
+        # Decline submission
+        elif action == 'decline_submission':
+            from yonca.models import CourseAssignmentSubmission, CourseAssignment
+            submission_id = request.form.get('submission_id')
+            
+            submission = CourseAssignmentSubmission.query.get(submission_id)
+            if not submission:
+                flash('Submission not found.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+            
+            assignment = submission.assignment
+            # Check permissions: teacher/admin of the course OR the student who submitted
+            if not ((current_user.is_teacher or current_user.is_admin) or current_user.id == submission.user_id):
+                flash('You do not have permission to decline this submission.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+            
+            # Toggle declined status
+            submission.declined = not submission.declined
+            db.session.commit()
+            if submission.declined:
+                flash('Submission declined successfully!', 'success')
+            else:
+                flash('Declined status cleared!', 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+        
         # Submit assignment (student)
         elif action == 'submit_assignment' and current_user.is_authenticated:
             assignment_id = request.form.get('assignment_id')
@@ -337,17 +362,33 @@ def course_page_enrolled(course_id):
                 flash('Failed to create view link.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
-            # Create submission record
-            new_submission = CourseAssignmentSubmission(
+            # Check if user already has a submission for this assignment
+            existing_submission = CourseAssignmentSubmission.query.filter_by(
                 assignment_id=int(assignment_id),
-                user_id=current_user.id,
-                drive_file_id=drive_file_id,
-                drive_view_link=view_link,
-                submitted_at=datetime.now(),
-                allow_others_to_view=allow_others_to_view
-            )
-            db.session.add(new_submission)
-            db.session.commit()
+                user_id=current_user.id
+            ).first()
+            
+            if existing_submission:
+                # Update existing submission
+                existing_submission.drive_file_id = drive_file_id
+                existing_submission.drive_view_link = view_link
+                existing_submission.submitted_at = datetime.now()
+                existing_submission.declined = False  # Clear declined status on resubmission
+                db.session.commit()
+                flash('Assignment resubmitted successfully!', 'success')
+            else:
+                # Create new submission record
+                new_submission = CourseAssignmentSubmission(
+                    assignment_id=int(assignment_id),
+                    user_id=current_user.id,
+                    drive_file_id=drive_file_id,
+                    drive_view_link=view_link,
+                    submitted_at=datetime.now(),
+                    allow_others_to_view=allow_others_to_view
+                )
+                db.session.add(new_submission)
+                db.session.commit()
+                flash('Assignment submitted successfully!', 'success')
             
             # Clean up temporary file
             try:
@@ -355,7 +396,6 @@ def course_page_enrolled(course_id):
             except:
                 pass
             
-            flash('Assignment submitted successfully!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Add reply to announcement
@@ -1964,6 +2004,37 @@ def edit_course_page(slug):
             
             db.session.commit()
             flash(f'Visibility toggled for {toggled_count} items!', 'success')
+        
+        elif action == 'grade_submission' and (current_user.is_admin):
+            from yonca.models import CourseAssignmentSubmission
+            submission_id = request.form.get('submission_id')
+            grade = request.form.get('grade')
+            comment = request.form.get('comment')
+            passed_flag = request.form.get('passed') == 'on'
+            
+            submission = CourseAssignmentSubmission.query.get(submission_id)
+            if submission:
+                if grade:
+                    submission.grade = int(grade)
+                if comment:
+                    submission.comment = comment
+                submission.passed = passed_flag
+                db.session.commit()
+                flash('Grade and comment saved successfully!', 'success')
+        
+        elif action == 'decline_submission' and (current_user.is_admin):
+            from yonca.models import CourseAssignmentSubmission
+            submission_id = request.form.get('submission_id')
+            
+            submission = CourseAssignmentSubmission.query.get(submission_id)
+            if submission:
+                # Toggle declined status
+                submission.declined = not submission.declined
+                db.session.commit()
+                if submission.declined:
+                    flash('Submission declined successfully!', 'success')
+                else:
+                    flash('Declined status cleared!', 'success')
         
         return redirect(request.url, code=303)
     

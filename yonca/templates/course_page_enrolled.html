@@ -1059,7 +1059,7 @@
                              <p class="text-muted mb-3" id="assignment-desc-{{ assignment.id }}">{{ assignment.description }}</p>
                              {% endif %}
                              {% if not is_teacher_or_admin %}
-                            {% set user_submission = assignment.submissions | selectattr('user_id', 'equalto', current_user.id) | first %}
+                            {% set user_submission = assignment.submissions | selectattr('user_id', 'equalto', current_user.id) | list | last %}
                             {% if user_submission %}
                                 {% set is_late = false %}
                                 {% if assignment.due_date and user_submission.submitted_at > assignment.due_date %}
@@ -1071,7 +1071,37 @@
                                     {% else %}
                                         <div class="text-success"><i class="fas fa-check-circle"></i> <strong>{{ _('Submitted') }}</strong> — {{ user_submission.submitted_at.strftime('%b %d, %Y %I:%M %p') }}</div>
                                     {% endif %}
+                                    {% if user_submission.declined %}
+                                        <div class="alert alert-warning mt-2"><i class="fas fa-exclamation-circle"></i> {{ _('This submission has been declined. Please resubmit.') }}</div>
+                                    {% endif %}
                                     <a href="/api/file/{{ user_submission.drive_file_id }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Your Submission') }}</a>
+                                    {% if user_submission.declined %}
+                                        <button type="button" class="btn btn-sm btn-primary mt-1" data-toggle="collapse" data-target="#resubmit_{{ user_submission.id }}">{{ _('Resubmit') }}</button>
+                                        <div class="collapse mt-2" id="resubmit_{{ user_submission.id }}">
+                                            <div class="card card-body">
+                                                <form method="POST" enctype="multipart/form-data" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
+                                                    <input type="hidden" name="action" value="submit_assignment">
+                                                    <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                                                    <div class="form-group">
+                                                        <label for="file_{{ user_submission.id }}">{{ _('Upload New Submission:') }}</label>
+                                                        <input type="file" id="file_{{ user_submission.id }}" name="submission_file" class="form-control-file" required>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-success">{{ _('Resubmit Assignment') }}</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                        <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline;">
+                                            <input type="hidden" name="action" value="decline_submission">
+                                            <input type="hidden" name="submission_id" value="{{ user_submission.id }}">
+                                            <button type="submit" class="btn btn-sm btn-secondary mt-1" onclick="return confirm('{{ _('Confirm to remove declined status?') }}')">{{ _('Clear Declined') }}</button>
+                                        </form>
+                                    {% else %}
+                                        <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline;">
+                                            <input type="hidden" name="action" value="decline_submission">
+                                            <input type="hidden" name="submission_id" value="{{ user_submission.id }}">
+                                            <button type="submit" class="btn btn-sm btn-warning mt-1" onclick="return confirm('{{ _('Are you sure you want to decline this submission?') }}')">{{ _('Decline Submission') }}</button>
+                                        </form>
+                                    {% endif %}
                                     {% if user_submission.grade is not none %}
                                         <div class="mt-2"><strong>{{ _('Grade:') }}</strong> {{ user_submission.grade }}/{{ assignment.points }}</div>
                                     {% endif %}
@@ -1138,6 +1168,9 @@
                                         <span class="badge badge-{{ status }}">{{ status_text }}</span>
                                         - {{ _('Submitted:') }} {{ submission.submitted_at.strftime('%b %d, %Y %I:%M %p') }}<br>
                                         <a href="/api/file/{{ submission.drive_file_id }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Submission') }}</a>
+                                        {% if submission.declined %}
+                                        <div class="alert alert-warning mt-2"><i class="fas fa-exclamation-circle"></i> {{ _('Submission Declined') }}</div>
+                                        {% endif %}
                                         <form method="post" class="mt-2" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
                                             <input type="hidden" name="action" value="grade_submission">
                                             <input type="hidden" name="submission_id" value="{{ submission.id }}">
@@ -1156,6 +1189,15 @@
                                                     <button type="submit" class="btn btn-sm btn-success">{{ _('Save Grade') }}</button>
                                                 </div>
                                             </div>
+                                        </form>
+                                        <form method="post" class="mt-2" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline;">
+                                            <input type="hidden" name="action" value="decline_submission">
+                                            <input type="hidden" name="submission_id" value="{{ submission.id }}">
+                                            {% if submission.declined %}
+                                            <button type="submit" class="btn btn-sm btn-secondary" onclick="return confirm('{{ _('Confirm to remove declined status?') }}')">{{ _('Clear Declined') }}</button>
+                                            {% else %}
+                                            <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('{{ _('Are you sure you want to decline this submission?') }}')">{{ _('Decline Submission') }}</button>
+                                            {% endif %}
                                         </form>
                                         {% if submission.grade is not none %}
                                         <div class="alert alert-success mt-2 mb-0">{{ _('Grade:') }} {{ submission.grade }}/{{ assignment.points }}</div>
