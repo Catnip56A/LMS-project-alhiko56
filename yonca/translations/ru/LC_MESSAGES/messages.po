@@ -1005,7 +1005,7 @@ msgstr "Панель администраторов"
 #: yonca/templates/components/navbar.html:117 yonca/templates/index.html:2421
 #: yonca/templates/index.html:2488
 msgid "Link Google Account"
-msgstr "Ссылка на Google аккаунт"
+msgstr "Привязать на Google аккаунт"
 
 #: yonca/templates/components/navbar.html:63
 #: yonca/templates/components/navbar.html:118 yonca/templates/index.html:2423
