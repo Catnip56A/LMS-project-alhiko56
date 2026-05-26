@@ -1235,6 +1235,9 @@ class AboutCompanyView(BaseView):
         
         if request.method == 'POST' and form.validate_on_submit():
             try:
+                # Get form data for processing gallery items
+                form_data = request.form
+                
                 # About page content
                 home_content.about_welcome_title = form.about_welcome_title.data
                 home_content.about_subtitle = form.about_subtitle.data

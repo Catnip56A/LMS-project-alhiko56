@@ -269,6 +269,36 @@ const TRANSLATIONS = {
     unknown_error: '{{ _("Unknown error") }}'
 };
 
+// Gallery data from the backend
+const aboutGalleryData = {{ home_content.about_gallery_images | tojson }};
+const aboutGallery2Data = {{ home_content.about_gallery_2_images | tojson }};
+
+// Initialize gallery from existing data
+function initializeAboutGallery() {
+    const container = document.getElementById('about-gallery-container');
+    if (!container) return;
+    
+    const galleryData = aboutGalleryData || [];
+    galleryData.forEach((item) => {
+        if (item && item.url) {
+            addAboutGalleryImageFromData('about-gallery-container', 'about_gallery', item.url || '', item.alt || '', item.caption || '');
+        }
+    });
+}
+
+// Initialize gallery 2 from existing data
+function initializeAboutGallery2() {
+    const container = document.getElementById('about-gallery-2-container');
+    if (!container) return;
+    
+    const gallery2Data = aboutGallery2Data || [];
+    gallery2Data.forEach((item) => {
+        if (item && item.url) {
+            addAboutGalleryImageFromData('about-gallery-2-container', 'about_gallery_2', item.url || '', item.alt || '', item.caption || '');
+        }
+    });
+}
+
 // Add any client-side validation or enhancements here
 document.addEventListener('DOMContentLoaded', function() {
     // Basic JSON validation for features field (removed since we now use dynamic features)
