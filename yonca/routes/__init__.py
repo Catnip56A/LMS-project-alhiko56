@@ -11,6 +11,38 @@ from datetime import datetime as dt
 
 main_bp = Blueprint('main', __name__)
 
+def check_page_limitation(page_key):
+    """
+    Check if a page is limited and redirect non-admin users.
+    
+    Args:
+        page_key: The page identifier (e.g., 'courses', 'forum', 'resources', etc.)
+    
+    Returns:
+        None if access is allowed, or a redirect response if access is denied.
+    """
+    from yonca.models import PageLimitation
+    from flask_babel import gettext
+    
+    # Admins always have access
+    if current_user.is_authenticated and current_user.is_admin:
+        return None
+    
+    # Check if page is limited
+    limitation = PageLimitation.query.filter_by(page_key=page_key).first()
+    if limitation and limitation.is_limited:
+        # Check if user is a teacher - they also get blocked
+        if current_user.is_authenticated and current_user.is_teacher:
+            message = gettext('ADMIN BLOCKED THE PAGE, to get further information, contact the admins of the website')
+            flash(message, 'warning')
+            return redirect(url_for('main.index'))
+        # Redirect non-authenticated users and regular users
+        message = gettext('ADMIN BLOCKED THE PAGE, to get further information, contact the admins of the website')
+        flash(message, 'warning')
+        return redirect(url_for('main.index'))
+    
+    return None
+
 @main_bp.route('/', methods=['GET', 'POST'])
 def index():
     """Serve main index page"""
@@ -1439,6 +1471,11 @@ def serve_site():
 @main_bp.route('/courses')
 def courses():
     """Serve courses page"""
+    # Check if page is limited
+    limitation_redirect = check_page_limitation('courses')
+    if limitation_redirect:
+        return limitation_redirect
+    
     from yonca.models import HomeContent
     try:
         home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
@@ -1452,6 +1489,11 @@ def courses():
 @main_bp.route('/forum')
 def forum():
     """Serve forum page"""
+    # Check if page is limited
+    limitation_redirect = check_page_limitation('forum')
+    if limitation_redirect:
+        return limitation_redirect
+    
     from yonca.models import HomeContent
     try:
         home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
@@ -1465,6 +1507,11 @@ def forum():
 @main_bp.route('/resources')
 def resources():
     """Serve resources page"""
+    # Check if page is limited
+    limitation_redirect = check_page_limitation('resources')
+    if limitation_redirect:
+        return limitation_redirect
+    
     from yonca.models import HomeContent
     try:
         home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
@@ -1478,6 +1525,11 @@ def resources():
 @main_bp.route('/moxo-test')
 def moxo_test():
     """Serve MOXO test page"""
+    # Check if page is limited
+    limitation_redirect = check_page_limitation('moxo_test')
+    if limitation_redirect:
+        return limitation_redirect
+    
     from yonca.models import HomeContent
     try:
         home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
@@ -1491,6 +1543,11 @@ def moxo_test():
 @main_bp.route('/about')
 def about():
     """Serve about page"""
+    # Check if page is limited
+    limitation_redirect = check_page_limitation('about')
+    if limitation_redirect:
+        return limitation_redirect
+    
     from yonca.models import HomeContent
     try:
         home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()

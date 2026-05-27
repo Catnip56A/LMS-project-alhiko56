@@ -115,9 +115,16 @@ def get_courses():
     """Get all courses with enrollment status for authenticated users"""
     from flask import session, request
     from yonca.content_translator import get_translated_content, get_translated_string_array
+    from yonca.models import PageLimitation
     
     # Get language from query parameter, or fall back to session language
     user_locale = request.args.get('lang', session.get('language', 'en'))
+
+    # Enforce admin-set page limitations for API access
+    limitation = PageLimitation.query.filter_by(page_key='courses').first()
+    if limitation and limitation.is_limited:
+        if not (current_user.is_authenticated and current_user.is_admin):
+            return jsonify({'error': 'Page blocked by admin'}), 403
     
     if current_user.is_authenticated:
         # Get all courses
@@ -176,9 +183,41 @@ def get_current_user():
     else:
         return jsonify(None)
 
+
+@api_bp.route('/page_limitation/<page_key>')
+def get_page_limitation(page_key):
+    """Return whether a page is limited and an admin message (if limited).
+
+    This endpoint is used by the SPA to decide whether to show a static page
+    (like the MOXO page) or to redirect the user when admins have blocked it.
+    """
+    from yonca.models import PageLimitation
+    from flask_babel import gettext
+
+    # Normalize input to prevent injection via URL
+    page_key = page_key.strip()[:50]
+
+    limitation = PageLimitation.query.filter_by(page_key=page_key).first()
+    is_limited = bool(limitation and limitation.is_limited)
+
+    # Admins always allowed
+    if is_limited and (not (current_user.is_authenticated and current_user.is_admin)):
+        message = gettext('ADMIN BLOCKED THE PAGE, to get further information, contact the admins of the website')
+    else:
+        message = ''
+
+    return jsonify({'page_key': page_key, 'is_limited': is_limited, 'message': message})
+
 @api_bp.route('/forum/channels')
 def get_forum_channels():
     """Get all active forum channels"""
+    from yonca.models import PageLimitation
+
+    # Enforce forum limitation
+    limitation = PageLimitation.query.filter_by(page_key='forum').first()
+    if limitation and limitation.is_limited:
+        if not (current_user.is_authenticated and current_user.is_admin):
+            return jsonify({'error': 'Page blocked by admin'}), 403
     channels = ForumChannel.query.filter_by(is_active=True).order_by(ForumChannel.sort_order).all()
     
     return jsonify([{
@@ -194,6 +233,13 @@ def get_forum_channels():
 def get_forum_messages():
     """Get forum messages, optionally filtered by channel"""
     channel_slug = request.args.get('channel', 'general')
+    from yonca.models import PageLimitation
+
+    # Enforce forum limitation for message listing
+    limitation = PageLimitation.query.filter_by(page_key='forum').first()
+    if limitation and limitation.is_limited:
+        if not (current_user.is_authenticated and current_user.is_admin):
+            return jsonify({'error': 'Page blocked by admin'}), 403
     
     # Get channel from database
     channel = ForumChannel.query.filter_by(slug=channel_slug, is_active=True).first()
@@ -244,6 +290,13 @@ def get_forum_messages():
 def post_forum_message():
     """Post a new forum message or reply"""
     data = request.get_json()
+    from yonca.models import PageLimitation
+
+    # Enforce forum limitation for posting
+    limitation = PageLimitation.query.filter_by(page_key='forum').first()
+    if limitation and limitation.is_limited:
+        if not (current_user.is_authenticated and current_user.is_admin):
+            return jsonify({'error': 'Page blocked by admin'}), 403
     
     if not data or 'message' not in data:
         return jsonify({'error': 'Message required'}), 400
@@ -523,6 +576,13 @@ def get_resources():
     from datetime import datetime
     from flask import session
     from yonca.content_translator import get_translated_content
+    from yonca.models import PageLimitation
+
+    # Enforce resources limitation for API access
+    limitation = PageLimitation.query.filter_by(page_key='resources').first()
+    if limitation and limitation.is_limited:
+        if not (current_user.is_authenticated and current_user.is_admin):
+            return jsonify({'error': 'Page blocked by admin'}), 403
 
     # Get user's current locale from session
     user_locale = session.get('language', 'en')

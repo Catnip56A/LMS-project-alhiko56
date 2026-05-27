@@ -3609,7 +3609,7 @@
             };
             
             const currentLang = document.documentElement.lang || 'en';
-            const message = (messages[messageKey] && messages[messageKey][currentLang]) || messages[messageKey]?.['en'] || 'An error occurred';
+            const message = (messages[messageKey] && messages[messageKey][currentLang]) || messages[messageKey]?.['en'] || "{{ _('ADMIN BLOCKED THE PAGE, to get further information, contact the admins of the website') }}";
             
             // Create notification element
             const notification = document.createElement('div');
@@ -3681,7 +3681,7 @@
         });
 
         // Current page management
-        function showPage(pageId, event) {
+        async function showPage(pageId, event) {
             console.log('showPage called with pageId:', pageId, 'event:', event);
             
             // Ensure pageId is valid
@@ -3705,6 +3705,34 @@
             } else {
                 // For home, remove the hash
                 history.replaceState(null, null, window.location.pathname);
+            }
+
+            // Before rendering certain static pages, check server-side page limitations
+            const pageKeyMap = {
+                'moxo': 'moxo_test',
+                'courses': 'courses',
+                'forum': 'forum',
+                'resources': 'resources',
+                'about': 'about',
+                'login': 'login'
+            };
+
+            if (pageKeyMap[pageId]) {
+                try {
+                    const resp = await fetch(`${API_BASE}/api/page_limitation/${pageKeyMap[pageId]}`, { credentials: 'include', cache: 'no-store' });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data && data.is_limited) {
+                            // Show admin message and redirect to home
+                            if (data.message) showNotification(data.message, 8000);
+                            showPage('home');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Page limitation check failed:', e);
+                    // If check fails, proceed to render the page (fail-open)
+                }
             }
 
             // Show selected page first to check if it exists
@@ -3811,6 +3839,20 @@
                     credentials: 'include',
                     signal: currentAbortController.signal
                 });
+
+                if (!response.ok) {
+                    // API returned an error (e.g., page blocked)
+                    let errMsg = errorLoadingCoursesText;
+                    try {
+                        const errJson = await response.json();
+                        if (errJson && errJson.error) errMsg = errJson.error;
+                    } catch (e) {}
+                    showNotification(errMsg, 8000);
+                    // Redirect to home since this page is blocked
+                    showPage('home');
+                    return;
+                }
+
                 const courses = await response.json();
 
                 // Clear both grids
@@ -4178,6 +4220,8 @@
                 currentAbortController.abort();
             }
             currentAbortController = new AbortController();
+            // Define translated strings
+            const errorLoadingResourcesText = "{{ _('Error loading resources. Please try again.') }}";
             
             try {
                 const response = await fetch(`${API_BASE}/api/resources`, {
@@ -4185,6 +4229,18 @@
                     credentials: 'include',
                     signal: currentAbortController.signal
                 });
+
+                if (!response.ok) {
+                    let errMsg = errorLoadingResourcesText;
+                    try {
+                        const errJson = await response.json();
+                        if (errJson && errJson.error) errMsg = errJson.error;
+                    } catch (e) {}
+                    showNotification(errMsg, 8000);
+                    showPage('home');
+                    return;
+                }
+
                 const resources = await response.json();
                 const resourcesGrid = document.querySelector('.resources-grid');
                 const tagsSection = document.getElementById('resource-tags-section');
@@ -4597,13 +4653,26 @@
                 currentAbortController.abort();
             }
             currentAbortController = new AbortController();
-            
+            const errorLoadingForumText = "{{ _('Error loading forum. Please try again.') }}";
+
             try {
                 const response = await fetch(`${API_BASE}/api/forum/channels`, {
                     cache: 'no-store',
                     credentials: 'include',
                     signal: currentAbortController.signal
                 });
+
+                if (!response.ok) {
+                    let errMsg = errorLoadingForumText;
+                    try {
+                        const errJson = await response.json();
+                        if (errJson && errJson.error) errMsg = errJson.error;
+                    } catch (e) {}
+                    showNotification(errMsg, 8000);
+                    showPage('home');
+                    return;
+                }
+
                 const channels = await response.json();
                 availableChannels = channels;
                 

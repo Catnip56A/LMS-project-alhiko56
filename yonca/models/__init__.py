@@ -517,3 +517,16 @@ class ContentView(db.Model):
 
     def __repr__(self):
         return f'<ContentView {self.user_id}:{self.content_type}:{self.content_id}>'
+
+
+class PageLimitation(db.Model):
+    """Model for managing page access limitations (admin can block pages)"""
+    id = db.Column(db.Integer, primary_key=True)
+    page_key = db.Column(db.String(50), unique=True, nullable=False)  # 'courses', 'forum', 'resources', 'moxo_test', 'about', 'login'
+    page_name = db.Column(db.String(100), nullable=False)  # Display name
+    is_limited = db.Column(db.Boolean, default=False)  # True if page is blocked
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    def __repr__(self):
+        return f'<PageLimitation {self.page_key} - Limited: {self.is_limited}>'

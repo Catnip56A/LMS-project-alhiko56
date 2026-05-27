@@ -115,7 +115,7 @@ def get_google_redirect_uri(redirect_uri=None):
     if redirect_uri:
         return redirect_uri
     return f"{_resolve_oauth_base_url()}/admin/google_login/"
-from yonca.models import User, Course, ForumMessage, ForumChannel, MoxoTest, Resource, db, HomeContent, CourseContent, ContentView
+from yonca.models import User, Course, ForumMessage, ForumChannel, MoxoTest, Resource, db, HomeContent, CourseContent, ContentView, PageLimitation
 
 class AdminIndexView(AdminIndexView):
     """Custom admin index view with authentication and home content management"""
@@ -1417,6 +1417,71 @@ class AboutCompanyForm(FlaskForm):
     about_gallery_2_title = StringField('About Gallery 2 Title', [Optional()], default="Featured Content")
     about_gallery_2_subtitle = TextAreaField('About Gallery 2 Subtitle', [Optional()], default="Explore more exciting content and resources.")
 
+class LimitationsView(BaseView):
+    """View for managing page limitations (blocking pages for non-admin users)"""
+    
+    def is_accessible(self):
+        return current_user.is_authenticated and current_user.is_admin
+    
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect(url_for('auth.login'))
+    
+    @expose('/', methods=['GET', 'POST'])
+    def index(self):
+        """Display and manage page limitations"""
+        from yonca.models import PageLimitation
+        
+        # Define available pages (excluding home)
+        pages_config = [
+            {'key': 'courses', 'name': 'Courses'},
+            {'key': 'forum', 'name': 'Forum'},
+            {'key': 'resources', 'name': 'Resources'},
+            {'key': 'moxo_test', 'name': 'MOXO Test'},
+            {'key': 'about', 'name': 'About Company'},
+            {'key': 'login', 'name': 'Login Page'},
+        ]
+        
+        # Handle POST request to update limitations
+        if request.method == 'POST':
+            for page_config in pages_config:
+                page_key = page_config['key']
+                is_limited = request.form.get(f'limit_{page_key}') == 'on'
+                
+                limitation = PageLimitation.query.filter_by(page_key=page_key).first()
+                
+                if limitation:
+                    limitation.is_limited = is_limited
+                else:
+                    limitation = PageLimitation(
+                        page_key=page_key,
+                        page_name=page_config['name'],
+                        is_limited=is_limited
+                    )
+                    db.session.add(limitation)
+            
+            db.session.commit()
+            flash('Page limitations updated successfully!', 'success')
+            return redirect(url_for('limitations.index'))
+        
+        # Get current limitations
+        limitations = {}
+        for page_config in pages_config:
+            page_key = page_config['key']
+            limitation = PageLimitation.query.filter_by(page_key=page_key).first()
+            if not limitation:
+                # Create default limitation if it doesn't exist
+                limitation = PageLimitation(
+                    page_key=page_key,
+                    page_name=page_config['name'],
+                    is_limited=False
+                )
+                db.session.add(limitation)
+            limitations[page_key] = limitation.is_limited
+        
+        db.session.commit()
+        
+        return self.render('admin/limitations.html', pages_config=pages_config, limitations=limitations)
+
 class TranslateContentView(BaseView):
     """View for translating all content with one click"""
     
@@ -1523,6 +1588,7 @@ def init_admin(app):
     admin.add_view(MoxoTestView(MoxoTest, db.session))
     admin.add_view(AboutCompanyView(name='About Company', endpoint='about_company'))
     admin.add_view(GoogleLoginView(name='Google Login', endpoint='google_login'))
+    admin.add_view(LimitationsView(name='Limitations', endpoint='limitations'))
     admin.add_view(TranslateContentView(name='Translate', endpoint='translate'))
     admin.add_view(LogoutView(name='Logout', endpoint='logout'))
     return admin

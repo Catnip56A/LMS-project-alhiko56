@@ -49,6 +49,13 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """Handle user login"""
+    # Check if login page is limited (only for GET requests to show the login page)
+    if request.method == 'GET':
+        from yonca.routes import check_page_limitation
+        limitation_redirect = check_page_limitation('login')
+        if limitation_redirect:
+            return limitation_redirect
+    
     # Removed: Google OAuth callback handling - using link account for logged-in users only
     # code = request.args.get('code')
     # state = request.args.get('state')

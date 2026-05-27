@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-26 07:42+0400\n"
+"POT-Creation-Date: 2026-05-27 13:27+0400\n"
 "PO-Revision-Date: 2026-03-12 12:31+0400\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ru <LL@li.org>\n"
@@ -17,6 +17,15 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "Generated-By: Babel 2.18.0\n"
+
+#: yonca/routes/__init__.py:36 yonca/routes/__init__.py:40
+#: yonca/routes/api.py:205 yonca/templates/index.html:3612
+msgid ""
+"ADMIN BLOCKED THE PAGE, to get further information, contact the admins of "
+"the website"
+msgstr ""
+"ADMIN заблокировал страницу, чтобы получить дополнительную информацию, "
+"свяжитесь с администраторами сайта"
 
 #: yonca/templates/base.html:193
 msgid "YouTube Video"
@@ -123,7 +132,7 @@ msgstr "By"
 #: yonca/templates/course_description.html:352
 #: yonca/templates/course_page_enrolled.html:1022
 #: yonca/templates/course_page_enrolled.html:1316
-#: yonca/templates/index.html:4062
+#: yonca/templates/index.html:4104
 msgid "Login to Enroll"
 msgstr "Войти в Enroll"
 
@@ -360,8 +369,8 @@ msgstr "Вы уверены, что хотите удалить этот фай�
 #: yonca/templates/course_page_enrolled.html:1535
 #: yonca/templates/course_page_enrolled.html:2559
 #: yonca/templates/course_page_enrolled.html:2672
-#: yonca/templates/index.html:4309 yonca/templates/index.html:4332
-#: yonca/templates/index.html:4420
+#: yonca/templates/index.html:4365 yonca/templates/index.html:4388
+#: yonca/templates/index.html:4476
 msgid "Delete"
 msgstr "Исключить"
 
@@ -406,7 +415,7 @@ msgstr "Сданный"
 
 #: yonca/templates/course_page_enrolled.html:1075
 msgid "This submission has been declined. Please resubmit."
-msgstr "Эта сдача было отклонено. Пожалуйста, повторите."
+msgstr "Эта сдача была отклонена. Пожалуйста, повторите."
 
 #: yonca/templates/course_page_enrolled.html:1077
 msgid "View Your Submission"
@@ -899,7 +908,7 @@ msgstr ""
 " материалам курса."
 
 #: yonca/templates/course_registration.html:375
-#: yonca/templates/index.html:4055
+#: yonca/templates/index.html:4097
 msgid "Enroll Now"
 msgstr "Записаться сейчас"
 
@@ -1137,8 +1146,8 @@ msgstr ""
 "Загрузка зачисленных курсов... (Попытка переключения страниц в случае "
 "задержек)"
 
-#: yonca/templates/index.html:2693 yonca/templates/index.html:3806
-#: yonca/templates/index.html:3845
+#: yonca/templates/index.html:2693 yonca/templates/index.html:3834
+#: yonca/templates/index.html:3887
 msgid "Available Courses"
 msgstr "Доступные курсы"
 
@@ -1236,8 +1245,8 @@ msgstr "Фильтр Учебные материалы"
 msgid "Access Type:"
 msgstr "Тип доступа:"
 
-#: yonca/templates/index.html:2775 yonca/templates/index.html:3906
-#: yonca/templates/index.html:4223
+#: yonca/templates/index.html:2775 yonca/templates/index.html:3948
+#: yonca/templates/index.html:4279
 msgid "All"
 msgstr "Все"
 
@@ -1317,7 +1326,7 @@ msgstr ""
 "PIN-код доступа будет автоматически генерироваться (6 символов, срок "
 "действия истекает через 10 минут)"
 
-#: yonca/templates/index.html:2835 yonca/templates/index.html:4575
+#: yonca/templates/index.html:2835 yonca/templates/index.html:4631
 msgid "Upload Material"
 msgstr "Скачать материал"
 
@@ -1555,167 +1564,175 @@ msgstr "Курсы загрузки ошибок"
 msgid "No courses available for this category."
 msgstr "Курсов для этой категории нет."
 
-#: yonca/templates/index.html:3804
+#: yonca/templates/index.html:3832
 msgid "You're enrolled in all available courses!"
 msgstr "Вы зачислены на все доступные курсы!"
 
-#: yonca/templates/index.html:3805
+#: yonca/templates/index.html:3833
 msgid "Error loading courses. Please try again."
 msgstr "Курсы загрузки ошибок. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:3826
+#: yonca/templates/index.html:3868
 msgid "No courses available at the moment."
 msgstr "На данный момент нет доступных курсов."
 
-#: yonca/templates/index.html:3842
+#: yonca/templates/index.html:3884
 msgid "Other Available Courses"
 msgstr "Другие доступные курсы"
 
-#: yonca/templates/index.html:4043
+#: yonca/templates/index.html:4085
 msgid "Loading... (Try switching pages in case of delays)"
 msgstr "Загрузка... (Попытка переключения страниц в случае задержек)"
 
-#: yonca/templates/index.html:4044 yonca/templates/index.html:4056
-#: yonca/templates/index.html:4063
+#: yonca/templates/index.html:4086 yonca/templates/index.html:4098
+#: yonca/templates/index.html:4105
 msgid "View Details"
 msgstr "Посмотреть детали"
 
-#: yonca/templates/index.html:4118
+#: yonca/templates/index.html:4160
 msgid "Enrolling in"
 msgstr "Записаться в"
 
-#: yonca/templates/index.html:4200
+#: yonca/templates/index.html:4224
+msgid "Error loading resources. Please try again."
+msgstr "Ошибка загрузки ресурсов. Пожалуйста, попробуйте еще раз."
+
+#: yonca/templates/index.html:4256
 msgid "No materials available at the moment."
 msgstr "Материалов на данный момент нет."
 
-#: yonca/templates/index.html:4247
+#: yonca/templates/index.html:4303
 msgid "No materials match the selected filter."
 msgstr "Никакие материалы не соответствуют выбранному фильтру."
 
-#: yonca/templates/index.html:4265
+#: yonca/templates/index.html:4321
 msgid "Log In to Access"
 msgstr "Войти в Access"
 
-#: yonca/templates/index.html:4268 yonca/templates/index.html:4288
-#: yonca/templates/index.html:4327
+#: yonca/templates/index.html:4324 yonca/templates/index.html:4344
+#: yonca/templates/index.html:4383
 msgid "View Resource"
 msgstr "Посмотреть ресурс"
 
-#: yonca/templates/index.html:4278
+#: yonca/templates/index.html:4334
 msgid "Expires in:"
 msgstr "Исполняется в:"
 
-#: yonca/templates/index.html:4278
+#: yonca/templates/index.html:4334
 msgid "minutes"
 msgstr "минуты"
 
-#: yonca/templates/index.html:4280
+#: yonca/templates/index.html:4336
 msgid "PIN has expired"
 msgstr "PIN-код истек"
 
-#: yonca/templates/index.html:4284 yonca/templates/index.html:4399
+#: yonca/templates/index.html:4340 yonca/templates/index.html:4455
 msgid "Your Access PIN:"
 msgstr "Ваш PIN-код доступа:"
 
-#: yonca/templates/index.html:4286 yonca/templates/index.html:4401
+#: yonca/templates/index.html:4342 yonca/templates/index.html:4457
 msgid "Share this PIN with others to grant access"
 msgstr "Поделитесь этим PIN-кодом с другими, чтобы предоставить доступ"
 
-#: yonca/templates/index.html:4291 yonca/templates/index.html:4406
+#: yonca/templates/index.html:4347 yonca/templates/index.html:4462
 msgid "Request Access"
 msgstr "Запросить доступ"
 
-#: yonca/templates/index.html:4299 yonca/templates/index.html:4322
-#: yonca/templates/index.html:4411
+#: yonca/templates/index.html:4355 yonca/templates/index.html:4378
+#: yonca/templates/index.html:4467
 msgid "No description available"
 msgstr "Описания отсутствуют"
 
-#: yonca/templates/index.html:4302 yonca/templates/index.html:4325
-#: yonca/templates/index.html:4413
+#: yonca/templates/index.html:4358 yonca/templates/index.html:4381
+#: yonca/templates/index.html:4469
 msgid "Uploaded:"
 msgstr "Загружено:"
 
-#: yonca/templates/index.html:4306 yonca/templates/index.html:4329
+#: yonca/templates/index.html:4362 yonca/templates/index.html:4385
 msgid "Are you sure you want to delete this resource?"
 msgstr "Вы уверены, что хотите удалить этот ресурс?"
 
-#: yonca/templates/index.html:4346
+#: yonca/templates/index.html:4402
 msgid "Error loading materials. Please try again."
 msgstr "Ошибка загрузки материалов. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4382
+#: yonca/templates/index.html:4438
 msgid "No PDF documents available at the moment."
 msgstr "PDF-документов на данный момент нет."
 
-#: yonca/templates/index.html:4403
+#: yonca/templates/index.html:4459
 msgid "Access PDF"
 msgstr "Доступ к PDF"
 
-#: yonca/templates/index.html:4417
+#: yonca/templates/index.html:4473
 msgid "Are you sure you want to delete this PDF?"
 msgstr "Вы уверены, что хотите удалить этот PDF?"
 
-#: yonca/templates/index.html:4428
+#: yonca/templates/index.html:4484
 msgid "Error loading PDFs. Please try again."
 msgstr "Ошибка загрузки PDF. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4434
+#: yonca/templates/index.html:4490
 msgid "Enter access PIN for:"
 msgstr "Введите PIN-код доступа для:"
 
-#: yonca/templates/index.html:4460
+#: yonca/templates/index.html:4516
 msgid "Invalid PIN or access denied."
 msgstr "Недействительный PIN-код или доступ запрещен."
 
-#: yonca/templates/index.html:4464
+#: yonca/templates/index.html:4520
 msgid "Error accessing resource. Please try again."
 msgstr "Ошибка доступа к ресурсу. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4478 yonca/templates/index.html:4480
+#: yonca/templates/index.html:4534 yonca/templates/index.html:4536
 msgid "Uploading PDF..."
 msgstr "Скачать PDF..."
 
-#: yonca/templates/index.html:4502
+#: yonca/templates/index.html:4558
 msgid "PDF uploaded successfully! Access PIN:"
 msgstr "PDF скачать успешно! Доступ к PIN:"
 
-#: yonca/templates/index.html:4510 yonca/templates/index.html:4514
+#: yonca/templates/index.html:4566 yonca/templates/index.html:4570
 msgid "Error uploading PDF. Please try again."
 msgstr "Ошибка загрузки PDF. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4517
+#: yonca/templates/index.html:4573
 msgid "Upload PDF"
 msgstr "Скачать PDF"
 
-#: yonca/templates/index.html:4531
+#: yonca/templates/index.html:4587
 msgid "Uploading..."
 msgstr "Загрузить..."
 
-#: yonca/templates/index.html:4533
+#: yonca/templates/index.html:4589
 msgid "Uploading resource..."
 msgstr "Загрузить ресурс..."
 
-#: yonca/templates/index.html:4555
+#: yonca/templates/index.html:4611
 msgid "Access PIN:"
 msgstr "Доступ к PIN:"
 
-#: yonca/templates/index.html:4555
+#: yonca/templates/index.html:4611
 msgid "Free access enabled"
 msgstr "Бесплатный доступ включен"
 
-#: yonca/templates/index.html:4556
+#: yonca/templates/index.html:4612
 msgid "Material uploaded successfully!"
 msgstr "Материал успешно загружен!"
 
-#: yonca/templates/index.html:4568
+#: yonca/templates/index.html:4624
 msgid "Error uploading material. Please try again."
 msgstr "Ошибка загрузки материала. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4572
+#: yonca/templates/index.html:4628
 msgid "Error uploading resource. Please try again."
 msgstr "Ошибка загрузки ресурса. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:6087
+#: yonca/templates/index.html:4656
+msgid "Error loading forum. Please try again."
+msgstr "Ошибка при загрузке форума. Пожалуйста, попробуйте еще раз."
+
+#: yonca/templates/index.html:6156
 msgid "To exit, click the black area outside the video."
 msgstr "Чтобы выйти, щелкните черную область за пределами видео."
 
@@ -1748,7 +1765,7 @@ msgstr "Условия использования"
 #: yonca/templates/login.html:248 yonca/templates/privacyPolicy.html:6
 #: yonca/templates/privacyPolicy.html:103
 msgid "Политика конфиденциальности"
-msgstr "Криптовалюта"
+msgstr "Политика конфиденциальности"
 
 #: yonca/templates/components/footer.html:37 yonca/templates/login.html:248
 #: yonca/templates/privacyPolicy.html:6 yonca/templates/privacyPolicy.html:103
