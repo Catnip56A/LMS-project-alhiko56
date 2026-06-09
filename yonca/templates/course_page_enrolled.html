@@ -103,6 +103,14 @@
     .tab-content {
         margin-top: 24px;
     }
+    #content, #assignments, #announcements, #reviews {
+        padding-left: 4%;
+        padding-right: 4%;
+    }
+    #course-features-section, #reviews-section {
+        padding-left: 4%;
+        padding-right: 4%;
+    }
     
     /* Force all inactive tabs to be completely hidden */
     .tab-pane {
@@ -325,6 +333,8 @@
 {% block content %}
 {% include 'components/navbar.html' %}
 
+<div class="container" style="margin-top:20px;">
+
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
@@ -336,7 +346,7 @@
     {% endif %}
 {% endwith %}
 
-<div class="container" style="margin-top:20px;">
+<div style="margin-top:0;">
             <style>
             #youtubeGuideBtn {
                 margin-left: 12px;
@@ -507,7 +517,7 @@
             </nav>
             {% endif %}
         </div>
-    <div class="container" style="display: flex; align-items: center;">
+    <div style="display: flex; align-items: center;">
     <ul class="nav nav-tabs" id="courseTabs" role="tablist" style="flex:1;">
         <li class="nav-item">
             <a class="nav-link active" id="content-tab" data-toggle="tab" href="#content" role="tab">{{ _('Content') }}</a>
@@ -823,7 +833,7 @@
         }
         </script>
         
-        <div class="container tab-content" id="courseTabsContent">
+        <div class="tab-content" id="courseTabsContent">
 
         <div class="tab-pane fade" id="features" role="tabpanel">
             <div class="mt-4">
@@ -1580,7 +1590,7 @@
     </div>
 
     <!-- Course Features Section - Below Tabs -->
-    <div class="container" style="margin-top:3rem; border-top: 2px solid #e5e7eb; padding-top: 2rem;">
+    <div id="course-features-section" style="margin-top:3rem; border-top: 2px solid #e5e7eb; padding-top: 2rem;">
         <h3 style="font-size:1.8rem; font-weight:600; color:#374151; margin-bottom:1.5rem;">{{ _('Course Features') }}</h3>
         <div class="row">
             <div class="col-md-4" style="margin-bottom:1.5rem;">
@@ -1612,7 +1622,7 @@
 
     <!-- Reviews Section - Below Tabs -->
     {% if reviews_pagination and reviews_pagination.total > 0 %}
-    <div id="reviews-section" class="container" style="margin-top:3rem; border-top: 2px solid #e5e7eb; padding-top: 2rem;">
+    <div id="reviews-section" style="margin-top:3rem; border-top: 2px solid #e5e7eb; padding-top: 2rem;">
         <h3 style="font-size:1.8rem; font-weight:600; color:#374151; margin-bottom:1.5rem;">
             <i class="fa fa-star" style="color:#ffc107;"></i> {{ _('Student Reviews') }}
             <span style="font-size:1rem; color:#6c757d; font-weight:400;">({{ reviews_pagination.total }} {{ ngettext('review', 'reviews', reviews_pagination.total) }})</span>
