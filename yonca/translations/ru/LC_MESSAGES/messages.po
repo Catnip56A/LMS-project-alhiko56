@@ -1340,7 +1340,7 @@ msgstr "Наши услуги"
 
 #: yonca/templates/index.html:2862 yonca/templates/index.html:2916
 msgid "Assessment and Skill Evaluation"
-msgstr "Оценка и оценка навыков"
+msgstr "Оценка навыков и оказание помощи"
 
 #: yonca/templates/index.html:2863 yonca/templates/index.html:2917
 msgid ""
