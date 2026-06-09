@@ -3297,17 +3297,21 @@
                 modal = document.createElement('div');
                 modal.id = modalId;
                 modal.className = 'gallery-caption-modal';
-                
+
                 modal.addEventListener('click', function(e) {
                     if (e.target === this) {
                         closeGalleryCaptionModal(null, modalId);
                     }
                 });
-                
+
+                const galleryItem = captionElement.closest('.gallery-item');
+                const img = galleryItem ? galleryItem.querySelector('.gallery-media-viewport img') : null;
+                const imageHTML = img ? `<img src="${img.src}" alt="${img.alt}" style="width:100%; border-radius:8px; margin-bottom:1.25rem; object-fit:cover; max-height:280px;">` : '';
+
                 modal.innerHTML = `
                     <div class="gallery-caption-modal-content" onclick="event.stopPropagation()">
                         <button class="gallery-caption-modal-close" onclick="closeGalleryCaptionModal(event, '${modalId}')">×</button>
-                        <h3 style="color: #000000; margin-top: 0; text-align: center;">Details</h3>
+                        ${imageHTML}
                         <div style="color: #333333; font-size: 1rem; line-height: 1.6;">
                             ${fullCaptionHTML}
                         </div>

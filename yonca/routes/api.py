@@ -930,6 +930,35 @@ def translate_text():
         current_app.logger.error(f"Translation API error: {str(e)}")
         return jsonify({'error': 'Translation failed', 'translated_text': text}), 500
 
+@api_bp.route('/translate/content', methods=['POST'])
+def translate_content_field():
+    """Translate a specific content field and save to ContentTranslation table."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Request body required'}), 400
+
+    text = (data.get('text') or '').strip()
+    content_type = data.get('content_type', 'home_content')
+    content_id = data.get('content_id')
+    field_name = data.get('field_name')
+
+    if not text or not content_id or not field_name:
+        return jsonify({'error': 'text, content_id and field_name are required'}), 400
+
+    try:
+        from yonca.content_translator import translate_content
+        from yonca.models import db
+        saved = translate_content(content_type, int(content_id), field_name, text)
+        if not saved:
+            return jsonify({'error': 'Translation service unavailable. Start LibreTranslate with: just libre'}), 503
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Content translation error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @api_bp.route('/translate/batch', methods=['POST'])
 def translate_batch():
     """Translate multiple texts in batch"""

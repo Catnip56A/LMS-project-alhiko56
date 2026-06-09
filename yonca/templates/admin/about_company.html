@@ -173,14 +173,28 @@
 
                     <div class="form-group-inline">
                         <label for="about_gallery_title">{{ _('Gallery Title:') }}</label>
-                        <input type="text" id="about_gallery_title" name="about_gallery_title" class="form-control"
-                               value="{{ form.about_gallery_title.data or _('What\'s New') }}">
+                        <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" id="about_gallery_title" name="about_gallery_title" class="form-control"
+                                   value="{{ form.about_gallery_title.data or _('What\'s New') }}">
+                            <button type="button" class="btn btn-sm btn-outline-info translate-field-btn"
+                                    data-field="about_gallery_title" data-content-id="{{ home_content.id }}"
+                                    title="{{ _('Translate') }}">
+                                <i class="fa fa-language"></i>
+                            </button>
+                        </div>
                         <small class="text-muted">{{ _('The heading that appears above the gallery') }}</small>
                     </div>
 
                     <div class="form-group-inline">
                         <label for="about_gallery_subtitle">{{ _('Gallery Subtitle:') }}</label>
-                        <textarea id="about_gallery_subtitle" name="about_gallery_subtitle" class="form-control" rows="2">{{ form.about_gallery_subtitle.data or _('Discover the latest updates, new features, and exciting developments in our learning platform.') }}</textarea>
+                        <div style="display: flex; gap: 5px; flex: 1;">
+                            <textarea id="about_gallery_subtitle" name="about_gallery_subtitle" class="form-control" rows="2">{{ form.about_gallery_subtitle.data or _('Discover the latest updates, new features, and exciting developments in our learning platform.') }}</textarea>
+                            <button type="button" class="btn btn-sm btn-outline-info translate-field-btn"
+                                    data-field="about_gallery_subtitle" data-content-id="{{ home_content.id }}"
+                                    title="{{ _('Translate') }}" style="align-self: flex-start;">
+                                <i class="fa fa-language"></i>
+                            </button>
+                        </div>
                         <small class="text-muted">{{ _('The subtitle that appears below the gallery title') }}</small>
                     </div>
                 </div>
@@ -207,14 +221,28 @@
 
                     <div class="form-group-inline">
                         <label for="about_gallery_2_title">{{ _('Gallery Title:') }}</label>
-                        <input type="text" id="about_gallery_2_title" name="about_gallery_2_title" class="form-control"
-                               value="{{ form.about_gallery_2_title.data or _('Featured Content') }}">
+                        <div style="display: flex; gap: 5px; flex: 1;">
+                            <input type="text" id="about_gallery_2_title" name="about_gallery_2_title" class="form-control"
+                                   value="{{ form.about_gallery_2_title.data or _('Featured Content') }}">
+                            <button type="button" class="btn btn-sm btn-outline-info translate-field-btn"
+                                    data-field="about_gallery_2_title" data-content-id="{{ home_content.id }}"
+                                    title="{{ _('Translate') }}">
+                                <i class="fa fa-language"></i>
+                            </button>
+                        </div>
                         <small class="text-muted">{{ _('The heading that appears above the gallery') }}</small>
                     </div>
 
                     <div class="form-group-inline">
                         <label for="about_gallery_2_subtitle">{{ _('Gallery Subtitle:') }}</label>
-                        <textarea id="about_gallery_2_subtitle" name="about_gallery_2_subtitle" class="form-control" rows="2">{{ form.about_gallery_2_subtitle.data or _('Explore more exciting content and resources.') }}</textarea>
+                        <div style="display: flex; gap: 5px; flex: 1;">
+                            <textarea id="about_gallery_2_subtitle" name="about_gallery_2_subtitle" class="form-control" rows="2">{{ form.about_gallery_2_subtitle.data or _('Explore more exciting content and resources.') }}</textarea>
+                            <button type="button" class="btn btn-sm btn-outline-info translate-field-btn"
+                                    data-field="about_gallery_2_subtitle" data-content-id="{{ home_content.id }}"
+                                    title="{{ _('Translate') }}" style="align-self: flex-start;">
+                                <i class="fa fa-language"></i>
+                            </button>
+                        </div>
                         <small class="text-muted">{{ _('The subtitle that appears below the gallery title') }}</small>
                     </div>
                 </div>
@@ -277,11 +305,11 @@ const aboutGallery2Data = {{ home_content.about_gallery_2_images | tojson }};
 function initializeAboutGallery() {
     const container = document.getElementById('about-gallery-container');
     if (!container) return;
-    
+
     const galleryData = aboutGalleryData || [];
-    galleryData.forEach((item) => {
+    galleryData.forEach((item, index) => {
         if (item && item.url) {
-            addAboutGalleryImageFromData('about-gallery-container', 'about_gallery', item.url || '', item.alt || '', item.caption || '');
+            addAboutGalleryImageFromData('about-gallery-container', 'about_gallery', item.url || '', item.alt || '', item.caption || '', index);
         }
     });
 }
@@ -290,11 +318,11 @@ function initializeAboutGallery() {
 function initializeAboutGallery2() {
     const container = document.getElementById('about-gallery-2-container');
     if (!container) return;
-    
+
     const gallery2Data = aboutGallery2Data || [];
-    gallery2Data.forEach((item) => {
+    gallery2Data.forEach((item, index) => {
         if (item && item.url) {
-            addAboutGalleryImageFromData('about-gallery-2-container', 'about_gallery_2', item.url || '', item.alt || '', item.caption || '');
+            addAboutGalleryImageFromData('about-gallery-2-container', 'about_gallery_2', item.url || '', item.alt || '', item.caption || '', index);
         }
     });
 }
@@ -371,8 +399,10 @@ function addAboutGalleryImage(containerId, prefix) {
             <div style="display: flex; gap: 5px; flex: 1;">
                 <input type="text" name="${prefix}_caption_${imageIndex}" class="form-control gallery-caption"
                        placeholder="${TRANSLATIONS.caption_placeholder}" value="">
-                <button type="button" class="btn btn-sm btn-outline-info translate-caption-btn" 
-                        title="${TRANSLATIONS.translate_caption}" data-index="${imageIndex}">
+                <button type="button" class="btn btn-sm btn-outline-info translate-caption-btn"
+                        title="${TRANSLATIONS.translate_caption}"
+                        data-content-id="{{ home_content.id }}"
+                        data-field-prefix="${prefix}_images" data-index="${imageIndex}">
                     <i class="fa fa-language"></i>
                 </button>
             </div>
@@ -409,7 +439,7 @@ function addAboutGalleryImage(containerId, prefix) {
     });
 }
 
-function addAboutGalleryImageFromData(containerId, prefix, url, alt, caption) {
+function addAboutGalleryImageFromData(containerId, prefix, url, alt, caption, itemIndex) {
     const container = document.getElementById(containerId);
     const imageIndex = container.children.length;
 
@@ -462,8 +492,10 @@ function addAboutGalleryImageFromData(containerId, prefix, url, alt, caption) {
             <div style="display: flex; gap: 5px; flex: 1;">
                 <input type="text" name="${prefix}_caption_${imageIndex}" class="form-control gallery-caption"
                        placeholder="${TRANSLATIONS.caption_placeholder}" value="${escapedCaption}">
-                <button type="button" class="btn btn-sm btn-outline-info translate-caption-btn" 
-                        title="${TRANSLATIONS.translate_caption}" data-index="${imageIndex}">
+                <button type="button" class="btn btn-sm btn-outline-info translate-caption-btn"
+                        title="${TRANSLATIONS.translate_caption}"
+                        data-content-id="{{ home_content.id }}"
+                        data-field-prefix="${prefix}_images" data-index="${itemIndex}">
                     <i class="fa fa-language"></i>
                 </button>
             </div>
@@ -542,67 +574,61 @@ function getDragAfterElement(container, y) {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-// Handle translate caption buttons
+// Shared helper: translate a content field and save to ContentTranslation
+function translateContentField(button, text, contentId, fieldName) {
+    button.disabled = true;
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+    fetch('/api/translate/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, content_type: 'home_content', content_id: contentId, field_name: fieldName })
+    })
+    .then(r => r.json())
+    .then(data => {
+        button.innerHTML = data.success ? '<i class="fa fa-check"></i>' : originalHtml;
+        if (!data.success) alert(TRANSLATIONS.translation_error + ' ' + (data.error || ''));
+        setTimeout(() => { button.innerHTML = originalHtml; button.disabled = false; }, 2000);
+    })
+    .catch(() => { button.innerHTML = originalHtml; button.disabled = false; });
+}
+
+// Handle translate caption buttons (gallery items)
 document.addEventListener('click', function(e) {
     if (e.target.closest('.translate-caption-btn')) {
         const button = e.target.closest('.translate-caption-btn');
-        const imageIndex = button.getAttribute('data-index');
         const captionInput = button.closest('.form-group-inline').querySelector('.gallery-caption');
-        const captionText = captionInput.value.trim();
-        
+        const captionText = captionInput ? captionInput.value.trim() : '';
+
         if (!captionText) {
             alert('Please enter some text in the caption field before translating.');
             return;
         }
-        
-        // Disable button and show loading state
-        button.disabled = true;
-        const originalHtml = button.innerHTML;
-        button.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
-        
-        // Call translation API
-        fetch('/api/translate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                text: captionText,
-                return_all: true
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.translations) {
-                // Show translation options
-                const translations = data.translations;
-                let message = 'Translation completed and cached:\n\n';
-                message += `Original (${data.detected_source_language}): ${data.original_text}\n\n`;
-                
-                for (const [lang, text] of Object.entries(translations)) {
-                    if (lang !== data.detected_source_language) {
-                        message += `${lang.toUpperCase()}: ${text}\n`;
-                    }
-                }
-                
-                message += '\nThe translations have been saved and will be used when displaying content in those languages.';
-                
-                alert(message);
-            } else if (data.translated_text) {
-                alert(`Translation completed: ${data.translated_text}`);
-            } else {
-                alert('Translation failed: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            alert('Translation error: ' + error.message);
-        })
-        .finally(() => {
-            // Re-enable button
-            button.disabled = false;
-            button.innerHTML = originalHtml;
-        });
+
+        const contentId = button.getAttribute('data-content-id');
+        const fieldPrefix = button.getAttribute('data-field-prefix');
+        const itemIndex = button.getAttribute('data-index');
+        const fieldName = `${fieldPrefix}[${itemIndex}].caption`;
+
+        translateContentField(button, captionText, contentId, fieldName);
     }
+
+    if (e.target.closest('.translate-field-btn')) {
+        const button = e.target.closest('.translate-field-btn');
+        const fieldName = button.getAttribute('data-field');
+        const contentId = button.getAttribute('data-content-id');
+        const input = document.getElementById(fieldName) || document.querySelector(`[name="${fieldName}"]`);
+        const text = input ? input.value.trim() : '';
+
+        if (!text) {
+            alert('Please enter some text before translating.');
+            return;
+        }
+
+        translateContentField(button, text, contentId, fieldName);
+    }
+
 });
 </script>
 {% endblock %}</content>

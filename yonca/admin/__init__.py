@@ -1237,14 +1237,14 @@ class AboutCompanyView(BaseView):
             try:
                 # Get form data for processing gallery items
                 form_data = request.form
-                
+
                 # About page content
                 home_content.about_welcome_title = form.about_welcome_title.data
                 home_content.about_subtitle = form.about_subtitle.data
-                
+
                 home_content.about_gallery_title = form.about_gallery_title.data
                 home_content.about_gallery_subtitle = form.about_gallery_subtitle.data
-                
+
                 # About gallery 2 section
                 home_content.about_gallery_2_title = form.about_gallery_2_title.data
                 home_content.about_gallery_2_subtitle = form.about_gallery_2_subtitle.data
@@ -1316,7 +1316,7 @@ class AboutCompanyView(BaseView):
                     about_gallery_images.append(about_gallery_images_dict[idx])
                 
                 home_content.about_gallery_images = about_gallery_images
-                
+
                 # Process About Company gallery 2
                 about_gallery_2_images_dict = {}
                 existing_about_images_2 = home_content.about_gallery_2_images or []
@@ -1383,7 +1383,7 @@ class AboutCompanyView(BaseView):
                     about_gallery_2_images.append(about_gallery_2_images_dict[idx])
                 
                 home_content.about_gallery_2_images = about_gallery_2_images
-                
+
                 db.session.commit()
                 flash('About Company content updated successfully!', 'success')
                 return redirect(url_for('about_company.index'))
@@ -1398,7 +1398,7 @@ class AboutCompanyView(BaseView):
         form.about_gallery_subtitle.data = home_content.about_gallery_subtitle
         form.about_gallery_2_title.data = home_content.about_gallery_2_title
         form.about_gallery_2_subtitle.data = home_content.about_gallery_2_subtitle
-        
+
         return self.render('admin/about_company.html', form=form, home_content=home_content)
 
 class AboutCompanyForm(FlaskForm):

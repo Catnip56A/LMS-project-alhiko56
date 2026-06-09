@@ -13,7 +13,6 @@ except ImportError:
     print("Warning: langdetect not available. Install with: pip install langdetect")
 
 # Import centralized language constants
-from yonca.constants import SUPPORTED_LANGUAGES
 
 # Languages to automatically translate to
 TARGET_LANGUAGES = ['az', 'ru']
@@ -32,7 +31,8 @@ TRANSLATABLE_FIELDS = {
         'about_section_title', 'about_section_description',
         'about_welcome_title', 'about_subtitle',
         'features_title', 'features_subtitle',
-        'about_gallery_title', 'about_gallery_subtitle'
+        'about_gallery_title', 'about_gallery_subtitle',
+        'about_gallery_2_title', 'about_gallery_2_subtitle'
     ],
     'gallery_item': ['caption', 'title', 'description']
 }
@@ -64,7 +64,8 @@ def translate_content(content_type, content_id, field_name, text, source_languag
     """
     Translate a piece of content into all target languages and store in database.
     Auto-detects source language if not provided.
-    
+    Returns the number of languages successfully translated.
+
     Args:
         content_type: Type of content ('course', 'resource', 'home_content', etc.)
         content_id: ID of the content item
@@ -74,43 +75,43 @@ def translate_content(content_type, content_id, field_name, text, source_languag
         session: SQLAlchemy session to use (if None, uses db.session)
     """
     if not text or not text.strip():
-        return
-    
+        return 0
+
     # Auto-detect source language if not provided
     if source_language is None:
         source_language = detect_language(text)
         print(f"   Detected language: {source_language} for {content_type}:{content_id}.{field_name}")
-    
+
     # Use provided session or fall back to db.session
     if session is None:
         session = db.session
-    
+
     # Determine which languages to translate to
     # Include English if source is not English
     target_langs = TARGET_LANGUAGES.copy()
     if source_language != 'en' and 'en' not in target_langs:
         target_langs.append('en')
-    
+
+    saved = 0
     for target_lang in target_langs:
         if target_lang == source_language:
             continue
-            
+
         try:
             # Check if content contains HTML (both actual tags and entities)
             is_html = bool(re.search(r'<[^>]+>|&lt;|&gt;|&amp;', text))
-            
+
             if is_html:
-                # Use HTML-aware translation
                 translated = translation_service.translate_html(text, target_lang, source_language)
                 print(f"   Translated HTML content for {content_type}:{content_id}.{field_name} -> {target_lang}")
             else:
-                # Use regular text translation
                 translated = translation_service.get_translation(text, target_lang, source_language)
-            
-            if not translated:
-                print(f"Warning: Translation failed for {content_type}:{content_id}.{field_name} -> {target_lang}")
+
+            # Skip if translation is empty or unchanged (LibreTranslate unavailable)
+            if not translated or translated == text:
+                print(f"Warning: Translation unchanged/failed for {content_type}:{content_id}.{field_name} -> {target_lang}")
                 continue
-            
+
             # Check if translation already exists
             existing = session.query(ContentTranslation).filter_by(
                 content_type=content_type,
@@ -118,13 +119,11 @@ def translate_content(content_type, content_id, field_name, text, source_languag
                 field_name=field_name,
                 target_language=target_lang
             ).first()
-            
+
             if existing:
-                # Update existing translation
                 existing.translated_text = translated
                 existing.source_language = source_language
             else:
-                # Create new translation
                 new_translation = ContentTranslation(
                     content_type=content_type,
                     content_id=content_id,
@@ -134,20 +133,23 @@ def translate_content(content_type, content_id, field_name, text, source_languag
                     translated_text=translated
                 )
                 session.add(new_translation)
-            
+
+            saved += 1
             print(f"✓ Translated {content_type}:{content_id}.{field_name} -> {target_lang}")
-            
+
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Error translating {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
             print(f"ERROR: Translation failed for {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
-    
+
     # Flush translations to database
     try:
         session.flush()
     except Exception as e:
         print(f"Error flushing translations: {e}")
+
+    return saved
 
 
 def translate_json_array(content_type, content_id, field_name, json_array, text_field='description', source_language=None, session=None):
@@ -331,6 +333,9 @@ def auto_translate_home_content(home_content, session=None):
     
     if home_content.about_gallery_images:
         translate_json_array('home_content', home_content.id, 'about_gallery_images', home_content.about_gallery_images, 'caption', session=session)
+
+    if home_content.about_gallery_2_images:
+        translate_json_array('home_content', home_content.id, 'about_gallery_2_images', home_content.about_gallery_2_images, 'caption', session=session)
 
 
 def get_translated_content(content_type, content_id, field_name, original_text, target_language):
@@ -591,7 +596,7 @@ def auto_translate_page_builder(course, session=None):
             
             elif block_type == 'youtube':
                 # YouTube blocks don't need translation (only have embed info)
-                logger.warning(f"    ⊘ Skipping youtube block")
+                logger.warning("    ⊘ Skipping youtube block")
             
             elif block_type == 'carousel':
                 # Translate carousel items (titles and descriptions)
@@ -645,7 +650,7 @@ def get_translated_page_builder_data(course, target_language):
         logger.warning(f"📖 Detected string, language: {lang_code}")
     
     if lang_code == 'en':
-        logger.warning(f"📖 Language is English, returning original")
+        logger.warning("📖 Language is English, returning original")
         return course.page_builder_data or []
     
     logger.warning(f"🔄 PAGE BUILDER RENDER: Getting translated data for course {course.id}, language: {lang_code}")
@@ -667,7 +672,7 @@ def get_translated_page_builder_data(course, target_language):
                     original_text = settings['text']
                     translated_text = get_translated_content('course', course.id, field_name, original_text, lang_code)
                     if translated_text != original_text:
-                        logger.warning(f"  ✓ Found translation for plain-text block")
+                        logger.warning("  ✓ Found translation for plain-text block")
                         settings['text'] = translated_text
                         blocks_with_translations += 1
             
@@ -678,7 +683,7 @@ def get_translated_page_builder_data(course, target_language):
                     original_title = settings['title']
                     translated_title = get_translated_content('course', course.id, field_name, original_title, lang_code)
                     if translated_title != original_title:
-                        logger.warning(f"  ✓ Found translation for hero title")
+                        logger.warning("  ✓ Found translation for hero title")
                         settings['title'] = translated_title
                         blocks_with_translations += 1
                 
@@ -687,7 +692,7 @@ def get_translated_page_builder_data(course, target_language):
                     original_subtitle = settings['subtitle']
                     translated_subtitle = get_translated_content('course', course.id, field_name, original_subtitle, lang_code)
                     if translated_subtitle != original_subtitle:
-                        logger.warning(f"  ✓ Found translation for hero subtitle")
+                        logger.warning("  ✓ Found translation for hero subtitle")
                         settings['subtitle'] = translated_subtitle
             
             elif block_type == 'text-image':
@@ -697,7 +702,7 @@ def get_translated_page_builder_data(course, target_language):
                     original_text = settings['text']
                     translated_text = get_translated_content('course', course.id, field_name, original_text, lang_code)
                     if translated_text != original_text:
-                        logger.warning(f"  ✓ Found translation for text-image block")
+                        logger.warning("  ✓ Found translation for text-image block")
                         settings['text'] = translated_text
                         blocks_with_translations += 1
             
