@@ -2,7 +2,6 @@
 import re
 import html
 import urllib.parse
-from markupsafe import Markup
 
 def extract_youtube_id(input_str):
     """
@@ -135,7 +134,7 @@ def render_page_builder_blocks(blocks):
     print(f"DEBUG RENDER: Called with blocks type: {type(blocks)}, length: {len(blocks) if blocks else 0}")  # Debug
     
     if not blocks or not isinstance(blocks, list):
-        print(f"DEBUG RENDER: Returning empty string, blocks is falsy or not list")  # Debug
+        print("DEBUG RENDER: Returning empty string, blocks is falsy or not list")  # Debug
         return ""
     
     print(f"DEBUG RENDER: Processing {len(blocks)} blocks")  # Debug
@@ -258,7 +257,8 @@ def render_page_builder_blocks(blocks):
             outer_div_tag = f'<div id="{block_id}" style="{outer_style}">'
         
         scale_style = f"transform: scale({scale_factor}); transform-origin: 50% 50%;"
-        inner_style = f"padding: {padding}px; box-sizing: border-box;"
+        v_padding = max(5, padding // 2)
+        inner_style = f"padding: {v_padding}px {padding}px; box-sizing: border-box;"
         
         if block_type == 'plain-text':
             text = preserve_html_tags(settings.get('text', ''))
@@ -282,7 +282,7 @@ def render_page_builder_blocks(blocks):
             text_style = f"white-space: pre-wrap; font-size: {font_size}px; font-weight: {weight}; text-align: {text_align}; color: {color}; line-height: {line_height}; font-style: {italic}; text-decoration: {underline};"
             html = f'{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}"><div style="{inner_style}"><p style="{text_style}">{text}</p></div></div></div></div>'
             html_parts.append(html)
-            print(f"DEBUG RENDER: Added plain-text block")  # Debug
+            print("DEBUG RENDER: Added plain-text block")  # Debug
             
         elif block_type == 'hero':
             title = preserve_html_tags(settings.get('title', ''))
@@ -317,10 +317,10 @@ def render_page_builder_blocks(blocks):
                 background_style = f"background-image: url('{safe_url}'); background-size: cover; background-position: center; background-repeat: no-repeat;"
             
             # Create image HTML with fixed width with smooth curved fade edge
-            image_html = f'<img src="{image_url}" style="width: 100%; height: 100%; max-height: 300px; object-fit: cover; display: block; clip-path: polygon(0% 100%, 0.4% 95%, 0.8% 90%, 1.2% 85%, 1.5% 80%, 1.8% 75%, 2.0% 70%, 2.1% 65%, 2.2% 60%, 2.3% 55%, 2.4% 50%, 2.3% 45%, 2.2% 40%, 2.1% 35%, 2.0% 30%, 1.8% 25%, 1.5% 20%, 1.2% 15%, 0.8% 10%, 0.4% 5%, 0% 0%, 100% 0%, 100% 100%); mask-image: radial-gradient(ellipse 25% 150% at 0% 50%, transparent 0%, rgba(0,0,0,0.05) 2%, rgba(0,0,0,0.15) 4%, rgba(0,0,0,0.3) 6%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.65) 10%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.92) 24%, rgba(0,0,0,0.95) 28%, rgba(0,0,0,0.97) 32%, rgba(0,0,0,0.99) 36%, rgba(0,0,0,1) 41%); -webkit-mask-image: radial-gradient(ellipse 25% 150% at 0% 50%, transparent 0%, rgba(0,0,0,0.05) 2%, rgba(0,0,0,0.15) 4%, rgba(0,0,0,0.3) 6%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.65) 10%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.92) 24%, rgba(0,0,0,0.95) 28%, rgba(0,0,0,0.97) 32%, rgba(0,0,0,0.99) 36%, rgba(0,0,0,1) 41%); transition: mask-image 0.3s ease-in-out;" />' if image_url else ''
+            image_html = f'<img src="{image_url}" style="width: 100%; height: 100%; max-height: 200px; object-fit: cover; display: block; clip-path: polygon(0% 100%, 0.4% 95%, 0.8% 90%, 1.2% 85%, 1.5% 80%, 1.8% 75%, 2.0% 70%, 2.1% 65%, 2.2% 60%, 2.3% 55%, 2.4% 50%, 2.3% 45%, 2.2% 40%, 2.1% 35%, 2.0% 30%, 1.8% 25%, 1.5% 20%, 1.2% 15%, 0.8% 10%, 0.4% 5%, 0% 0%, 100% 0%, 100% 100%); mask-image: radial-gradient(ellipse 25% 150% at 0% 50%, transparent 0%, rgba(0,0,0,0.05) 2%, rgba(0,0,0,0.15) 4%, rgba(0,0,0,0.3) 6%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.65) 10%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.92) 24%, rgba(0,0,0,0.95) 28%, rgba(0,0,0,0.97) 32%, rgba(0,0,0,0.99) 36%, rgba(0,0,0,1) 41%); -webkit-mask-image: radial-gradient(ellipse 25% 150% at 0% 50%, transparent 0%, rgba(0,0,0,0.05) 2%, rgba(0,0,0,0.15) 4%, rgba(0,0,0,0.3) 6%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.65) 10%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.92) 24%, rgba(0,0,0,0.95) 28%, rgba(0,0,0,0.97) 32%, rgba(0,0,0,0.99) 36%, rgba(0,0,0,1) 41%); transition: mask-image 0.3s ease-in-out;" />' if image_url else ''
             
             # Start with minimum height for hero section visibility
-            hero_min_height = "min-height: 300px;" if background_image_url else ""
+            hero_min_height = "min-height: 200px;" if background_image_url else ""
             
             html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; {background_style} color: white; border-radius: 12px; {hero_min_height}">
                 <div style="{inner_style}; display: flex; align-items: stretch; gap: 0; flex-wrap: nowrap; justify-content: flex-start; width: 100%; flex-direction: row; margin: 0; padding: 0;">
@@ -334,7 +334,7 @@ def render_page_builder_blocks(blocks):
                 </div>
             </div></div></div>'''
             html_parts.append(html)
-            print(f"DEBUG RENDER: Added hero block")  # Debug
+            print("DEBUG RENDER: Added hero block")  # Debug
             
         elif block_type == 'text-image':
             text = preserve_html_tags(settings.get('text', ''))
@@ -433,7 +433,7 @@ def render_page_builder_blocks(blocks):
                         </div>
                     </div></div></div>'''
                     html_parts.append(html)
-                    print(f"DEBUG YOUTUBE: Iframe HTML generated successfully")
+                    print("DEBUG YOUTUBE: Iframe HTML generated successfully")
                 else:
                     # Invalid video ID format
                     print(f"DEBUG YOUTUBE: Invalid video ID - showing error message. video_id='{video_id}', len={len(video_id) if video_id else 0}")
@@ -564,6 +564,104 @@ def render_page_builder_blocks(blocks):
                 
                 html_parts.append(html)
         
+        elif block_type == 'course-overview':
+            key_details_title = preserve_html_tags(settings.get('keyDetailsTitle', 'Key Details'))
+            hours_text = preserve_html_tags(settings.get('hoursText', ''))
+            modules_text = preserve_html_tags(settings.get('modulesText', ''))
+            bullet_items = settings.get('bulletItems', [])
+            schedule_title = preserve_html_tags(settings.get('scheduleTitle', 'Course Schedule'))
+            schedule_items = settings.get('scheduleItems', [])
+            padding_mobile = settings.get('paddingMobile', max(15, padding // 2))
+            width_mobile = settings.get('widthMobile', width_value)
+
+            icon_base = '/static/permanent/course%20overview'
+
+            # Map icon number to filename (transparent-bg PNGs; icon 6 has a space before (1))
+            icon_filenames = {
+                '1': 'icon_1_courses-removebg-preview.png',
+                '2': 'icon_2_courses-removebg-preview.png',
+                '3': 'icon_3_courses-removebg-preview.png',
+                '4': 'icon_4_courses-removebg-preview.png',
+                '5': 'icon_5_courses-removebg-preview.png',
+                '6': 'icon_6_courses-removebg-preview%20(1).png',
+            }
+
+            pill_style = (
+                'display:flex;align-items:center;gap:12px;'
+                'background:#f7ecd7;border-radius:50px;'
+                'padding:12px 20px;margin-bottom:12px;'
+                'box-shadow:0 2px 6px rgba(0,0,0,0.08);'
+            )
+            divider = '<div style="width:1.5px;height:28px;background:#c8d8b0;flex-shrink:0;margin:0 4px;"></div>'
+
+            # Hours + modules summary — built from separate icons so text scales freely
+            hours_modules_row = ''
+            if hours_text or modules_text:
+                clock_url = f'{icon_base}/clock_icon_course_overview-removebg-preview.png'
+                tick_url = f'{icon_base}/tick_icon_course_overview-removebg-preview%20(1).png'
+                hours_modules_row = f'''<div style="{pill_style}">
+                    <img src="{clock_url}" style="width:36px;height:36px;object-fit:contain;flex-shrink:0;">
+                    <span style="color:#3a4a28;font-size:15px;font-weight:600;white-space:nowrap;">{hours_text}</span>
+                    {divider}
+                    <img src="{tick_url}" style="width:34px;height:34px;object-fit:contain;flex-shrink:0;">
+                    <span style="color:#3a4a28;font-size:15px;font-weight:600;">{modules_text}</span>
+                </div>'''
+
+            # Bullet items — transparent-bg icons
+            bullet_rows = ''
+            for item in bullet_items:
+                icon_num = str(item.get('icon', '1'))
+                icon_file = icon_filenames.get(icon_num, icon_filenames['1'])
+                icon_url = f'{icon_base}/{icon_file}'
+                item_text = preserve_html_tags(item.get('text', ''))
+                bullet_rows += f'''<li style="display:flex;align-items:center;gap:12px;margin-bottom:10px;padding:6px 0;padding-left:12px;">
+                    <img src="{icon_url}" style="width:34px;height:34px;object-fit:contain;flex-shrink:0;">
+                    <span style="color:#3a4a28;font-size:15px;line-height:1.4;">{item_text}</span>
+                </li>'''
+
+            # Schedule entries — box icon + date text in pill row
+            schedule_rows = ''
+            box_url = f'{icon_base}/calendar_course_overview_icon-removebg-preview.png'
+            for item in schedule_items:
+                dates = preserve_html_tags(item.get('dates', ''))
+                schedule_rows += f'''<div style="{pill_style}">
+                    <img src="{box_url}" style="width:38px;height:38px;object-fit:contain;flex-shrink:0;">
+                    <span style="color:#3a4a28;font-size:15px;font-weight:500;">{dates}</span>
+                </div>'''
+
+            petal_open = f'{icon_base}/petals_opening-removebg-preview.png'
+            petal_close = f'{icon_base}/petals_closing_off-removebg-preview.png'
+            card_style = 'flex:1;min-width:260px;background:#f7ecd7;border-radius:20px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.08);'
+            header_style = 'font-size:17px;font-weight:700;color:#4a5a3a;margin:0 0 16px 0;display:flex;align-items:center;gap:8px;'
+
+            img_open = f'<img src="{petal_open}" style="width:22px;height:22px;object-fit:contain;">'
+            img_close = f'<img src="{petal_close}" style="width:22px;height:22px;object-fit:contain;">'
+
+            left_panel = f'''<div style="{card_style}">
+                <h3 style="{header_style}">
+                    {img_open} {key_details_title} {img_close}
+                </h3>
+                {hours_modules_row}
+                <ul style="list-style:none;padding:0;margin:0;">{bullet_rows}</ul>
+            </div>'''
+
+            right_panel = f'''<div style="{card_style}">
+                <h3 style="{header_style}">
+                    {img_open} {schedule_title} {img_close}
+                </h3>
+                {schedule_rows}
+            </div>'''
+
+            co_html = f'''<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+                {left_panel}
+                {right_panel}
+            </div>'''
+
+            mobile_css_rules.append(f'#{block_id} {{ padding: {padding_mobile}px; width: {width_mobile}%; }}')
+
+            html = f'{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}"><div style="{inner_style}">{co_html}</div></div></div></div>'
+            html_parts.append(html)
+
         # Increment block index for next block's unique ID
         block_index += 1
     

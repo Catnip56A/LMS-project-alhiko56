@@ -597,7 +597,21 @@ def auto_translate_page_builder(course, session=None):
             elif block_type == 'youtube':
                 # YouTube blocks don't need translation (only have embed info)
                 logger.warning("    ⊘ Skipping youtube block")
-            
+
+            elif block_type == 'course-overview':
+                for field in ['keyDetailsTitle', 'hoursText', 'modulesText', 'scheduleTitle']:
+                    if settings.get(field):
+                        fn = f'page_builder[{block_id}].{field}'
+                        translate_content('course', course.id, fn, settings[field], session=session)
+                for idx, item in enumerate(settings.get('bulletItems', [])):
+                    if item.get('text'):
+                        fn = f'page_builder[{block_id}].bulletItems[{idx}].text'
+                        translate_content('course', course.id, fn, item['text'], session=session)
+                for idx, item in enumerate(settings.get('scheduleItems', [])):
+                    if item.get('dates'):
+                        fn = f'page_builder[{block_id}].scheduleItems[{idx}].dates'
+                        translate_content('course', course.id, fn, item['dates'], session=session)
+
             elif block_type == 'carousel':
                 # Translate carousel items (titles and descriptions)
                 items = settings.get('items', [])
@@ -716,7 +730,37 @@ def get_translated_page_builder_data(course, target_language):
             elif block_type == 'youtube':
                 # YouTube blocks don't have translatable content
                 pass
-            
+
+            elif block_type == 'course-overview':
+                for field in ['keyDetailsTitle', 'hoursText', 'modulesText', 'scheduleTitle']:
+                    if settings.get(field):
+                        fn = f'page_builder[{block_id}].{field}'
+                        original = settings[field]
+                        translated = get_translated_content('course', course.id, fn, original, lang_code)
+                        if translated != original:
+                            settings[field] = translated
+                            blocks_with_translations += 1
+                bullet_items = settings.get('bulletItems', [])
+                if bullet_items:
+                    translated_bullets = []
+                    for idx, item in enumerate(bullet_items):
+                        new_item = item.copy()
+                        if item.get('text'):
+                            fn = f'page_builder[{block_id}].bulletItems[{idx}].text'
+                            new_item['text'] = get_translated_content('course', course.id, fn, item['text'], lang_code)
+                        translated_bullets.append(new_item)
+                    settings['bulletItems'] = translated_bullets
+                schedule_items = settings.get('scheduleItems', [])
+                if schedule_items:
+                    translated_schedule = []
+                    for idx, item in enumerate(schedule_items):
+                        new_item = item.copy()
+                        if item.get('dates'):
+                            fn = f'page_builder[{block_id}].scheduleItems[{idx}].dates'
+                            new_item['dates'] = get_translated_content('course', course.id, fn, item['dates'], lang_code)
+                        translated_schedule.append(new_item)
+                    settings['scheduleItems'] = translated_schedule
+
             elif block_type == 'carousel':
                 # Get translated carousel items
                 items = settings.get('items', [])

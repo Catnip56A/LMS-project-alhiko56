@@ -274,6 +274,9 @@
             <button class="block-type-btn" draggable="true" data-block-type="carousel">
                 <i class="fas fa-images"></i> Carousel
             </button>
+            <button class="block-type-btn" draggable="true" data-block-type="course-overview">
+                <i class="fas fa-th-list"></i> Course Overview
+            </button>
         </div>
         
         <!-- Main canvas -->
@@ -304,6 +307,8 @@
 <!-- Store initial page builder data in script to avoid HTML attribute escaping issues -->
 <script>
     const INITIAL_PAGE_BUILDER_DATA = {{ (page_builder_data or []) | tojson }};
+    const COURSE_ID = {{ course.id }};
+    const COURSE_OVERVIEW_ICON_BASE = '/static/permanent/course%20overview';
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -386,7 +391,8 @@ function getDefaultSettings(type) {
         'text-image': { text: 'Enter text here...', image: '', padding: '20', paddingMobile: '15', width: '100', widthMobile: '100', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
         'buttons': { buttons: [{ text: 'Button 1', url: '#', style: 'primary' }], padding: '20', paddingMobile: '15', width: '100', widthMobile: '100', buttonFontSize: '16', buttonFontSizeMobile: '14', buttonFontWeight: 'bold', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
         'youtube': { videoId: '', width: '100', widthMobile: '100', height: '400', heightMobile: '250', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
-        'carousel': { items: [{ image: '', title: 'Item 1', description: '' }], alignment: 'centered', padding: '20', paddingMobile: '15', width: '100', widthMobile: '100', autoplay: false, interval: 3000, itemTitleFontSize: '24', itemTitleFontSizeMobile: '18', itemTitleWeight: 'bold', itemDescriptionFontSize: '16', itemDescriptionFontSizeMobile: '12', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false }
+        'carousel': { items: [{ image: '', title: 'Item 1', description: '' }], alignment: 'centered', padding: '20', paddingMobile: '15', width: '100', widthMobile: '100', autoplay: false, interval: 3000, itemTitleFontSize: '24', itemTitleFontSizeMobile: '18', itemTitleWeight: 'bold', itemDescriptionFontSize: '16', itemDescriptionFontSizeMobile: '12', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
+        'course-overview': { keyDetailsTitle: 'Key Details', hoursText: '36 hours', modulesText: '6 Modules + practice', bulletItems: [{ icon: '1', text: 'Topic 1' }, { icon: '2', text: 'Topic 2' }], scheduleTitle: 'Course Schedule', scheduleItems: [{ dates: 'April – May' }], padding: '20', paddingMobile: '15', width: '100', widthMobile: '100', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false }
     };
     return defaults[type] || {};
 }
@@ -655,8 +661,138 @@ function renderBlockSettings(block) {
                 </div>
             `;
             break;
+        case 'course-overview': {
+            const coIcons = block.settings.bulletItems || [];
+            const coSched = block.settings.scheduleItems || [];
+
+            const CO_ICON_FILES = {
+                '1': 'icon_1_courses-removebg-preview.png',
+                '2': 'icon_2_courses-removebg-preview.png',
+                '3': 'icon_3_courses-removebg-preview.png',
+                '4': 'icon_4_courses-removebg-preview.png',
+                '5': 'icon_5_courses-removebg-preview.png',
+                '6': 'icon_6_courses-removebg-preview%20(1).png'
+            };
+            const coIconSelector = (bId, idx, selected) => {
+                let s = '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;">';
+                for (let n = 1; n <= 6; n++) {
+                    const isSel = String(selected) === String(n);
+                    const fname = CO_ICON_FILES[String(n)];
+                    s += `<img src="${COURSE_OVERVIEW_ICON_BASE}/${fname}"
+                               style="width:40px;height:40px;object-fit:contain;cursor:pointer;border-radius:6px;padding:2px;
+                                      border:${isSel ? '3px solid #337a2c' : '2px solid #dee2e6'};
+                                      background:${isSel ? '#f0f8f0' : '#fff'};"
+                               onclick="updateOverviewBullet('${bId}', ${idx}, 'icon', '${n}')">`;
+                }
+                s += '</div>';
+                return s;
+            };
+
+            let bulletHtml = '';
+            coIcons.forEach((item, idx) => {
+                bulletHtml += `
+                    <div style="background:#eee;padding:10px;border-radius:6px;margin-bottom:8px;">
+                        <p style="margin:0 0 5px;font-size:11px;color:#555;font-weight:600;">Bullet ${idx + 1}</p>
+                        ${coIconSelector(block.id, idx, item.icon || '1')}
+                        <div style="display:flex;gap:5px;align-items:center;">
+                            <input type="text" value="${escapeAttr(item.text || '')}" placeholder="Bullet text"
+                                   onchange="updateOverviewBullet('${block.id}', ${idx}, 'text', this.value)"
+                                   style="flex:1;padding:5px;border:1px solid #ccc;border-radius:3px;font-size:13px;">
+                            <button type="button" title="Translate"
+                                    onclick="translateBulletItem(this, '${block.id}', ${idx})"
+                                    style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;">🌐</button>
+                            <button type="button"
+                                    onclick="removeOverviewBullet('${block.id}', ${idx})"
+                                    style="background:#dc3545;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;">✕</button>
+                        </div>
+                    </div>`;
+            });
+
+            let schedHtml = '';
+            coSched.forEach((item, idx) => {
+                schedHtml += `
+                    <div style="display:flex;gap:5px;align-items:center;margin-bottom:6px;">
+                        <input type="text" value="${escapeAttr(item.dates || '')}" placeholder="e.g. April – May"
+                               onchange="updateScheduleEntry('${block.id}', ${idx}, this.value)"
+                               style="flex:1;padding:5px;border:1px solid #ccc;border-radius:3px;font-size:13px;">
+                        <button type="button" title="Translate"
+                                onclick="translateScheduleEntry(this, '${block.id}', ${idx})"
+                                style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;">🌐</button>
+                        <button type="button"
+                                onclick="removeScheduleEntry('${block.id}', ${idx})"
+                                style="background:#dc3545;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;">✕</button>
+                    </div>`;
+            });
+
+            const translateBtn = (inputId, subField) =>
+                `<button type="button" title="Translate"
+                         onclick="translateOverviewField(this, document.getElementById('${inputId}').value, '${block.id}', '${subField}')"
+                         style="background:#6c757d;color:#fff;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-size:12px;">🌐</button>`;
+
+            html += `
+                <div style="margin-bottom:14px;padding:12px;background:#e8f4e8;border-radius:8px;">
+                    <h5 style="margin:0 0 10px;color:#337a2c;">📋 Key Details Panel</h5>
+                    <div class="input-group-vertical">
+                        <label>Panel Title</label>
+                        <div style="display:flex;gap:6px;">
+                            <input type="text" id="co-kd-${block.id}"
+                                   value="${escapeAttr(block.settings.keyDetailsTitle || 'Key Details')}"
+                                   onchange="updateBlock('${block.id}', 'keyDetailsTitle', this.value)"
+                                   style="flex:1;">
+                            ${translateBtn('co-kd-' + block.id, 'keyDetailsTitle')}
+                        </div>
+                    </div>
+                    <div class="input-group-vertical">
+                        <label>Hours Text</label>
+                        <div style="display:flex;gap:6px;">
+                            <input type="text" id="co-hr-${block.id}"
+                                   value="${escapeAttr(block.settings.hoursText || '')}"
+                                   onchange="updateBlock('${block.id}', 'hoursText', this.value)"
+                                   style="flex:1;" placeholder="e.g. 36 hours">
+                            ${translateBtn('co-hr-' + block.id, 'hoursText')}
+                        </div>
+                    </div>
+                    <div class="input-group-vertical">
+                        <label>Modules Text</label>
+                        <div style="display:flex;gap:6px;">
+                            <input type="text" id="co-mod-${block.id}"
+                                   value="${escapeAttr(block.settings.modulesText || '')}"
+                                   onchange="updateBlock('${block.id}', 'modulesText', this.value)"
+                                   style="flex:1;" placeholder="e.g. 6 Modules + practice">
+                            ${translateBtn('co-mod-' + block.id, 'modulesText')}
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <label style="font-weight:600;display:block;margin-bottom:6px;">Bullet Points:</label>
+                        ${bulletHtml}
+                        <button type="button" onclick="addOverviewBullet('${block.id}')"
+                                style="background:#28a745;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;width:100%;margin-top:4px;">+ Add Bullet</button>
+                    </div>
+                </div>
+                <div style="margin-bottom:14px;padding:12px;background:#e8f4e8;border-radius:8px;">
+                    <h5 style="margin:0 0 10px;color:#337a2c;">📅 Course Schedule Panel</h5>
+                    <div class="input-group-vertical">
+                        <label>Panel Title</label>
+                        <div style="display:flex;gap:6px;">
+                            <input type="text" id="co-st-${block.id}"
+                                   value="${escapeAttr(block.settings.scheduleTitle || 'Course Schedule')}"
+                                   onchange="updateBlock('${block.id}', 'scheduleTitle', this.value)"
+                                   style="flex:1;">
+                            ${translateBtn('co-st-' + block.id, 'scheduleTitle')}
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <label style="font-weight:600;display:block;margin-bottom:6px;">Date Entries:</label>
+                        ${schedHtml}
+                        <button type="button" onclick="addScheduleEntry('${block.id}')"
+                                style="background:#28a745;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;width:100%;margin-top:4px;">+ Add Date</button>
+                    </div>
+                </div>
+            `;
+            break;
+        }
     }
-    
+
     // Size controls for all blocks
     if (block.type !== 'youtube') {
         html += `
@@ -822,6 +958,11 @@ function renderBlockPreview(block) {
             const itemCount = block.settings.items ? block.settings.items.length : 0;
             preview += `🎠 Carousel (${itemCount} items, ${block.settings.alignment})`;
             break;
+        case 'course-overview':
+            const bCount = (block.settings.bulletItems || []).length;
+            const sCount = (block.settings.scheduleItems || []).length;
+            preview += `📋 Course Overview — ${bCount} topic(s), ${sCount} schedule date(s)`;
+            break;
     }
     
     preview += '</div>';
@@ -836,7 +977,8 @@ function getBlockIcon(type) {
         'text-image': '📄',
         'buttons': '🔘',
         'youtube': '▶️',
-        'carousel': '🎠'
+        'carousel': '🎠',
+        'course-overview': '📋'
     };
     return icons[type] || '📦';
 }
@@ -849,7 +991,8 @@ function getBlockLabel(type) {
         'text-image': 'Text + Image',
         'buttons': 'Buttons',
         'youtube': 'YouTube Video',
-        'carousel': 'Carousel'
+        'carousel': 'Carousel',
+        'course-overview': 'Course Overview'
     };
     return labels[type] || type;
 }
@@ -931,6 +1074,102 @@ function deleteCarouselItem(blockId, itemIndex) {
         renderBlocks();
         saveJSON();
     }
+}
+
+// Escape a string for use in an HTML attribute value
+function escapeAttr(str) {
+    return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Course Overview — bullet items
+function addOverviewBullet(blockId) {
+    const block = blocks.find(b => b.id === blockId);
+    if (block) {
+        if (!block.settings.bulletItems) block.settings.bulletItems = [];
+        block.settings.bulletItems.push({ icon: '1', text: '' });
+        renderBlocks(); saveJSON();
+    }
+}
+function removeOverviewBullet(blockId, idx) {
+    const block = blocks.find(b => b.id === blockId);
+    if (block && block.settings.bulletItems) {
+        block.settings.bulletItems.splice(idx, 1);
+        renderBlocks(); saveJSON();
+    }
+}
+function updateOverviewBullet(blockId, idx, field, value) {
+    const block = blocks.find(b => b.id === blockId);
+    if (block && block.settings.bulletItems && block.settings.bulletItems[idx] !== undefined) {
+        block.settings.bulletItems[idx][field] = value;
+        renderBlocks(); saveJSON();
+    }
+}
+
+// Course Overview — schedule entries
+function addScheduleEntry(blockId) {
+    const block = blocks.find(b => b.id === blockId);
+    if (block) {
+        if (!block.settings.scheduleItems) block.settings.scheduleItems = [];
+        block.settings.scheduleItems.push({ dates: '' });
+        renderBlocks(); saveJSON();
+    }
+}
+function removeScheduleEntry(blockId, idx) {
+    const block = blocks.find(b => b.id === blockId);
+    if (block && block.settings.scheduleItems) {
+        block.settings.scheduleItems.splice(idx, 1);
+        renderBlocks(); saveJSON();
+    }
+}
+function updateScheduleEntry(blockId, idx, value) {
+    const block = blocks.find(b => b.id === blockId);
+    if (block && block.settings.scheduleItems && block.settings.scheduleItems[idx] !== undefined) {
+        block.settings.scheduleItems[idx].dates = value;
+        renderBlocks(); saveJSON();
+    }
+}
+
+// Course Overview — translation helpers
+function _doTranslate(btn, text, fieldName) {
+    btn.disabled = true;
+    const origContent = btn.textContent;
+    btn.textContent = '…';
+    fetch('/api/translate/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, content_type: 'course', content_id: COURSE_ID, field_name: fieldName })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            btn.textContent = '✓'; btn.style.background = '#28a745';
+        } else {
+            btn.textContent = '✗'; btn.style.background = '#dc3545';
+            console.error('Translation error:', data.error);
+        }
+    })
+    .catch(() => { btn.textContent = '✗'; btn.style.background = '#dc3545'; })
+    .finally(() => setTimeout(() => {
+        btn.disabled = false; btn.textContent = origContent; btn.style.background = '#6c757d';
+    }, 2000));
+}
+function translateOverviewField(btn, text, blockId, subField) {
+    if (!text || !text.trim()) return;
+    _doTranslate(btn, text, 'page_builder[' + blockId + '].' + subField);
+}
+function translateBulletItem(btn, blockId, idx) {
+    const block = blocks.find(b => b.id === blockId);
+    if (!block || !block.settings.bulletItems || !block.settings.bulletItems[idx]) return;
+    const text = block.settings.bulletItems[idx].text;
+    if (!text || !text.trim()) return;
+    _doTranslate(btn, text, 'page_builder[' + blockId + '].bulletItems[' + idx + '].text');
+}
+function translateScheduleEntry(btn, blockId, idx) {
+    const block = blocks.find(b => b.id === blockId);
+    if (!block || !block.settings.scheduleItems || !block.settings.scheduleItems[idx]) return;
+    const text = block.settings.scheduleItems[idx].dates;
+    if (!text || !text.trim()) return;
+    _doTranslate(btn, text, 'page_builder[' + blockId + '].scheduleItems[' + idx + '].dates');
 }
 
 // Initialize sortable
