@@ -183,6 +183,35 @@
         color: #777;
     }
 
+    /* Pre-made message chips */
+    .premade-label {
+        font-size: 0.78rem;
+        color: #777;
+        margin-bottom: 0.4rem;
+        margin-top: 0.1rem;
+    }
+    .premade-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-bottom: 0.7rem;
+    }
+    .premade-chip {
+        padding: 0.3rem 0.75rem;
+        border: 1.5px solid #b5d5b0;
+        border-radius: 20px;
+        background: #f0f8ee;
+        color: #1e5919;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+        line-height: 1.4;
+    }
+    .premade-chip:hover {
+        background: #ddf0d8;
+        border-color: #337a2c;
+    }
+
     /* Form fields */
     .field-group {
         margin-bottom: 1.2rem;
@@ -642,6 +671,8 @@
       <div class="step-title" id="step6-title">Additional message</div>
       <div class="field-group">
         <label id="label-message">Your message (optional)</label>
+        <p class="premade-label" id="premade-label">Quick templates — click to use:</p>
+        <div class="premade-chips" id="premade-chips"></div>
         <textarea id="input-message" maxlength="1000" rows="5" placeholder="Any additional information..."></textarea>
         <div class="char-counter" id="msg-counter">0 / 1000</div>
       </div>
@@ -734,6 +765,14 @@ const T = {
     medYes: 'Yes — details will be clarified in chat',
     medNo: 'No',
     langName: 'English',
+    premadeLabel: 'Quick templates — click to use:',
+    premadeMessages: [
+      'I would like to schedule an initial consultation.',
+      'Please contact me to discuss available time slots.',
+      'I have questions about the cost of your services.',
+      'I need more information about your programs.',
+      'I would like to know more about group sessions.',
+    ],
   },
   ru: {
     cardTitle: 'Yonca — Центр поддержки и развития',
@@ -797,6 +836,14 @@ const T = {
     medYes: 'Да — подробности уточним в чате',
     medNo: 'Нет',
     langName: 'Русский',
+    premadeLabel: 'Быстрые шаблоны — нажмите для использования:',
+    premadeMessages: [
+      'Хочу записаться на первичную консультацию.',
+      'Пожалуйста, свяжитесь со мной для обсуждения удобного времени.',
+      'У меня есть вопросы о стоимости ваших услуг.',
+      'Хочу получить больше информации о ваших программах.',
+      'Хотел(а) бы узнать подробнее о групповых занятиях.',
+    ],
   },
   az: {
     cardTitle: 'Yonca Dəstək və İnkişaf Mərkəzi',
@@ -860,6 +907,14 @@ const T = {
     medYes: 'Bəli — söhbətdə aydınlaşdırılacaq',
     medNo: 'Xeyr',
     langName: 'Azərbaycan dili',
+    premadeLabel: 'Hazır şablonlar — istifadə etmək üçün klikləyin:',
+    premadeMessages: [
+      'İlkin məsləhət üçün qeydiyyat etmək istəyirəm.',
+      'Əlverişli vaxt barədə müzakirə etmək üçün mənimlə əlaqə saxlayın.',
+      'Xidmətlərinizin qiyməti barədə suallarım var.',
+      'Proqramlarınız haqqında daha çox məlumat almaq istəyirəm.',
+      'Qrup dərslər haqqında ətraflı məlumat almaq istəyirdim.',
+    ],
   }
 };
 
@@ -868,6 +923,24 @@ let lang = 'en';
 function getLang() {
   const r = document.querySelector('input[name=lang]:checked');
   return r ? r.value : 'en';
+}
+
+function renderPremadeChips(messages) {
+  const container = document.getElementById('premade-chips');
+  container.innerHTML = '';
+  messages.forEach(msg => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'premade-chip';
+    btn.textContent = msg;
+    btn.addEventListener('click', () => {
+      const ta = document.getElementById('input-message');
+      ta.value = msg;
+      ta.dispatchEvent(new Event('input'));
+      ta.focus();
+    });
+    container.appendChild(btn);
+  });
 }
 
 function applyLang(l) {
@@ -909,6 +982,9 @@ function applyLang(l) {
 
   document.getElementById('submit-btn-text').textContent = t.submitBtn;
 
+  document.getElementById('premade-label').textContent = t.premadeLabel;
+  renderPremadeChips(t.premadeMessages);
+
   // Error messages
   document.getElementById('lang-error').textContent = t.errSelectLang;
   document.getElementById('reason-error').textContent = t.errSelectOption;
@@ -928,7 +1004,7 @@ function applyLang(l) {
     if (el) el.textContent = f;
   });
 
-  // Back/Next buttons in all steps
+  // Back/Next buttons
   document.querySelectorAll('.btn-back').forEach(b => b.textContent = t.backBtn);
   document.querySelectorAll('.btn-next').forEach(b => b.textContent = t.nextBtn);
 }
