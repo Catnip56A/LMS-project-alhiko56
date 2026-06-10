@@ -275,8 +275,9 @@ def render_page_builder_blocks(blocks):
             
             # Collect mobile CSS for this block
             mobile_css_rules.append(f"""
-                #{block_id} {{ padding: {padding_mobile}px; width: {width_mobile}%; }}
-                #{block_id} p {{ font-size: {font_size_mobile}px; }}
+                #{block_id} > div {{ width: {width_mobile}% !important; }}
+                #{block_id} > div > div > div {{ padding: {padding_mobile}px !important; }}
+                #{block_id} p {{ font-size: {font_size_mobile}px !important; }}
             """)
             
             text_style = f"white-space: pre-wrap; font-size: {font_size}px; font-weight: {weight}; text-align: {text_align}; color: {color}; line-height: {line_height}; font-style: {italic}; text-decoration: {underline};"
@@ -315,13 +316,11 @@ def render_page_builder_blocks(blocks):
 
             # Collect mobile CSS for this block
             mobile_css_rules.append(f"""
-                #{block_id} {{ padding: {padding_mobile}px; width: {width_mobile}%; }}
-                #{block_id} h1 {{ font-size: {title_font_size_mobile}px; }}
-                #{block_id} p {{ font-size: {subtitle_font_size_mobile}px; }}
-                @media (max-width: 768px) {{
-                    #{block_id} > div > div {{ flex-direction: column; }}
-                    #{block_id} > div > div > div {{ width: 100% !important; }}
-                }}
+                #{block_id} > div {{ width: {width_mobile}% !important; }}
+                #{block_id} > div > div > div {{ flex-direction: column !important; padding: {padding_mobile}px !important; }}
+                #{block_id} > div > div > div > div {{ width: 100% !important; padding-right: 0 !important; }}
+                #{block_id} h1 {{ font-size: {title_font_size_mobile}px !important; }}
+                #{block_id} p {{ font-size: {subtitle_font_size_mobile}px !important; }}
             """)
 
             bg_type = settings.get('bgType', 'image')
@@ -369,9 +368,10 @@ def render_page_builder_blocks(blocks):
             
             # Collect mobile CSS for this block
             mobile_css_rules.append(f"""
-                #{block_id} {{ padding: {padding_mobile}px; width: {width_mobile}%; }}
+                #{block_id} > div {{ width: {width_mobile}% !important; }}
+                #{block_id} > div > div > div {{ padding: {padding_mobile}px !important; }}
             """)
-            
+
             if not image_url:
                 # Just show text if no image
                 html = f'{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}"><div style="{inner_style}"><p style="white-space: pre-wrap; line-height: 1.6;">{text}</p></div></div></div></div>'
@@ -392,8 +392,9 @@ def render_page_builder_blocks(blocks):
             
             # Collect mobile CSS for this block
             mobile_css_rules.append(f"""
-                #{block_id} {{ padding: {padding_mobile}px; width: {width_mobile}%; }}
-                #{block_id} a {{ font-size: {button_font_size_mobile}px; }}
+                #{block_id} > div {{ width: {width_mobile}% !important; }}
+                #{block_id} > div > div > div {{ padding: {padding_mobile}px !important; }}
+                #{block_id} a {{ font-size: {button_font_size_mobile}px !important; }}
             """)
             
             buttons_html = '<div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">'
@@ -429,8 +430,9 @@ def render_page_builder_blocks(blocks):
             
             # Collect mobile CSS for this block
             mobile_css_rules.append(f"""
-                #{block_id} {{ padding: {padding_mobile}px; width: {width_mobile}%; }}
-                #{block_id} iframe {{ height: {height_mobile}px; }}
+                #{block_id} > div {{ width: {width_mobile}% !important; }}
+                #{block_id} > div > div > div {{ padding: {padding_mobile}px !important; }}
+                #{block_id} iframe {{ height: {height_mobile}px !important; }}
             """)
             
             print(f"DEBUG YOUTUBE: video_id_input = '{video_id_input}', height = {height}")
@@ -486,9 +488,10 @@ def render_page_builder_blocks(blocks):
             
             # Collect mobile CSS for this block
             mobile_css_rules.append(f"""
-                #{block_id} {{ padding: {padding_mobile}px; width: {width_mobile}%; }}
-                #{block_id} h3 {{ font-size: {item_title_font_size_mobile}px; }}
-                #{block_id} p {{ font-size: {item_description_font_size_mobile}px; }}
+                #{block_id} > div {{ width: {width_mobile}% !important; }}
+                #{block_id} > div > div > div {{ padding: {padding_mobile}px !important; }}
+                #{block_id} h3 {{ font-size: {item_title_font_size_mobile}px !important; }}
+                #{block_id} p {{ font-size: {item_description_font_size_mobile}px !important; }}
             """)
             
             if items:
@@ -682,7 +685,10 @@ def render_page_builder_blocks(blocks):
                 {right_panel}
             </div>'''
 
-            mobile_css_rules.append(f'#{block_id} {{ padding: {padding_mobile}px; width: {width_mobile}%; }}')
+            mobile_css_rules.append(
+                f'#{block_id} > div {{ width: {width_mobile}% !important; }}\n'
+                f'#{block_id} > div > div > div {{ padding: {padding_mobile}px !important; }}'
+            )
 
             html = f'{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}"><div style="{inner_style}">{co_html}</div></div></div></div>'
             html_parts.append(html)
