@@ -837,6 +837,6 @@ def render_page_builder_blocks(blocks):
     # Wrap all blocks in a positioned container so absolutely positioned elements
     # are positioned relative to this container, not the window
     content_html = '\n'.join(html_parts) + carousel_script + mobile_css
-    wrapped_html = f'<div style="position: relative; width: 100%; min-height: 600px; box-sizing: border-box;">{content_html}</div>'
+    wrapped_html = f'<div style="position: relative; width: 100%; min-height: 600px; box-sizing: border-box; zoom: 0.65;">{content_html}</div>'
     
     return wrapped_html
