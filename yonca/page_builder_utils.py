@@ -140,6 +140,8 @@ def render_page_builder_blocks(blocks):
     print(f"DEBUG RENDER: Processing {len(blocks)} blocks")  # Debug
     html_parts = []
     mobile_css_rules = []  # Collect mobile responsive CSS rules
+    wide_mobile_css_rules = []  # Rules for 870px breakpoint (course-overview stacking)
+    narrow_css_rules = []  # Rules for 480px breakpoint (hours/modules stacking)
     block_index = 0  # Track block index for unique IDs
     
     for block in blocks:
@@ -616,23 +618,27 @@ def render_page_builder_blocks(blocks):
 
             pill_style = (
                 'display:flex;align-items:center;gap:12px;'
-                'background:#f7ecd7;border-radius:50px;'
+                'background:#F9EDD7;border-radius:50px;'
                 'padding:12px 20px;margin-bottom:12px;'
                 'box-shadow:0 2px 6px rgba(0,0,0,0.08);'
             )
-            divider = '<div style="width:1.5px;height:28px;background:#c8d8b0;flex-shrink:0;margin:0 4px;"></div>'
+
 
             # Hours + modules summary — built from separate icons so text scales freely
             hours_modules_row = ''
             if hours_text or modules_text:
                 clock_url = f'{icon_base}/clock_icon_course_overview-removebg-preview.png'
                 tick_url = f'{icon_base}/tick_icon_course_overview-removebg-preview%20(1).png'
-                hours_modules_row = f'''<div style="{pill_style}">
-                    <img src="{clock_url}" style="width:36px;height:36px;object-fit:contain;flex-shrink:0;">
-                    <span style="color:#3a4a28;font-size:15px;font-weight:600;white-space:nowrap;">{hours_text}</span>
-                    {divider}
-                    <img src="{tick_url}" style="width:34px;height:34px;object-fit:contain;flex-shrink:0;">
-                    <span style="color:#3a4a28;font-size:15px;font-weight:600;">{modules_text}</span>
+                hours_modules_row = f'''<div id="{block_id}-hm" style="{pill_style}">
+                    <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+                        <img src="{clock_url}" style="width:36px;height:36px;object-fit:contain;flex-shrink:0;">
+                        <span style="color:#3a4a28;font-size:15px;font-weight:600;white-space:nowrap;">{hours_text}</span>
+                    </div>
+                    <div id="{block_id}-hm-divider" style="width:1.5px;height:28px;background:#c8d8b0;flex-shrink:0;margin:0 4px;"></div>
+                    <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+                        <img src="{tick_url}" style="width:34px;height:34px;object-fit:contain;flex-shrink:0;">
+                        <span style="color:#3a4a28;font-size:15px;font-weight:600;">{modules_text}</span>
+                    </div>
                 </div>'''
 
             # Bullet items — transparent-bg icons
@@ -659,7 +665,7 @@ def render_page_builder_blocks(blocks):
 
             petal_open = f'{icon_base}/petals_opening-removebg-preview.png'
             petal_close = f'{icon_base}/petals_closing_off-removebg-preview.png'
-            card_style = 'flex:1;min-width:260px;background:#f7ecd7;border-radius:20px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.08);'
+            card_style = 'flex:1 1 calc(50% - 10px);min-width:0;box-sizing:border-box;background:#F9EDD7;border-radius:20px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.08);'
             header_style = 'font-size:17px;font-weight:700;color:#4a5a3a;margin:0 0 16px 0;display:flex;align-items:center;gap:8px;'
 
             img_open = f'<img src="{petal_open}" style="width:22px;height:22px;object-fit:contain;">'
@@ -688,6 +694,13 @@ def render_page_builder_blocks(blocks):
             mobile_css_rules.append(
                 f'#{block_id} > div {{ width: {width_mobile}% !important; }}\n'
                 f'#{block_id} > div > div > div {{ padding: {padding_mobile}px !important; }}'
+            )
+            wide_mobile_css_rules.append(
+                f'#{block_id} > div > div > div > div > div {{ flex: 1 1 100% !important; }}'
+            )
+            narrow_css_rules.append(
+                f'#{block_id}-hm {{ flex-direction: column !important; align-items: flex-start !important; }}\n'
+                f'#{block_id}-hm-divider {{ display: none !important; }}'
             )
 
             html = f'{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}"><div style="{inner_style}">{co_html}</div></div></div></div>'
@@ -800,7 +813,27 @@ def render_page_builder_blocks(blocks):
         }}
         </style>
         """
-    
+
+    if wide_mobile_css_rules:
+        wide_mobile_css_content = "\n".join(wide_mobile_css_rules)
+        mobile_css += f"""
+        <style>
+        @media (max-width: 870px) {{
+            {wide_mobile_css_content}
+        }}
+        </style>
+        """
+
+    if narrow_css_rules:
+        narrow_css_content = "\n".join(narrow_css_rules)
+        mobile_css += f"""
+        <style>
+        @media (max-width: 770px) {{
+            {narrow_css_content}
+        }}
+        </style>
+        """
+
     # Wrap all blocks in a positioned container so absolutely positioned elements
     # are positioned relative to this container, not the window
     content_html = '\n'.join(html_parts) + carousel_script + mobile_css
