@@ -5,7 +5,6 @@ from flask_babel import get_locale, force_locale
 from flask_login import current_user, login_required
 from yonca.models import HomeContent
 from werkzeug.utils import secure_filename
-from yonca.content_translator import get_translated_page_builder_data
 import os
 from datetime import datetime as dt
 
@@ -149,15 +148,9 @@ def course_description_page(course_id):
     home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
     reviews = CourseReview.query.filter_by(course_id=course.id).order_by(CourseReview.created_at.desc()).all()
     
-    # Get translated page builder data for current locale
     current_locale = str(get_locale())  # Convert Locale object to string
-    page_builder_data_translated = None
-    try:
-        if course.page_builder_data:
-            page_builder_data_translated = get_translated_page_builder_data(course, current_locale)
-    except Exception as e:
-        print(f"[WARNING] Failed to get translated page builder data: {e}")
-    
+    page_builder_data_translated = course.page_builder_data or []
+
     # Get translated title and subtitle
     translated_title = get_translated_content('course', course.id, 'page_welcome_title', course.page_welcome_title or course.title, current_locale)
     translated_subtitle = get_translated_content('course', course.id, 'page_subtitle', course.page_subtitle, current_locale)
@@ -1339,16 +1332,9 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
     # GET request - render the page
-    # Get translated page builder data for current locale
     from flask_babel import get_locale
     current_locale = str(get_locale())
-    page_builder_data_translated = None
-    try:
-        if course.page_builder_data:
-            from yonca.content_translator import get_translated_page_builder_data
-            page_builder_data_translated = get_translated_page_builder_data(course, current_locale)
-    except Exception as e:
-        print(f"[WARNING] Failed to get translated page builder data: {e}")
+    page_builder_data_translated = course.page_builder_data or []
     
     # Get translated title and subtitle
     from yonca.content_translator import get_translated_content, get_translated_json_array

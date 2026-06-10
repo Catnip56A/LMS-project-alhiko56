@@ -260,7 +260,7 @@ def translate_string_array(content_type, content_id, field_name, string_array, s
 def auto_translate_course(course, session=None):
     """Automatically translate all translatable fields of a course."""
     fields = TRANSLATABLE_FIELDS.get('course', [])
-    
+
     for field in fields:
         text = getattr(course, field, None)
         if text:
@@ -269,14 +269,13 @@ def auto_translate_course(course, session=None):
                 translate_string_array('course', course.id, field, text, session=session)
             else:
                 translate_content('course', course.id, field, text, session=session)
-    
+
     # Translate dropdown menu items
     if course.dropdown_menu:
         translate_json_array('course', course.id, 'dropdown_menu', course.dropdown_menu, 'text', session=session)
     # Translate page features
     if course.page_features:
         translate_json_array('course', course.id, 'page_features', course.page_features, session=session)
-
     # DO NOT translate course content or folders when translating course from admin panel
     # (Intentionally left blank)
 

@@ -963,37 +963,20 @@ class CourseView(SecureModelView):
             print("DEBUG PAGE_BUILDER: Handling POST request")  # ADDED
             try:
                 import json
-                from yonca.content_translator import auto_translate_page_builder
                 page_builder_data = request.form.get('page_builder_data', '[]')
                 print(f"DEBUG PAGE_BUILDER: Received page_builder_data: {page_builder_data[:100]}...")  # Debug log
-                
+
                 # Validate JSON
                 parsed_data = json.loads(page_builder_data)
                 print(f"DEBUG: Parsed JSON successfully, blocks count: {len(parsed_data)}")  # Debug log
-                print(f"DEBUG: Course ID: {course.id}, Current page_builder_data: {course.page_builder_data}")  # Debug
-                
+
                 # Update the course
                 course.page_builder_data = parsed_data
-                print(f"DEBUG: Updated course.page_builder_data to: {course.page_builder_data}")  # Debug
-                
-                # Make sure the session recognizes the change
                 db.session.add(course)
                 db.session.commit()
                 print(f"DEBUG: Committed to database")  # Debug log
-                
-                # Verify the save
-                db.session.refresh(course)
-                print(f"DEBUG: Refreshed course, page_builder_data now: {course.page_builder_data}")  # Debug
-                print(f"DEBUG: Type of page_builder_data: {type(course.page_builder_data)}")  # Debug type
-                print(f"DEBUG: Length of page_builder_data: {len(course.page_builder_data) if course.page_builder_data else 0}")  # Debug length
-                
-                # Auto-translate page builder content
-                print("DEBUG: Starting auto-translation for page builder content...")
-                auto_translate_page_builder(course, db.session)
-                db.session.commit()
-                print("DEBUG: Auto-translation complete and committed")
-                
-                flash('Page builder content saved and translated successfully!', 'success')
+
+                flash('Page builder content saved successfully!', 'success')
                 # Redirect back to page builder by refreshing the current page
                 return redirect(f'/admin/course/page_builder/?course_id={course_id}')
                 
