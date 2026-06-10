@@ -266,18 +266,7 @@ function removeFeature(button) {
     featureCount = items.length;
 }
 
-// Add default features if none exist
 document.addEventListener('DOMContentLoaded', function() {
-    if (featureCount === 0) {
-        addFeature();
-        // Set default values for the first feature
-        const firstFeature = document.querySelector('#courseFeatures .menu-item');
-        if (firstFeature) {
-            firstFeature.querySelector('input[name*="title"]').value = 'Interactive Learning';
-            firstFeature.querySelector('textarea[name*="desc"]').value = 'Engage with dynamic course content and interactive exercises.';
-        }
-    }
-
     // Feature image upload functions
     window.updateFileStatus = function(index) {
         const fileInput = document.getElementById(`feature_file_${index}`);

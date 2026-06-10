@@ -1544,6 +1544,11 @@ def about():
                          is_authenticated=current_user.is_authenticated, 
                          home_content=home_content, initial_page='about')
 
+@main_bp.route('/contact')
+def contact():
+    home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
+    return render_template('contact.html', home_content=home_content)
+
 @main_bp.route('/terms')
 def terms():
     """Serve terms of service page"""
