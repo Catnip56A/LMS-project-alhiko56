@@ -569,7 +569,7 @@ def auto_translate_page_builder(course, session=None):
                     translate_content('course', course.id, field_name, settings['text'], session=session)
             
             elif block_type == 'hero':
-                # Translate hero title and subtitle
+                # Translate hero title, subtitle, and optional button text
                 if settings.get('title'):
                     field_name = f'page_builder[{block_id}].title'
                     logger.warning(f"    → Translating hero title: {settings['title']}")
@@ -578,6 +578,10 @@ def auto_translate_page_builder(course, session=None):
                     field_name = f'page_builder[{block_id}].subtitle'
                     logger.warning(f"    → Translating hero subtitle: {settings['subtitle']}")
                     translate_content('course', course.id, field_name, settings['subtitle'], session=session)
+                if settings.get('showButton') and settings.get('buttonText'):
+                    field_name = f'page_builder[{block_id}].buttonText'
+                    logger.warning(f"    → Translating hero button text: {settings['buttonText']}")
+                    translate_content('course', course.id, field_name, settings['buttonText'], session=session)
             
             elif block_type == 'text-image':
                 # Translate text + image content
@@ -691,7 +695,7 @@ def get_translated_page_builder_data(course, target_language):
                         blocks_with_translations += 1
             
             elif block_type == 'hero':
-                # Get translated title and subtitle
+                # Get translated title, subtitle, and optional button text
                 if settings.get('title'):
                     field_name = f'page_builder[{block_id}].title'
                     original_title = settings['title']
@@ -700,7 +704,7 @@ def get_translated_page_builder_data(course, target_language):
                         logger.warning("  ✓ Found translation for hero title")
                         settings['title'] = translated_title
                         blocks_with_translations += 1
-                
+
                 if settings.get('subtitle'):
                     field_name = f'page_builder[{block_id}].subtitle'
                     original_subtitle = settings['subtitle']
@@ -708,6 +712,14 @@ def get_translated_page_builder_data(course, target_language):
                     if translated_subtitle != original_subtitle:
                         logger.warning("  ✓ Found translation for hero subtitle")
                         settings['subtitle'] = translated_subtitle
+
+                if settings.get('showButton') and settings.get('buttonText'):
+                    field_name = f'page_builder[{block_id}].buttonText'
+                    original_btn = settings['buttonText']
+                    translated_btn = get_translated_content('course', course.id, field_name, original_btn, lang_code)
+                    if translated_btn != original_btn:
+                        logger.warning("  ✓ Found translation for hero button text")
+                        settings['buttonText'] = translated_btn
             
             elif block_type == 'text-image':
                 # Get translated text content

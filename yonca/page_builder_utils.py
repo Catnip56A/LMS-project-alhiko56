@@ -290,14 +290,29 @@ def render_page_builder_blocks(blocks):
             image_url = extract_google_drive_id(settings.get('image', ''))
             background_image_url = extract_google_drive_id(settings.get('backgroundImage', ''))
             title_font_size = settings.get('titleFontSize', '48')
-            title_font_size_mobile = settings.get('titleFontSizeMobile', title_font_size)  # Mobile variant
+            title_font_size_mobile = settings.get('titleFontSizeMobile', title_font_size)
             title_weight = settings.get('titleWeight', 'bold')
             subtitle_font_size = settings.get('subtitleFontSize', '24')
-            subtitle_font_size_mobile = settings.get('subtitleFontSizeMobile', subtitle_font_size)  # Mobile variant
+            subtitle_font_size_mobile = settings.get('subtitleFontSizeMobile', subtitle_font_size)
             subtitle_color = settings.get('subtitleColor', '#ffffff')
-            padding_mobile = settings.get('paddingMobile', max(15, padding // 2))  # Reduce padding on mobile
+            show_button = settings.get('showButton', False)
+            button_text = preserve_html_tags(settings.get('buttonText', 'Enroll Now'))
+            button_url = settings.get('buttonUrl', '#')
+            padding_mobile = settings.get('paddingMobile', max(15, padding // 2))
             width_mobile = settings.get('widthMobile', width)
-            
+
+            # Button HTML — brand pill image with text overlay
+            button_html = ''
+            if show_button:
+                brand_btn_img = '/static/permanent/contact%20us%20button.png'
+                button_html = f'''<a href="{button_url}" style="position: relative; display: inline-block; text-decoration: none; margin-top: 20px; transition: transform 0.1s ease, filter 0.1s ease;"
+                    onmousedown="this.style.transform='translateY(3px) scale(0.97)'; this.style.filter='brightness(0.8)';"
+                    onmouseup="this.style.transform=''; this.style.filter='';"
+                    onmouseleave="this.style.transform=''; this.style.filter='';">
+                    <img src="{brand_btn_img}" style="height: 54px; width: auto; display: block;" />
+                    <span style="position: absolute; top: 50%; left: 56%; transform: translate(-50%, -50%); color: #fffcf0; font-weight: bold; font-size: 16px; white-space: nowrap; text-shadow: 1px 1px 2px rgba(0,0,0,0.4);">{button_text}</span>
+                </a>'''
+
             # Collect mobile CSS for this block
             mobile_css_rules.append(f"""
                 #{block_id} {{ padding: {padding_mobile}px; width: {width_mobile}%; }}
@@ -308,27 +323,37 @@ def render_page_builder_blocks(blocks):
                     #{block_id} > div > div > div {{ width: 100% !important; }}
                 }}
             """)
-            
-            # Create background image style if provided, properly encode URL
+
+            bg_type = settings.get('bgType', 'image')
             background_style = ''
-            if background_image_url:
-                # Properly encode URL for CSS context while preserving URL structure
+            if bg_type == 'color':
+                bg_color = settings.get('backgroundColor', '#337a2c')
+                background_style = f"background-color: {bg_color};"
+            elif background_image_url:
                 safe_url = urllib.parse.quote(background_image_url, safe=':/?#[]@!$&\'()*+,;=.-_~')
                 background_style = f"background-image: url('{safe_url}'); background-size: cover; background-position: center; background-repeat: no-repeat;"
-            
-            # Create image HTML with fixed width with smooth curved fade edge
-            image_html = f'<img src="{image_url}" style="width: 100%; height: 100%; max-height: 200px; object-fit: cover; display: block; clip-path: polygon(0% 100%, 0.4% 95%, 0.8% 90%, 1.2% 85%, 1.5% 80%, 1.8% 75%, 2.0% 70%, 2.1% 65%, 2.2% 60%, 2.3% 55%, 2.4% 50%, 2.3% 45%, 2.2% 40%, 2.1% 35%, 2.0% 30%, 1.8% 25%, 1.5% 20%, 1.2% 15%, 0.8% 10%, 0.4% 5%, 0% 0%, 100% 0%, 100% 100%); mask-image: radial-gradient(ellipse 25% 150% at 0% 50%, transparent 0%, rgba(0,0,0,0.05) 2%, rgba(0,0,0,0.15) 4%, rgba(0,0,0,0.3) 6%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.65) 10%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.92) 24%, rgba(0,0,0,0.95) 28%, rgba(0,0,0,0.97) 32%, rgba(0,0,0,0.99) 36%, rgba(0,0,0,1) 41%); -webkit-mask-image: radial-gradient(ellipse 25% 150% at 0% 50%, transparent 0%, rgba(0,0,0,0.05) 2%, rgba(0,0,0,0.15) 4%, rgba(0,0,0,0.3) 6%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.65) 10%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.92) 24%, rgba(0,0,0,0.95) 28%, rgba(0,0,0,0.97) 32%, rgba(0,0,0,0.99) 36%, rgba(0,0,0,1) 41%); transition: mask-image 0.3s ease-in-out;" />' if image_url else ''
-            
-            # Start with minimum height for hero section visibility
-            hero_min_height = "min-height: 200px;" if background_image_url else ""
-            
+
+            # 1:1 square image with left-fade mask
+            image_html = ''
+            if image_url:
+                image_html = f'''<div style="flex: 1 1 45%; min-width: 0; padding: 0; margin: 0; display: flex; align-items: center;">
+                    <div style="width: 100%; aspect-ratio: 1 / 1;">
+                        <img src="{image_url}" style="width: 100%; height: 100%; object-fit: contain; display: block;
+                            mask-image: radial-gradient(ellipse 25% 150% at 0% 50%, transparent 0%, rgba(0,0,0,0.05) 2%, rgba(0,0,0,0.15) 4%, rgba(0,0,0,0.3) 6%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.65) 10%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.92) 24%, rgba(0,0,0,0.95) 28%, rgba(0,0,0,0.97) 32%, rgba(0,0,0,0.99) 36%, rgba(0,0,0,1) 41%);
+                            -webkit-mask-image: radial-gradient(ellipse 25% 150% at 0% 50%, transparent 0%, rgba(0,0,0,0.05) 2%, rgba(0,0,0,0.15) 4%, rgba(0,0,0,0.3) 6%, rgba(0,0,0,0.5) 8%, rgba(0,0,0,0.65) 10%, rgba(0,0,0,0.8) 16%, rgba(0,0,0,0.88) 20%, rgba(0,0,0,0.92) 24%, rgba(0,0,0,0.95) 28%, rgba(0,0,0,0.97) 32%, rgba(0,0,0,0.99) 36%, rgba(0,0,0,1) 41%);" />
+                    </div>
+                </div>'''
+
+            hero_min_height = "min-height: 200px;" if (background_image_url or bg_type == 'color') else ""
+
             html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; {background_style} color: white; border-radius: 12px; {hero_min_height}">
                 <div style="{inner_style}; display: flex; align-items: stretch; gap: 0; flex-wrap: nowrap; justify-content: flex-start; width: 100%; flex-direction: row; margin: 0; padding: 0;">
                     <div style="flex: 1 1 55%; min-width: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding-right: 40px; padding-left: 0; margin: 0; text-align: center;">
-                        <h1 style="font-size: {title_font_size}px; font-weight: {title_weight}; margin: 0 0 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">{title}</h1>
+                        <h1 style="font-size: {title_font_size}px; font-weight: {title_weight}; margin: 0 0 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">{title}</h1>
                         <p style="font-size: {subtitle_font_size}px; margin: 0; opacity: 0.95; color: {subtitle_color};">{subtitle}</p>
+                        {button_html}
                     </div>
-                    {f'<div style="flex: 1 1 45%; min-width: 0; overflow: hidden; padding: 0; margin: 0;">{image_html}</div>' if image_html else ''}
+                    {image_html}
                 </div>
                 </div>
                 </div>
