@@ -301,6 +301,14 @@ def render_page_builder_blocks(blocks):
             show_button = settings.get('showButton', False)
             button_text = preserve_html_tags(settings.get('buttonText', 'Enroll Now'))
             button_url = settings.get('buttonUrl', '#')
+            try:
+                button_size = max(20, min(120, int(settings.get('buttonSize', 54))))
+            except (TypeError, ValueError):
+                button_size = 54
+            try:
+                button_size_mobile = max(20, min(100, int(settings.get('buttonSizeMobile', 44))))
+            except (TypeError, ValueError):
+                button_size_mobile = 44
             padding_mobile = settings.get('paddingMobile', max(15, padding // 2))
             width_mobile = settings.get('widthMobile', width)
 
@@ -308,12 +316,12 @@ def render_page_builder_blocks(blocks):
             button_html = ''
             if show_button:
                 brand_btn_img = '/static/permanent/contact%20us%20button.png'
-                button_html = f'''<a href="{button_url}" style="position: relative; display: inline-block; text-decoration: none; margin-top: 20px; transition: transform 0.1s ease, filter 0.1s ease;"
+                button_html = f'''<a href="{button_url}" class="pb-hero-btn-{block_id}" style="position: relative; display: inline-block; text-decoration: none; margin-top: 20px; transition: transform 0.1s ease, filter 0.1s ease;"
                     onmousedown="this.style.transform='translateY(3px) scale(0.97)'; this.style.filter='brightness(0.8)';"
                     onmouseup="this.style.transform=''; this.style.filter='';"
                     onmouseleave="this.style.transform=''; this.style.filter='';">
-                    <img src="{brand_btn_img}" style="height: 54px; width: auto; display: block;" />
-                    <span style="position: absolute; top: 50%; left: 56%; transform: translate(-50%, -50%); color: #fffcf0; font-weight: bold; font-size: 16px; white-space: nowrap; text-shadow: 1px 1px 2px rgba(0,0,0,0.4);">{button_text}</span>
+                    <img src="{brand_btn_img}" style="height: {button_size}px; width: auto; display: block;" />
+                    <span style="position: absolute; top: 50%; left: 56%; transform: translate(-50%, -50%); color: #fffcf0; font-weight: bold; font-size: {round(button_size * 0.296)}px; white-space: nowrap; text-shadow: 1px 1px 2px rgba(0,0,0,0.4);">{button_text}</span>
                 </a>'''
 
             # Collect mobile CSS for this block
@@ -323,6 +331,8 @@ def render_page_builder_blocks(blocks):
                 #{block_id} > div > div > div > div {{ width: 100% !important; padding-right: 0 !important; }}
                 #{block_id} h1 {{ font-size: {title_font_size_mobile}px !important; }}
                 #{block_id} p {{ font-size: {subtitle_font_size_mobile}px !important; }}
+                .pb-hero-btn-{block_id} img {{ height: {button_size_mobile}px !important; }}
+                .pb-hero-btn-{block_id} span {{ font-size: {round(button_size_mobile * 0.296)}px !important; }}
             """)
 
             try:
@@ -338,7 +348,7 @@ def render_page_builder_blocks(blocks):
                 background_style = f"background-color: {bg_color};"
             elif background_image_url:
                 safe_url = urllib.parse.quote(background_image_url, safe=':/?#[]@!$&\'()*+,;=.-_~')
-                background_style = f"background-image: url('{safe_url}'); background-size: cover; background-position: center; background-repeat: no-repeat;"
+                background_style = f"background-image: url('{safe_url}'); background-size: 100% auto; background-position: left bottom; background-repeat: no-repeat;"
 
             # 1:1 square image with left-fade mask
             image_html = ''

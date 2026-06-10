@@ -387,7 +387,7 @@ function createBlock(type) {
 function getDefaultSettings(type) {
     const defaults = {
         'plain-text': { text: 'Enter your text here...', padding: '20', paddingMobile: '15', width: '100', widthMobile: '100', fontSize: '16', fontSizeMobile: '14', weight: 'normal', textAlign: 'left', color: '#333333', lineHeight: '1.6', italic: false, underline: false, scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
-        'hero': { title: 'Hero Title', titleFontSize: '48', titleFontSizeMobile: '32', titleWeight: 'bold', subtitle: 'Your subtitle here', subtitleFontSize: '24', subtitleFontSizeMobile: '16', subtitleColor: '#ffffff', showButton: false, buttonText: 'Enroll Now', buttonUrl: '#', buttonStyle: 'primary', image: '', bgType: 'image', backgroundImage: '', backgroundColor: '#337a2c', padding: '40', paddingMobile: '20', width: '100', widthMobile: '100', scale: '100', opacity: 1, posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
+        'hero': { title: 'Hero Title', titleFontSize: '48', titleFontSizeMobile: '32', titleWeight: 'bold', subtitle: 'Your subtitle here', subtitleFontSize: '24', subtitleFontSizeMobile: '16', subtitleColor: '#ffffff', showButton: false, buttonText: 'Enroll Now', buttonUrl: '#', buttonStyle: 'primary', buttonSize: '54', buttonSizeMobile: '44', image: '', bgType: 'image', backgroundImage: '', backgroundColor: '#337a2c', padding: '40', paddingMobile: '20', width: '100', widthMobile: '100', scale: '100', opacity: 1, posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
         'text-image': { text: 'Enter text here...', image: '', padding: '20', paddingMobile: '15', width: '100', widthMobile: '100', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
         'buttons': { buttons: [{ text: 'Button 1', url: '#', style: 'primary' }], padding: '20', paddingMobile: '15', width: '100', widthMobile: '100', buttonFontSize: '16', buttonFontSizeMobile: '14', buttonFontWeight: 'bold', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
         'youtube': { videoId: '', width: '100', widthMobile: '100', height: '400', heightMobile: '250', scale: '100', posX: '0', posY: '0', posXMobile: '0', posYMobile: '0', useCustomPosition: false },
@@ -611,6 +611,14 @@ function renderBlockSettings(block) {
                     <div class="input-group-vertical">
                         <label>Button URL</label>
                         <input type="text" value="${block.settings.buttonUrl || '#'}" onchange="updateBlock('${block.id}', 'buttonUrl', this.value)" placeholder="https://...">
+                    </div>
+                    <div class="input-group-vertical">
+                        <label>Button Size Desktop (px)</label>
+                        <input type="number" value="${block.settings.buttonSize || 54}" onchange="updateBlock('${block.id}', 'buttonSize', this.value)" min="20" max="120">
+                    </div>
+                    <div class="input-group-vertical">
+                        <label>Button Size Mobile (px)</label>
+                        <input type="number" value="${block.settings.buttonSizeMobile || 44}" onchange="updateBlock('${block.id}', 'buttonSizeMobile', this.value)" min="20" max="100">
                     </div>
                     ` : ''}
                 </div>
