@@ -304,42 +304,35 @@ def create_app(config_name='development'):
                     if len(parts) == 2:
                         ext = '.' + parts[1]
 
-            # Emoji mappings based on file type
-            emoji_map = {
-                # Media files
-                '.mp3': '🎧',
-                '.wav': '🎧',
-                '.m4a': '🎧',
-                '.mp4': '🎥',
-                '.mov': '🎥',
-                '.avi': '🎥',
-                '.webm': '🎥',
-
-                # Documents & Text
-                '.txt': '📝',
-                '.pdf': '📕',
-                '.doc': '📄',
-                '.docx': '📄',
-                '.ppt': '📊',
-                '.pptx': '📊',
-                '.xml': '🗒️',
-                '.json': '🗒️',
-                '.csv': '📗',
-                '.xls': '📗',
-                '.xlsx': '📗',
-
-                # Images & Graphics
-                '.jpg': '📷',
-                '.jpeg': '📷',
-                '.png': '📷',
-                '.svg': '📷',
-                '.webp': '📷',
-                '.gif': '🎞️',
-                '.psd': '🎨',
+            _b = '/static/permanent/file%20type%20icons'
+            icon_map = {
+                '.mp3': f'{_b}/mp3%20file%20icon.png',
+                '.wav': f'{_b}/wav%20file%20icon.png',
+                '.m4a': f'{_b}/mp3%20file%20icon.png',
+                '.mp4': f'{_b}/mov%20file%20icon.png',
+                '.mov': f'{_b}/mov%20file%20icon.png',
+                '.avi': f'{_b}/mov%20file%20icon.png',
+                '.webm': f'{_b}/mov%20file%20icon.png',
+                '.txt': f'{_b}/txt%20file%20icon.png',
+                '.pdf': f'{_b}/pdf%20file%20icon.png',
+                '.doc': f'{_b}/doc%28x%29%20file%20icon.png',
+                '.docx': f'{_b}/doc%28x%29%20file%20icon.png',
+                '.ppt': f'{_b}/ppt%20file%20icon.png',
+                '.pptx': f'{_b}/ppt%20file%20icon.png',
+                '.jpg': f'{_b}/jpg%20file%20icon.png',
+                '.jpeg': f'{_b}/jpg%20file%20icon.png',
+                '.png': f'{_b}/png%20file%20icon.png',
+                '.svg': f'{_b}/png%20file%20icon.png',
+                '.webp': f'{_b}/jpg%20file%20icon.png',
+                '.gif': f'{_b}/jpg%20file%20icon.png',
+                '.rar': f'{_b}/rar%20file%20icon.png',
+                '.zip': f'{_b}/zip%20file%20icon.png',
             }
 
-            emoji = emoji_map.get(ext, '')
-            return emoji
+            icon_url = icon_map.get(ext, '')
+            if icon_url:
+                return f'<img src="{icon_url}" style="height:45px;width:auto;vertical-align:middle;margin-left:8px;" alt="">'
+            return ''
 
         return {
             'render_page_builder_blocks': render_page_builder_blocks,

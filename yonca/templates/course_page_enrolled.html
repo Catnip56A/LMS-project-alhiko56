@@ -589,7 +589,7 @@
             <ul class="list-group folder-sortable" data-parent-folder-id="{{ folder.id }}">
                 {% for subfolder in subfolders %}
                 <li class="list-group-item" data-folder-id="{{ subfolder.id }}">
-                    <span class="drag-handle mr-2" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; margin-right:8px; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto; flex-shrink: 0;">☰</span>
+                    {% if is_teacher_or_admin %}<span class="drag-handle mr-2" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; margin-right:8px; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto; flex-shrink: 0;">☰</span>{% endif %}
                     {{ render_folder(subfolder, depth + 1) }}
                 </li>
                 {% endfor %}
@@ -918,7 +918,7 @@
                 {# Skip youtube-CourseGuide folders for students #}
                 {% if not ("youtube-courseguide" in folder.title.lower() and not is_teacher_or_admin) %}
                 <li class="list-group-item" data-folder-id="{{ folder.id }}">
-                    <span class="drag-handle mr-2" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; margin-right:8px; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto;">☰</span>
+                    {% if is_teacher_or_admin %}<span class="drag-handle mr-2" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; margin-right:8px; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto;">☰</span>{% endif %}
                     {{ render_folder(folder, 0) }}
                 </li>
                 {% endif %}
@@ -942,9 +942,11 @@
                         <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
                             {% if is_teacher_or_admin %}
                             <input type="checkbox" class="content-checkbox-enrolled" value="{{ item.id }}" onchange="updateBulkActionsEnrolled()" style="flex-shrink: 0; cursor: pointer;">
+                            {% else %}
+                            {{ add_file_emoji(item) | safe }}
                             {% endif %}
                         <div>
-                            <strong>{{ item.title }} {{ add_file_emoji(item) | safe }}</strong><br>
+                            <strong>{{ item.title }}{% if is_teacher_or_admin %} {{ add_file_emoji(item) | safe }}{% endif %}</strong><br>
                             <small>{{ item.description or '' }}</small>
                         </div>
                         </div>
@@ -2705,17 +2707,19 @@ function bulkToggleVisibilityEnrolled() {
             html += `
                 <li class="list-group-item d-flex justify-content-between align-items-center" data-file-id="${item.id}">
                     <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                        <span class="drag-handle" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto; flex-shrink: 0;">☰</span>
             `;
             if (isTeacherOrAdmin) {
                 html += `
+                        <span class="drag-handle" style="cursor:grab; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:1.5rem; background:#e0e7ef; border-radius:6px; border:1.5px solid #b6c2d1; user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; pointer-events:auto; flex-shrink: 0;">☰</span>
                         <input type="checkbox" class="content-checkbox-enrolled" value="${item.id}" onchange="updateBulkActionsEnrolled()" style="flex-shrink: 0; cursor: pointer;">
                 `;
+            } else {
+                html += getFileEmoji(item);
             }
             html += `
                         <div>
                             <strong>
-                                ${item.title || ''} ${getFileEmoji(item)}<br>
+                                ${item.title || ''}${isTeacherOrAdmin ? ' ' + getFileEmoji(item) : ''}<br>
                             </strong>
                             <small>${item.description || ''}</small>
                         </div>
@@ -2749,43 +2753,55 @@ function bulkToggleVisibilityEnrolled() {
         // attachContentEventListeners();
     }
 
-// Function to get file emoji based on file type
+// Function to get file type icon based on file type
 function getFileEmoji(item) {
+    const _b = '/static/permanent/file%20type%20icons';
+    const iconMap = {
+        '.mp3': `${_b}/mp3%20file%20icon.png`,
+        '.wav': `${_b}/wav%20file%20icon.png`,
+        '.m4a': `${_b}/mp3%20file%20icon.png`,
+        '.mp4': `${_b}/mov%20file%20icon.png`,
+        '.mov': `${_b}/mov%20file%20icon.png`,
+        '.avi': `${_b}/mov%20file%20icon.png`,
+        '.webm': `${_b}/mov%20file%20icon.png`,
+        '.txt': `${_b}/txt%20file%20icon.png`,
+        '.pdf': `${_b}/pdf%20file%20icon.png`,
+        '.doc': `${_b}/doc%28x%29%20file%20icon.png`,
+        '.docx': `${_b}/doc%28x%29%20file%20icon.png`,
+        '.ppt': `${_b}/ppt%20file%20icon.png`,
+        '.pptx': `${_b}/ppt%20file%20icon.png`,
+        '.jpg': `${_b}/jpg%20file%20icon.png`,
+        '.jpeg': `${_b}/jpg%20file%20icon.png`,
+        '.png': `${_b}/png%20file%20icon.png`,
+        '.svg': `${_b}/png%20file%20icon.png`,
+        '.webp': `${_b}/jpg%20file%20icon.png`,
+        '.gif': `${_b}/jpg%20file%20icon.png`,
+        '.rar': `${_b}/rar%20file%20icon.png`,
+        '.zip': `${_b}/zip%20file%20icon.png`,
+    };
+
+    function iconImg(url) {
+        return `<img src="${url}" style="height:45px;width:auto;vertical-align:middle;flex-shrink:0;margin-left:8px;" alt="">`;
+    }
+
     const type = (item.content_type || '').toLowerCase();
-    if (type === 'assignment') return '📝';
-    
-    // Try to get extension from title
     const title = item.title || '';
     const extMatch = title.toLowerCase().match(/\.([a-zA-Z0-9]+)$/);
     const ext = extMatch ? '.' + extMatch[1] : '';
-    
-    // Media files
-    if (['.mp3', '.wav', '.m4a'].includes(ext)) return '🎧';
-    if (['.mp4', '.mov', '.avi', '.webm'].includes(ext)) return '🎥';
-    if (['.jpg', '.jpeg', '.png', '.svg', '.webp', '.gif'].includes(ext)) {
-        return ext === '.gif' ? '🎞️' : '📷';
-    }
-    if (ext === '.psd') return '🎨';
-    
-    // Documents & Text
-    if (ext === '.txt') return '📝';
-    if (ext === '.pdf') return '📕';
-    if (ext === '.doc' || ext === '.docx') return '📄';
-    if (ext === '.ppt' || ext === '.pptx') return '📊';
-    if (ext === '.xls' || ext === '.xlsx') return '📗';
-    
+
+    if (iconMap[ext]) return iconImg(iconMap[ext]);
+
     // Fallback: check content_type for mime-type hints
     const mime = (item.content_data || '').toLowerCase();
-    if (mime.startsWith('image/')) return '🖼️';
-    if (mime.startsWith('video/')) return '🎬';
-    if (mime.startsWith('audio/')) return '🎵';
-    if (mime.includes('pdf')) return '📕';
-    if (type.includes('document') || type.includes('word')) return '📝';
-    if (type.includes('spreadsheet') || type.includes('excel')) return '📗';
-    if (type.includes('presentation') || type.includes('powerpoint')) return '📙';
-    if (type.includes('zip') || type.includes('compressed')) return '🗜️';
-    
-    return '📄';
+    if (mime.startsWith('image/')) return iconImg(iconMap['.jpg']);
+    if (mime.startsWith('video/')) return iconImg(iconMap['.mov']);
+    if (mime.startsWith('audio/')) return iconImg(iconMap['.mp3']);
+    if (mime.includes('pdf') || type.includes('pdf')) return iconImg(iconMap['.pdf']);
+    if (type.includes('document') || type.includes('word')) return iconImg(iconMap['.docx']);
+    if (type.includes('presentation') || type.includes('powerpoint')) return iconImg(iconMap['.ppt']);
+    if (type.includes('zip') || type.includes('compressed') || type.includes('rar')) return iconImg(iconMap['.zip']);
+
+    return '';
 }
 
 // Function to handle folder expansion
