@@ -793,9 +793,10 @@ class CourseView(SecureModelView):
             course.time_slot = request.form.get('time_slot', '')
             course.profile_emoji = request.form.get('profile_emoji', '')
             
-            # Parse tags from comma-separated input
+            # Parse tags from comma-separated input — only overwrite if field was non-empty
             tags_input = request.form.get('tags', '').strip()
-            course.tags = [tag.strip() for tag in tags_input.split(',') if tag.strip()] if tags_input else []
+            if tags_input:
+                course.tags = [tag.strip() for tag in tags_input.split(',') if tag.strip()]
 
             # Course page content
             course.page_welcome_title = request.form.get('page_welcome_title', '')
