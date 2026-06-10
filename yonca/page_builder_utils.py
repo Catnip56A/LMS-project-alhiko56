@@ -325,6 +325,12 @@ def render_page_builder_blocks(blocks):
                 #{block_id} p {{ font-size: {subtitle_font_size_mobile}px !important; }}
             """)
 
+            try:
+                opacity = max(0.0, min(1.0, float(settings.get('opacity', 1))))
+            except (TypeError, ValueError):
+                opacity = 1.0
+            opacity_style = f"opacity: {opacity};" if opacity < 1.0 else ""
+
             bg_type = settings.get('bgType', 'image')
             background_style = ''
             if bg_type == 'color':
@@ -347,8 +353,11 @@ def render_page_builder_blocks(blocks):
 
             hero_min_height = "min-height: 200px;" if (background_image_url or bg_type == 'color') else ""
 
-            html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; {background_style} color: white; border-radius: 12px; {hero_min_height}">
-                <div style="{inner_style}; display: flex; align-items: stretch; gap: 0; flex-wrap: nowrap; justify-content: flex-start; width: 100%; flex-direction: row; margin: 0; padding: 0;">
+            bg_layer = f'<div style="position:absolute;inset:0;border-radius:12px;{background_style}{opacity_style}"></div>' if background_style else ''
+
+            html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; color: white; border-radius: 12px; {hero_min_height} position: relative; overflow: hidden;">
+                {bg_layer}
+                <div style="{inner_style}; display: flex; align-items: stretch; gap: 0; flex-wrap: nowrap; justify-content: flex-start; width: 100%; flex-direction: row; margin: 0; padding: 0; position: relative; z-index: 1;">
                     <div style="flex: 1 1 55%; min-width: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; padding-right: 40px; padding-left: 0; margin: 0; text-align: center;">
                         <h1 style="font-size: {title_font_size}px; font-weight: {title_weight}; margin: 0 0 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">{title}</h1>
                         <p style="font-size: {subtitle_font_size}px; margin: 0; opacity: 0.95; color: {subtitle_color};">{subtitle}</p>
@@ -603,6 +612,10 @@ def render_page_builder_blocks(blocks):
             schedule_items = settings.get('scheduleItems', [])
             padding_mobile = settings.get('paddingMobile', max(15, padding // 2))
             width_mobile = settings.get('widthMobile', width_value)
+            try:
+                co_opacity = max(0.0, min(1.0, float(settings.get('opacity', 1))))
+            except (TypeError, ValueError):
+                co_opacity = 1.0
 
             icon_base = '/static/permanent/course%20overview'
 
@@ -616,11 +629,12 @@ def render_page_builder_blocks(blocks):
                 '6': 'icon_6_courses-removebg-preview%20(1).png',
             }
 
+            bg_rgba = f'rgba(249,237,215,{co_opacity})'
             pill_style = (
-                'display:flex;align-items:center;gap:12px;'
-                'background:#F9EDD7;border-radius:50px;'
-                'padding:12px 20px;margin-bottom:12px;'
-                'box-shadow:0 2px 6px rgba(0,0,0,0.08);'
+                f'display:flex;align-items:center;gap:12px;'
+                f'background:{bg_rgba};border-radius:50px;'
+                f'padding:12px 20px;margin-bottom:12px;'
+                f'box-shadow:0 2px 6px rgba(0,0,0,0.08);'
             )
 
 
@@ -665,7 +679,7 @@ def render_page_builder_blocks(blocks):
 
             petal_open = f'{icon_base}/petals_opening-removebg-preview.png'
             petal_close = f'{icon_base}/petals_closing_off-removebg-preview.png'
-            card_style = 'flex:1 1 calc(50% - 10px);min-width:0;box-sizing:border-box;background:#F9EDD7;border-radius:20px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.08);'
+            card_style = f'flex:1 1 calc(50% - 10px);min-width:0;box-sizing:border-box;background:{bg_rgba};border-radius:20px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,0.08);'
             header_style = 'font-size:17px;font-weight:700;color:#4a5a3a;margin:0 0 16px 0;display:flex;align-items:center;gap:8px;'
 
             img_open = f'<img src="{petal_open}" style="width:22px;height:22px;object-fit:contain;">'
