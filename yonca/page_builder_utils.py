@@ -486,8 +486,6 @@ def render_page_builder_blocks(blocks):
         elif block_type == 'carousel':
             items = settings.get('items', [])
             carousel_layout = settings.get('alignment', 'centered')  # This is the carousel layout (centered vs dual)
-            autoplay = settings.get('autoplay', False)
-            interval = settings.get('interval', 3000)
             item_title_font_size = settings.get('itemTitleFontSize', '24')
             item_title_font_size_mobile = settings.get('itemTitleFontSizeMobile', item_title_font_size)  # Mobile variant
             item_title_weight = settings.get('itemTitleWeight', 'bold')
@@ -508,55 +506,37 @@ def render_page_builder_blocks(blocks):
             if items:
                 # Determine layout based on carousel_layout
                 if carousel_layout == 'centered':
-                    # Single centered carousel with proper height constraint
                     items_html = ''
-                    for idx, item in enumerate(items):
+                    for item in items:
                         image = item.get('image', '')
                         title = preserve_html_tags(item.get('title', ''))
                         description = preserve_html_tags(item.get('description', ''))
-                        
-                        image_html = f'<img src="{image}" style="width: 100%; height: 550px; object-fit: cover; border-radius: 8px; margin-bottom: 15px;" />' if image else '<div style="width: 100%; height: 550px; background: #e9ecef; border-radius: 8px; margin-bottom: 15px;"></div>'
-                        
-                        items_html += f'''<div class="carousel-item" style="display: none; animation: fadeIn 0.5s; min-height: 550px; width: 100%;">
-                            {image_html}
-                            <h3 style="font-size: {item_title_font_size}px; font-weight: {item_title_weight}; margin: 10px 0; color: #333;">{title}</h3>
-                            <p style="font-size: {item_description_font_size}px; color: #666; line-height: 1.6;">{description}</p>
-                        </div>'''
-                    
-                    # Navigation dots
-                    dots_html = '<div style="text-align: center; margin-top: 20px; display: flex; justify-content: center; gap: 8px;">'
-                    for idx in range(len(items)):
-                        dots_html += f'<button class="carousel-dot" onclick="showCarouselSlide(\'{carousel_id}\', {idx})" style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid #337a2c; background: white; cursor: pointer; transition: all 0.3s;" data-slide="{idx}"></button>'
-                    dots_html += '</div>'
-                    
-                    # Navigation arrows
-                    nav_html = f'''
-                        <button onclick="nextCarouselSlide('{carousel_id}')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(51, 122, 44, 0.8); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 18px; z-index: 10; hover: opacity 0.9;">→</button>
-                        <button onclick="prevCarouselSlide('{carousel_id}')" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: rgba(51, 122, 44, 0.8); color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 18px; z-index: 10;">←</button>
-                    '''
-                    
-                    autoplay_script = ''
-                    if autoplay:
-                        autoplay_script = f'''
-                        <script>
-                            (function() {{
-                                let currentSlide_{carousel_id} = 0;
-                                function autoAdvance() {{
-                                    nextCarouselSlide('{carousel_id}');
-                                }}
-                                setInterval(autoAdvance, {interval});
-                            }})();
-                        </script>
-                        '''
-                    
-                    html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; position: relative; margin-bottom: 20px;">
+
+                        if image:
+                            media_html = f'<img src="{image}" style="width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;">'
+                        else:
+                            media_html = '<div style="width:100%;height:100%;background:#e9ecef;"></div>'
+
+                        caption_parts = []
+                        if title:
+                            caption_parts.append(f'<span style="font-weight:{item_title_weight};font-size:{item_title_font_size}px;">{title}</span>')
+                        if description:
+                            caption_parts.append(f'<span style="font-size:{item_description_font_size}px;color:#555;">{description}</span>')
+                        caption_html = ''
+                        if caption_parts:
+                            caption_html = f'<div class="pb-ag-caption">{"<br>".join(caption_parts)}</div>'
+
+                        items_html += f'<div class="pb-ag-item"><div class="pb-ag-media">{media_html}</div>{caption_html}</div>\n'
+
+                    html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}">
                         <div style="{inner_style}">
-                            <div id="{carousel_id}" style="position: relative; min-height: 550px; overflow: hidden;">
-                                {items_html}
-                                {nav_html}
+                            <div class="pb-ag-outer">
+                                <button class="pb-ag-ctrl pb-ag-prev" onclick="pbScrollGallery('{carousel_id}',-1)">&#10094;</button>
+                                <div id="{carousel_id}" class="pb-ag-grid">
+                                    {items_html}
+                                </div>
+                                <button class="pb-ag-ctrl pb-ag-next" onclick="pbScrollGallery('{carousel_id}',1)">&#10095;</button>
                             </div>
-                            {dots_html}
-                            {autoplay_script}
                         </div>
                     </div></div></div>'''
                     
@@ -723,68 +703,79 @@ def render_page_builder_blocks(blocks):
         # Increment block index for next block's unique ID
         block_index += 1
     
-    # Add carousel JavaScript functions at the end
+    # About-gallery style carousel CSS + JS (output once, shared by all carousel blocks)
     carousel_script = '''
+    <style>
+    .pb-ag-outer {
+        position: relative;
+        display: block;
+        width: 100%;
+    }
+    .pb-ag-grid {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 80px;
+        overflow-x: auto;
+        padding: 0 3rem;
+        box-sizing: border-box;
+        scrollbar-width: thin;
+        scrollbar-color: #e5e7eb #f9fafb;
+    }
+    .pb-ag-grid::-webkit-scrollbar { height: 8px; }
+    .pb-ag-grid::-webkit-scrollbar-track { background: #f9fafb; border-radius: 4px; }
+    .pb-ag-grid::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+    .pb-ag-grid::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+    .pb-ag-item {
+        flex: 0 0 30.1vh;
+        display: flex;
+        flex-direction: column;
+        border-radius: 8.4px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        background: rgba(255,255,255,0);
+    }
+    .pb-ag-media {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 8.4px 8.4px 0 0;
+    }
+    .pb-ag-caption {
+        padding: 0.4rem 0.35rem 0.5rem;
+        text-align: center;
+        font-size: 0.728rem;
+        color: #000;
+        flex-shrink: 0;
+    }
+    .pb-ag-ctrl {
+        position: absolute;
+        top: 38%;
+        transform: translateY(-50%);
+        z-index: 20;
+        margin: 0;
+        font-size: 1.1rem;
+        padding: 0.35rem 0.55rem;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.55);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        transition: background 0.2s ease;
+        line-height: 1;
+    }
+    .pb-ag-ctrl:hover { background: rgba(0,0,0,0.75); }
+    .pb-ag-prev { left: 0.4rem; }
+    .pb-ag-next { right: 0.4rem; }
+    </style>
     <script>
-    function showCarouselSlide(carouselId, slideIndex) {
-        const carousel = document.getElementById(carouselId);
-        if (!carousel) return;
-        
-        const slides = carousel.querySelectorAll('.carousel-item');
-        const dots = document.querySelectorAll(`[data-carousel="${carouselId}"] .carousel-dot`);
-        
-        slides.forEach((slide, idx) => {
-            slide.style.display = idx === slideIndex ? 'block' : 'none';
-        });
-        
-        document.querySelectorAll('.carousel-dot').forEach((dot, idx) => {
-            dot.style.background = idx === slideIndex ? '#337a2c' : 'white';
-        });
+    function pbScrollGallery(id, direction) {
+        const grid = document.getElementById(id);
+        if (!grid) return;
+        const amount = grid.clientWidth ? grid.clientWidth * 0.8 : 280;
+        grid.scrollBy({ left: direction * amount, behavior: 'smooth' });
     }
-    
-    function nextCarouselSlide(carouselId) {
-        const carousel = document.getElementById(carouselId);
-        if (!carousel) return;
-        
-        const slides = carousel.querySelectorAll('.carousel-item');
-        const current = Array.from(slides).findIndex(s => s.style.display !== 'none');
-        const next = (current + 1) % slides.length;
-        showCarouselSlide(carouselId, next);
-    }
-    
-    function prevCarouselSlide(carouselId) {
-        const carousel = document.getElementById(carouselId);
-        if (!carousel) return;
-        
-        const slides = carousel.querySelectorAll('.carousel-item');
-        const current = Array.from(slides).findIndex(s => s.style.display !== 'none');
-        const prev = (current - 1 + slides.length) % slides.length;
-        showCarouselSlide(carouselId, prev);
-    }
-    
-    // Initialize first slide of all carousels
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('[id^="carousel_"]').forEach(carousel => {
-            const firstItem = carousel.querySelector('.carousel-item');
-            if (firstItem) {
-                firstItem.style.display = 'block';
-                const dots = document.querySelectorAll('.carousel-dot');
-                if (dots.length > 0) {
-                    dots[0].style.background = '#667eea';
-                }
-            }
-        });
-    });
-    
-    // Add CSS for animations
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
     </script>
     '''
     
