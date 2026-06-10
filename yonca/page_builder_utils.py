@@ -501,9 +501,9 @@ def render_page_builder_blocks(blocks):
                         title = preserve_html_tags(item.get('title', ''))
                         description = preserve_html_tags(item.get('description', ''))
                         
-                        image_html = f'<img src="{image}" style="width: 100%; height: 400px; object-fit: cover; border-radius: 8px; margin-bottom: 15px;" />' if image else '<div style="width: 100%; height: 400px; background: #e9ecef; border-radius: 8px; margin-bottom: 15px;"></div>'
+                        image_html = f'<img src="{image}" style="width: 100%; height: 550px; object-fit: cover; border-radius: 8px; margin-bottom: 15px;" />' if image else '<div style="width: 100%; height: 550px; background: #e9ecef; border-radius: 8px; margin-bottom: 15px;"></div>'
                         
-                        items_html += f'''<div class="carousel-item" style="display: none; animation: fadeIn 0.5s; min-height: 500px; width: 100%;">
+                        items_html += f'''<div class="carousel-item" style="display: none; animation: fadeIn 0.5s; min-height: 550px; width: 100%;">
                             {image_html}
                             <h3 style="font-size: {item_title_font_size}px; font-weight: {item_title_weight}; margin: 10px 0; color: #333;">{title}</h3>
                             <p style="font-size: {item_description_font_size}px; color: #666; line-height: 1.6;">{description}</p>
@@ -537,7 +537,7 @@ def render_page_builder_blocks(blocks):
                     
                     html = f'''{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}; position: relative; margin-bottom: 20px;">
                         <div style="{inner_style}">
-                            <div id="{carousel_id}" style="position: relative; min-height: 500px; overflow: hidden;">
+                            <div id="{carousel_id}" style="position: relative; min-height: 550px; overflow: hidden;">
                                 {items_html}
                                 {nav_html}
                             </div>
