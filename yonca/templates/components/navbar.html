@@ -9,7 +9,7 @@
         </a>
 
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ml-auto">
+            <ul class="navbar-nav navbar-nav-main">
                 <li class="nav-item">
                     <a class="nav-link" href="/" data-nav="home">{{ _('Home') }}</a>
                 </li>
@@ -28,7 +28,9 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/#about" data-nav="about">{{ _('About') }}</a>
                 </li>
+            </ul>
 
+            <ul class="navbar-nav navbar-nav-auth">
                 {# ── Language picker ── #}
                 {% set lang_labels = {'en': 'EN', 'ru': 'RU'} %}
                 {% set lang_names  = {'en': 'English', 'ru': 'Русский'} %}
@@ -127,15 +129,65 @@
         padding: 0.5rem 0;
     }
 
+    .navbar > .container {
+        padding-left: 0.75rem !important;
+        padding-right: 0.5rem !important;
+    }
+
     .navbar-brand {
         color: #337a2c !important;
         font-weight: bold;
         font-size: 1.5rem;
+        margin-right: 1rem !important;
+        flex-shrink: 0;
     }
 
     .navbar-brand img {
         height: 50px;
         width: auto;
+    }
+
+    .navbar-collapse {
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .navbar-nav-main {
+        flex: 1 !important;
+        display: flex !important;
+        margin-left: 0 !important;
+        gap: 0.6rem !important;
+    }
+
+    .navbar-nav-main .nav-item {
+        flex: 1 !important;
+    }
+
+    .navbar-nav-main .nav-link {
+        text-align: center !important;
+        justify-content: center !important;
+        display: flex !important;
+        align-items: center !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+    }
+
+    .navbar-nav-auth {
+        flex-shrink: 0 !important;
+        gap: 0.25rem !important;
+        display: flex !important;
+        align-items: center !important;
+        margin-left: 0.6rem !important;
+    }
+
+    .navbar-nav-auth .nav-item {
+        margin: 0 !important;
+    }
+
+    .navbar-nav-auth .nav-link {
+        margin: 0 !important;
+        padding: 0.5rem 0.9rem !important;
     }
 
     .navbar .nav-link {
@@ -146,7 +198,6 @@
         transition: all 0.3s ease;
         background-color: #fffcf0;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin: 0 0.25rem;
         font-size: 0.9rem;
         text-decoration: none;
     }

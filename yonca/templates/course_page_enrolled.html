@@ -27,7 +27,8 @@
         width: 50%;
         height: 100%;
         background-image: url('/static/permanent/bg_texture.png');
-        background-repeat: repeat;
+        background-repeat: no-repeat;
+        background-size: cover;
         z-index: -1;
     }
 
@@ -39,7 +40,8 @@
         width: 50%;
         height: 100%;
         background-image: url('/static/permanent/bg_texture.png');
-        background-repeat: repeat;
+        background-repeat: no-repeat;
+        background-size: cover;
         transform: scaleX(-1);
         z-index: -1;
     }
@@ -52,32 +54,7 @@
         min-height: 80px;
     }
 
-    .logo img {
-        height: 32px;
-        width: auto;
-    }
-    
-    /* Navbar styling to match main page */
-    .navbar {
-        background: rgba(254, 251, 250, 0.95) !important;
-        border-bottom: 1px solid #e0e0e0;
-    }
-    
-    .navbar-light .navbar-nav .nav-link {
-        color: #353e45;
-        font-weight: 500;
-    }
-    
-    .navbar-light .navbar-nav .nav-link:hover {
-        color: #337a2c;
-    }
-    
-    .navbar-light .navbar-brand {
-        color: #337a2c;
-        font-weight: bold;
-    }
-    
-    .nav-link {
+    .nav-tabs .nav-link {
         color: #374151;
         text-decoration: none;
         font-weight: 500;
@@ -86,11 +63,11 @@
         transition: all 0.3s ease;
         position: relative;
     }
-    .nav-link.active {
+    .nav-tabs .nav-link.active {
         background-color: #337a2c;
         color: white;
     }
-    .nav-link:hover {
+    .nav-tabs .nav-link:hover {
         background-color: #f3f4f6;
         color: #337a2c;
     }
@@ -168,8 +145,12 @@
 
     /* Mobile responsive styles */
     @media (max-width: 768px) {
-        .container {
-            padding: 0 10px;
+        .container,
+        .container-sm,
+        .container-md,
+        .container-lg,
+        .container-xl {
+            padding: 0 10px !important;
         }
 
         .nav-tabs {
@@ -306,10 +287,16 @@
         margin-bottom: 0;
     }
 
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 5%;
+    .container,
+    .container-sm,
+    .container-md,
+    .container-lg,
+    .container-xl {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 3% !important;
+        box-sizing: border-box !important;
     }
     
     /* Page builder custom positioning for desktop */
