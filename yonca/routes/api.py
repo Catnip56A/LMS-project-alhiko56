@@ -10,6 +10,7 @@ from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify, current_app, redirect, url_for, Response
 from flask_login import current_user, login_required
 from flask_babel import _
+from yonca.extensions import limiter
 from yonca.models import Course, ForumMessage, ForumChannel, Resource, PDFDocument, Translation, db
 from yonca.translation_service import translation_service
 from yonca.google_drive_service import authenticate, upload_file, create_view_only_link, set_file_permissions, import_drive_file, import_drive_folder
@@ -730,6 +731,7 @@ def download_resource(resource_id, pin):
     })
 
 @api_bp.route('/pdfs/upload', methods=['POST'])
+@limiter.limit("5 per 30 seconds")
 def upload_pdf():
     """Upload a new PDF document"""
     from flask import request
@@ -871,6 +873,7 @@ def get_user():
 
 # Translation endpoints
 @api_bp.route('/translate', methods=['POST'])
+@limiter.limit("5 per 30 seconds")
 def translate_text():
     """Translate text using AI translation service"""
     data = request.get_json()
@@ -931,6 +934,7 @@ def translate_text():
         return jsonify({'error': 'Translation failed', 'translated_text': text}), 500
 
 @api_bp.route('/translate/content', methods=['POST'])
+@limiter.limit("5 per 30 seconds")
 def translate_content_field():
     """Translate a specific content field and save to ContentTranslation table."""
     data = request.get_json()
@@ -960,6 +964,7 @@ def translate_content_field():
 
 
 @api_bp.route('/translate/batch', methods=['POST'])
+@limiter.limit("5 per 30 seconds")
 def translate_batch():
     """Translate multiple texts in batch"""
     data = request.get_json()
@@ -1070,6 +1075,7 @@ def set_user_language():
     })
 
 @api_bp.route('/feature-images/upload', methods=['POST'])
+@limiter.limit("5 per 30 seconds")
 @login_required
 def upload_feature_image():
     """Upload feature image to Google Drive"""
@@ -1142,6 +1148,7 @@ def upload_feature_image():
         })
 
 @api_bp.route('/logo/upload', methods=['POST'])
+@limiter.limit("5 per 30 seconds")
 @login_required
 def upload_logo():
     """Upload site logo to Google Drive"""
@@ -1311,6 +1318,7 @@ def serve_file(file_id):
     return redirect(f'https://drive.google.com/file/d/{file_id}/view')
 
 @api_bp.route('/import-drive-file', methods=['POST'])
+@limiter.limit("5 per 30 seconds")
 @login_required
 def import_drive_file_endpoint():
     """
@@ -1366,6 +1374,7 @@ def import_drive_file_endpoint():
         }), 500
 
 @api_bp.route('/import-drive-file-to-resource', methods=['POST'])
+@limiter.limit("5 per 30 seconds")
 @login_required
 def import_drive_file_to_resource():
     """

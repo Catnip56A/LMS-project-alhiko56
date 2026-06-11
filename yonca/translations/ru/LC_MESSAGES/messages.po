@@ -1752,10 +1752,7 @@ msgstr "Логин как администратор"
 msgid "I acknowledge that I have read and agree to the"
 msgstr "Я признаю, что прочитал и согласен с"
 
-#: yonca/templates/login.html:247 yonca/templates/terms.html:6
-#: yonca/templates/terms.html:103
-msgid "Условия использования"
-msgstr "Следовательно"
+
 
 #: yonca/templates/login.html:247 yonca/templates/terms.html:6
 #: yonca/templates/terms.html:103

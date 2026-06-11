@@ -5461,6 +5461,10 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                     })
                 });
 
+                if (response.status === 429) {
+                    alert('{{ _("Too many translation requests. Please wait 30 seconds and try again.") }}');
+                    return;
+                }
                 const data = await response.json();
                 if (data.translated_text) {
                     const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
@@ -5552,6 +5556,10 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                     })
                 });
 
+                if (response.status === 429) {
+                    alert('{{ _("Too many translation requests. Please wait 30 seconds and try again.") }}');
+                    return;
+                }
                 const data = await response.json();
                 if (data.translations) {
                     data.translations.forEach((translation, index) => {

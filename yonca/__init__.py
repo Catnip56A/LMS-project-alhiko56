@@ -6,6 +6,7 @@ from flask_login import LoginManager
 from flask_cors import CORS
 from flask_session import Session
 from flask_babel import Babel
+from yonca.extensions import limiter
 from yonca.config import config
 from yonca.models import db, User, Course, ForumMessage, ForumChannel, Resource, PDFDocument, MoxoTest, HomeContent, Translation
 from flask_migrate import Migrate
@@ -134,7 +135,10 @@ def create_app(config_name='development'):
     
     # Initialize session management
     Session(app)
-    
+
+    # Initialize rate limiter
+    limiter.init_app(app)
+
     # Initialize admin interface
     admin = init_admin(app)
     app.admin = admin
