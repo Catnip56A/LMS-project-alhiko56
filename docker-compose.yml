@@ -41,7 +41,7 @@ services:
     restart: no
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB}
     depends_on:
       db-dev:
         condition: service_healthy
@@ -56,7 +56,7 @@ services:
     env_file: .env
     environment:
       FLASK_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB}
       GOOGLE_REDIRECT_URI: https://${LOCAL_DOMAIN:-local.yonca-sdc.com}/auth/google/callback
       LIBRETRANSLATE_URL: http://libretranslate:5000
     ports:
@@ -111,7 +111,7 @@ services:
     restart: no
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-production:5432/${POSTGRES_DB}
     depends_on:
       db-production:
         condition: service_healthy
@@ -125,7 +125,7 @@ services:
     env_file: .env
     environment:
       FLASK_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-production:5432/${POSTGRES_DB}
       GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
       LIBRETRANSLATE_URL: http://libretranslate:5000
     ports:
@@ -167,7 +167,7 @@ services:
     restart: no
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB}
     depends_on:
       db-staging:
         condition: service_healthy
@@ -181,7 +181,7 @@ services:
     env_file: .env
     environment:
       FLASK_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB}
       GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
       LIBRETRANSLATE_URL: http://libretranslate:5000
     ports:
