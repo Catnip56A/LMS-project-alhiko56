@@ -13,6 +13,34 @@ db-tunnel-prod:
 db-tunnel-staging:
     ssh -L 5438:127.0.0.1:5438 {{_ssh_host}} -N
 
+# Pull DB from production live (streams directly, no temp file)
+db-pull-production:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'echo "Error on line $LINENO"' ERR
+
+    app_running=$(docker compose --profile dev ps -q app-dev 2>/dev/null)
+    if [ -n "$app_running" ]; then
+        echo "Stopping app-dev..."
+        docker compose --profile dev stop app-dev
+    fi
+
+    echo "Restoring database from production..."
+    ssh {{_ssh_host}} "docker compose -f ~/deploy/production/yonca/docker-compose.yml exec -T db-production pg_dump -U yonca_user -Fc yonca_db" \
+      | docker compose exec -T db-dev pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
+    echo "Database restored successfully"
+
+    echo "Stamping database version..."
+    docker compose --profile dev run --rm migrate-dev flask db stamp head || { echo "Stamp failed with $?"; exit 1; }
+    echo "Database stamped successfully"
+
+    if [ -n "$app_running" ]; then
+        echo "Restarting app-dev..."
+        docker compose --profile dev start app-dev
+    fi
+
+    echo "Done!"
+
 # Pull DB from staging live (streams directly, no temp file)
 db-pull-staging:
     #!/usr/bin/env bash
@@ -26,12 +54,12 @@ db-pull-staging:
     fi
 
     echo "Restoring database from staging..."
-    ssh {{_ssh_host}} "docker compose -f ~/deploy/staging/yonca/docker-compose.yml exec -T db pg_dump -U yonca_user -Fc yonca_db" \
-      | docker compose exec -T db pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
+    ssh {{_ssh_host}} "docker compose -f ~/deploy/staging/yonca/docker-compose.yml exec -T db-staging pg_dump -U yonca_user -Fc yonca_db" \
+      | docker compose exec -T db-dev pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
     echo "Database restored successfully"
 
     echo "Stamping database version..."
-    docker compose --profile dev run --rm migrate flask db stamp head || { echo "Stamp failed with $?"; exit 1; }
+    docker compose --profile dev run --rm migrate-dev flask db stamp head || { echo "Stamp failed with $?"; exit 1; }
     echo "Database stamped successfully"
 
     if [ -n "$app_running" ]; then
@@ -55,11 +83,11 @@ db-pull-backup:
 
     echo "Restoring database from latest backup..."
     ssh {{_ssh_host}} "cat $(ls -t ~/backup/yonca/staging/*.dump | head -1)" \
-      | docker compose exec -T db pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
+      | docker compose exec -T db-dev pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
     echo "Database restored successfully"
 
     echo "Stamping database version..."
-    docker compose --profile dev run --rm migrate flask db stamp head || { echo "Stamp failed with $?"; exit 1; }
+    docker compose --profile dev run --rm migrate-dev flask db stamp head || { echo "Stamp failed with $?"; exit 1; }
     echo "Database stamped successfully"
 
     if [ -n "$app_running" ]; then
@@ -82,7 +110,7 @@ ensure-dirs:
     chmod a+rwx ./data/libretranslate ./data/caddy-local ./data/logs ./data/flask_session
 
 db:
-    docker compose --profile dev up db migrate -d
+    docker compose --profile dev up db-dev migrate-dev -d
 # Run dev server (local, no Docker)
 dev: db
     DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run flask run --debug --host=0.0.0.0 --port=5000
@@ -113,14 +141,14 @@ analytics-views:
 
 # Database migrations (via Docker)
 migrate:
-    docker compose --profile dev run --rm migrate
+    docker compose --profile dev run --rm migrate-dev
 
 makemigrations message="auto":
-    docker compose --profile dev run --rm migrate flask db migrate -m "{{message}}"
+    docker compose --profile dev run --rm migrate-dev flask db migrate -m "{{message}}"
 
 # Mark DB as up-to-date without running migrations (use after squash on existing DB)
 db-stamp:
-    docker compose --profile dev run --rm migrate flask db stamp head
+    docker compose --profile dev run --rm migrate-dev flask db stamp head
 
 # Run LibreTranslate locally for dev-time translation (PO files, testing)
 # Binds to localhost:5050. Stop with: docker stop yonca-libretranslate
