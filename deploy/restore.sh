@@ -7,7 +7,8 @@
 
 set -euo pipefail
 
-BACKUP_FILE="${1:?Usage: $0 <backup_file>}"
+ENVIRONMENT="${1:?Usage: $0 <environment> <backup_file>}"
+BACKUP_FILE="${2:?Usage: $0 <environment> <backup_file>}"
 
 if [ ! -f "$BACKUP_FILE" ]; then
   echo "Error: file not found: $BACKUP_FILE"
@@ -20,12 +21,12 @@ read -r -p "This will OVERWRITE the current database. Continue? [y/N] " confirm
 
 case "$BACKUP_FILE" in
   *.dump)
-    docker compose exec -T db \
+    docker compose exec -T db-${ENVIRONMENT} \
       pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl \
       < "$BACKUP_FILE"
     ;;
   *.sql)
-    docker compose exec -T db \
+    docker compose exec -T db-${ENVIRONMENT} \
       psql -U yonca_user -d yonca_db \
       < "$BACKUP_FILE"
     ;;

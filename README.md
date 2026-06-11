@@ -676,7 +676,7 @@ Failing at startup with a clear error is better than failing at runtime with a c
 app-dev:
   env_file: .env                     # load everything from .env
   environment:
-    DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB}
     # ^ constructed from other vars — overrides anything in env_file
 ```
 

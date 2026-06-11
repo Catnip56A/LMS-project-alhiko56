@@ -86,7 +86,8 @@ jobs:
 
             mkdir -p data/libretranslate && chmod a+w data/libretranslate
             chmod +x deploy/backup.sh deploy/restore.sh
-            ./deploy/backup.sh /home/${{ secrets.SSH_USER }}/backup/yonca/${{ github.ref_name == 'main' && 'production' || 'staging' }}
+            envir=${{ github.ref_name == 'main' && 'production' || 'staging' }} 
+            ./deploy/backup.sh $envir /home/${{ secrets.SSH_USER }}/backup/yonca/$envir
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose pull
             docker compose up -d --remove-orphans
