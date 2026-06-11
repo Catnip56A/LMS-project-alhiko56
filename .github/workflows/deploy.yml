@@ -80,6 +80,7 @@ jobs:
             DOMAIN=${{ github.ref_name == 'main' && secrets.DOMAIN || secrets.STAGING_DOMAIN }}
             POSTGRES_PORT=${{ github.ref_name == 'main' && '5439' || '5438' }}
             APP_PORT=${{ github.ref_name == 'main' && '5002' || '5001' }}
+            COMPOSE_PROFILES=prod
             EOF
             echo "APP_HOSTNAME=$(grep '^DOMAIN=' .env | cut -d= -f2 | tr '.' '-')" >> .env
 
