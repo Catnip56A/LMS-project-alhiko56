@@ -4,7 +4,6 @@ services:
 
   libretranslate:
     profiles: [dev, production, staging]
-    container_name: libretranslate-${APP_HOSTNAME}
     image: libretranslate/libretranslate
     restart: unless-stopped
     command: ["--load-only", "en,az,ru"]
@@ -22,7 +21,6 @@ services:
     image: postgres:17-alpine
     profiles: [dev]
     restart: unless-stopped
-    container_name: db-${APP_HOSTNAME}
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -93,7 +91,6 @@ services:
     image: postgres:17-alpine
     profiles: [production]
     restart: unless-stopped
-    container_name: db-${APP_HOSTNAME}
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -150,7 +147,6 @@ services:
     image: postgres:17-alpine
     profiles: [staging]
     restart: unless-stopped
-    container_name: db-${APP_HOSTNAME}
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
