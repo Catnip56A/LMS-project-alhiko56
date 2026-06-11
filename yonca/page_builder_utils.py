@@ -736,7 +736,7 @@ def render_page_builder_blocks(blocks):
     .pb-ag-grid::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
     .pb-ag-grid::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
     .pb-ag-item {
-        flex: 0 0 30.1vh;
+        flex: 0 0 42.14vh;
         display: flex;
         flex-direction: column;
         border-radius: 8.4px;
