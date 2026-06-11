@@ -64,7 +64,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name }}/yonca
+            cd /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name == 'main' && 'production' || 'staging' }}/yonca
 
             cat > .env <<'EOF'
             FLASK_ENV=production
