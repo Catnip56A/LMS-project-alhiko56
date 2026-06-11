@@ -18,27 +18,27 @@ db-pull-staging:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'echo "Error on line $LINENO"' ERR
-    
+
     app_running=$(docker compose --profile dev ps -q app-dev 2>/dev/null)
     if [ -n "$app_running" ]; then
         echo "Stopping app-dev..."
         docker compose --profile dev stop app-dev
     fi
-    
+
     echo "Restoring database from staging..."
-    ssh {{_ssh_host}} "docker compose --profile prod -f ~/deploy/staging/yonca/docker-compose.yml exec -T db pg_dump -U yonca_user -Fc yonca_db" \
+    ssh {{_ssh_host}} "docker compose -f ~/deploy/staging/yonca/docker-compose.yml exec -T db pg_dump -U yonca_user -Fc yonca_db" \
       | docker compose exec -T db pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
     echo "Database restored successfully"
-    
+
     echo "Stamping database version..."
     docker compose --profile dev run --rm migrate flask db stamp head || { echo "Stamp failed with $?"; exit 1; }
     echo "Database stamped successfully"
-    
+
     if [ -n "$app_running" ]; then
         echo "Restarting app-dev..."
         docker compose --profile dev start app-dev
     fi
-    
+
     echo "Done!"
 
 # Pull latest backup from server
@@ -46,27 +46,27 @@ db-pull-backup:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'echo "Error on line $LINENO"' ERR
-    
+
     app_running=$(docker compose --profile dev ps -q app-dev 2>/dev/null)
     if [ -n "$app_running" ]; then
         echo "Stopping app-dev..."
         docker compose --profile dev stop app-dev
     fi
-    
+
     echo "Restoring database from latest backup..."
     ssh {{_ssh_host}} "cat $(ls -t ~/backup/yonca/staging/*.dump | head -1)" \
       | docker compose exec -T db pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
     echo "Database restored successfully"
-    
+
     echo "Stamping database version..."
     docker compose --profile dev run --rm migrate flask db stamp head || { echo "Stamp failed with $?"; exit 1; }
     echo "Database stamped successfully"
-    
+
     if [ -n "$app_running" ]; then
         echo "Restarting app-dev..."
         docker compose --profile dev start app-dev
     fi
-    
+
     echo "Done!"
 
 # Derived vars for local (non-Docker) execution — mirrors docker-compose behaviour
@@ -175,7 +175,7 @@ translate-all: libre-ready
 
 translate-fix-placeholders: libre-ready
     uv run python scripts/translations/fix_placeholders_v2.py
-    
+
 
 # Docker — dev
 up: ensure-dirs certs

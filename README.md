@@ -80,7 +80,7 @@ Notice the pipe `|`. The `pg_dump` output is streamed through SSH directly into 
     key: ${{ secrets.SSH_PRIVATE_KEY }}
     script: |
       cd ~/deploy/staging/yonca
-      docker compose --profile prod up -d
+      docker compose up -d
 ```
 The CI server connects to the production server with a private key stored as a GitHub secret. It runs shell commands remotely, exactly like you would in a terminal.
 
@@ -202,7 +202,7 @@ app:
 
 ```bash
 docker compose --profile dev up    # starts dev services
-docker compose --profile prod up   # starts production services
+docker compose up   # starts production services
 ```
 
 **Volumes — data survives container restarts:**
@@ -349,8 +349,8 @@ jobs:
         with:
           script: |
             ./deploy/backup.sh ~/backup/yonca/staging    # backup BEFORE deploy
-            docker compose --profile prod pull
-            docker compose --profile prod up -d --remove-orphans
+            docker compose pull
+            docker compose up -d --remove-orphans
             docker image prune -f
 ```
 
@@ -536,7 +536,7 @@ git commit -m "add avatar field to user"
 
 **Backup** (`deploy/backup.sh`):
 ```bash
-docker compose --profile prod exec -T db \
+docker compose exec -T db \
   pg_dump -U yonca_user -Fc yonca_db > backup_2026-03-17.dump
 ```
 `-Fc` = custom binary format, smaller and faster than plain SQL.
@@ -544,7 +544,7 @@ The script keeps the 7 most recent backups and deletes older ones.
 
 **Restore** (`deploy/restore.sh`):
 ```bash
-docker compose --profile prod exec -T db \
+docker compose exec -T db \
   pg_restore -U yonca_user -d yonca_db --clean --if-exists \
   < backup_2026-03-17.dump
 ```

@@ -15,7 +15,7 @@ mkdir -p "$BACKUP_DIR"
 
 echo "[$(date)] Starting backup..."
 
-docker compose --profile prod exec -T db \
+docker compose exec -T db \
   pg_dump -U yonca_user -Fc yonca_db > "$BACKUP_FILE"
 
 echo "[$(date)] Backup saved to $BACKUP_FILE ($(du -sh "$BACKUP_FILE" | cut -f1))"

@@ -20,12 +20,12 @@ read -r -p "This will OVERWRITE the current database. Continue? [y/N] " confirm
 
 case "$BACKUP_FILE" in
   *.dump)
-    docker compose --profile prod exec -T db \
+    docker compose exec -T db \
       pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl \
       < "$BACKUP_FILE"
     ;;
   *.sql)
-    docker compose --profile prod exec -T db \
+    docker compose exec -T db \
       psql -U yonca_user -d yonca_db \
       < "$BACKUP_FILE"
     ;;

@@ -2,8 +2,25 @@ services:
 
   # ── Infrastructure ────────────────────────────────────────────────────────────
 
-  db:
+  libretranslate:
+    profiles: [dev, production, staging]
+    container_name: libretranslate-${APP_HOSTNAME}
+    image: libretranslate/libretranslate
+    restart: unless-stopped
+    command: ["--load-only", "en,az,ru"]
+    volumes:
+      - ./data/libretranslate:/home/libretranslate/.local/share
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/languages')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+  # ── Development ───────────────────────────────────────────────────────────────
+  db-dev:
     image: postgres:17-alpine
+    profiles: [dev]
     restart: unless-stopped
     container_name: db-${APP_HOSTNAME}
     environment:
@@ -20,24 +37,7 @@ services:
       timeout: 5s
       retries: 5
 
-  libretranslate:
-    profiles: [dev, prod]
-    container_name: libretranslate-${APP_HOSTNAME}
-    image: libretranslate/libretranslate
-    restart: unless-stopped
-    command: ["--load-only", "en,az,ru"]
-    volumes:
-      - ./data/libretranslate:/home/libretranslate/.local/share
-    healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/languages')\""]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 120s
-
-  # ── Development ───────────────────────────────────────────────────────────────
-
-  migrate:
+  migrate-dev:
     profiles: [dev]
     build: .
     restart: no
@@ -88,11 +88,28 @@ services:
     depends_on:
       - app-dev
 
-  # ── Production and Staging ────────────────────────────────────────────────────────────────
+  # ── Production ────────────────────────────────────────────────────────────────
+  db-production:
+    image: postgres:17-alpine
+    profiles: [production]
+    restart: unless-stopped
+    container_name: db-${APP_HOSTNAME}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  migrate-prod:
-    container_name: migrate-prod-${APP_HOSTNAME}
-    profiles: [prod]
+  migrate-production:
+    profiles: [production]
     image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
     restart: no
     env_file: .env
@@ -103,8 +120,8 @@ services:
         condition: service_healthy
     command: flask db upgrade
 
-  app:
-    profiles: [prod]
+  app-production:
+    profiles: [production]
     image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
     hostname: ${APP_HOSTNAME}
     restart: unless-stopped
@@ -128,6 +145,62 @@ services:
       - ./data/flask_session:/app/flask_session
       - ./data/logs:/app/logs
 
+  # ── Staging ────────────────────────────────────────────────────────────────
+  db-staging:
+    image: postgres:17-alpine
+    profiles: [staging]
+    restart: unless-stopped
+    container_name: db-${APP_HOSTNAME}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate-staging:
+    profiles: [staging]
+    image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
+    restart: no
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: flask db upgrade
+
+  app-staging:
+    profiles: [staging]
+    image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
+    hostname: ${APP_HOSTNAME}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
+      LIBRETRANSLATE_URL: http://libretranslate:5000
+    ports:
+      - "127.0.0.1:${APP_PORT}:8000"
+    depends_on:
+      migrate-prod:
+        condition: service_completed_successfully
+      libretranslate:
+        condition: service_healthy
+    networks:
+      - default
+      - yonca-proxy
+    volumes:
+      - ./data/flask_session:/app/flask_session
+      - ./data/logs:/app/logs
 networks:
   yonca-proxy:
     external: true

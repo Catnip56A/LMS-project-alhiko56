@@ -93,7 +93,7 @@ On a fresh server with no prior data, stamp migrations after first deploy:
 
 ```bash
 ssh user@host "cd ~/deploy/production/yonca && \
-  docker compose --profile prod run --rm migrate-prod flask db stamp head"
+  docker compose run --rm migrate-prod flask db stamp head"
 ```
 
 ### Restoring production data
@@ -102,7 +102,7 @@ ssh user@host "cd ~/deploy/production/yonca && \
 scp seed.sql user@host:~/deploy/production/yonca/
 ssh user@host
 cd ~/deploy/production/yonca
-docker compose --profile prod exec -T db psql -U yonca_user -d yonca_db < seed.sql
+docker compose exec -T db psql -U yonca_user -d yonca_db < seed.sql
 ```
 
 ### Backups
