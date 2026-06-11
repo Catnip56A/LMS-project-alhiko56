@@ -201,8 +201,8 @@ app:
 ```
 
 ```bash
-docker compose --profile dev up    # starts dev services
-docker compose --profile prod up   # starts production services
+docker compose --profile dev up -d    # starts dev services
+docker compose --profile prod up -d   # starts production services
 ```
 
 **Volumes — data survives container restarts:**
