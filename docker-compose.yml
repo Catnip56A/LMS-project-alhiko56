@@ -45,7 +45,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
-      db:
+      db-dev:
         condition: service_healthy
     volumes:
       - ./migrations:/app/migrations   # exposes generated files to host
@@ -64,7 +64,7 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      migrate:
+      migrate-dev:
         condition: service_completed_successfully
       libretranslate:
         condition: service_healthy
@@ -116,7 +116,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
-      db:
+      db-production:
         condition: service_healthy
     command: flask db upgrade
 
@@ -134,7 +134,7 @@ services:
     ports:
       - "127.0.0.1:${APP_PORT}:8000"
     depends_on:
-      migrate-prod:
+      migrate-production:
         condition: service_completed_successfully
       libretranslate:
         condition: service_healthy
@@ -173,7 +173,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
-      db:
+      db-staging:
         condition: service_healthy
     command: flask db upgrade
 
@@ -191,7 +191,7 @@ services:
     ports:
       - "127.0.0.1:${APP_PORT}:8000"
     depends_on:
-      migrate-prod:
+      migrate-staging:
         condition: service_completed_successfully
       libretranslate:
         condition: service_healthy
