@@ -1524,7 +1524,10 @@
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 2rem;
             margin: 0 3%;
-            align-items: start;
+        }
+        .courses-grid > * {
+            height: 100%;
+            box-sizing: border-box;
         }
 
         .resources-grid {
@@ -1556,6 +1559,8 @@
             background-position: center;
             background-color: white;
             background-attachment: fixed;
+            display: flex;
+            flex-direction: column;
         }
 
         .resource-card.course-card:hover .dropdown-indicator {
@@ -4047,7 +4052,7 @@
 
             courseCard.innerHTML = `
                 <h4 style="display: flex; align-items: center;">${course.title} ${enrolledBadge}</h4>
-                <p>${course.description}</p>
+                <p style="flex: 1;">${course.description}</p>
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem;">
                     <div class="course-tags" style="flex: 1;">${tagsHtml}</div>
                     ${waBtnHtml}
@@ -4074,6 +4079,7 @@
                 actionBtn.style.fontWeight = '500';
                 actionBtn.style.display = 'inline-block';
                 actionBtn.style.marginTop = '0.5rem';
+                actionBtn.style.alignSelf = 'flex-start';
                 courseCard.appendChild(actionBtn);
             }
 
