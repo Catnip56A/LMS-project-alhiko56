@@ -6257,6 +6257,14 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
             grid.scrollBy({ left: direction * amount, behavior: 'smooth' });
         };
 
+        // Prevent gallery-grid from stealing vertical wheel scroll — redirect to page scroll
+        document.querySelectorAll('.gallery-grid').forEach(function(grid) {
+            grid.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                window.scrollBy({ top: e.deltaY, behavior: 'auto' });
+            }, { passive: false });
+        });
+
         // Dropdown toggle function
         // Attach event listeners to dropdown buttons
         document.addEventListener('DOMContentLoaded', function() {
