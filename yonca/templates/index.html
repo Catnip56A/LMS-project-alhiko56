@@ -2420,7 +2420,7 @@
                         {% set lang_names  = {'en': 'English', 'ru': 'Русский'} %}
                         <div class="dropdown">
                             <button type="button" class="nav-link dropdown-toggle" id="langDropdown" role="button">
-                                🌐 {{ lang_labels.get(current_locale, 'EN') }}
+                                <img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> {{ lang_labels.get(current_locale, 'EN') }}
                             </button>
                             <div class="dropdown-menu" id="langDropdown-menu" style="display: none;">
                                 {% for code, name in lang_names.items() %}
@@ -2487,7 +2487,7 @@
             {% set lang_names = {'en': 'English', 'ru': 'Русский'} %}
             <div class="mobile-dropdown">
                 <button type="button" class="nav-link dropdown-toggle" id="mobile-langDropdown" style="width: 100%; text-align: center;">
-                    🌐 {{ lang_labels.get(current_locale, 'EN') }}
+                    <img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> {{ lang_labels.get(current_locale, 'EN') }}
                 </button>
                 <div class="mobile-dropdown-menu" id="mobile-langDropdown-menu" style="display: none;">
                     {% for code, name in lang_names.items() %}
@@ -2695,7 +2695,7 @@
 
             <!-- Course Filters -->
             <div class="course-filters" style="background: rgba(255, 255, 255, 0.55); padding: 1rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1rem;">
-                <h3 style="margin: 0 0 1rem 0; color: #212121;">📚 {{ _('Filter Courses') }}</h2>
+                <h3 style="margin: 0 0 1rem 0; color: #212121;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/library%20icon.png" style="height:2.4em;width:auto;vertical-align:middle;margin-right:0.3em;" alt=""> {{ _('Filter Courses') }}</h2>
                 <div class="filter-section" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                     <div>
                         <label style="font-weight: 500; color: #353e45; margin-right: 0.5rem;">{{ _("Tags:") }}</label>
@@ -2743,7 +2743,7 @@
 
                 <!-- Language Selection for Translation -->
                 <div class="language-selector" style="margin-bottom: 2rem; background: rgba(255, 255, 255, 0.55); padding: 1rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <h4 style="margin: 0 0 1rem 0; color: #212121;">🌐 {{ _("Translation Settings") }}</h4>
+                    <h4 style="margin: 0 0 1rem 0; color: #212121;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:5em;width:auto;vertical-align:middle;" alt=""> {{ _("Translation Settings") }}</h4>
                     <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                         <div>
                             <label for="target-language" style="font-weight: 500; color: #353e45;">{{ _("Language:") }}</label>
@@ -2792,7 +2792,7 @@
 
             <!-- Resources Filters (on beige background) -->
             <div class="resources-filters-inline">
-                <h3>📚 {{ _('Filter Learning Materials') }}</h3>
+                <h3><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/library%20icon.png" style="height:2.4em;width:auto;vertical-align:middle;margin-right:0.3em;" alt=""> {{ _('Filter Learning Materials') }}</h3>
 
                 <!-- Access Type Filter -->
                 <div class="filter-section">
@@ -2813,7 +2813,7 @@
 
             <!-- Learning Materials -->
             <div style="background: rgba(255, 255, 255, 0.15); border-radius: 15px; padding: 20px; margin-top: 2rem;">
-                <h3 style="color: #212121; margin: 0 0 1rem 0; font-size: 1.4rem; font-weight: 600;">📚 {{ _('Learning Materials') }}</h3>
+                <h3 style="color: #212121; margin: 0 0 1rem 0; font-size: 1.4rem; font-weight: 600;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/library%20icon.png" style="height:2.4em;width:auto;vertical-align:middle;margin-right:0.3em;" alt=""> {{ _('Learning Materials') }}</h3>
                 <div class="resources-grid">
                     <p style="text-align: center; color: #6b7280; font-style: italic;">{{ _('Loading materials... (Try switching pages in case of delays)') }}</p>
                 </div>
@@ -4390,7 +4390,7 @@
                         
                         resourceCard.innerHTML = `
                             ${resource.preview_image ? `<img src="${previewSrc}" alt="${resource.title}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">` : ''}
-                            <h4>${resource.title} 🔒</h4>
+                            <h4><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/book%20icon.png" style="height:1.2em;width:auto;vertical-align:middle;margin-right:0.3em;" alt="">${resource.title} 🔒</h4>
                             <p>${resource.description || '{{ _("No description available") }}'}</p>
                             ${resource.tags ? `<p style="font-size: 1.17rem; color: #337a2c; margin: 0.5rem 0;">${resource.tags.split(' ').map(tag => tag.trim() ? `#${tag.trim()}` : '').join(' ')}</p>` : ''}
                             <p style="font-size: 1.17rem; color: #6b7280; margin: 0.5rem 0;">
@@ -4413,7 +4413,7 @@
                         
                         resourceCard.innerHTML = `
                             ${resource.preview_image ? `<img src="${previewSrc}" alt="${resource.title}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">` : ''}
-                            <h4>${resource.title}</h4>
+                            <h4><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/book%20icon.png" style="height:1.2em;width:auto;vertical-align:middle;margin-right:0.3em;" alt="">${resource.title}</h4>
                             <p>${resource.description || '{{ _("No description available") }}'}</p>
                             ${resource.tags ? `<p style="font-size: 1.17rem; color: #337a2c; margin: 0.5rem 0;">${resource.tags.split(' ').map(tag => tag.trim() ? `#${tag.trim()}` : '').join(' ')}</p>` : ''}
                             <p style="font-size: 1.17rem; color: #6b7280; margin: 0.5rem 0;">
@@ -4867,7 +4867,7 @@
                     actionsHtml = `
                         <div class="message-actions">
                             <button onclick="replyToMessage(${message.id}, '${message.username}', '${message.channel}')" class="reply-btn">💬 Reply</button>
-                            <button onclick="toggleTranslation(${message.id})" class="translate-btn" title="Toggle translation" style="display: ${targetLanguage === 'none' ? 'none' : 'inline-block'};">🌐 Translate</button>
+                            <button onclick="toggleTranslation(${message.id})" class="translate-btn" title="Toggle translation" style="display: ${targetLanguage === 'none' ? 'none' : 'inline-block'};"<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> Translate</button>
                     `;
 
                     // Show edit/delete buttons only for message owner or admin
@@ -5385,7 +5385,7 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                 translateButtons.forEach(button => {
                     button.style.display = 'inline-block';
                     // Reset button to default "Translate" state
-                    button.textContent = '🌐 Translate';
+                    button.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> Translate';
                     button.style.color = 'white';
                     button.style.backgroundColor = '';
                 });
@@ -5464,7 +5464,7 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                         }
                         // Update button to "Translate Back" state
                         if (translateButton) {
-                            translateButton.textContent = '🌐 Translate Back';
+                            translateButton.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> Translate Back';
                             translateButton.style.color = 'white'; // White color for "back" state
                             translateButton.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
                         }
@@ -5492,7 +5492,7 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                 messageTextElement.textContent = originalText;
                 messageElement.setAttribute('data-translation-shown', 'false');
                 // Reset button to "Translate" state
-                translateButton.textContent = '🌐 Translate';
+                translateButton.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> Translate';
                 translateButton.style.color = 'white';
                 translateButton.style.backgroundColor = '';
             } else {
@@ -5501,7 +5501,7 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                     messageTextElement.textContent = translatedText;
                     messageElement.setAttribute('data-translation-shown', 'true');
                     // Change button to "Translate Back" state
-                    translateButton.textContent = '🌐 Translate Back';
+                    translateButton.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> Translate Back';
                     translateButton.style.color = 'white'; // White color for "back" state
                     translateButton.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
                 } else {

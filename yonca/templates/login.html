@@ -209,7 +209,7 @@
     <div style="position: absolute; top: 20px; right: 20px;">
         {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
         {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
-        <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" style="color: #337a2c; text-decoration: none; font-weight: bold;">🌐 {{ lang_names.get(current_locale, 'English') }}</a>
+        <a href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}" style="color: #337a2c; text-decoration: none; font-weight: bold;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> {{ lang_names.get(current_locale, 'English') }}</a>
     </div>
     <div class="login-container">
         <div class="logo">

@@ -526,7 +526,7 @@ function renderBlockSettings(block) {
                     <label>Title (supports HTML)</label>
                     <div style="display:flex;gap:6px;">
                         <textarea onchange="updateBlock('${block.id}', 'title', this.value)" rows="3" placeholder="e.g., &lt;h1&gt;My Title&lt;/h1&gt; or plain text" style="flex:1;">${block.settings.title || ''}</textarea>
-                        <button type="button" title="Translate" onclick="translateHeroField(this, '${block.id}', 'title')" style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;align-self:flex-start;">🌐</button>
+                        <button type="button" title="Translate" onclick="translateHeroField(this, '${block.id}', 'title')" style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;align-self:flex-start;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""></button>
                     </div>
                     <small style="color: #666;">You can use HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;h1&gt;, or style attributes</small>
                 </div>
@@ -546,7 +546,7 @@ function renderBlockSettings(block) {
                     <label>Subtitle (supports HTML)</label>
                     <div style="display:flex;gap:6px;">
                         <textarea onchange="updateBlock('${block.id}', 'subtitle', this.value)" rows="3" placeholder="e.g., &lt;p&gt;My subtitle&lt;/p&gt; or plain text" style="flex:1;">${block.settings.subtitle || ''}</textarea>
-                        <button type="button" title="Translate" onclick="translateHeroField(this, '${block.id}', 'subtitle')" style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;align-self:flex-start;">🌐</button>
+                        <button type="button" title="Translate" onclick="translateHeroField(this, '${block.id}', 'subtitle')" style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;align-self:flex-start;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""></button>
                     </div>
                     <small style="color: #666;">You can use HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;p&gt;, or style attributes</small>
                 </div>
@@ -605,7 +605,7 @@ function renderBlockSettings(block) {
                         <label>Button Text</label>
                         <div style="display:flex;gap:6px;">
                             <input type="text" value="${block.settings.buttonText || 'Enroll Now'}" onchange="updateBlock('${block.id}', 'buttonText', this.value)" placeholder="e.g. Enroll Now" style="flex:1;">
-                            <button type="button" title="Translate" onclick="translateHeroField(this, '${block.id}', 'buttonText')" style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;">🌐</button>
+                            <button type="button" title="Translate" onclick="translateHeroField(this, '${block.id}', 'buttonText')" style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""></button>
                         </div>
                     </div>
                     <div class="input-group-vertical">
@@ -714,11 +714,11 @@ function renderBlockSettings(block) {
                             <input type="text" placeholder="Image URL" value="${item.image || ''}" onchange="updateCarouselItem('${block.id}', ${idx}, 'image', this.value)" style="width: 100%; margin-bottom: 5px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
                             <div style="display:flex;gap:4px;margin-bottom:5px;">
                                 <textarea placeholder="Title (supports HTML)" onchange="updateCarouselItem('${block.id}', ${idx}, 'title', this.value)" style="flex:1;height:40px;padding:5px;border:1px solid #ccc;border-radius:3px;">${item.title || ''}</textarea>
-                                <button type="button" title="Translate" onclick="translateCarouselItem(this, '${block.id}', ${idx}, 'title')" style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;align-self:flex-start;">🌐</button>
+                                <button type="button" title="Translate" onclick="translateCarouselItem(this, '${block.id}', ${idx}, 'title')" style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;align-self:flex-start;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""></button>
                             </div>
                             <div style="display:flex;gap:4px;margin-bottom:5px;">
                                 <textarea placeholder="Description (supports HTML)" onchange="updateCarouselItem('${block.id}', ${idx}, 'description', this.value)" style="flex:1;height:60px;padding:5px;border:1px solid #ccc;border-radius:3px;">${item.description || ''}</textarea>
-                                <button type="button" title="Translate" onclick="translateCarouselItem(this, '${block.id}', ${idx}, 'description')" style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;align-self:flex-start;">🌐</button>
+                                <button type="button" title="Translate" onclick="translateCarouselItem(this, '${block.id}', ${idx}, 'description')" style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;align-self:flex-start;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""></button>
                             </div>
                             <button type="button" class="btn btn-sm" onclick="deleteCarouselItem('${block.id}', ${idx})" style="background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer;">Remove</button>
                         </div>
@@ -766,7 +766,7 @@ function renderBlockSettings(block) {
                                    style="flex:1;padding:5px;border:1px solid #ccc;border-radius:3px;font-size:13px;">
                             <button type="button" title="Translate"
                                     onclick="translateBulletItem(this, '${block.id}', ${idx})"
-                                    style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;">🌐</button>
+                                    style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""></button>
                             <button type="button"
                                     onclick="removeOverviewBullet('${block.id}', ${idx})"
                                     style="background:#dc3545;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;">✕</button>
@@ -783,7 +783,7 @@ function renderBlockSettings(block) {
                                style="flex:1;padding:5px;border:1px solid #ccc;border-radius:3px;font-size:13px;">
                         <button type="button" title="Translate"
                                 onclick="translateScheduleEntry(this, '${block.id}', ${idx})"
-                                style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;">🌐</button>
+                                style="background:#6c757d;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;font-size:12px;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""></button>
                         <button type="button"
                                 onclick="removeScheduleEntry('${block.id}', ${idx})"
                                 style="background:#dc3545;color:#fff;border:none;padding:5px 8px;border-radius:3px;cursor:pointer;">✕</button>
@@ -793,7 +793,7 @@ function renderBlockSettings(block) {
             const translateBtn = (inputId, subField) =>
                 `<button type="button" title="Translate"
                          onclick="translateOverviewField(this, document.getElementById('${inputId}').value, '${block.id}', '${subField}')"
-                         style="background:#6c757d;color:#fff;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-size:12px;">🌐</button>`;
+                         style="background:#6c757d;color:#fff;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-size:12px;"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""></button>`;
 
             html += `
                 <div style="margin-bottom:14px;padding:12px;background:#e8f4e8;border-radius:8px;">

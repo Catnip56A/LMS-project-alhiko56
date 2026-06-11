@@ -143,7 +143,7 @@
             <div>
                 {% set lang_cycle = {'en': 'ru', 'ru': 'en'} %}
                 {% set lang_names = {'en': 'English', 'ru': 'Russian'} %}
-                <a class="btn btn-sm btn-outline-light mr-2" href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}">🌐 {{ lang_names.get(current_locale, 'English') }}</a>
+                <a class="btn btn-sm btn-outline-light mr-2" href="/set_language/{{ lang_cycle.get(current_locale, 'en') }}"><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> {{ lang_names.get(current_locale, 'English') }}</a>
                 {% if current_user.is_authenticated and current_user.is_admin %}
                 <a href="/admin/course_management/" class="btn btn-sm btn-outline-light">
                     <i class="fa fa-arrow-left"></i> Back
