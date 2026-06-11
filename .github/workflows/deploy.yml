@@ -45,7 +45,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose.yml,deploy/backup.sh,deploy/restore.sh"
-          target: /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name }}/yonca
+          target: /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name == 'main' && 'production' || 'staging' }}/yonca
 
       - name: Copy shared Caddy config
         uses: appleboy/scp-action@v0.1.7
