@@ -75,6 +75,18 @@ just logs          # follow app-dev logs
 
 ## Deployment
 
+### Promote staging to production
+
+```bash
+git checkout main
+git merge staging
+git push origin main
+```
+
+This triggers the GitHub Actions workflow which deploys to production.
+
+### How CI/CD works
+
 Pushes to `main` and `staging` trigger GitHub Actions which:
 1. Build and push the image to `ghcr.io/yonca-sdc/yonca`
 2. Copy `docker-compose.yml`, `Caddyfile`, and scripts to the server via SCP
