@@ -1,7 +1,6 @@
 """
 Admin interface views and configuration
 """
-import json
 import os
 import secrets
 import requests
@@ -9,17 +8,12 @@ from datetime import datetime, timedelta
 from flask import flash, redirect, url_for, request, current_app, session
 from flask_admin import Admin, AdminIndexView, expose, BaseView
 from flask_admin.contrib.sqla import ModelView
-from flask_admin.form.upload import FileUploadField
 from markupsafe import Markup
 from wtforms import Form, FileField, StringField, TextAreaField, BooleanField
-from wtforms.validators import DataRequired
+from wtforms.validators import Optional, DataRequired
 from flask_login import current_user
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, BooleanField
-from wtforms.validators import Optional, DataRequired
-import os
 from yonca.google_drive_service import authenticate, upload_file, create_view_only_link, set_file_permissions
-import secrets
 
 
 def _resolve_oauth_base_url():
@@ -213,68 +207,6 @@ class AdminIndexView(AdminIndexView):
                 # Branding and navigation
                 home_content.site_name = form.site_name.data
                 
-                # Handle logo upload
-                logo_file = request.files.get('site_logo_file')
-                logo_url = request.form.get('site_logo_url')
-                
-                print(f"DEBUG: logo_file = {logo_file}, filename = {logo_file.filename if logo_file else 'None'}")
-                print(f"DEBUG: logo_url = {logo_url}")
-                
-                if logo_file and logo_file.filename:
-                    # Upload logo to Google Drive
-                    from werkzeug.utils import secure_filename
-                    import os
-                    import random
-                    from yonca.google_drive_service import authenticate, upload_file, create_view_only_link
-                    
-                    # Create temporary directory for file processing
-                    temp_dir = os.path.join(current_app.static_folder, 'temp')
-                    os.makedirs(temp_dir, exist_ok=True)
-                    print(f"DEBUG: temp_dir = {temp_dir}, exists = {os.path.exists(temp_dir)}")
-                    
-                    # Generate secure filename
-                    filename = secure_filename(logo_file.filename)
-                    unique_filename = f"logo_{random.randint(1000, 9999)}_{filename}"
-                    temp_file_path = os.path.join(temp_dir, unique_filename)
-                    print(f"DEBUG: temp_file_path = {temp_file_path}")
-                    
-                    # Save file temporarily
-                    logo_file.save(temp_file_path)
-                    print(f"DEBUG: file saved, exists = {os.path.exists(temp_file_path)}")
-                    
-                    # Upload to Google Drive
-                    service = authenticate()
-                    print(f"DEBUG: Google Drive service = {service}")
-                    if service:
-                        drive_file_id = upload_file(service, temp_file_path, filename)
-                        print(f"DEBUG: drive_file_id = {drive_file_id}")
-                        if drive_file_id:
-                            view_link = create_view_only_link(service, drive_file_id, is_image=True)
-                            print(f"DEBUG: view_link = {view_link}")
-                            if view_link:
-                                # Make the logo publicly viewable
-                                success = set_file_permissions(service, drive_file_id, make_public=True)
-                                print(f"DEBUG: set_file_permissions for logo {drive_file_id} returned: {success}")
-                                
-                                home_content.site_logo_url = view_link
-                                print(f"DEBUG: Logo URL set to: {home_content.site_logo_url}")
-                                flash('Logo uploaded successfully to Google Drive', 'success')
-                            else:
-                                flash('Failed to create view link for logo', 'error')
-                        else:
-                            flash('Failed to upload logo to Google Drive', 'error')
-                    else:
-                        flash('Failed to authenticate with Google Drive for logo upload', 'error')
-                    
-                    # Clean up temporary file
-                    try:
-                        os.remove(temp_file_path)
-                    except:
-                        pass
-                elif logo_url:
-                    # Use provided URL
-                    home_content.site_logo_url = logo_url
-                
                 home_content.is_active = True  # Always keep home content active
                 print(f"DEBUG: Setting is_active to: True (always active)")
                 
@@ -440,8 +372,7 @@ class AdminIndexView(AdminIndexView):
         
         # Branding and navigation
         form.site_name.data = home_content.site_name
-        form.site_logo_url.data = home_content.site_logo_url
-        
+
         form.is_active.data = home_content.is_active
         
         return self.render('admin/index.html', form=form, home_content=home_content)
@@ -730,8 +661,6 @@ class HomeContentForm(FlaskForm):
     
     # Branding and navigation
     site_name = StringField('Site Name', [Optional()], default="Yonca")
-    site_logo_url = StringField('Logo URL', [Optional()])
-    site_logo_file = FileField('Logo File', [Optional()])
     
     is_active = BooleanField('Active', default=True)
 
