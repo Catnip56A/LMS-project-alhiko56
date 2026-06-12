@@ -201,8 +201,9 @@ app:
 ```
 
 ```bash
-docker compose --profile dev up    # starts dev services
-docker compose --profile prod up   # starts production services
+docker compose --profile dev up          # local dev (builds from source)
+docker compose --profile staging up -d   # staging server (pulls GHCR image)
+docker compose --profile production up -d  # production server (pulls GHCR image)
 ```
 
 **Volumes — data survives container restarts:**
