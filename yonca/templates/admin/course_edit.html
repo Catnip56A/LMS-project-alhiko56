@@ -69,11 +69,6 @@
         </div>
 
         <div class="form-group">
-            <label for="profile_emoji">Profile Emoji</label>
-            <input type="text" class="form-control" id="profile_emoji" name="profile_emoji" value="{{ course.profile_emoji if course else '' }}">
-        </div>
-
-        <div class="form-group">
             <label for="tags">Course Tags (comma-separated)</label>
             <input type="text" class="form-control" id="tags" name="tags" placeholder="Write new to update old ones, otherwise leave unchanged" value="{% if course and course.tags %}{{ course.tags | join(', ') }}{% endif %}">
             <small class="form-text text-muted">Tags help students filter and find courses. Separate multiple tags with commas.</small>

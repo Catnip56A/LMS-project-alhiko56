@@ -138,7 +138,6 @@ def get_courses():
             'title': get_translated_content('course', c.id, 'title', c.title, user_locale),
             'description': get_translated_content('course', c.id, 'description', c.description, user_locale),
             'time_slot': c.time_slot,
-            'profile_emoji': c.profile_emoji,
             'dropdown_menu': c.dropdown_menu,
             'tags': get_translated_string_array('course', c.id, 'tags', c.tags, user_locale),
             'is_enrolled': c.id in enrolled_course_ids
@@ -152,7 +151,6 @@ def get_courses():
             'title': get_translated_content('course', c.id, 'title', c.title, user_locale),
             'description': get_translated_content('course', c.id, 'description', c.description, user_locale),
             'time_slot': c.time_slot,
-            'profile_emoji': c.profile_emoji,
             'dropdown_menu': c.dropdown_menu,
             'tags': get_translated_string_array('course', c.id, 'tags', c.tags, user_locale)
         } for c in courses])
@@ -176,7 +174,6 @@ def get_current_user():
                 'title': get_translated_content('course', c.id, 'title', c.title, user_locale),
                 'description': get_translated_content('course', c.id, 'description', c.description, user_locale),
                 'time_slot': c.time_slot,
-                'profile_emoji': c.profile_emoji,
                 'dropdown_menu': c.dropdown_menu,
                 'tags': get_translated_string_array('course', c.id, 'tags', c.tags, user_locale)
             } for c in current_user.courses]

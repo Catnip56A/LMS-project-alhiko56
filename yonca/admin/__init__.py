@@ -689,11 +689,9 @@ class CourseForm(FlaskForm):
     title = StringField('Title', [DataRequired()])
     description = TextAreaField('Description', [Optional()])
     time_slot = StringField('Time Slot', [Optional()])
-    profile_emoji = StringField('Profile Emoji', [Optional()])
-
 class CourseView(SecureModelView):
     """Admin view for Course model with custom dropdown menu management"""
-    column_list = ('id', 'title', 'description', 'time_slot', 'profile_emoji', 'users')
+    column_list = ('id', 'title', 'description', 'time_slot', 'users')
     column_searchable_list = ['title', 'description']
     form = CourseForm
     form_excluded_columns = ('dropdown_menu',)
@@ -720,8 +718,7 @@ class CourseView(SecureModelView):
             course.title = request.form.get('title', '')
             course.description = request.form.get('description', '')
             course.time_slot = request.form.get('time_slot', '')
-            course.profile_emoji = request.form.get('profile_emoji', '')
-            
+
             # Parse tags from comma-separated input — only overwrite if field was non-empty
             tags_input = request.form.get('tags', '').strip()
             if tags_input:
@@ -787,7 +784,6 @@ class CourseView(SecureModelView):
             'title': get_translated_content('course', course.id, 'title', course.title, 'en') or course.title,
             'description': get_translated_content('course', course.id, 'description', course.description, 'en') or course.description,
             'time_slot': course.time_slot,
-            'profile_emoji': course.profile_emoji,
             'page_welcome_title': get_translated_content('course', course.id, 'page_welcome_title', course.page_welcome_title or '', 'en') or course.page_welcome_title,
             'page_subtitle': get_translated_content('course', course.id, 'page_subtitle', course.page_subtitle or '', 'en') or course.page_subtitle,
             'page_description': get_translated_content('course', course.id, 'page_description', course.page_description or '', 'en') or course.page_description,
@@ -819,7 +815,6 @@ class CourseView(SecureModelView):
                 title=request.form.get('title', ''),
                 description=request.form.get('description', ''),
                 time_slot=request.form.get('time_slot', ''),
-                profile_emoji=request.form.get('profile_emoji', ''),
                 tags=tags,
                 page_welcome_title=request.form.get('page_welcome_title', ''),
                 page_subtitle=request.form.get('page_subtitle', ''),
