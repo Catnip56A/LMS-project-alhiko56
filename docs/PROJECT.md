@@ -81,6 +81,13 @@ just logs          # follow app-dev logs
 git checkout main
 git merge staging
 git push origin main
+
+
+#vise versa:
+
+git checkout staging
+git merge main
+git push origin staging
 ```
 
 This triggers the GitHub Actions workflow which deploys to production.
