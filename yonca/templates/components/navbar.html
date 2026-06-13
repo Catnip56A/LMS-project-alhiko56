@@ -32,7 +32,7 @@
                 {% set lang_names  = {'en': 'English', 'ru': 'Русский'} %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="langDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> {{ lang_labels.get(current_locale, 'EN') }}
+                        <img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:1.8em;width:auto;vertical-align:middle;" alt=""> {{ lang_labels.get(current_locale, 'EN') }}
                     </a>
                     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="langDropdown">
                         {% for code, name in lang_names.items() %}
@@ -63,7 +63,7 @@
                 </li>
                 {% else %}
                 <li class="nav-item">
-                    <a class="nav-link" href="/login">{{ _('Login') }}</a>
+                    <a class="nav-link" href="/login"><img src="/static/permanent/uis%20for%20additional%20use(icons%20etc)/log%20in%20icon.png" alt="" style="height:1.8em;width:auto;margin-right:5px;vertical-align:middle;"> {{ _('Login') }}</a>
                 </li>
                 {% endif %}
             </ul>
@@ -107,7 +107,7 @@
         </div>
 
         <div id="mobile-auth-buttons" style="margin-top: 1.5rem; text-align: center;">
-            <button id="mobile-login-btn" onclick="window.location.href='/login'">{{ _('Login') }}</button>
+            <button id="mobile-login-btn" onclick="window.location.href='/login'"><img src="/static/permanent/uis%20for%20additional%20use(icons%20etc)/log%20in%20icon.png" alt="" style="height:1.8em;width:auto;margin-right:5px;vertical-align:middle;"> {{ _('Login') }}</button>
         </div>
         <div id="mobile-user-info" style="margin-top: 1.5rem; text-align: center; display: none;">
             <p style="color: #353e45; margin-bottom: 1rem;">{{ _('Welcome') }}, <span id="mobile-user-name"></span>!</p>

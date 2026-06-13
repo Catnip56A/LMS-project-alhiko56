@@ -599,7 +599,7 @@
         }
 
         .features-section .feature-card {
-            background-image: url('/static/permanent/CourseItemBg.png');
+            background-image: url('/static/permanent/CourseItemBg2.png');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -612,7 +612,7 @@
 
 
         .services-section .feature-card {
-            background-image: url('/static/permanent/CourseItemBg.png');
+            background-image: url('/static/permanent/CourseItemBg2.png');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -638,7 +638,7 @@
         }
 
         .service-card {
-            background-image: url('/static/permanent/CourseItemBg.png');
+            background-image: url('/static/permanent/CourseItemBg2.png');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -776,7 +776,7 @@
         }
 
         .modal-content {
-            background-image: url('/static/permanent/CourseItemBg.png');
+            background-image: url('/static/permanent/CourseItemBg2.png');
             background-size: cover;
             background-position: center;
             border-radius: 15px;
@@ -1333,10 +1333,10 @@
         }
 
         .resources-grid .resource-card {
-            background: url('/static/permanent/CourseItemBg.png');
-            background-size: cover;
-            background-position: center;
-            background-color: white;
+            background: url('/static/permanent/CourseItemBg2.png') center/cover white;
+        }
+        .resources-grid .resource-card:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.07), inset 0 0 0 9999px rgba(30,89,25,0.04);
         }
             
 
@@ -1561,13 +1561,12 @@
         .resource-card.course-card {
             position: relative;
             cursor: pointer;
-            background: url('/static/permanent/CourseItemBg.png');
-            background-size: cover;
-            background-position: center;
-            background-color: white;
-            background-attachment: fixed;
+            background: url('/static/permanent/CourseItemBg2.png') center/cover white;
             display: flex;
             flex-direction: column;
+        }
+        .resource-card.course-card:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.07), inset 0 0 0 9999px rgba(30,89,25,0.04);
         }
 
         .resource-card.course-card:hover .dropdown-indicator {
@@ -1599,17 +1598,12 @@
         }
 
         .resource-card.course-card.enrolled-course {
-            background: url('/static/permanent/CourseItemBg.png');
-            background-size: cover;
-            background-position: center;
-            background-color: white;
-            background-attachment: fixed;
+            background: url('/static/permanent/CourseItemBg2.png') center/cover white;
             border: 1px solid rgba(0,0,0,0.04);
             border-left: 4px solid #2b5a1d;
         }
-
         .resource-card.course-card.enrolled-course:hover {
-            box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.07), inset 0 0 0 9999px rgba(192, 220, 188, 0.04);
         }
 
         .dropdown-indicator {
@@ -2432,7 +2426,7 @@
                         {% set lang_names  = {'en': 'English', 'ru': 'Русский'} %}
                         <div class="dropdown">
                             <button type="button" class="nav-link dropdown-toggle" id="langDropdown" role="button">
-                                <img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> {{ lang_labels.get(current_locale, 'EN') }}
+                                <img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:1.8em;width:auto;vertical-align:middle;" alt=""> {{ lang_labels.get(current_locale, 'EN') }}
                             </button>
                             <div class="dropdown-menu" id="langDropdown-menu" style="display: none;">
                                 {% for code, name in lang_names.items() %}
@@ -2462,7 +2456,7 @@
                             </div>
                         </div>
                         {% else %}
-                        <button id="login-btn" class="nav-link" onclick="window.location.href='/login'">{{ _('Login') }}</button>
+                        <button id="login-btn" class="nav-link" onclick="window.location.href='/login'"><img src="/static/permanent/uis%20for%20additional%20use(icons%20etc)/log%20in%20icon.png" alt="" style="height:1.8em;width:auto;margin-right:5px;vertical-align:middle;"> {{ _('Login') }}</button>
                         {% endif %}
                     </div>
                 </div>
@@ -2499,7 +2493,7 @@
             {% set lang_names = {'en': 'English', 'ru': 'Русский'} %}
             <div class="mobile-dropdown">
                 <button type="button" class="nav-link dropdown-toggle" id="mobile-langDropdown" style="width: 100%; text-align: center;">
-                    <img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> {{ lang_labels.get(current_locale, 'EN') }}
+                    <img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:1.8em;width:auto;vertical-align:middle;" alt=""> {{ lang_labels.get(current_locale, 'EN') }}
                 </button>
                 <div class="mobile-dropdown-menu" id="mobile-langDropdown-menu" style="display: none;">
                     {% for code, name in lang_names.items() %}
@@ -2529,7 +2523,7 @@
                 </div>
             </div>
             {% else %}
-            <button id="mobile-login-btn" class="nav-link" onclick="window.location.href='/login'" style="width: 100%; text-align: center; margin-top: 1rem;">{{ _('Login') }}</button>
+            <button id="mobile-login-btn" class="nav-link" onclick="window.location.href='/login'" style="width: 100%; text-align: center; margin-top: 1rem;"><img src="/static/permanent/uis%20for%20additional%20use(icons%20etc)/log%20in%20icon.png" alt="" style="height:1.8em;width:auto;margin-right:5px;vertical-align:middle;"> {{ _('Login') }}</button>
             {% endif %}
         </div>
     </div>
@@ -4880,7 +4874,7 @@
                     actionsHtml = `
                         <div class="message-actions">
                             <button onclick="replyToMessage(${message.id}, '${message.username}', '${message.channel}')" class="reply-btn">💬 Reply</button>
-                            <button onclick="toggleTranslation(${message.id})" class="translate-btn" title="Toggle translation" style="display: ${targetLanguage === 'none' ? 'none' : 'inline-block'};"<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> Translate</button>
+                            <button onclick="toggleTranslation(${message.id})" class="translate-btn" title="Toggle translation" style="display: ${targetLanguage === 'none' ? 'none' : 'inline-block'};"<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:1.8em;width:auto;vertical-align:middle;" alt=""> Translate</button>
                     `;
 
                     // Show edit/delete buttons only for message owner or admin
@@ -5398,7 +5392,7 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                 translateButtons.forEach(button => {
                     button.style.display = 'inline-block';
                     // Reset button to default "Translate" state
-                    button.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> Translate';
+                    button.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:1.8em;width:auto;vertical-align:middle;" alt=""> Translate';
                     button.style.color = 'white';
                     button.style.backgroundColor = '';
                 });
@@ -5481,7 +5475,7 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                         }
                         // Update button to "Translate Back" state
                         if (translateButton) {
-                            translateButton.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> Translate Back';
+                            translateButton.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:1.8em;width:auto;vertical-align:middle;" alt=""> Translate Back';
                             translateButton.style.color = 'white'; // White color for "back" state
                             translateButton.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
                         }
@@ -5509,7 +5503,7 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                 messageTextElement.textContent = originalText;
                 messageElement.setAttribute('data-translation-shown', 'false');
                 // Reset button to "Translate" state
-                translateButton.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> Translate';
+                translateButton.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:1.8em;width:auto;vertical-align:middle;" alt=""> Translate';
                 translateButton.style.color = 'white';
                 translateButton.style.backgroundColor = '';
             } else {
@@ -5518,7 +5512,7 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
                     messageTextElement.textContent = translatedText;
                     messageElement.setAttribute('data-translation-shown', 'true');
                     // Change button to "Translate Back" state
-                    translateButton.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:2.5em;width:auto;vertical-align:middle;" alt=""> Translate Back';
+                    translateButton.innerHTML = '<img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:1.8em;width:auto;vertical-align:middle;" alt=""> Translate Back';
                     translateButton.style.color = 'white'; // White color for "back" state
                     translateButton.style.backgroundColor = 'rgba(220, 38, 38, 0.1)';
                 } else {
