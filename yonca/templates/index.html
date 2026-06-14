@@ -2532,8 +2532,41 @@
         <!-- Home Page (start with gallery; removed welcome hero and CTA) -->
         <section id="home" class="page active">
 
+            <!-- Home Features Section -->
+            <div class="features-section">
+                <h2 class="section-title" style="color: #000000;">{{ translate_field('home_content', home_content.id, 'features_title', home_content.features_title or _('Our Features')) }}</h2>
+                <p style="text-align: center;">{{ translate_field('home_content', home_content.id, 'features_subtitle', home_content.features_subtitle or _('Discover what makes our platform special.')) }}</p>
+
+                <div class="features">
+                {% if home_content.features %}
+                {% for feature in translate_json('home_content', home_content.id, 'features', home_content.features) %}
+                <div class="feature-card">
+                    <h3>{{ feature.title }}</h3>
+                    <p>{{ feature.description }}</p>
+                    {% if feature.button_text and feature.button_url %}
+                    <a href="{{ feature.button_url }}" class="feature-btn" target="_blank" rel="noopener">{{ feature.button_text }}</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="feature-card">
+                    <h3>{{ _('Interactive Courses') }}</h3>
+                    <p>{{ _('Engage with dynamic course content and interactive learning materials.') }}</p>
+                </div>
+                <div class="feature-card">
+                    <h3>{{ _('Study Groups') }}</h3>
+                    <p>{{ _('Collaborate with fellow learners in our vibrant study communities.') }}</p>
+                </div>
+                <div class="feature-card">
+                    <h3>{{ _('Expert Support') }}</h3>
+                    <p>{{ _('Get help from our team of educational experts and specialists.') }}</p>
+                </div>
+                {% endif %}
+                </div>
+            </div>
+
             <!-- Gallery Section -->
-            <h2 class="section-title" style="color: #000000;">{{ _('What\'s New') }}</h2>
+            <h2 class="section-title" style="color: #000000; margin-top: 3rem;">{{ _('What\'s New') }}</h2>
             <p class="section-description">{{ _('Discover the latest updates, new features, and exciting developments in our learning platform.') }}</p>
 
             <div class="gallery-outer">
@@ -2566,8 +2599,8 @@
                     </button>
                     {% elif 'vimeo.com' in image.url %}
                     {% set video_id = image.url.split('vimeo.com/')[1].split('?')[0] %}
-                    <iframe width="100%" 
-                        src="https://player.vimeo.com/video/{{ video_id }}" 
+                    <iframe width="100%"
+                        src="https://player.vimeo.com/video/{{ video_id }}"
                         frameborder="0" allowfullscreen
                         style="border-radius: 8px; max-width: 100%;"></iframe>
                     {% elif 'drive.google.com' in image.url %}
@@ -2577,7 +2610,7 @@
                     {% elif 'id=' in image.url %}
                     {% set file_id = image.url.split('id=')[1].split('&')[0] %}
                     {% endif %}
-                    <iframe src="https://drive.google.com/file/d/{{ file_id }}/preview" 
+                    <iframe src="https://drive.google.com/file/d/{{ file_id }}/preview"
                         width="100%" frameborder="0" allowfullscreen
                         style="border-radius: 8px; max-width: 100%;"></iframe>
                     <div class="gallery-caption" style="background: #fff3cd; color: #856404; border-color: #ffeaa7;">
@@ -2620,40 +2653,6 @@
                 </div>
             </div>
             <button class="gallery-control next" aria-label="Next">&#10095;</button>
-            </div>
-        
-
-            <!-- Home Features Section (placed after gallery) -->
-            <div class="features-section">
-                <h2 class="section-title" style="color: #000000;">{{ translate_field('home_content', home_content.id, 'features_title', home_content.features_title or _('Our Features')) }}</h2>
-                <p style="text-align: center;">{{ translate_field('home_content', home_content.id, 'features_subtitle', home_content.features_subtitle or _('Discover what makes our platform special.')) }}</p>
-
-                <div class="features">
-                {% if home_content.features %}
-                {% for feature in translate_json('home_content', home_content.id, 'features', home_content.features) %}
-                <div class="feature-card">
-                    <h3>{{ feature.title }}</h3>
-                    <p>{{ feature.description }}</p>
-                    {% if feature.button_text and feature.button_url %}
-                    <a href="{{ feature.button_url }}" class="feature-btn" target="_blank" rel="noopener">{{ feature.button_text }}</a>
-                    {% endif %}
-                </div>
-                {% endfor %}
-                {% else %}
-                <div class="feature-card">
-                    <h3>{{ _('Interactive Courses') }}</h3>
-                    <p>{{ _('Engage with dynamic course content and interactive learning materials.') }}</p>
-                </div>
-                <div class="feature-card">
-                    <h3>{{ _('Study Groups') }}</h3>
-                    <p>{{ _('Collaborate with fellow learners in our vibrant study communities.') }}</p>
-                </div>
-                <div class="feature-card">
-                    <h3>{{ _('Expert Support') }}</h3>
-                    <p>{{ _('Get help from our team of educational experts and specialists.') }}</p>
-                </div>
-                {% endif %}
-                </div>
             </div>
 
         </section>
