@@ -84,8 +84,8 @@ def index():
             if resource.uploaded_by != current_user.id and not current_user.is_admin:
                 flash('You do not have permission to delete this resource.', 'error')
                 return redirect(url_for('main.index'))
-            # Delete from Google Drive
-            if resource.drive_file_id:
+            # Delete from Google Drive only if the app uploaded it (not imported from user's Drive)
+            if resource.drive_file_id and not resource.is_imported:
                 service = authenticate()
                 if service:
                     try:
@@ -110,8 +110,8 @@ def index():
             if pdf.uploaded_by != current_user.id and not current_user.is_admin:
                 flash('You do not have permission to delete this PDF.', 'error')
                 return redirect(url_for('main.index'))
-            # Delete from Google Drive
-            if pdf.drive_file_id:
+            # Delete from Google Drive only if the app uploaded it (not imported from user's Drive)
+            if pdf.drive_file_id and not pdf.is_imported:
                 service = authenticate()
                 if service:
                     try:
@@ -580,15 +580,15 @@ def course_page_enrolled(course_id):
                 flash('Content not found.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
-            # Delete from Google Drive
-            if content.drive_file_id:
+            # Delete from Google Drive only if the app uploaded it (not imported from user's Drive)
+            if content.drive_file_id and not content.is_imported:
                 service = authenticate()
                 if service:
                     try:
                         delete_file(service, content.drive_file_id)
                     except Exception as e:
                         print(f"Error deleting file from Google Drive: {e}")
-            
+
             # Delete from database
             db.session.delete(content)
             db.session.commit()
@@ -963,7 +963,8 @@ def course_page_enrolled(course_id):
                 order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
                 folder_id=int(folder_id) if folder_id else None,
                 is_published=request.form.get('import_published') == 'on',
-                allow_others_to_view=request.form.get('import_allow_view') == 'on'
+                allow_others_to_view=request.form.get('import_allow_view') == 'on',
+                is_imported=True
             )
             print(f"DEBUG: Created CourseContent object: {content.title}, drive_file_id: {content.drive_file_id}")
             db.session.add(content)
@@ -1046,7 +1047,8 @@ def course_page_enrolled(course_id):
                         order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
                         folder_id=parent_folder_id,
                         is_published=request.form.get('import_published') == 'on',
-                        allow_others_to_view=True  # Default to visible for bulk imports
+                        allow_others_to_view=True,
+                        is_imported=True
                     )
                     db.session.add(content)
                     total_files += 1
@@ -1109,7 +1111,8 @@ def course_page_enrolled(course_id):
                         order=imported_count + 1,
                         folder_id=current_folder_id,
                         is_published=request.form.get('import_published') == 'on',
-                        allow_others_to_view=True
+                        allow_others_to_view=True,
+                        is_imported=True
                     )
                     db.session.add(content)
                     imported_count += 1
@@ -1175,8 +1178,8 @@ def course_page_enrolled(course_id):
                     continue
                 content = CourseContent.query.get(int(content_id))
                 if content and content.course_id == course.id:
-                    # Delete from Google Drive
-                    if content.drive_file_id:
+                    # Delete from Google Drive only if the app uploaded it
+                    if content.drive_file_id and not content.is_imported:
                         service = authenticate()
                         if service:
                             try:
@@ -1714,7 +1717,8 @@ def edit_course_page(slug):
                 order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
                 folder_id=int(folder_id) if folder_id else None,
                 is_published=request.form.get('import_published') == 'on',
-                allow_others_to_view=request.form.get('import_allow_view') == 'on'
+                allow_others_to_view=request.form.get('import_allow_view') == 'on',
+                is_imported=True
             )
             print(f"DEBUG: Created CourseContent object: {content.title}, drive_file_id: {content.drive_file_id}")
             db.session.add(content)
@@ -1796,7 +1800,8 @@ def edit_course_page(slug):
                         order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
                         folder_id=parent_folder_id,
                         is_published=request.form.get('import_published') == 'on',
-                        allow_others_to_view=True  # Default to visible for bulk imports
+                        allow_others_to_view=True,
+                        is_imported=True
                     )
                     db.session.add(content)
                     total_files += 1
@@ -1852,7 +1857,8 @@ def edit_course_page(slug):
                         order=imported_count + 1,
                         folder_id=course_folder.id,
                         is_published=request.form.get('import_published') == 'on',
-                        allow_others_to_view=True
+                        allow_others_to_view=True,
+                        is_imported=True
                     )
                     db.session.add(content)
                     imported_count += 1
@@ -1998,8 +2004,8 @@ def edit_course_page(slug):
             for content_id in content_ids:
                 content = CourseContent.query.get(content_id)
                 if content and content.course_id == course.id:
-                    # Delete from Google Drive
-                    if content.drive_file_id:
+                    # Delete from Google Drive only if the app uploaded it
+                    if content.drive_file_id and not content.is_imported:
                         service = authenticate()
                         if service:
                             try:

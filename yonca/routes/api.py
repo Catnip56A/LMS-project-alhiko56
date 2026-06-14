@@ -1337,6 +1337,7 @@ def import_drive_file_to_resource():
             resource.drive_file_id = file_data.get('file_id')
             resource.drive_view_link = file_data.get('view_link')
             resource.mime_type = file_data.get('mime_type')
+            resource.is_imported = True
             
             db.session.commit()
             
@@ -1355,7 +1356,8 @@ def import_drive_file_to_resource():
                 drive_file_id=file_data.get('file_id'),
                 drive_view_link=file_data.get('view_link'),
                 mime_type=file_data.get('mime_type'),
-                created_by=current_user.id
+                created_by=current_user.id,
+                is_imported=True
             )
             
             db.session.add(resource)

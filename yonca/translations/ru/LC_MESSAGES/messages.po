@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-27 13:27+0400\n"
+"POT-Creation-Date: 2026-06-14 17:28+0400\n"
 "PO-Revision-Date: 2026-03-12 12:31+0400\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ru <LL@li.org>\n"
@@ -18,8 +18,8 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: yonca/routes/__init__.py:36 yonca/routes/__init__.py:40
-#: yonca/routes/api.py:205 yonca/templates/index.html:3612
+#: yonca/routes/__init__.py:35 yonca/routes/__init__.py:39
+#: yonca/routes/api.py:203 yonca/templates/index.html:3647
 msgid ""
 "ADMIN BLOCKED THE PAGE, to get further information, contact the admins of "
 "the website"
@@ -27,88 +27,125 @@ msgstr ""
 "ADMIN заблокировал страницу, чтобы получить дополнительную информацию, "
 "свяжитесь с администраторами сайта"
 
-#: yonca/templates/base.html:193
+#: yonca/routes/auth.py:106 yonca/routes/auth.py:265
+msgid "Google account"
+msgstr "Google аккаунт"
+
+#: yonca/routes/auth.py:106
+msgid "is already linked to another user account."
+msgstr "он уже подключен к другой учетной записи пользователя."
+
+#: yonca/routes/auth.py:107 yonca/routes/auth.py:266
+msgid ""
+"If you proceed, the connection of this Google account to the other Yonca "
+"account will be"
+msgstr ""
+"Если вы продолжите, соединение этой учетной записи Google с другой учетной "
+"записью Yonca будет"
+
+#: yonca/routes/auth.py:107 yonca/routes/auth.py:266
+msgid "rewritten"
+msgstr "переписанный"
+
+#: yonca/routes/auth.py:107 yonca/routes/auth.py:266
+msgid "with the account you enter."
+msgstr "с учетной записью, которую вы вводите."
+
+#: yonca/routes/auth.py:265
+msgid ""
+"is already linked to another user account. Please use a different Google "
+"account."
+msgstr ""
+"он уже подключен к другой учетной записи пользователя. Пожалуйста, "
+"используйте другой аккаунт Google."
+
+#: yonca/templates/base.html:201
 msgid "YouTube Video"
 msgstr "Видео YouTube"
 
-#: yonca/templates/base.html:194
+#: yonca/templates/base.html:202
 msgid "Close Large View"
 msgstr "Большой взгляд"
 
-#: yonca/templates/base.html:396
+#: yonca/templates/base.html:404
 msgid "Open in Large View"
 msgstr "Открыто в большом виде"
 
-#: yonca/templates/base.html:412
+#: yonca/templates/base.html:420
 msgid "Open video in large view"
 msgstr "Открытое видео в большом виде"
 
-#: yonca/templates/course_description.html:270
-#: yonca/templates/course_page_enrolled.html:1601
+#: yonca/templates/contact.html:3 yonca/templates/index.html:2668
+#: yonca/templates/index.html:3038
+msgid "Contact Us"
+msgstr "Свяжитесь с нами"
+
+#: yonca/templates/course_description.html:206
+#: yonca/templates/course_page_enrolled.html:1580
 msgid "Course Features"
 msgstr "Особенности курса"
 
-#: yonca/templates/components/navbar.html:20
-#: yonca/templates/components/navbar.html:95
-#: yonca/templates/course_description.html:275
-#: yonca/templates/course_page_enrolled.html:1606
-#: yonca/templates/index.html:2384 yonca/templates/index.html:2454
+#: yonca/templates/components/navbar.html:16
+#: yonca/templates/components/navbar.html:93
+#: yonca/templates/course_description.html:211
+#: yonca/templates/course_page_enrolled.html:1585
+#: yonca/templates/index.html:2416 yonca/templates/index.html:2486
 msgid "Forum"
 msgstr "Форум"
 
-#: yonca/templates/course_description.html:276
-#: yonca/templates/course_page_enrolled.html:1607
+#: yonca/templates/course_description.html:212
+#: yonca/templates/course_page_enrolled.html:1586
 msgid "Connect with fellow learners and get help from instructors."
 msgstr "Общайтесь с другими учениками и получите помощь от инструкторов."
 
-#: yonca/templates/course_description.html:277
-#: yonca/templates/course_page_enrolled.html:1608
+#: yonca/templates/course_description.html:213
+#: yonca/templates/course_page_enrolled.html:1587
 msgid "Access Forum"
 msgstr "Форум Access"
 
-#: yonca/templates/components/navbar.html:23
-#: yonca/templates/components/navbar.html:96
-#: yonca/templates/course_description.html:283
-#: yonca/templates/course_page_enrolled.html:1614
-#: yonca/templates/index.html:2385 yonca/templates/index.html:2455
-#: yonca/templates/index.html:2764
+#: yonca/templates/components/navbar.html:19
+#: yonca/templates/components/navbar.html:94
+#: yonca/templates/course_description.html:219
+#: yonca/templates/course_page_enrolled.html:1593
+#: yonca/templates/index.html:2417 yonca/templates/index.html:2487
+#: yonca/templates/index.html:2795
 msgid "Resources"
 msgstr "Ресурсы"
 
-#: yonca/templates/course_description.html:284
-#: yonca/templates/course_page_enrolled.html:1615
+#: yonca/templates/course_description.html:220
+#: yonca/templates/course_page_enrolled.html:1594
 msgid "Access course materials, documents, and additional resources."
 msgstr "Доступ к материалам курса, документам и дополнительным ресурсам."
 
-#: yonca/templates/course_description.html:285
-#: yonca/templates/course_page_enrolled.html:1616
+#: yonca/templates/course_description.html:221
+#: yonca/templates/course_page_enrolled.html:1595
 msgid "Access Resources"
 msgstr "Доступ к ресурсам"
 
-#: yonca/templates/course_description.html:291
-#: yonca/templates/course_page_enrolled.html:542
-#: yonca/templates/course_page_enrolled.html:1622
+#: yonca/templates/course_description.html:227
+#: yonca/templates/course_page_enrolled.html:519
+#: yonca/templates/course_page_enrolled.html:1601
 msgid "Reviews"
 msgstr "Обзоры"
 
-#: yonca/templates/course_description.html:292
-#: yonca/templates/course_page_enrolled.html:1623
+#: yonca/templates/course_description.html:228
+#: yonca/templates/course_page_enrolled.html:1602
 msgid "Read reviews from other students and share your experience."
 msgstr "Читайте отзывы других студентов и делитесь своим опытом."
 
-#: yonca/templates/course_description.html:293
-#: yonca/templates/course_page_enrolled.html:1624
+#: yonca/templates/course_description.html:229
+#: yonca/templates/course_page_enrolled.html:1603
 msgid "View Reviews"
 msgstr "Посмотреть отзывы"
 
-#: yonca/templates/course_description.html:303
-#: yonca/templates/course_page_enrolled.html:1508
-#: yonca/templates/course_page_enrolled.html:1634
+#: yonca/templates/course_description.html:239
+#: yonca/templates/course_page_enrolled.html:1487
+#: yonca/templates/course_page_enrolled.html:1613
 msgid "Student Reviews"
 msgstr "Отзывы студентов"
 
-#: yonca/templates/course_description.html:304
-#: yonca/templates/course_page_enrolled.html:1635
+#: yonca/templates/course_description.html:240
+#: yonca/templates/course_page_enrolled.html:1614
 #, fuzzy
 msgid "review"
 msgid_plural "reviews"
@@ -116,139 +153,139 @@ msgstr[0] "обзор"
 msgstr[1] "обзор"
 msgstr[2] "обзор"
 
-#: yonca/templates/course_description.html:304
+#: yonca/templates/course_description.html:240
 msgid "reviews"
 msgstr "отзывы"
 
-#: yonca/templates/course_description.html:321
-#: yonca/templates/course_page_enrolled.html:1652
+#: yonca/templates/course_description.html:257
+#: yonca/templates/course_page_enrolled.html:1631
 msgid "Average Rating"
 msgstr "Средний рейтинг"
 
-#: yonca/templates/course_description.html:338
+#: yonca/templates/course_description.html:274
 msgid "By"
 msgstr "By"
 
-#: yonca/templates/course_description.html:352
-#: yonca/templates/course_page_enrolled.html:1022
-#: yonca/templates/course_page_enrolled.html:1316
-#: yonca/templates/index.html:4104
+#: yonca/templates/course_description.html:288
+#: yonca/templates/course_page_enrolled.html:1001
+#: yonca/templates/course_page_enrolled.html:1295
+#: yonca/templates/index.html:4149
 msgid "Login to Enroll"
 msgstr "Войти в Enroll"
 
-#: yonca/templates/course_description.html:354
+#: yonca/templates/course_description.html:290
 msgid "You are not enrolled in this course."
 msgstr "Вы не зачислены на этот курс."
 
 #: yonca/templates/course_editor.html:448
-#: yonca/templates/course_page_enrolled.html:1172
+#: yonca/templates/course_page_enrolled.html:1151
 msgid "Submission Declined"
 msgstr "Сдача отменена"
 
 #: yonca/templates/course_editor.html:463
-#: yonca/templates/course_page_enrolled.html:1185
+#: yonca/templates/course_page_enrolled.html:1164
 msgid "Passed"
 msgstr "Пройденный"
 
 #: yonca/templates/course_editor.html:475
-#: yonca/templates/course_page_enrolled.html:1096
-#: yonca/templates/course_page_enrolled.html:1197
+#: yonca/templates/course_page_enrolled.html:1075
+#: yonca/templates/course_page_enrolled.html:1176
 msgid "Confirm to remove declined status?"
 msgstr "Подтвердить, что вы удалили статус отклонения?"
 
 #: yonca/templates/course_editor.html:475
-#: yonca/templates/course_page_enrolled.html:1096
-#: yonca/templates/course_page_enrolled.html:1197
+#: yonca/templates/course_page_enrolled.html:1075
+#: yonca/templates/course_page_enrolled.html:1176
 msgid "Clear Declined"
 msgstr "Отменить отказ сдачи"
 
 #: yonca/templates/course_editor.html:477
-#: yonca/templates/course_page_enrolled.html:1102
-#: yonca/templates/course_page_enrolled.html:1199
+#: yonca/templates/course_page_enrolled.html:1081
+#: yonca/templates/course_page_enrolled.html:1178
 msgid "Are you sure you want to decline this submission?"
 msgstr "Вы уверены, что хотите отказаться от этого предложения?"
 
 #: yonca/templates/course_editor.html:477
-#: yonca/templates/course_page_enrolled.html:1102
-#: yonca/templates/course_page_enrolled.html:1199
+#: yonca/templates/course_page_enrolled.html:1081
+#: yonca/templates/course_page_enrolled.html:1178
 msgid "Decline Submission"
 msgstr "Отменить Сдачу"
 
-#: yonca/templates/course_page_enrolled.html:465
+#: yonca/templates/course_page_enrolled.html:442
 msgid "Teacher/Admin Mode:"
 msgstr "Режим учитель/админ:"
 
-#: yonca/templates/course_page_enrolled.html:465
+#: yonca/templates/course_page_enrolled.html:442
 msgid "You have editing privileges for this course."
 msgstr "У вас есть привилегии редактирования для этого курса."
 
-#: yonca/templates/course_page_enrolled.html:470
+#: yonca/templates/course_page_enrolled.html:447
 msgid "Back to Courses"
 msgstr "Вернуться в Курсы"
 
-#: yonca/templates/course_page_enrolled.html:474
+#: yonca/templates/course_page_enrolled.html:451
 msgid "Course Guide"
 msgstr "Руководство по курсу"
 
-#: yonca/templates/course_page_enrolled.html:490
-#: yonca/templates/course_page_enrolled.html:1224
-#: yonca/templates/course_page_enrolled.html:1271
-#: yonca/templates/course_page_enrolled.html:1420
-#: yonca/templates/course_page_enrolled.html:1685
+#: yonca/templates/course_page_enrolled.html:467
+#: yonca/templates/course_page_enrolled.html:1203
+#: yonca/templates/course_page_enrolled.html:1250
+#: yonca/templates/course_page_enrolled.html:1399
+#: yonca/templates/course_page_enrolled.html:1664
 msgid "Previous"
 msgstr "Предыдущий"
 
-#: yonca/templates/course_page_enrolled.html:514
-#: yonca/templates/course_page_enrolled.html:1248
-#: yonca/templates/course_page_enrolled.html:1295
-#: yonca/templates/course_page_enrolled.html:1444
-#: yonca/templates/course_page_enrolled.html:1709
+#: yonca/templates/course_page_enrolled.html:491
+#: yonca/templates/course_page_enrolled.html:1227
+#: yonca/templates/course_page_enrolled.html:1274
+#: yonca/templates/course_page_enrolled.html:1423
+#: yonca/templates/course_page_enrolled.html:1688
 msgid "Next"
 msgstr "Следующий"
 
-#: yonca/templates/course_page_enrolled.html:530
+#: yonca/templates/course_page_enrolled.html:507
 msgid "Content"
 msgstr "Контент"
 
-#: yonca/templates/course_page_enrolled.html:533
-#: yonca/templates/course_page_enrolled.html:1785
-#: yonca/templates/course_page_enrolled.html:1824
-#: yonca/templates/course_page_enrolled.html:1921
-#: yonca/templates/course_page_enrolled.html:1965
+#: yonca/templates/course_page_enrolled.html:510
+#: yonca/templates/course_page_enrolled.html:1764
+#: yonca/templates/course_page_enrolled.html:1803
+#: yonca/templates/course_page_enrolled.html:1900
+#: yonca/templates/course_page_enrolled.html:1944
 msgid "Description"
 msgstr "Описание"
 
-#: yonca/templates/course_page_enrolled.html:536
-#: yonca/templates/course_page_enrolled.html:1031
+#: yonca/templates/course_page_enrolled.html:513
+#: yonca/templates/course_page_enrolled.html:1010
 #: yonca/templates/course_registration.html:410
 msgid "Assignments"
 msgstr "Задания"
 
-#: yonca/templates/course_page_enrolled.html:539
-#: yonca/templates/course_page_enrolled.html:1361
+#: yonca/templates/course_page_enrolled.html:516
+#: yonca/templates/course_page_enrolled.html:1340
 msgid "Announcements"
 msgstr "Объявления"
 
-#: yonca/templates/course_page_enrolled.html:572
+#: yonca/templates/course_page_enrolled.html:549
 msgid "Click to open link"
 msgstr "Нажмите, чтобы открыть ссылку"
 
-#: yonca/templates/course_page_enrolled.html:579
+#: yonca/templates/course_page_enrolled.html:556
 msgid "Locked"
 msgstr "Запертый"
 
-#: yonca/templates/course_page_enrolled.html:586
-#: yonca/templates/course_page_enrolled.html:2124
+#: yonca/templates/course_page_enrolled.html:563
+#: yonca/templates/course_page_enrolled.html:2103
 msgid "Edit Folder"
 msgstr "Изменить папку"
 
-#: yonca/templates/course_page_enrolled.html:589
-#: yonca/templates/course_page_enrolled.html:2092
-#: yonca/templates/course_page_enrolled.html:2112
+#: yonca/templates/course_page_enrolled.html:566
+#: yonca/templates/course_page_enrolled.html:2071
+#: yonca/templates/course_page_enrolled.html:2091
 msgid "Move Folder"
 msgstr "Переместить папку"
 
-#: yonca/templates/course_page_enrolled.html:591
+#: yonca/templates/course_page_enrolled.html:568
 msgid ""
 "Are you sure you want to delete this folder and ALL its contents? This "
 "cannot be undone."
@@ -256,7 +293,7 @@ msgstr ""
 "Вы уверены, что хотите удалить эту папку и все ее содержимое? Это нельзя "
 "отменить."
 
-#: yonca/templates/course_page_enrolled.html:591
+#: yonca/templates/course_page_enrolled.html:568
 msgid ""
 "Are you sure you want to delete this folder? This will only work if the "
 "folder is empty."
@@ -264,121 +301,121 @@ msgstr ""
 "Вы уверены, что хотите удалить эту папку? Это будет работать только в том "
 "случае, если папка пуста."
 
-#: yonca/templates/course_page_enrolled.html:595
+#: yonca/templates/course_page_enrolled.html:572
 msgid "Delete with contents"
 msgstr "Удалить содержимое"
 
-#: yonca/templates/course_page_enrolled.html:597
+#: yonca/templates/course_page_enrolled.html:574
 msgid "Delete Folder"
 msgstr "Удалить папку"
 
-#: yonca/templates/course_page_enrolled.html:606
+#: yonca/templates/course_page_enrolled.html:583
 msgid "This folder is locked until you complete the required assignment."
 msgstr ""
 "Эта папка заблокирована до тех пор, пока вы не выполните необходимое "
 "задание."
 
-#: yonca/templates/course_page_enrolled.html:636
-#: yonca/templates/course_page_enrolled.html:2673
+#: yonca/templates/course_page_enrolled.html:613
+#: yonca/templates/course_page_enrolled.html:2652
 msgid "loading"
 msgstr "погрузка"
 
-#: yonca/templates/course_page_enrolled.html:882
+#: yonca/templates/course_page_enrolled.html:859
 msgid "Course Content"
 msgstr "Курсовый контент"
 
-#: yonca/templates/course_page_enrolled.html:886
-#: yonca/templates/course_page_enrolled.html:1768
-#: yonca/templates/course_page_enrolled.html:1791
+#: yonca/templates/course_page_enrolled.html:863
+#: yonca/templates/course_page_enrolled.html:1747
+#: yonca/templates/course_page_enrolled.html:1770
 msgid "Create Folder"
 msgstr "Создать папку"
 
-#: yonca/templates/admin/about_company.html:254
-#: yonca/templates/course_page_enrolled.html:889
-#: yonca/templates/course_page_enrolled.html:1806
-#: yonca/templates/course_page_enrolled.html:1838
+#: yonca/templates/admin/about_company.html:282
+#: yonca/templates/course_page_enrolled.html:866
+#: yonca/templates/course_page_enrolled.html:1785
+#: yonca/templates/course_page_enrolled.html:1817
 msgid "Upload File"
 msgstr "Скачать файл"
 
-#: yonca/templates/course_page_enrolled.html:892
+#: yonca/templates/course_page_enrolled.html:869
 msgid "Import from Drive"
 msgstr "Импорт из Drive"
 
-#: yonca/templates/course_page_enrolled.html:895
-#: yonca/templates/course_page_enrolled.html:1998
-#: yonca/templates/course_page_enrolled.html:2048
+#: yonca/templates/course_page_enrolled.html:872
+#: yonca/templates/course_page_enrolled.html:1977
+#: yonca/templates/course_page_enrolled.html:2027
 msgid "Import Assignment"
 msgstr "Импортировать задание"
 
-#: yonca/templates/course_page_enrolled.html:907
+#: yonca/templates/course_page_enrolled.html:884
 msgid "Delete Selected"
 msgstr "Удалить выбранный"
 
-#: yonca/templates/course_page_enrolled.html:910
+#: yonca/templates/course_page_enrolled.html:887
 msgid "Move Selected"
 msgstr "Move выбранный"
 
-#: yonca/templates/course_page_enrolled.html:913
+#: yonca/templates/course_page_enrolled.html:890
 msgid "Toggle Visibility"
 msgstr "Toggle Видимость"
 
-#: yonca/templates/course_page_enrolled.html:916
+#: yonca/templates/course_page_enrolled.html:893
 msgid "Clear"
 msgstr "Чисто"
 
-#: yonca/templates/course_page_enrolled.html:924
+#: yonca/templates/course_page_enrolled.html:901
 msgid "Unsorted"
 msgstr "Несортированный"
 
-#: yonca/templates/course_page_enrolled.html:931
+#: yonca/templates/course_page_enrolled.html:908
 msgid "Move to Folder"
 msgstr "Перейти в папку"
 
-#: yonca/templates/course_page_enrolled.html:961
+#: yonca/templates/course_page_enrolled.html:938
 msgid "Unsorted Files"
 msgstr "Несортированные файлы"
 
-#: yonca/templates/course_page_enrolled.html:976
+#: yonca/templates/course_page_enrolled.html:955
 msgid "View Assignment"
 msgstr "Посмотреть задания"
 
-#: yonca/templates/course_page_enrolled.html:978
-#: yonca/templates/course_page_enrolled.html:980
-#: yonca/templates/course_page_enrolled.html:2669
+#: yonca/templates/course_page_enrolled.html:957
+#: yonca/templates/course_page_enrolled.html:959
+#: yonca/templates/course_page_enrolled.html:2648
 msgid "View File"
 msgstr "Просмотреть файл"
 
-#: yonca/templates/course_page_enrolled.html:984
-#: yonca/templates/course_page_enrolled.html:2156
-#: yonca/templates/course_page_enrolled.html:2670
+#: yonca/templates/course_page_enrolled.html:963
+#: yonca/templates/course_page_enrolled.html:2135
+#: yonca/templates/course_page_enrolled.html:2649
 msgid "Edit File"
 msgstr "Редактировать файл"
 
-#: yonca/templates/course_page_enrolled.html:987
-#: yonca/templates/course_page_enrolled.html:2060
-#: yonca/templates/course_page_enrolled.html:2671
+#: yonca/templates/course_page_enrolled.html:966
+#: yonca/templates/course_page_enrolled.html:2039
+#: yonca/templates/course_page_enrolled.html:2650
 msgid "Move File"
 msgstr "Переместить файл"
 
-#: yonca/templates/course_page_enrolled.html:997
-#: yonca/templates/course_page_enrolled.html:2676
+#: yonca/templates/course_page_enrolled.html:976
+#: yonca/templates/course_page_enrolled.html:2655
 msgid "Are you sure you want to delete this file?"
 msgstr "Вы уверены, что хотите удалить этот файл?"
 
-#: yonca/templates/course_page_enrolled.html:1000
-#: yonca/templates/course_page_enrolled.html:1535
-#: yonca/templates/course_page_enrolled.html:2559
-#: yonca/templates/course_page_enrolled.html:2672
-#: yonca/templates/index.html:4365 yonca/templates/index.html:4388
-#: yonca/templates/index.html:4476
+#: yonca/templates/course_page_enrolled.html:979
+#: yonca/templates/course_page_enrolled.html:1514
+#: yonca/templates/course_page_enrolled.html:2538
+#: yonca/templates/course_page_enrolled.html:2651
+#: yonca/templates/index.html:4410 yonca/templates/index.html:4433
+#: yonca/templates/index.html:4521
 msgid "Delete"
 msgstr "Исключить"
 
-#: yonca/templates/course_page_enrolled.html:1019
+#: yonca/templates/course_page_enrolled.html:998
 msgid "Enroll to Access Course Content"
 msgstr "Записаться на Access Course Content"
 
-#: yonca/templates/course_page_enrolled.html:1020
+#: yonca/templates/course_page_enrolled.html:999
 msgid ""
 "You need to be enrolled in this course to view the content, materials, and "
 "participate in activities."
@@ -386,84 +423,84 @@ msgstr ""
 "Вы должны быть зачислены на этот курс, чтобы просматривать контент, "
 "материалы и участвовать в мероприятиях."
 
-#: yonca/templates/course_page_enrolled.html:1034
-#: yonca/templates/course_page_enrolled.html:1910
-#: yonca/templates/course_page_enrolled.html:1939
+#: yonca/templates/course_page_enrolled.html:1013
+#: yonca/templates/course_page_enrolled.html:1889
+#: yonca/templates/course_page_enrolled.html:1918
 msgid "Create Assignment"
 msgstr "Создать Задания"
 
-#: yonca/templates/course_page_enrolled.html:1049
+#: yonca/templates/course_page_enrolled.html:1028
 msgid "Due:"
 msgstr "Из-за:"
 
-#: yonca/templates/course_page_enrolled.html:1049
+#: yonca/templates/course_page_enrolled.html:1028
 msgid "Due: N/A"
 msgstr "Должность: N/A"
 
-#: yonca/templates/course_page_enrolled.html:1050
+#: yonca/templates/course_page_enrolled.html:1029
 msgid "pts"
 msgstr "pts"
 
-#: yonca/templates/course_page_enrolled.html:1070
-#: yonca/templates/course_page_enrolled.html:1161
+#: yonca/templates/course_page_enrolled.html:1049
+#: yonca/templates/course_page_enrolled.html:1140
 msgid "Late"
 msgstr "Поздно"
 
-#: yonca/templates/course_page_enrolled.html:1072
+#: yonca/templates/course_page_enrolled.html:1051
 msgid "Submitted"
 msgstr "Сданный"
 
-#: yonca/templates/course_page_enrolled.html:1075
+#: yonca/templates/course_page_enrolled.html:1054
 msgid "This submission has been declined. Please resubmit."
 msgstr "Эта сдача была отклонена. Пожалуйста, повторите."
 
-#: yonca/templates/course_page_enrolled.html:1077
+#: yonca/templates/course_page_enrolled.html:1056
 msgid "View Your Submission"
 msgstr "Посмотреть Вашу сдачу"
 
-#: yonca/templates/course_page_enrolled.html:1079
+#: yonca/templates/course_page_enrolled.html:1058
 msgid "Resubmit"
 msgstr "Пересдать сдачу"
 
-#: yonca/templates/course_page_enrolled.html:1086
+#: yonca/templates/course_page_enrolled.html:1065
 msgid "Upload New Submission:"
 msgstr "Загрузить новую сдачу:"
 
-#: yonca/templates/course_page_enrolled.html:1089
+#: yonca/templates/course_page_enrolled.html:1068
 msgid "Resubmit Assignment"
 msgstr "Пересдать задание"
 
-#: yonca/templates/course_page_enrolled.html:1106
-#: yonca/templates/course_page_enrolled.html:1203
+#: yonca/templates/course_page_enrolled.html:1085
+#: yonca/templates/course_page_enrolled.html:1182
 msgid "Grade:"
 msgstr "Оценка:"
 
-#: yonca/templates/course_page_enrolled.html:1109
+#: yonca/templates/course_page_enrolled.html:1088
 msgid "Feedback:"
 msgstr "Отзывы:"
 
-#: yonca/templates/course_page_enrolled.html:1114
+#: yonca/templates/course_page_enrolled.html:1093
 msgid "Overdue"
 msgstr "Просроченный"
 
-#: yonca/templates/course_page_enrolled.html:1116
+#: yonca/templates/course_page_enrolled.html:1095
 msgid "Not submitted"
 msgstr "Не сдан"
 
-#: yonca/templates/course_page_enrolled.html:1122
+#: yonca/templates/course_page_enrolled.html:1101
 msgid "Upload Your Work:"
 msgstr "Загрузите свою работу:"
 
-#: yonca/templates/course_page_enrolled.html:1125
+#: yonca/templates/course_page_enrolled.html:1104
 msgid "Submit Assignment"
 msgstr "Подать заявку"
 
-#: yonca/templates/course_page_enrolled.html:1138
-#: yonca/templates/course_page_enrolled.html:1954
+#: yonca/templates/course_page_enrolled.html:1117
+#: yonca/templates/course_page_enrolled.html:1933
 msgid "Edit Assignment"
 msgstr "Редактировать задание"
 
-#: yonca/templates/course_page_enrolled.html:1140
+#: yonca/templates/course_page_enrolled.html:1119
 msgid ""
 "Are you sure you want to delete this assignment? This will also delete all "
 "submissions."
@@ -471,224 +508,224 @@ msgstr ""
 "Вы уверены, что хотите удалить это задание? Это также удалит все "
 "Сданные работы."
 
-#: yonca/templates/course_page_enrolled.html:1143
+#: yonca/templates/course_page_enrolled.html:1122
 msgid "Delete Assignment"
 msgstr "Исключить задание"
 
-#: yonca/templates/course_page_enrolled.html:1148
+#: yonca/templates/course_page_enrolled.html:1127
 msgid "View Submissions"
 msgstr "Посмотреть сданные работы"
 
-#: yonca/templates/course_page_enrolled.html:1157
+#: yonca/templates/course_page_enrolled.html:1136
 msgid "On Time"
 msgstr "Вовремя"
 
-#: yonca/templates/course_page_enrolled.html:1164
+#: yonca/templates/course_page_enrolled.html:1143
 msgid "Early"
 msgstr "Ранний"
 
-#: yonca/templates/course_page_enrolled.html:1169
+#: yonca/templates/course_page_enrolled.html:1148
 msgid "Submitted:"
 msgstr "Сдано:"
 
-#: yonca/templates/course_page_enrolled.html:1170
+#: yonca/templates/course_page_enrolled.html:1149
 msgid "View Submission"
 msgstr "Посмотреть сданную работу"
 
-#: yonca/templates/course_page_enrolled.html:1179
+#: yonca/templates/course_page_enrolled.html:1158
 msgid "Grade"
 msgstr "Класс"
 
-#: yonca/templates/course_page_enrolled.html:1182
+#: yonca/templates/course_page_enrolled.html:1161
 msgid "Comment"
 msgstr "Комментарий"
 
-#: yonca/templates/course_page_enrolled.html:1189
+#: yonca/templates/course_page_enrolled.html:1168
 msgid "Save Grade"
 msgstr "Сохранить оценку"
 
-#: yonca/templates/course_page_enrolled.html:1206
+#: yonca/templates/course_page_enrolled.html:1185
 msgid "Comment:"
 msgstr "Комментарий:"
 
-#: yonca/templates/course_page_enrolled.html:1212
+#: yonca/templates/course_page_enrolled.html:1191
 msgid "No submissions yet."
 msgstr "Пока никаких представлений."
 
-#: yonca/templates/course_page_enrolled.html:1308
+#: yonca/templates/course_page_enrolled.html:1287
 msgid "No assignments available."
 msgstr "Никаких заданий."
 
-#: yonca/templates/course_page_enrolled.html:1313
+#: yonca/templates/course_page_enrolled.html:1292
 msgid "Enroll to Access Assignments"
 msgstr "Записаться на Access Assignments"
 
-#: yonca/templates/course_page_enrolled.html:1314
+#: yonca/templates/course_page_enrolled.html:1293
 msgid "You need to be enrolled in this course to view and submit assignments."
 msgstr ""
 "Вы должны быть зачислены в этот курс, чтобы просматривать и отправлять "
 "задания."
 
-#: yonca/templates/course_page_enrolled.html:1330
-#: yonca/templates/course_page_enrolled.html:1386
+#: yonca/templates/course_page_enrolled.html:1309
+#: yonca/templates/course_page_enrolled.html:1365
 msgid "Reply"
 msgstr "Ответить"
 
-#: yonca/templates/course_page_enrolled.html:1340
-#: yonca/templates/course_page_enrolled.html:1395
+#: yonca/templates/course_page_enrolled.html:1319
+#: yonca/templates/course_page_enrolled.html:1374
 msgid "Write a reply..."
 msgstr "Напишите ответ..."
 
-#: yonca/templates/course_page_enrolled.html:1342
-#: yonca/templates/course_page_enrolled.html:1397
+#: yonca/templates/course_page_enrolled.html:1321
+#: yonca/templates/course_page_enrolled.html:1376
 msgid "Post Reply"
 msgstr "Post Reply"
 
-#: yonca/templates/course_page_enrolled.html:1364
+#: yonca/templates/course_page_enrolled.html:1343
+#: yonca/templates/course_page_enrolled.html:1711
 #: yonca/templates/course_page_enrolled.html:1732
-#: yonca/templates/course_page_enrolled.html:1753
 msgid "Add Announcement"
 msgstr "Добавить объявление"
 
-#: yonca/templates/course_page_enrolled.html:1374
+#: yonca/templates/course_page_enrolled.html:1353
 msgid "Posted:"
 msgstr "Опубликовано:"
 
-#: yonca/templates/course_page_enrolled.html:1377
+#: yonca/templates/course_page_enrolled.html:1356
 msgid ""
 "Are you sure you want to delete this announcement? This will also delete all"
 " replies."
 msgstr ""
 "Вы уверены, что хотите удалить это объявление? Это также удалит все ответы."
 
-#: yonca/templates/course_page_enrolled.html:1380
+#: yonca/templates/course_page_enrolled.html:1359
 msgid "Delete Announcement"
 msgstr "Удалить объявление"
 
-#: yonca/templates/course_page_enrolled.html:1457
+#: yonca/templates/course_page_enrolled.html:1436
 msgid "No announcements yet."
 msgstr "Пока никаких объявлений."
 
-#: yonca/templates/course_page_enrolled.html:1464
+#: yonca/templates/course_page_enrolled.html:1443
 msgid "Course Reviews"
 msgstr "Обзоры курсов"
 
-#: yonca/templates/course_page_enrolled.html:1470
+#: yonca/templates/course_page_enrolled.html:1449
 msgid "Write Your Review"
 msgstr "Напишите свой отзыв"
 
-#: yonca/templates/course_page_enrolled.html:1477
-#: yonca/templates/course_page_enrolled.html:1560
+#: yonca/templates/course_page_enrolled.html:1456
+#: yonca/templates/course_page_enrolled.html:1539
 msgid "Rating"
 msgstr "Рейтинг"
 
-#: yonca/templates/course_page_enrolled.html:1486
+#: yonca/templates/course_page_enrolled.html:1465
 msgid "Click on a star to rate (1-5)"
 msgstr "Нажмите на звезду, чтобы оценить (1-5)"
 
-#: yonca/templates/course_page_enrolled.html:1490
-#: yonca/templates/course_page_enrolled.html:1571
+#: yonca/templates/course_page_enrolled.html:1469
+#: yonca/templates/course_page_enrolled.html:1550
 msgid "Review Title"
 msgstr "Оригинальное название"
 
-#: yonca/templates/course_page_enrolled.html:1491
+#: yonca/templates/course_page_enrolled.html:1470
 msgid "Summarize your experience"
 msgstr "Обобщи свой опыт"
 
-#: yonca/templates/course_page_enrolled.html:1495
-#: yonca/templates/course_page_enrolled.html:1575
+#: yonca/templates/course_page_enrolled.html:1474
+#: yonca/templates/course_page_enrolled.html:1554
 msgid "Your Review"
 msgstr "Ваш отзыв"
 
-#: yonca/templates/course_page_enrolled.html:1496
+#: yonca/templates/course_page_enrolled.html:1475
 msgid "Share your thoughts about this course..."
 msgstr "Поделитесь своими мыслями об этом курсе..."
 
-#: yonca/templates/course_page_enrolled.html:1500
+#: yonca/templates/course_page_enrolled.html:1479
 msgid "Submit Review"
 msgstr "Представление обзора"
 
-#: yonca/templates/course_page_enrolled.html:1529
+#: yonca/templates/course_page_enrolled.html:1508
 msgid "Edit"
 msgstr "Редактировать"
 
-#: yonca/templates/course_page_enrolled.html:1531
+#: yonca/templates/course_page_enrolled.html:1510
 msgid "Are you sure you want to delete this review?"
 msgstr "Вы уверены, что хотите удалить этот обзор?"
 
-#: yonca/templates/course_page_enrolled.html:1553
+#: yonca/templates/course_page_enrolled.html:1532
 msgid "Edit Review"
 msgstr "Рецензия"
 
-#: yonca/templates/course_page_enrolled.html:1580
-#: yonca/templates/course_page_enrolled.html:1752
-#: yonca/templates/course_page_enrolled.html:1790
-#: yonca/templates/course_page_enrolled.html:1837
-#: yonca/templates/course_page_enrolled.html:1895
-#: yonca/templates/course_page_enrolled.html:1938
-#: yonca/templates/course_page_enrolled.html:1982
-#: yonca/templates/course_page_enrolled.html:2047
-#: yonca/templates/course_page_enrolled.html:2079
-#: yonca/templates/course_page_enrolled.html:2111
-#: yonca/templates/course_page_enrolled.html:2143
-#: yonca/templates/course_page_enrolled.html:2175
+#: yonca/templates/course_page_enrolled.html:1559
+#: yonca/templates/course_page_enrolled.html:1731
+#: yonca/templates/course_page_enrolled.html:1769
+#: yonca/templates/course_page_enrolled.html:1816
+#: yonca/templates/course_page_enrolled.html:1874
+#: yonca/templates/course_page_enrolled.html:1917
+#: yonca/templates/course_page_enrolled.html:1961
+#: yonca/templates/course_page_enrolled.html:2026
+#: yonca/templates/course_page_enrolled.html:2058
+#: yonca/templates/course_page_enrolled.html:2090
+#: yonca/templates/course_page_enrolled.html:2122
+#: yonca/templates/course_page_enrolled.html:2154
 msgid "Cancel"
 msgstr "Отменить"
 
-#: yonca/templates/course_page_enrolled.html:1581
+#: yonca/templates/course_page_enrolled.html:1560
 msgid "Update Review"
 msgstr "Обновление Update"
 
-#: yonca/templates/course_page_enrolled.html:1592
+#: yonca/templates/course_page_enrolled.html:1571
 msgid "No reviews yet. Be the first to review this course!"
 msgstr "Отзывов пока нет. Станьте первым, кто пересмотрит этот курс!"
 
-#: yonca/templates/course_page_enrolled.html:1652
+#: yonca/templates/course_page_enrolled.html:1631
 msgid "on this page"
 msgstr "на этой странице"
 
-#: yonca/templates/course_page_enrolled.html:1739
-#: yonca/templates/course_page_enrolled.html:1820
-#: yonca/templates/course_page_enrolled.html:1917
-#: yonca/templates/course_page_enrolled.html:1961
+#: yonca/templates/course_page_enrolled.html:1718
+#: yonca/templates/course_page_enrolled.html:1799
+#: yonca/templates/course_page_enrolled.html:1896
+#: yonca/templates/course_page_enrolled.html:1940
 msgid "Title"
 msgstr "Название"
 
-#: yonca/templates/course_page_enrolled.html:1743
+#: yonca/templates/course_page_enrolled.html:1722
 msgid "Message"
 msgstr "Послание"
 
-#: yonca/templates/course_page_enrolled.html:1748
-#: yonca/templates/course_page_enrolled.html:1829
-#: yonca/templates/course_page_enrolled.html:1887
-#: yonca/templates/course_page_enrolled.html:1934
-#: yonca/templates/course_page_enrolled.html:2043
+#: yonca/templates/course_page_enrolled.html:1727
+#: yonca/templates/course_page_enrolled.html:1808
+#: yonca/templates/course_page_enrolled.html:1866
+#: yonca/templates/course_page_enrolled.html:1913
+#: yonca/templates/course_page_enrolled.html:2022
 msgid "Publish immediately"
 msgstr "Опубликовать немедленно"
 
-#: yonca/templates/course_page_enrolled.html:1775
+#: yonca/templates/course_page_enrolled.html:1754
 msgid "Parent:"
 msgstr "Родитель:"
 
-#: yonca/templates/course_page_enrolled.html:1775
-#: yonca/templates/course_page_enrolled.html:1813
-#: yonca/templates/course_page_enrolled.html:1860
-#: yonca/templates/course_page_enrolled.html:2005
-#: yonca/templates/course_page_enrolled.html:2071
-#: yonca/templates/course_page_enrolled.html:2103
+#: yonca/templates/course_page_enrolled.html:1754
+#: yonca/templates/course_page_enrolled.html:1792
+#: yonca/templates/course_page_enrolled.html:1839
+#: yonca/templates/course_page_enrolled.html:1984
+#: yonca/templates/course_page_enrolled.html:2050
+#: yonca/templates/course_page_enrolled.html:2082
 msgid "Root"
 msgstr "Корень"
 
-#: yonca/templates/course_page_enrolled.html:1778
-#: yonca/templates/course_page_enrolled.html:2134
+#: yonca/templates/course_page_enrolled.html:1757
+#: yonca/templates/course_page_enrolled.html:2113
 msgid "Folder Name"
 msgstr "Имя папки"
 
-#: yonca/templates/course_page_enrolled.html:1781
+#: yonca/templates/course_page_enrolled.html:1760
 msgid "Tip: Name the folder"
 msgstr "Совет: Назовите папку"
 
-#: yonca/templates/course_page_enrolled.html:1781
+#: yonca/templates/course_page_enrolled.html:1760
 msgid ""
 "and set the description to a YouTube link to show a course guide video for "
 "students."
@@ -696,166 +733,166 @@ msgstr ""
 "и установите описание на ссылку YouTube, чтобы показать видео-путеводитель "
 "по курсу для студентов."
 
-#: yonca/templates/course_page_enrolled.html:1813
+#: yonca/templates/course_page_enrolled.html:1792
 msgid "Upload to:"
 msgstr "Загрузить в:"
 
-#: yonca/templates/course_page_enrolled.html:1816
+#: yonca/templates/course_page_enrolled.html:1795
 msgid "File"
 msgstr "Файл"
 
-#: yonca/templates/course_page_enrolled.html:1833
+#: yonca/templates/course_page_enrolled.html:1812
 msgid "Allow students to view this file"
 msgstr "Разрешить студентам просматривать этот файл"
 
-#: yonca/templates/course_page_enrolled.html:1853
+#: yonca/templates/course_page_enrolled.html:1832
 msgid "Import from Google Drive"
 msgstr "Импорт с Google Drive"
 
-#: yonca/templates/course_page_enrolled.html:1860
-#: yonca/templates/course_page_enrolled.html:2005
+#: yonca/templates/course_page_enrolled.html:1839
+#: yonca/templates/course_page_enrolled.html:1984
 msgid "Import to:"
 msgstr "Импорт для:"
 
-#: yonca/templates/course_page_enrolled.html:1863
+#: yonca/templates/course_page_enrolled.html:1842
 msgid "Import Type"
 msgstr "Тип импорта"
 
-#: yonca/templates/course_page_enrolled.html:1866
+#: yonca/templates/course_page_enrolled.html:1845
 msgid "Single File"
 msgstr "Одиночный файл"
 
-#: yonca/templates/course_page_enrolled.html:1870
+#: yonca/templates/course_page_enrolled.html:1849
 msgid "Entire Folder (includes all subfolders and files)"
 msgstr "Целая папка (включая все подпапки и файлы)"
 
-#: yonca/templates/course_page_enrolled.html:1874
+#: yonca/templates/course_page_enrolled.html:1853
 msgid "Google Drive URL or File/Folder ID"
 msgstr "Google Drive URL или идентификатор файла / папки"
 
-#: yonca/templates/course_page_enrolled.html:1877
+#: yonca/templates/course_page_enrolled.html:1856
 msgid "Paste the sharing link from Google Drive or just the file/folder ID"
 msgstr ""
 "Вставьте ссылку обмена с Google Drive или просто идентификатор файла / папки"
 
-#: yonca/templates/course_page_enrolled.html:1878
+#: yonca/templates/course_page_enrolled.html:1857
 msgid "Check linked Google account"
 msgstr "Проверить связь Google аккаунт"
 
-#: yonca/templates/course_page_enrolled.html:1882
+#: yonca/templates/course_page_enrolled.html:1861
 msgid "Title (Optional)"
 msgstr "Название (факультативно)"
 
-#: yonca/templates/course_page_enrolled.html:1883
+#: yonca/templates/course_page_enrolled.html:1862
 msgid "Leave empty to use original filename"
 msgstr "Оставьте пустой, чтобы использовать оригинальное имя файла"
 
-#: yonca/templates/course_page_enrolled.html:1891
+#: yonca/templates/course_page_enrolled.html:1870
 msgid "Allow students to view"
 msgstr "Разрешить студентам просматривать"
 
-#: yonca/templates/course_page_enrolled.html:1896
+#: yonca/templates/course_page_enrolled.html:1875
 msgid "Import"
 msgstr "Импорт"
 
-#: yonca/templates/course_page_enrolled.html:1925
-#: yonca/templates/course_page_enrolled.html:1969
+#: yonca/templates/course_page_enrolled.html:1904
+#: yonca/templates/course_page_enrolled.html:1948
 msgid "Due Date"
 msgstr "Срок давности"
 
-#: yonca/templates/course_page_enrolled.html:1929
-#: yonca/templates/course_page_enrolled.html:1973
+#: yonca/templates/course_page_enrolled.html:1908
+#: yonca/templates/course_page_enrolled.html:1952
 msgid "Points"
 msgstr "Точки"
 
-#: yonca/templates/course_page_enrolled.html:1978
+#: yonca/templates/course_page_enrolled.html:1957
 msgid "Published"
 msgstr "Опубликовано"
 
-#: yonca/templates/admin/about_company.html:239
-#: yonca/templates/course_page_enrolled.html:1983
-#: yonca/templates/course_page_enrolled.html:2144
-#: yonca/templates/course_page_enrolled.html:2176
+#: yonca/templates/admin/about_company.html:267
+#: yonca/templates/course_page_enrolled.html:1962
+#: yonca/templates/course_page_enrolled.html:2123
+#: yonca/templates/course_page_enrolled.html:2155
 msgid "Save Changes"
 msgstr "Сохранить изменения"
 
-#: yonca/templates/course_page_enrolled.html:2008
+#: yonca/templates/course_page_enrolled.html:1987
 msgid "Select Assignment"
 msgstr "Выберите задание"
 
-#: yonca/templates/course_page_enrolled.html:2015
+#: yonca/templates/course_page_enrolled.html:1994
 msgid "No assignments available"
 msgstr "Задания отсутствуют"
 
-#: yonca/templates/course_page_enrolled.html:2020
+#: yonca/templates/course_page_enrolled.html:1999
 msgid "Lock other folders until completed (optional)"
 msgstr "Заблокировать другие папки до завершения (необязательно)"
 
-#: yonca/templates/course_page_enrolled.html:2022
+#: yonca/templates/course_page_enrolled.html:2001
 msgid "None"
 msgstr "Никто"
 
-#: yonca/templates/course_page_enrolled.html:2031
+#: yonca/templates/course_page_enrolled.html:2010
 msgid "Or choose specific folders to lock (optional)"
 msgstr "Или выбрать конкретные папки для блокировки (необязательно)"
 
-#: yonca/templates/course_page_enrolled.html:2039
+#: yonca/templates/course_page_enrolled.html:2018
 msgid "Hold Ctrl (or Cmd) to select multiple folders."
 msgstr "Держите Ctrl (или Cmd) для выбора нескольких папок."
 
-#: yonca/templates/course_page_enrolled.html:2069
+#: yonca/templates/course_page_enrolled.html:2048
 msgid "Select Destination Folder"
 msgstr "Выберите папку назначения"
 
-#: yonca/templates/course_page_enrolled.html:2080
+#: yonca/templates/course_page_enrolled.html:2059
 msgid "Move"
 msgstr "Двигаться"
 
-#: yonca/templates/course_page_enrolled.html:2101
+#: yonca/templates/course_page_enrolled.html:2080
 msgid "Select New Parent Folder"
 msgstr "Выберите папку для родителей"
 
-#: yonca/templates/course_page_enrolled.html:2138
+#: yonca/templates/course_page_enrolled.html:2117
 msgid "Folder Description"
 msgstr "Описание папки"
 
-#: yonca/templates/course_page_enrolled.html:2166
+#: yonca/templates/course_page_enrolled.html:2145
 msgid "File Name"
 msgstr "Имя файла"
 
-#: yonca/templates/course_page_enrolled.html:2170
+#: yonca/templates/course_page_enrolled.html:2149
 msgid "File Description"
 msgstr "Описание файла"
 
-#: yonca/templates/course_page_enrolled.html:2413
+#: yonca/templates/course_page_enrolled.html:2392
 msgid "Move File:"
 msgstr "Переместить файл:"
 
-#: yonca/templates/course_page_enrolled.html:2424
+#: yonca/templates/course_page_enrolled.html:2403
 msgid "Move Folder:"
 msgstr "Переместите папку:"
 
-#: yonca/templates/course_page_enrolled.html:2438
+#: yonca/templates/course_page_enrolled.html:2417
 msgid "Edit Folder:"
 msgstr "Редактировать папку"
 
-#: yonca/templates/course_page_enrolled.html:2452
+#: yonca/templates/course_page_enrolled.html:2431
 msgid "Edit File:"
 msgstr "Редактировать файл:"
 
-#: yonca/templates/course_page_enrolled.html:2559
+#: yonca/templates/course_page_enrolled.html:2538
 msgid "selected items? This action cannot be undone."
 msgstr "избранные предметы? Это действие не может быть отменено."
 
-#: yonca/templates/course_page_enrolled.html:2674
+#: yonca/templates/course_page_enrolled.html:2653
 msgid "This folder is empty"
 msgstr "Эта папка пустая"
 
-#: yonca/templates/course_page_enrolled.html:2675
+#: yonca/templates/course_page_enrolled.html:2654
 msgid "Failed to load contents. Please try again."
 msgstr "Не удалось загрузить содержимое. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/course_page_enrolled.html:2677
+#: yonca/templates/course_page_enrolled.html:2656
 msgid "Error loading contents"
 msgstr "Ошибка загрузки содержимого"
 
@@ -863,11 +900,11 @@ msgstr "Ошибка загрузки содержимого"
 msgid "Enroll in"
 msgstr "Записаться"
 
-#: yonca/templates/course_registration.html:315
+#: yonca/templates/course_registration.html:317
 msgid "Enroll in Course"
 msgstr "Записаться на курс"
 
-#: yonca/templates/course_registration.html:316
+#: yonca/templates/course_registration.html:318
 msgid "Join our learning community"
 msgstr "Присоединяйтесь к нашему учебному сообществу"
 
@@ -908,7 +945,7 @@ msgstr ""
 " материалам курса."
 
 #: yonca/templates/course_registration.html:375
-#: yonca/templates/index.html:4097
+#: yonca/templates/index.html:4142
 msgid "Enroll Now"
 msgstr "Записаться сейчас"
 
@@ -920,11 +957,11 @@ msgstr "Записаться на регистрацию"
 msgid "You need to be logged in to enroll in this course."
 msgstr "Вы должны быть зарегистрированы, чтобы записаться на этот курс."
 
-#: yonca/templates/components/navbar.html:68
-#: yonca/templates/components/navbar.html:112
+#: yonca/templates/components/navbar.html:66
+#: yonca/templates/components/navbar.html:110
 #: yonca/templates/course_registration.html:384
-#: yonca/templates/index.html:2427 yonca/templates/index.html:2494
-#: yonca/templates/login.html:251
+#: yonca/templates/index.html:2459 yonca/templates/index.html:2526
+#: yonca/templates/login.html:255
 msgid "Login"
 msgstr "Логин"
 
@@ -949,7 +986,7 @@ msgid "Access all course content, documents, and resources"
 msgstr "Доступ ко всему содержанию курса, документам и ресурсам"
 
 #: yonca/templates/course_registration.html:402
-#: yonca/templates/index.html:2702
+#: yonca/templates/index.html:2733
 msgid "Community Forum"
 msgstr "Форум сообщества"
 
@@ -977,48 +1014,44 @@ msgstr "Вопросы по этому курсу?"
 msgid "Contact us"
 msgstr "Свяжитесь с нами"
 
-#: yonca/templates/index.html:8
-msgid "Yonca - Learning Platform"
-msgstr "Yonca - Учебная платформа"
-
-#: yonca/templates/components/navbar.html:14
-#: yonca/templates/components/navbar.html:93 yonca/templates/index.html:2382
-#: yonca/templates/index.html:2452
+#: yonca/templates/components/navbar.html:10
+#: yonca/templates/components/navbar.html:91 yonca/templates/index.html:2414
+#: yonca/templates/index.html:2484
 msgid "Home"
 msgstr "Домой"
 
-#: yonca/templates/components/navbar.html:17
-#: yonca/templates/components/navbar.html:94 yonca/templates/index.html:2383
-#: yonca/templates/index.html:2453 yonca/templates/index.html:2667
+#: yonca/templates/components/navbar.html:13
+#: yonca/templates/components/navbar.html:92 yonca/templates/index.html:2415
+#: yonca/templates/index.html:2485 yonca/templates/index.html:2698
 msgid "Courses"
 msgstr "Курсы"
 
-#: yonca/templates/components/navbar.html:26
-#: yonca/templates/components/navbar.html:97 yonca/templates/index.html:2386
-#: yonca/templates/index.html:2456 yonca/templates/index.html:2843
+#: yonca/templates/components/navbar.html:22
+#: yonca/templates/components/navbar.html:95 yonca/templates/index.html:2418
+#: yonca/templates/index.html:2488 yonca/templates/index.html:2874
 msgid "MOXO Test"
 msgstr "Тест MOXO"
 
 #: yonca/templates/admin/about_company.html:151
-#: yonca/templates/components/navbar.html:98 yonca/templates/index.html:2387
-#: yonca/templates/index.html:2457
+#: yonca/templates/components/navbar.html:96 yonca/templates/index.html:2419
+#: yonca/templates/index.html:2489
 msgid "About Company"
 msgstr "О компании"
 
-#: yonca/templates/components/navbar.html:58 yonca/templates/index.html:2418
-#: yonca/templates/index.html:2485
+#: yonca/templates/components/navbar.html:56 yonca/templates/index.html:2450
+#: yonca/templates/index.html:2517
 msgid "Admin Panel"
 msgstr "Панель администраторов"
 
-#: yonca/templates/components/navbar.html:61
-#: yonca/templates/components/navbar.html:117 yonca/templates/index.html:2421
-#: yonca/templates/index.html:2488
+#: yonca/templates/components/navbar.html:59
+#: yonca/templates/components/navbar.html:115 yonca/templates/index.html:2453
+#: yonca/templates/index.html:2520
 msgid "Link Google Account"
-msgstr "Привязать на Google аккаунт"
+msgstr "Ссылка на Google аккаунт"
 
-#: yonca/templates/components/navbar.html:63
-#: yonca/templates/components/navbar.html:118 yonca/templates/index.html:2423
-#: yonca/templates/index.html:2490
+#: yonca/templates/components/navbar.html:61
+#: yonca/templates/components/navbar.html:116 yonca/templates/index.html:2455
+#: yonca/templates/index.html:2522
 msgid "Logout"
 msgstr "Выход"
 
@@ -1027,8 +1060,8 @@ msgstr "Выход"
 msgid "What's New"
 msgstr "Что нового"
 
-#: yonca/templates/admin/about_company.html:183
-#: yonca/templates/index.html:2505 yonca/templates/index.html:3015
+#: yonca/templates/admin/about_company.html:191
+#: yonca/templates/index.html:2570 yonca/templates/index.html:3046
 msgid ""
 "Discover the latest updates, new features, and exciting developments in our "
 "learning platform."
@@ -1036,7 +1069,7 @@ msgstr ""
 "Откройте для себя последние обновления, новые функции и захватывающие "
 "разработки в нашей учебной платформе."
 
-#: yonca/templates/index.html:2552
+#: yonca/templates/index.html:2617
 msgid ""
 "If video shows 'still being processed,' please wait 5-60 minutes for Google "
 "Drive to finish processing, then refresh the page."
@@ -1044,19 +1077,15 @@ msgstr ""
 "Если видео показывает, что «все еще обрабатывается», пожалуйста, подождите "
 "5-60 минут, пока Google Drive закончит обработку, а затем обновите страницу."
 
-#: yonca/templates/index.html:2576
+#: yonca/templates/index.html:2641
 msgid "Learning Community"
 msgstr "Учебное сообщество"
 
-#: yonca/templates/index.html:2577
+#: yonca/templates/index.html:2642
 msgid "Our vibrant learning community"
 msgstr "Наше яркое учебное сообщество"
 
-#: yonca/templates/index.html:2580 yonca/templates/index.html:2612
-msgid "Interactive Courses"
-msgstr "Интерактивные курсы"
-
-#: yonca/templates/index.html:2581
+#: yonca/templates/index.html:2646
 msgid "Engage with interactive course content"
 msgstr "Взаимодействие с интерактивным контентом курса"
 
@@ -1100,14 +1129,14 @@ msgstr ""
 msgid "Professional Education and Training"
 msgstr "Профессиональное образование и подготовка кадров"
 
-#: yonca/templates/index.html:2634 yonca/templates/index.html:3421
+#: yonca/templates/index.html:2665 yonca/templates/index.html:3456
 msgid ""
 "Evidence-based training for psychologists, therapists, educators, and tutors"
 msgstr ""
 "Обучение на основе фактических данных для психологов, терапевтов, педагогов "
 "и преподавателей"
 
-#: yonca/templates/index.html:2636
+#: yonca/templates/index.html:2667
 msgid "View All Courses"
 msgstr "Смотреть все курсы"
 
@@ -1119,71 +1148,71 @@ msgstr "Свяжитесь с нами"
 msgid "Featured Courses"
 msgstr "Избранные курсы"
 
-#: yonca/templates/index.html:2660 yonca/templates/index.html:2695
+#: yonca/templates/index.html:2691 yonca/templates/index.html:2726
 msgid "Loading courses... (Try switching pages in case of delays)"
 msgstr "Загрузочные курсы... (Попытка переключения страниц в случае задержек)"
 
-#: yonca/templates/index.html:2668
+#: yonca/templates/index.html:2699
 msgid "Explore our available courses and start your learning journey."
 msgstr "Изучите наши доступные курсы и начните свое учебное путешествие."
 
-#: yonca/templates/index.html:2672
+#: yonca/templates/index.html:2703
 msgid "Filter Courses"
 msgstr "Курсы фильтрации"
 
-#: yonca/templates/index.html:2675 yonca/templates/index.html:2783
-#: yonca/templates/index.html:2810
+#: yonca/templates/index.html:2706 yonca/templates/index.html:2814
+#: yonca/templates/index.html:2841
 msgid "Tags:"
 msgstr "Тэги:"
 
-#: yonca/templates/index.html:2685
+#: yonca/templates/index.html:2716
 msgid "My Enrolled Courses"
 msgstr "Мои зачисленные курсы"
 
-#: yonca/templates/index.html:2687
+#: yonca/templates/index.html:2718
 msgid "Loading enrolled courses... (Try switching pages in case of delays)"
 msgstr ""
 "Загрузка зачисленных курсов... (Попытка переключения страниц в случае "
 "задержек)"
 
-#: yonca/templates/index.html:2693 yonca/templates/index.html:3834
-#: yonca/templates/index.html:3887
+#: yonca/templates/index.html:2724 yonca/templates/index.html:3869
+#: yonca/templates/index.html:3922
 msgid "Available Courses"
 msgstr "Доступные курсы"
 
-#: yonca/templates/index.html:2706
+#: yonca/templates/index.html:2737
 msgid "Authentication Required"
 msgstr "Требуется аутентификация"
 
-#: yonca/templates/index.html:2707
+#: yonca/templates/index.html:2738
 msgid "Please log in to participate in the community forum."
 msgstr "Пожалуйста, войдите для участия в форуме сообщества."
 
-#: yonca/templates/index.html:2708
+#: yonca/templates/index.html:2739
 msgid "You can still view messages without logging in."
 msgstr "Вы все еще можете просматривать сообщения без входа в систему."
 
-#: yonca/templates/index.html:2720
+#: yonca/templates/index.html:2751
 msgid "Translation Settings"
 msgstr "Настройки перевода"
 
-#: yonca/templates/index.html:2723
+#: yonca/templates/index.html:2754
 msgid "Language:"
 msgstr "Язык:"
 
-#: yonca/templates/index.html:2725
+#: yonca/templates/index.html:2756
 msgid "Don't translate"
 msgstr "Не переводи"
 
-#: yonca/templates/index.html:2726
+#: yonca/templates/index.html:2757
 msgid "English"
 msgstr "Английский"
 
-#: yonca/templates/index.html:2727
+#: yonca/templates/index.html:2758
 msgid "Russian"
 msgstr "Русский"
 
-#: yonca/templates/index.html:2731
+#: yonca/templates/index.html:2762
 msgid ""
 "Select a language to translate messages, or choose 'Don't translate' to view"
 " messages in their original language. Click individual messages to toggle "
@@ -1193,35 +1222,35 @@ msgstr ""
 "просмотра сообщений на их исходном языке. Нажмите отдельные сообщения, чтобы"
 " переключать перевод."
 
-#: yonca/templates/index.html:2735
+#: yonca/templates/index.html:2766
 msgid "Post a New Message"
 msgstr "Опубликовать новое сообщение"
 
-#: yonca/templates/index.html:2738 yonca/templates/login.html:232
+#: yonca/templates/index.html:2769 yonca/templates/login.html:236
 msgid "Username:"
 msgstr "Имя пользователя:"
 
-#: yonca/templates/index.html:2742
+#: yonca/templates/index.html:2773
 msgid "Message:"
 msgstr "Сообщение:"
 
-#: yonca/templates/index.html:2743
+#: yonca/templates/index.html:2774
 msgid "Share your thoughts, ask questions, or help others..."
 msgstr "Делитесь своими мыслями, задавайте вопросы или помогайте другим."
 
-#: yonca/templates/index.html:2745
+#: yonca/templates/index.html:2776
 msgid "Post Message"
 msgstr "Послание"
 
-#: yonca/templates/index.html:2750
+#: yonca/templates/index.html:2781
 msgid "General Discussion"
 msgstr "Общее обсуждение"
 
-#: yonca/templates/index.html:2753
+#: yonca/templates/index.html:2784
 msgid "Welcome to Yonca Forum!"
 msgstr "Добро пожаловать на форум YONCA!"
 
-#: yonca/templates/index.html:2754
+#: yonca/templates/index.html:2785
 msgid ""
 "This is where community members can connect, ask questions, and share "
 "knowledge."
@@ -1229,49 +1258,49 @@ msgstr ""
 "Именно здесь члены сообщества могут общаться, задавать вопросы и делиться "
 "знаниями."
 
-#: yonca/templates/index.html:2755
+#: yonca/templates/index.html:2786
 msgid "Posted on December 8, 2025"
 msgstr "Опубликовано 8 декабря 2025"
 
-#: yonca/templates/index.html:2765
+#: yonca/templates/index.html:2796
 msgid "Download educational materials, documents, and access protected files."
 msgstr "Загрузите учебные материалы, документы и доступ к защищенным файлам."
 
-#: yonca/templates/index.html:2769
+#: yonca/templates/index.html:2800
 msgid "Filter Learning Materials"
 msgstr "Фильтр Учебные материалы"
 
-#: yonca/templates/index.html:2773
+#: yonca/templates/index.html:2804
 msgid "Access Type:"
 msgstr "Тип доступа:"
 
-#: yonca/templates/index.html:2775 yonca/templates/index.html:3948
-#: yonca/templates/index.html:4279
+#: yonca/templates/index.html:2806 yonca/templates/index.html:3983
+#: yonca/templates/index.html:4324
 msgid "All"
 msgstr "Все"
 
-#: yonca/templates/index.html:2776
+#: yonca/templates/index.html:2807
 msgid "PIN Protected"
 msgstr "PIN защищен"
 
-#: yonca/templates/index.html:2777
+#: yonca/templates/index.html:2808
 msgid "Free Access"
 msgstr "Бесплатный доступ"
 
-#: yonca/templates/index.html:2790
+#: yonca/templates/index.html:2821
 msgid "Learning Materials"
 msgstr "Учебные материалы"
 
-#: yonca/templates/index.html:2792
+#: yonca/templates/index.html:2823
 msgid "Loading materials... (Try switching pages in case of delays)"
 msgstr ""
 "Погрузочные материалы... (Попытка переключения страниц в случае задержек)"
 
-#: yonca/templates/index.html:2798
+#: yonca/templates/index.html:2829
 msgid "Upload Learning Material"
 msgstr "Скачать Learning Material"
 
-#: yonca/templates/index.html:2799
+#: yonca/templates/index.html:2830
 msgid ""
 "Upload documents, presentations, PDFs, or other materials. You can choose to"
 " enable PIN protection for security or allow free access."
@@ -1280,69 +1309,69 @@ msgstr ""
 "включить защиту PIN-кода для обеспечения безопасности или разрешить "
 "свободный доступ."
 
-#: yonca/templates/index.html:2802
+#: yonca/templates/index.html:2833
 msgid "Title:"
 msgstr "Название:"
 
-#: yonca/templates/index.html:2806
+#: yonca/templates/index.html:2837
 msgid "Description:"
 msgstr "Описание:"
 
-#: yonca/templates/index.html:2811
+#: yonca/templates/index.html:2842
 msgid "Enter tags separated by spaces, e.g. Tag1 Tag2 Tag3"
 msgstr "Введите теги, разделенные пространствами, например Tag1 Tag2 Tag3"
 
-#: yonca/templates/index.html:2812
+#: yonca/templates/index.html:2843
 msgid "Tags will be displayed as hashtags"
 msgstr "Теги будут отображаться как хэштеги"
 
-#: yonca/templates/index.html:2815
+#: yonca/templates/index.html:2846
 msgid "Preview Image (optional):"
 msgstr "Предварительный просмотр изображения (опционально):"
 
-#: yonca/templates/index.html:2817
+#: yonca/templates/index.html:2848
 msgid "Upload an image to display as a preview for this resource"
 msgstr ""
 "Загрузите изображение для отображения в качестве предварительного просмотра "
 "для этого ресурса"
 
-#: yonca/templates/index.html:2820
+#: yonca/templates/index.html:2851
 msgid "Choose file..."
 msgstr "Выберите файл..."
 
-#: yonca/templates/index.html:2827
+#: yonca/templates/index.html:2858
 msgid "Enable PIN Protection"
 msgstr "Включить PIN Защита"
 
-#: yonca/templates/index.html:2829
+#: yonca/templates/index.html:2860
 msgid "Check to require PIN access, uncheck for free access"
 msgstr ""
 "Проверьте, требуется ли PIN-код, отмените проверку для бесплатного доступа"
 
-#: yonca/templates/index.html:2833
+#: yonca/templates/index.html:2864
 msgid ""
 "Access PIN will be auto-generated (6 characters, expires in 10 minutes)"
 msgstr ""
 "PIN-код доступа будет автоматически генерироваться (6 символов, срок "
 "действия истекает через 10 минут)"
 
-#: yonca/templates/index.html:2835 yonca/templates/index.html:4631
+#: yonca/templates/index.html:2866 yonca/templates/index.html:4676
 msgid "Upload Material"
 msgstr "Скачать материал"
 
-#: yonca/templates/index.html:2845
+#: yonca/templates/index.html:2876
 msgid "MOXO Test section is coming soon."
 msgstr "{Моксо} Тестовый раздел скоро появится."
 
-#: yonca/templates/index.html:2854
+#: yonca/templates/index.html:2885
 msgid "Our Services"
 msgstr "Наши услуги"
 
-#: yonca/templates/index.html:2862 yonca/templates/index.html:2916
+#: yonca/templates/index.html:2893 yonca/templates/index.html:2947
 msgid "Assessment and Skill Evaluation"
 msgstr "Оценка навыков и оказание помощи"
 
-#: yonca/templates/index.html:2863 yonca/templates/index.html:2917
+#: yonca/templates/index.html:2894 yonca/templates/index.html:2948
 msgid ""
 "Comprehensive assessment of a child's development to create an "
 "individualized support plan"
@@ -1350,79 +1379,79 @@ msgstr ""
 "Комплексная оценка развития ребенка для создания индивидуального плана "
 "поддержки"
 
-#: yonca/templates/index.html:2864 yonca/templates/index.html:2872
-#: yonca/templates/index.html:2880 yonca/templates/index.html:2888
-#: yonca/templates/index.html:2896 yonca/templates/index.html:2904
-#: yonca/templates/index.html:3083 yonca/templates/index.html:3176
+#: yonca/templates/index.html:2895 yonca/templates/index.html:2903
+#: yonca/templates/index.html:2911 yonca/templates/index.html:2919
+#: yonca/templates/index.html:2927 yonca/templates/index.html:2935
+#: yonca/templates/index.html:3114 yonca/templates/index.html:3207
 msgid "Learn More"
 msgstr "Узнать больше"
 
-#: yonca/templates/index.html:2870 yonca/templates/index.html:2934
+#: yonca/templates/index.html:2901 yonca/templates/index.html:2965
 msgid "Therapeutic and Developmental Sessions"
 msgstr "Терапевтические и развивающие сеансы"
 
-#: yonca/templates/index.html:2871 yonca/templates/index.html:2935
+#: yonca/templates/index.html:2902 yonca/templates/index.html:2966
 msgid "Individualized development and intervention programs"
 msgstr "Индивидуальные программы развития и вмешательства"
 
-#: yonca/templates/index.html:2878 yonca/templates/index.html:2954
+#: yonca/templates/index.html:2909 yonca/templates/index.html:2985
 msgid "School Support"
 msgstr "Школьная поддержка"
 
-#: yonca/templates/index.html:2879 yonca/templates/index.html:2955
+#: yonca/templates/index.html:2910 yonca/templates/index.html:2986
 msgid "Comprehensive support for a child in the educational environment"
 msgstr "Комплексная поддержка ребенка в образовательной среде"
 
-#: yonca/templates/index.html:2886 yonca/templates/index.html:2972
+#: yonca/templates/index.html:2917 yonca/templates/index.html:3003
 msgid "Psychological Support"
 msgstr "Психологический Поддержка"
 
-#: yonca/templates/index.html:2887
+#: yonca/templates/index.html:2918
 msgid "Professional psychological counseling and therapy services"
 msgstr ""
 "Профессиональное психологическое консультирование и терапевтические услуги"
 
-#: yonca/templates/index.html:2894 yonca/templates/index.html:2986
+#: yonca/templates/index.html:2925 yonca/templates/index.html:3017
 msgid "Clubs"
 msgstr "Клубы"
 
-#: yonca/templates/index.html:2895
+#: yonca/templates/index.html:2926
 msgid "Community clubs for mothers and teenagers"
 msgstr "Общественные клубы для матерей и подростков"
 
-#: yonca/templates/index.html:2902 yonca/templates/index.html:2998
+#: yonca/templates/index.html:2933 yonca/templates/index.html:3029
 msgid "Educational Programs"
 msgstr "Образовательные программы"
 
-#: yonca/templates/index.html:2903
+#: yonca/templates/index.html:2934
 msgid "Professional training courses for educators and parents"
 msgstr "Курсы профессиональной подготовки для педагогов и родителей"
 
-#: yonca/templates/index.html:2919
+#: yonca/templates/index.html:2950
 msgid "Initial consultation with parents"
 msgstr "Первоначальная консультация с родителями"
 
-#: yonca/templates/index.html:2920
+#: yonca/templates/index.html:2951
 msgid "Assessment of speech, cognitive, and social skills"
 msgstr "Оценка речевых, когнитивных и социальных навыков"
 
-#: yonca/templates/index.html:2921
+#: yonca/templates/index.html:2952
 msgid "MOXO d-CPT (Profiler / MOXO 360)"
 msgstr "MOXO d-CPT (Профильер / MOXO 360)"
 
-#: yonca/templates/index.html:2922
+#: yonca/templates/index.html:2953
 msgid "ABLLS-R, AFLS, WebMAP"
 msgstr "ABLLS-R, AFLS, WebMAP"
 
-#: yonca/templates/index.html:2923
+#: yonca/templates/index.html:2954
 msgid "Neuropsychological assessment"
 msgstr "Нейропсихологическая оценка"
 
-#: yonca/templates/index.html:2924
+#: yonca/templates/index.html:2955
 msgid "Vineland Adaptive Behavior Scales"
 msgstr "Весы адаптивного поведения Vineland"
 
-#: yonca/templates/index.html:2926
+#: yonca/templates/index.html:2957
 msgid ""
 "Scientifically validated standardized methods help identify the child's "
 "strengths and areas for development."
@@ -1430,305 +1459,305 @@ msgstr ""
 "Научно обоснованные стандартизированные методы помогают определить сильные "
 "стороны ребенка и области его развития."
 
-#: yonca/templates/index.html:2937
+#: yonca/templates/index.html:2968
 msgid "ABA therapy"
 msgstr "ABA терапия"
 
-#: yonca/templates/index.html:2938
+#: yonca/templates/index.html:2969
 msgid "Speech and communication development"
 msgstr "Развитие речи и коммуникации"
 
-#: yonca/templates/index.html:2939
+#: yonca/templates/index.html:2970
 msgid "Sensory integration"
 msgstr "Сенсорная интеграция"
 
-#: yonca/templates/index.html:2940
+#: yonca/templates/index.html:2971
 msgid "Academic skills and school preparation"
 msgstr "Академические навыки и подготовка к школе"
 
-#: yonca/templates/index.html:2941
+#: yonca/templates/index.html:2972
 msgid "Self-regulation and socialization"
 msgstr "Саморегулирование и социализация"
 
-#: yonca/templates/index.html:2942
+#: yonca/templates/index.html:2973
 msgid "Music and art therapy"
 msgstr "Музыка и арт-терапия"
 
-#: yonca/templates/index.html:2943
+#: yonca/templates/index.html:2974
 msgid "Therapeutic physical training and adaptive physical education"
 msgstr ""
 "Терапевтическая физическая подготовка и адаптивное физическое воспитание"
 
-#: yonca/templates/index.html:2944
+#: yonca/templates/index.html:2975
 msgid "Self-defense"
 msgstr "Самооборона"
 
-#: yonca/templates/index.html:2945
+#: yonca/templates/index.html:2976
 msgid "Brazilian Jiu-Jitsu"
 msgstr "Бразильский джиу-джитсу"
 
-#: yonca/templates/index.html:2957
+#: yonca/templates/index.html:2988
 msgid "Support for learning difficulties (dyslexia, dysgraphia, dyscalculia)"
 msgstr "Поддержка трудностей в обучении (дислексия, дисграфия, дискалькулия)"
 
-#: yonca/templates/index.html:2958
+#: yonca/templates/index.html:2989
 msgid "Individual academic programs"
 msgstr "Индивидуальные академические программы"
 
-#: yonca/templates/index.html:2959
+#: yonca/templates/index.html:2990
 msgid "Homework assistance"
 msgstr "Помощь по дому"
 
-#: yonca/templates/index.html:2960
+#: yonca/templates/index.html:2991
 msgid "Tutor support"
 msgstr "Поддержка преподавателей"
 
-#: yonca/templates/index.html:2961
+#: yonca/templates/index.html:2992
 msgid "Adaptation to the school environment"
 msgstr "Адаптация к школьной среде"
 
-#: yonca/templates/index.html:2962
+#: yonca/templates/index.html:2993
 msgid "Teacher consultations"
 msgstr "Консультации учителей"
 
-#: yonca/templates/index.html:2963
+#: yonca/templates/index.html:2994
 msgid "Professional supervision"
 msgstr "Профессиональный надзор"
 
-#: yonca/templates/index.html:2974
+#: yonca/templates/index.html:3005
 msgid "Psychological counseling"
 msgstr "Психологическое консультирование"
 
-#: yonca/templates/index.html:2975
+#: yonca/templates/index.html:3006
 msgid "Individual psychotherapy"
 msgstr "Индивидуальная психотерапия"
 
-#: yonca/templates/index.html:2976
+#: yonca/templates/index.html:3007
 msgid "Group therapy"
 msgstr "Групповая терапия"
 
-#: yonca/templates/index.html:2977
+#: yonca/templates/index.html:3008
 msgid "Family therapy and parental support"
 msgstr "Семейная терапия и родительская поддержка"
 
-#: yonca/templates/index.html:2988
+#: yonca/templates/index.html:3019
 msgid "Mothers' club"
 msgstr "Клуб матерей"
 
-#: yonca/templates/index.html:2989
+#: yonca/templates/index.html:3020
 msgid "Teenagers' club (social skills and emotional regulation)"
 msgstr "Клуб подростков (социальные навыки и эмоциональное регулирование)"
 
-#: yonca/templates/index.html:3000
+#: yonca/templates/index.html:3031
 msgid "Professional training courses"
 msgstr "Курсы профессиональной подготовки"
 
-#: yonca/templates/index.html:3001
+#: yonca/templates/index.html:3032
 msgid "Parent education courses"
 msgstr "Курсы обучения родителей"
 
-#: yonca/templates/admin/about_company.html:211
-#: yonca/templates/index.html:3107
+#: yonca/templates/admin/about_company.html:226
+#: yonca/templates/index.html:3138
 msgid "Featured Content"
 msgstr "Избранный контент"
 
-#: yonca/templates/admin/about_company.html:217
-#: yonca/templates/index.html:3108
+#: yonca/templates/admin/about_company.html:239
+#: yonca/templates/index.html:3139
 msgid "Explore more exciting content and resources."
 msgstr "Исследуйте более захватывающий контент и ресурсы."
 
-#: yonca/templates/index.html:3420
+#: yonca/templates/index.html:3455
 msgid "Courses for specialists"
 msgstr "Курсы для специалистов"
 
-#: yonca/templates/index.html:3425
+#: yonca/templates/index.html:3460
 msgid "Courses for parents"
 msgstr "Курсы для родителей"
 
-#: yonca/templates/index.html:3426
+#: yonca/templates/index.html:3461
 msgid ""
 "Parental support and guidance for raising healthy, well-adjusted children"
 msgstr ""
 "Родительская поддержка и руководство по воспитанию здоровых, хорошо "
 "приспособленных детей"
 
-#: yonca/templates/index.html:3496 yonca/templates/index.html:3510
+#: yonca/templates/index.html:3531 yonca/templates/index.html:3545
 msgid "Loading courses..."
 msgstr "Загрузочные курсы..."
 
-#: yonca/templates/index.html:3520
+#: yonca/templates/index.html:3555
 msgid "Error loading courses"
 msgstr "Курсы загрузки ошибок"
 
-#: yonca/templates/index.html:3534
+#: yonca/templates/index.html:3569
 msgid "No courses available for this category."
 msgstr "Курсов для этой категории нет."
 
-#: yonca/templates/index.html:3832
+#: yonca/templates/index.html:3867
 msgid "You're enrolled in all available courses!"
 msgstr "Вы зачислены на все доступные курсы!"
 
-#: yonca/templates/index.html:3833
+#: yonca/templates/index.html:3868
 msgid "Error loading courses. Please try again."
 msgstr "Курсы загрузки ошибок. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:3868
+#: yonca/templates/index.html:3903
 msgid "No courses available at the moment."
 msgstr "На данный момент нет доступных курсов."
 
-#: yonca/templates/index.html:3884
+#: yonca/templates/index.html:3919
 msgid "Other Available Courses"
 msgstr "Другие доступные курсы"
 
-#: yonca/templates/index.html:4085
+#: yonca/templates/index.html:4130
 msgid "Loading... (Try switching pages in case of delays)"
 msgstr "Загрузка... (Попытка переключения страниц в случае задержек)"
 
-#: yonca/templates/index.html:4086 yonca/templates/index.html:4098
-#: yonca/templates/index.html:4105
+#: yonca/templates/index.html:4131 yonca/templates/index.html:4143
+#: yonca/templates/index.html:4150
 msgid "View Details"
 msgstr "Посмотреть детали"
 
-#: yonca/templates/index.html:4160
+#: yonca/templates/index.html:4205
 msgid "Enrolling in"
 msgstr "Записаться в"
 
-#: yonca/templates/index.html:4224
+#: yonca/templates/index.html:4269
 msgid "Error loading resources. Please try again."
 msgstr "Ошибка загрузки ресурсов. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4256
+#: yonca/templates/index.html:4301
 msgid "No materials available at the moment."
 msgstr "Материалов на данный момент нет."
 
-#: yonca/templates/index.html:4303
+#: yonca/templates/index.html:4348
 msgid "No materials match the selected filter."
 msgstr "Никакие материалы не соответствуют выбранному фильтру."
 
-#: yonca/templates/index.html:4321
+#: yonca/templates/index.html:4366
 msgid "Log In to Access"
 msgstr "Войти в Access"
 
-#: yonca/templates/index.html:4324 yonca/templates/index.html:4344
-#: yonca/templates/index.html:4383
+#: yonca/templates/index.html:4369 yonca/templates/index.html:4389
+#: yonca/templates/index.html:4428
 msgid "View Resource"
 msgstr "Посмотреть ресурс"
 
-#: yonca/templates/index.html:4334
+#: yonca/templates/index.html:4379
 msgid "Expires in:"
 msgstr "Исполняется в:"
 
-#: yonca/templates/index.html:4334
+#: yonca/templates/index.html:4379
 msgid "minutes"
 msgstr "минуты"
 
-#: yonca/templates/index.html:4336
+#: yonca/templates/index.html:4381
 msgid "PIN has expired"
 msgstr "PIN-код истек"
 
-#: yonca/templates/index.html:4340 yonca/templates/index.html:4455
+#: yonca/templates/index.html:4385 yonca/templates/index.html:4500
 msgid "Your Access PIN:"
 msgstr "Ваш PIN-код доступа:"
 
-#: yonca/templates/index.html:4342 yonca/templates/index.html:4457
+#: yonca/templates/index.html:4387 yonca/templates/index.html:4502
 msgid "Share this PIN with others to grant access"
 msgstr "Поделитесь этим PIN-кодом с другими, чтобы предоставить доступ"
 
-#: yonca/templates/index.html:4347 yonca/templates/index.html:4462
+#: yonca/templates/index.html:4392 yonca/templates/index.html:4507
 msgid "Request Access"
 msgstr "Запросить доступ"
 
-#: yonca/templates/index.html:4355 yonca/templates/index.html:4378
-#: yonca/templates/index.html:4467
+#: yonca/templates/index.html:4400 yonca/templates/index.html:4423
+#: yonca/templates/index.html:4512
 msgid "No description available"
 msgstr "Описания отсутствуют"
 
-#: yonca/templates/index.html:4358 yonca/templates/index.html:4381
-#: yonca/templates/index.html:4469
+#: yonca/templates/index.html:4403 yonca/templates/index.html:4426
+#: yonca/templates/index.html:4514
 msgid "Uploaded:"
 msgstr "Загружено:"
 
-#: yonca/templates/index.html:4362 yonca/templates/index.html:4385
+#: yonca/templates/index.html:4407 yonca/templates/index.html:4430
 msgid "Are you sure you want to delete this resource?"
 msgstr "Вы уверены, что хотите удалить этот ресурс?"
 
-#: yonca/templates/index.html:4402
+#: yonca/templates/index.html:4447
 msgid "Error loading materials. Please try again."
 msgstr "Ошибка загрузки материалов. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4438
+#: yonca/templates/index.html:4483
 msgid "No PDF documents available at the moment."
 msgstr "PDF-документов на данный момент нет."
 
-#: yonca/templates/index.html:4459
+#: yonca/templates/index.html:4504
 msgid "Access PDF"
 msgstr "Доступ к PDF"
 
-#: yonca/templates/index.html:4473
+#: yonca/templates/index.html:4518
 msgid "Are you sure you want to delete this PDF?"
 msgstr "Вы уверены, что хотите удалить этот PDF?"
 
-#: yonca/templates/index.html:4484
+#: yonca/templates/index.html:4529
 msgid "Error loading PDFs. Please try again."
 msgstr "Ошибка загрузки PDF. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4490
+#: yonca/templates/index.html:4535
 msgid "Enter access PIN for:"
 msgstr "Введите PIN-код доступа для:"
 
-#: yonca/templates/index.html:4516
+#: yonca/templates/index.html:4561
 msgid "Invalid PIN or access denied."
 msgstr "Недействительный PIN-код или доступ запрещен."
 
-#: yonca/templates/index.html:4520
+#: yonca/templates/index.html:4565
 msgid "Error accessing resource. Please try again."
 msgstr "Ошибка доступа к ресурсу. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4534 yonca/templates/index.html:4536
+#: yonca/templates/index.html:4579 yonca/templates/index.html:4581
 msgid "Uploading PDF..."
 msgstr "Скачать PDF..."
 
-#: yonca/templates/index.html:4558
+#: yonca/templates/index.html:4603
 msgid "PDF uploaded successfully! Access PIN:"
 msgstr "PDF скачать успешно! Доступ к PIN:"
 
-#: yonca/templates/index.html:4566 yonca/templates/index.html:4570
+#: yonca/templates/index.html:4611 yonca/templates/index.html:4615
 msgid "Error uploading PDF. Please try again."
 msgstr "Ошибка загрузки PDF. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4573
+#: yonca/templates/index.html:4618
 msgid "Upload PDF"
 msgstr "Скачать PDF"
 
-#: yonca/templates/index.html:4587
+#: yonca/templates/index.html:4632
 msgid "Uploading..."
 msgstr "Загрузить..."
 
-#: yonca/templates/index.html:4589
+#: yonca/templates/index.html:4634
 msgid "Uploading resource..."
 msgstr "Загрузить ресурс..."
 
-#: yonca/templates/index.html:4611
+#: yonca/templates/index.html:4656
 msgid "Access PIN:"
 msgstr "Доступ к PIN:"
 
-#: yonca/templates/index.html:4611
+#: yonca/templates/index.html:4656
 msgid "Free access enabled"
 msgstr "Бесплатный доступ включен"
 
-#: yonca/templates/index.html:4612
+#: yonca/templates/index.html:4657
 msgid "Material uploaded successfully!"
 msgstr "Материал успешно загружен!"
 
-#: yonca/templates/index.html:4624
+#: yonca/templates/index.html:4669
 msgid "Error uploading material. Please try again."
 msgstr "Ошибка загрузки материала. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4628
+#: yonca/templates/index.html:4673
 msgid "Error uploading resource. Please try again."
 msgstr "Ошибка загрузки ресурса. Пожалуйста, попробуйте еще раз."
 
-#: yonca/templates/index.html:4656
+#: yonca/templates/index.html:4701
 msgid "Error loading forum. Please try again."
 msgstr "Ошибка при загрузке форума. Пожалуйста, попробуйте еще раз."
 
@@ -1736,40 +1765,39 @@ msgstr "Ошибка при загрузке форума. Пожалуйста,
 msgid "To exit, click the black area outside the video."
 msgstr "Чтобы выйти, щелкните черную область за пределами видео."
 
-#: yonca/templates/login.html:220
+#: yonca/templates/login.html:224
 msgid "Login to Your Account"
 msgstr "Войти в свой аккаунт"
 
-#: yonca/templates/login.html:236
+#: yonca/templates/login.html:240
 msgid "Password:"
 msgstr "Пароль:"
 
-#: yonca/templates/login.html:241
+#: yonca/templates/login.html:245
 msgid "Login as Administrator"
 msgstr "Логин как администратор"
 
-#: yonca/templates/login.html:246
+#: yonca/templates/login.html:250
 msgid "I acknowledge that I have read and agree to the"
 msgstr "Я признаю, что прочитал и согласен с"
 
 
-
-#: yonca/templates/login.html:247 yonca/templates/terms.html:6
+#: yonca/templates/login.html:251 yonca/templates/terms.html:6
 #: yonca/templates/terms.html:103
 msgid "Terms of Use"
 msgstr "Условия использования"
 
-#: yonca/templates/login.html:248 yonca/templates/privacyPolicy.html:6
+#: yonca/templates/login.html:252 yonca/templates/privacyPolicy.html:6
 #: yonca/templates/privacyPolicy.html:103
 msgid "Политика конфиденциальности"
 msgstr "Политика конфиденциальности"
 
-#: yonca/templates/components/footer.html:37 yonca/templates/login.html:248
+#: yonca/templates/components/footer.html:37 yonca/templates/login.html:252
 #: yonca/templates/privacyPolicy.html:6 yonca/templates/privacyPolicy.html:103
 msgid "Privacy policy"
 msgstr "Политика конфиденциальности"
 
-#: yonca/templates/login.html:254
+#: yonca/templates/login.html:258
 msgid "Back to Yonca"
 msgstr "Вернуться в Yonca"
 
@@ -1777,7 +1805,7 @@ msgstr "Вернуться в Yonca"
 msgid "Məxfilik siyasəti"
 msgstr "Məxfilik siyasəti"
 
-#: yonca/templates/admin/about_company.html:242
+#: yonca/templates/admin/about_company.html:270
 #: yonca/templates/privacyPolicy.html:115 yonca/templates/terms.html:115
 msgid "Back to Home"
 msgstr "Вернуться домой"
@@ -1823,7 +1851,7 @@ msgid "About Gallery Section"
 msgstr "О разделе Галерея"
 
 #: yonca/templates/admin/about_company.html:175
-#: yonca/templates/admin/about_company.html:209
+#: yonca/templates/admin/about_company.html:223
 msgid "Gallery Title:"
 msgstr "Название галереи:"
 
@@ -1832,50 +1860,50 @@ msgstr "Название галереи:"
 msgid "The heading that appears above the gallery"
 msgstr "Заголовок, который появляется над галереей"
 
-#: yonca/templates/admin/about_company.html:182
-#: yonca/templates/admin/about_company.html:216
+#: yonca/templates/admin/about_company.html:189
+#: yonca/templates/admin/about_company.html:237
 msgid "Gallery Subtitle:"
 msgstr "Подзаголовок галереи:"
 
-#: yonca/templates/admin/about_company.html:184
-#: yonca/templates/admin/about_company.html:218
+#: yonca/templates/admin/about_company.html:198
+#: yonca/templates/admin/about_company.html:246
 msgid "The subtitle that appears below the gallery title"
 msgstr "Подзаголовок, который появляется под названием галереи"
 
-#: yonca/templates/admin/about_company.html:191
+#: yonca/templates/admin/about_company.html:205
 msgid "About Gallery (Images, Videos, YouTube, Vimeo)"
 msgstr "О галерее (изображения, видео, YouTube, Vimeo)"
 
-#: yonca/templates/admin/about_company.html:193
-#: yonca/templates/admin/about_company.html:227
+#: yonca/templates/admin/about_company.html:207
+#: yonca/templates/admin/about_company.html:255
 msgid "Add Media"
 msgstr "Добавить медиа"
 
-#: yonca/templates/admin/about_company.html:205
+#: yonca/templates/admin/about_company.html:219
 msgid "About Gallery 2 Section"
 msgstr "Галерея 2 раздел"
 
-#: yonca/templates/admin/about_company.html:225
+#: yonca/templates/admin/about_company.html:253
 msgid "About Gallery 2 (Images, Videos, YouTube, Vimeo)"
 msgstr "О галерее 2 (изображения, видео, YouTube, Vimeo)"
 
-#: yonca/templates/admin/about_company.html:253
+#: yonca/templates/admin/about_company.html:281
 msgid "Choose input type:"
 msgstr "Выберите тип ввода:"
 
-#: yonca/templates/admin/about_company.html:255
+#: yonca/templates/admin/about_company.html:283
 msgid "Enter URL"
 msgstr "Введите URL"
 
-#: yonca/templates/admin/about_company.html:256
+#: yonca/templates/admin/about_company.html:284
 msgid "Media File:"
 msgstr "Media File:"
 
-#: yonca/templates/admin/about_company.html:257
+#: yonca/templates/admin/about_company.html:285
 msgid "Media URL:"
 msgstr "Media URL:"
 
-#: yonca/templates/admin/about_company.html:258
+#: yonca/templates/admin/about_company.html:286
 msgid ""
 "https://youtube.com/watch?v=... or https://drive.google.com/file/d/... or "
 "direct video URL"
@@ -1883,47 +1911,47 @@ msgstr ""
 "https://youtube.com/watch?v=... или https://drive.google.com/file/d/... "
 "Прямой видео URL"
 
-#: yonca/templates/admin/about_company.html:259
+#: yonca/templates/admin/about_company.html:287
 msgid "Alt Text:"
 msgstr "Альттекст:"
 
-#: yonca/templates/admin/about_company.html:260
+#: yonca/templates/admin/about_company.html:288
 msgid "Image description"
 msgstr "Описание изображения"
 
-#: yonca/templates/admin/about_company.html:261
+#: yonca/templates/admin/about_company.html:289
 msgid "Caption:"
 msgstr "Подпись:"
 
-#: yonca/templates/admin/about_company.html:262
+#: yonca/templates/admin/about_company.html:290
 msgid "Image caption"
 msgstr "Image caption"
 
-#: yonca/templates/admin/about_company.html:263
+#: yonca/templates/admin/about_company.html:291
 msgid "Translate Caption"
 msgstr "Перевод подписи"
 
-#: yonca/templates/admin/about_company.html:264
+#: yonca/templates/admin/about_company.html:292
 msgid "Please enter some text in the caption field before translating."
 msgstr "Пожалуйста, введите некоторый текст в поле подписи перед переводом."
 
-#: yonca/templates/admin/about_company.html:265
+#: yonca/templates/admin/about_company.html:293
 msgid "Translation completed and cached:"
 msgstr "Завершенный и кэшированный перевод:"
 
-#: yonca/templates/admin/about_company.html:266
+#: yonca/templates/admin/about_company.html:294
 msgid "Original"
 msgstr "Оригинал"
 
-#: yonca/templates/admin/about_company.html:267
+#: yonca/templates/admin/about_company.html:295
 msgid "Translation failed:"
 msgstr "Перевод провалился:"
 
-#: yonca/templates/admin/about_company.html:268
+#: yonca/templates/admin/about_company.html:296
 msgid "Translation error:"
 msgstr "Ошибка перевода:"
 
-#: yonca/templates/admin/about_company.html:269
+#: yonca/templates/admin/about_company.html:297
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
@@ -1955,15 +1983,15 @@ msgstr "Баку, Азербайджан"
 msgid "Terms of Service"
 msgstr "Условия обслуживания"
 
-#: yonca/templates/components/navbar.html:29
+#: yonca/templates/components/navbar.html:25
 msgid "About"
 msgstr "О нас"
 
-#: yonca/templates/components/navbar.html:115
+#: yonca/templates/components/navbar.html:113
 msgid "Welcome"
 msgstr "Добро пожаловать"
 
-#: yonca/templates/components/navbar.html:116
+#: yonca/templates/components/navbar.html:114
 msgid "Admin"
 msgstr "Администратор"
 
@@ -2446,3 +2474,6 @@ msgstr "Администратор"
 
 #~ msgid "Feature description"
 #~ msgstr "Описание характеристики"
+
+#~ msgid "Yonca - Learning Platform"
+#~ msgstr "Yonca - Учебная платформа"

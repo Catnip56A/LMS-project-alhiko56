@@ -3,7 +3,8 @@ Authentication routes
 """
 from flask import Blueprint, request, redirect, url_for, flash, jsonify, render_template, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from flask_babel import get_locale
+from flask_babel import get_locale, gettext as _
+from markupsafe import Markup
 from yonca.models import User, db, HomeContent
 import logging
 import requests
@@ -101,7 +102,10 @@ def login():
                 ).first()
                 
                 if existing_linked_user and existing_linked_user.id != user.id:
-                    flash(f'Google account ({google_email}) is already linked to another user account.')
+                    flash(Markup(
+                        f'{_("Google account")} ({google_email}) {_("is already linked to another user account.")}'
+                        f'<br><small>{_("If you proceed, the connection of this Google account to the other Yonca account will be")} <em><strong>{_("rewritten")}</strong></em> {_("with the account you enter.")}</small>'
+                    ))
                     logging.warning(f"Attempted to link Google account {google_email} to {username}, but already linked to user ID {existing_linked_user.id}")
                 else:
                     # Link the Google account to this user
@@ -257,7 +261,10 @@ def google_link_callback():
         ).first()
         
         if existing_linked_user:
-            flash(f'Google account ({google_email}) is already linked to another user account. Please use a different Google account.')
+            flash(Markup(
+                f'{_("Google account")} ({google_email}) {_("is already linked to another user account. Please use a different Google account.")}'
+                f'<br><small>{_("If you proceed, the connection of this Google account to the other Yonca account will be")} <em><strong>{_("rewritten")}</strong></em> {_("with the account you enter.")}</small>'
+            ))
             logging.warning(f"Attempted to link Google account {google_email} which is already linked to user ID {existing_linked_user.id}")
             return redirect(url_for('auth.login'))
         

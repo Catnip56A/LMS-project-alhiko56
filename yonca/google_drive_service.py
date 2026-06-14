@@ -107,21 +107,23 @@ def get_linked_google_account(user=None):
         if user.google_refresh_token:
             creds = refresh_credentials(user)
             if not creds:
-                # Refresh failed, clear tokens
                 print('Token refresh failed for account info, clearing tokens')
-                user.google_access_token = None
-                user.google_refresh_token = None
-                user.google_token_expiry = None
-                from yonca.models import db
+                from yonca.models import db, User
+                db.session.query(User).filter_by(id=user.id).update({
+                    'google_access_token': None,
+                    'google_refresh_token': None,
+                    'google_token_expiry': None,
+                })
                 db.session.commit()
                 return {'error': 'Token refresh failed'}
         else:
             print('Access token expired and no refresh token available for account info')
-            # Clear expired token
-            user.google_access_token = None
-            user.google_refresh_token = None
-            user.google_token_expiry = None
-            from yonca.models import db
+            from yonca.models import db, User
+            db.session.query(User).filter_by(id=user.id).update({
+                'google_access_token': None,
+                'google_refresh_token': None,
+                'google_token_expiry': None,
+            })
             db.session.commit()
             return {'error': 'Access token expired'}
     
@@ -140,12 +142,13 @@ def get_linked_google_account(user=None):
         }
     except requests.HTTPError as e:
         if e.response.status_code == 401:
-            # Token is invalid/expired, clear it
             print('Token is invalid (401), clearing tokens')
-            user.google_access_token = None
-            user.google_refresh_token = None
-            user.google_token_expiry = None
-            from yonca.models import db
+            from yonca.models import db, User
+            db.session.query(User).filter_by(id=user.id).update({
+                'google_access_token': None,
+                'google_refresh_token': None,
+                'google_token_expiry': None,
+            })
             db.session.commit()
             return {'error': 'Invalid or expired token'}
         else:

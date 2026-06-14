@@ -172,6 +172,7 @@ class Resource(db.Model):
     upload_date = db.Column(db.DateTime, server_default=db.func.now())
     is_active = db.Column(db.Boolean, default=True)
     allow_others_to_view = db.Column(db.Boolean, default=True)  # Allow other users to view this file
+    is_imported = db.Column(db.Boolean, default=False)  # True = imported from user's Drive, do not delete from Drive on removal
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -230,6 +231,7 @@ class PDFDocument(db.Model):
     upload_date = db.Column(db.DateTime, server_default=db.func.now())
     is_active = db.Column(db.Boolean, default=True)
     allow_others_to_view = db.Column(db.Boolean, default=True)  # Allow other users to view this file
+    is_imported = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return f'<PDFDocument {self.title}>'
@@ -366,7 +368,8 @@ class CourseContent(db.Model):
     is_published = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     allow_others_to_view = db.Column(db.Boolean, default=True)  # Allow other users to view this file
-    
+    is_imported = db.Column(db.Boolean, default=False)
+
     course = db.relationship('Course', backref=db.backref('contents', lazy='dynamic'))
     folder_id = db.Column(db.Integer, db.ForeignKey('course_content_folder.id'), nullable=True)
     folder = db.relationship('CourseContentFolder', backref=db.backref('items', lazy='select'))
