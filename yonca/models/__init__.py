@@ -509,14 +509,14 @@ class AppSetting(db.Model):
 class ContentView(db.Model):
     """Model for tracking user views of course content"""
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
     content_type = db.Column(db.String(50), nullable=False)  # 'course_content', 'resource', 'pdf', etc.
     content_id = db.Column(db.String(255), nullable=False)  # File / resource identifier (Google Drive ID)
     viewed_at = db.Column(db.DateTime, server_default=db.func.now())  # When viewing started
     viewing_duration = db.Column(db.Integer, default=0)  # Duration in seconds
-    
+
     # Relationships
-    user = db.relationship('User', backref=db.backref('content_views', lazy='dynamic'))
+    user = db.relationship('User', backref=db.backref('content_views', lazy='dynamic', passive_deletes=True))
 
     def __repr__(self):
         return f'<ContentView {self.user_id}:{self.content_type}:{self.content_id}>'
