@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>html{background:#F9E7CB}</style>
 
 
     <title>Yonca SDC Web</title>
@@ -25,7 +26,7 @@
             line-height: 1.8;
             letter-spacing: 0.05em;
             color: #000000;
-            background: rgba(255, 255, 255, 0.55);
+            background: rgba(249, 231, 203, 0.55);
             font-size: 18px;
         }
 
@@ -37,6 +38,7 @@
             width: 50%;
             height: 100%;
             background-image: url('/static/permanent/bg_texture.png');
+            background-image: image-set(url('/static/permanent/bg_texture.webp') type('image/webp'), url('/static/permanent/bg_texture.png') type('image/png'));
             background-repeat: no-repeat;
             background-size: cover;
             z-index: -1;
@@ -50,6 +52,7 @@
             width: 50%;
             height: 100%;
             background-image: url('/static/permanent/bg_texture.png');
+            background-image: image-set(url('/static/permanent/bg_texture.webp') type('image/webp'), url('/static/permanent/bg_texture.png') type('image/png'));
             background-repeat: no-repeat;
             background-size: cover;
             transform: scaleX(-1);
@@ -600,9 +603,9 @@
 
         .features-section .feature-card {
             background-image: url('/static/permanent/CourseItemBg2.png');
+            background-image: image-set(url('/static/permanent/CourseItemBg2.webp') type('image/webp'), url('/static/permanent/CourseItemBg2.png') type('image/png'));
             background-size: cover;
             background-position: center;
-            background-attachment: fixed;
             border: 1px solid rgba(0,0,0,0.04);
             border-radius: 10px;
             padding: 1.5rem;
@@ -613,9 +616,9 @@
 
         .services-section .feature-card {
             background-image: url('/static/permanent/CourseItemBg2.png');
+            background-image: image-set(url('/static/permanent/CourseItemBg2.webp') type('image/webp'), url('/static/permanent/CourseItemBg2.png') type('image/png'));
             background-size: cover;
             background-position: center;
-            background-attachment: fixed;
             border: 1px solid rgba(0,0,0,0.04);
             border-radius: 10px;
             padding: 1.5rem;
@@ -639,9 +642,9 @@
 
         .service-card {
             background-image: url('/static/permanent/CourseItemBg2.png');
+            background-image: image-set(url('/static/permanent/CourseItemBg2.webp') type('image/webp'), url('/static/permanent/CourseItemBg2.png') type('image/png'));
             background-size: cover;
             background-position: center;
-            background-attachment: fixed;
             border: 1px solid rgba(0,0,0,0.04);
             border-radius: 10px;
             padding: 0.9rem;
@@ -777,6 +780,7 @@
 
         .modal-content {
             background-image: url('/static/permanent/CourseItemBg2.png');
+            background-image: image-set(url('/static/permanent/CourseItemBg2.webp') type('image/webp'), url('/static/permanent/CourseItemBg2.png') type('image/png'));
             background-size: cover;
             background-position: center;
             border-radius: 15px;
@@ -1334,6 +1338,7 @@
 
         .resources-grid .resource-card {
             background: url('/static/permanent/CourseItemBg2.png') center/cover white;
+            background: image-set(url('/static/permanent/CourseItemBg2.webp') type('image/webp'), url('/static/permanent/CourseItemBg2.png') type('image/png')) center/cover white;
         }
         .resources-grid .resource-card:hover {
             box-shadow: 0 6px 12px rgba(0,0,0,0.07), inset 0 0 0 9999px rgba(30,89,25,0.04);
@@ -1562,6 +1567,7 @@
             position: relative;
             cursor: pointer;
             background: url('/static/permanent/CourseItemBg2.png') center/cover white;
+            background: image-set(url('/static/permanent/CourseItemBg2.webp') type('image/webp'), url('/static/permanent/CourseItemBg2.png') type('image/png')) center/cover white;
             display: flex;
             flex-direction: column;
         }
@@ -1599,6 +1605,7 @@
 
         .resource-card.course-card.enrolled-course {
             background: url('/static/permanent/CourseItemBg2.png') center/cover white;
+            background: image-set(url('/static/permanent/CourseItemBg2.webp') type('image/webp'), url('/static/permanent/CourseItemBg2.png') type('image/png')) center/cover white;
             border: 1px solid rgba(0,0,0,0.04);
             border-left: 4px solid #2b5a1d;
         }
