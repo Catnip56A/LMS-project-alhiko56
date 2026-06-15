@@ -60,11 +60,19 @@
         }
 
         header {
-            background: rgba(254, 251, 250, 0);
-            border-bottom: 1px solid #e0e0e0;
+            background: transparent;
+            border-bottom: 1px solid transparent;
             padding: 0.5rem 0;
-            position: relative;
+            position: sticky;
+            top: 0;
+            z-index: 500;
             min-height: auto;
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+
+        header.nav-scrolled {
+            background: #F8E6C8;
+            border-bottom-color: #e0e0e0;
         }
 
         .header-content {
@@ -125,7 +133,7 @@
             font-size: 0.85rem;
             font-weight: 500;
             color: #353e45;
-            background: #fffcf0;
+            background: #fffae6;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             text-decoration: none;
             transition: all 0.2s ease;
@@ -283,7 +291,7 @@
             border-radius: 6px;
             transition: all 0.3s ease;
             position: relative;
-            background-color: #fffcf0;
+            background-color: #fffae6;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             display: inline-block;
             cursor: pointer;
@@ -1643,7 +1651,7 @@
         }
 
         .resource-tag-btn {
-            background: #fffcf0;
+            background: #fffae6;
             color: #353e45;
             border: 1px solid #e5e7eb;
             padding: 0.5rem 1rem;
@@ -1699,7 +1707,7 @@
         }
 
         .resources-filters-inline .access-toggle-btn {
-            background: #fffcf0;
+            background: #fffae6;
             color: #353e45;
             border: 1px solid #e5e7eb;
             padding: 0.5rem 1rem;
@@ -1793,7 +1801,8 @@
 
             header {
                 padding: 0.75rem 0;
-                position: relative;
+                position: sticky;
+                top: 0;
                 min-height: 70px;
                 margin-bottom: 1.5rem;
             }
@@ -6578,6 +6587,20 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
     </script>
 
     <script src="{{ url_for('static', filename='js/gallery-popup.js') }}"></script>
+    <script>
+        (function() {
+            var hdr = document.querySelector('header');
+            function getScrollY() {
+                return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            }
+            function updateHeader() {
+                if (hdr) hdr.classList.toggle('nav-scrolled', getScrollY() > 30);
+            }
+            updateHeader();
+            window.addEventListener('scroll', updateHeader, { passive: true });
+            document.addEventListener('scroll', updateHeader, { passive: true, capture: true });
+        })();
+    </script>
     {% include 'components/footer.html' %}
 </body>
 </html>

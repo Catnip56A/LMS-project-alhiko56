@@ -121,8 +121,17 @@
 <style>
     .navbar {
         background: transparent !important;
-        border-bottom: 1px solid #e0e0e0;
+        border-bottom: 1px solid transparent;
         padding: 0.5rem 0;
+        position: sticky;
+        top: 0;
+        z-index: 500;
+        transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .navbar.nav-scrolled {
+        background: #F8E6C8 !important;
+        border-bottom-color: #e0e0e0;
     }
 
     .navbar > .container {
@@ -149,18 +158,21 @@
     }
 
     .navbar-nav-main {
-        flex: 1 !important;
+        flex: 1 1 0 !important;
         display: flex !important;
+        flex-direction: row !important;
         margin-left: 0 !important;
         gap: clamp(0.2rem, 0.4vw, 0.6rem) !important;
-    }
-
-    .navbar-nav-main .nav-item {
-        flex: 1 1 0 !important;
         min-width: 0 !important;
     }
 
-    .navbar-nav-main .nav-link {
+    .navbar .navbar-nav-main .nav-item {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    .navbar .navbar-nav-main .nav-link {
         text-align: center !important;
         justify-content: center !important;
         display: flex !important;
@@ -191,27 +203,30 @@
 
     .navbar .nav-link {
         color: #353e45 !important;
-        font-weight: 500;
+        font-weight: 500 !important;
         padding: 0.5rem 0.5em !important;
         border-radius: 6px !important;
         transition: all 0.3s ease;
-        background-color: #fffcf0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        font-size: clamp(0.72rem, 1vw, 0.9rem);
-        text-decoration: none;
+        background-color: #fffae6 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        border: 1px solid rgba(0,0,0,0.06) !important;
+        font-size: clamp(0.72rem, 1vw, 0.9rem) !important;
+        text-decoration: none !important;
     }
 
     .navbar .nav-link:hover {
         background-color: #3d6b38 !important;
         color: #f1f5f9 !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        border-color: transparent !important;
         transform: translateY(-1px);
     }
 
     .navbar .nav-link.active {
         background-color: #337a2c !important;
         color: #f1f5f9 !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        border-color: transparent !important;
     }
 
     .navbar .dropdown-menu {
@@ -326,7 +341,7 @@
         font-size: 1.05rem;
         color: #353e45;
         text-decoration: none;
-        background-color: #fffcf0;
+        background-color: #fffae6;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         transition: all 0.3s ease;
     }
@@ -401,6 +416,24 @@
 </style>
 
 <script>
+    (function() {
+        var nav = document.querySelector('.navbar');
+        function getScrollY() {
+            return Math.max(
+                window.scrollY || 0,
+                document.documentElement.scrollTop || 0,
+                document.body.scrollTop || 0
+            );
+        }
+        function updateNav() {
+            if (nav) nav.classList.toggle('nav-scrolled', getScrollY() > 30);
+        }
+        updateNav();
+        window.addEventListener('scroll', updateNav, { passive: true });
+        document.addEventListener('scroll', updateNav, { passive: true, capture: true });
+        document.documentElement.addEventListener('scroll', updateNav, { passive: true });
+    })();
+
     document.addEventListener('DOMContentLoaded', function() {
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const mobileNavOverlay = document.getElementById('mobile-nav-overlay');

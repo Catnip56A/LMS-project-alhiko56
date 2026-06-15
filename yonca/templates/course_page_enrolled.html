@@ -5,6 +5,8 @@
 {% block head %}
 {{ super() }}
 <style>
+    .navbar.nav-scrolled { background: #F9EFE1 !important; }
+
     * {
         margin: 0;
         padding: 0;
@@ -188,12 +190,6 @@
             padding: 1rem;
         }
 
-        .btn {
-            min-height: 44px;
-            font-size: 1rem;
-            border-radius: 6px;
-        }
-
         .form-control {
             min-height: 44px;
             font-size: 16px; /* Prevent zoom on iOS */
@@ -247,11 +243,6 @@
             font-size: 1rem;
         }
 
-        .btn-sm {
-            padding: 0.375rem 0.75rem;
-            font-size: 1.1375rem;
-        }
-
     }
     /* Multilingual text handling */
     .course-marketing h1, .course-marketing h2, .course-marketing h4 {
@@ -266,11 +257,10 @@
         hyphens: auto;
     }
     
-    /* Ensure buttons and links work with long translated text */
-    .btn {
-        white-space: normal;
-        word-wrap: break-word;
-    }
+    /* Restore Bootstrap button padding stripped by the * reset */
+    .btn        { padding: 0.375rem 0.75rem; font-size: 1rem; line-height: 1.5; border-radius: 0.25rem; }
+    .btn-sm     { padding: 0.25rem 0.5rem;  font-size: 0.875rem; border-radius: 0.2rem; }
+    .btn-lg     { padding: 0.5rem 1rem;     font-size: 1.25rem;  border-radius: 0.3rem; }
     
     /* Feature cards should be flexible */
     .course-marketing .col-md-4 > div {
