@@ -1026,10 +1026,14 @@ def track_content_view():
     if not content_type or not content_id:
         return jsonify({'error': 'Content type and content ID are required'}), 400
 
+    user_id = current_user.id if current_user.is_authenticated else None
+    if user_id is None:
+        return jsonify({'success': True}), 200
+
     try:
         # Create a new content view record
         content_view = ContentView(
-            user_id=current_user.id,
+            user_id=user_id,
             content_type=content_type,
             content_id=content_id,
             viewing_duration=int(viewing_duration)
