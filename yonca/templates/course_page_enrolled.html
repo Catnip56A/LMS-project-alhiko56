@@ -313,6 +313,83 @@
             position: absolute !important;
         }
     }
+
+    /* ── Responsive content scaling ──────────────────────────────── */
+
+    /* Prevent all media from ever exceeding the container */
+    #content img, #content video, #content iframe,
+    #assignments img, #assignments video, #assignments iframe,
+    #announcements img, #announcements video,
+    .folder-item img, .folder-item video, .folder-item iframe {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* Allow long words/filenames to break */
+    .list-group-item {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    /* Flex children must be allowed to shrink — otherwise long titles push buttons off-screen */
+    .list-group-item > div {
+        min-width: 0;
+    }
+
+    @media (max-width: 768px) {
+        /* Reduce the 8% side padding to 2% — gives back ~72px on a 360px screen */
+        #content, #assignments, #announcements, #reviews,
+        #course-features-section, #reviews-section {
+            padding-left: 2%;
+            padding-right: 2%;
+        }
+
+        /* File list rows: stack info above buttons instead of side-by-side */
+        .list-group-item.d-flex {
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        /* Title/icon div: allow shrinking and wrapping */
+        .list-group-item.d-flex > div:first-child {
+            flex: 1 1 100%;
+            min-width: 0;
+        }
+
+        /* Button group: full-width row below the title */
+        .list-group-item.d-flex > div:last-child {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            width: 100%;
+        }
+
+        /* Folder card-header: un-float the admin buttons so they don't overlap the title */
+        .card-header .float-right {
+            float: none !important;
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-left: 0 !important;
+            margin-top: 0.5rem;
+        }
+
+        /* Prevent card-header content from overflowing */
+        .card-header {
+            overflow: hidden;
+            word-break: break-word;
+        }
+    }
+
+    @media (max-width: 480px) {
+        /* Extra-small: collapse section padding further */
+        #content, #assignments, #announcements, #reviews,
+        #course-features-section, #reviews-section {
+            padding-left: 0;
+            padding-right: 0;
+        }
+    }
 </style>
 {% endblock %}
 
