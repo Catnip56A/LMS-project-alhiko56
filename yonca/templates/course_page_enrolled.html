@@ -1018,7 +1018,7 @@
                 <ul class="list-group mb-4">
                     {% for item in unassigned %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                        <div style="display: flex; align-items: flex-start; gap: 8px; flex: 1 1 100%; min-width: 0;">
                             {% if is_teacher_or_admin %}
                             <input type="checkbox" class="content-checkbox-enrolled" value="{{ item.id }}" onchange="updateBulkActionsEnrolled()" style="flex-shrink: 0; cursor: pointer;">
                             {% else %}
@@ -2785,7 +2785,7 @@ function bulkToggleVisibilityEnrolled() {
                 : (item.content_data || '#');
             html += `
                 <li class="list-group-item d-flex justify-content-between align-items-center" data-file-id="${item.id}">
-                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px; flex: 1 1 100%; min-width: 0;">
             `;
             if (isTeacherOrAdmin) {
                 html += `
@@ -2860,7 +2860,7 @@ function getFileEmoji(item) {
     };
 
     function iconImg(url) {
-        return `<img src="${url}" style="height:45px;width:auto;vertical-align:middle;flex-shrink:0;" alt="">`;
+        return `<img src="${url}" style="height:45px;width:auto;flex-shrink:0;align-self:flex-start;" alt="">`;
     }
 
     const type = (item.content_type || '').toLowerCase();
