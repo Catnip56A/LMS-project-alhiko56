@@ -636,6 +636,35 @@ def get_resources():
 
     return jsonify(result)
 
+@api_bp.route('/resources/<int:resource_id>', methods=['PUT'])
+@login_required
+def update_resource(resource_id):
+    """Update title, description, and tags for a resource (uploader or admin only)"""
+    resource = Resource.query.filter_by(id=resource_id, is_active=True).first_or_404()
+
+    if not (current_user.is_admin or resource.uploaded_by == current_user.id):
+        return jsonify({'error': 'Permission denied'}), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    if 'title' in data:
+        title = data['title'].strip()
+        if not title:
+            return jsonify({'error': 'Title cannot be empty'}), 400
+        resource.title = title
+
+    if 'description' in data:
+        resource.description = data['description'].strip()
+
+    if 'tags' in data:
+        resource.tags = data['tags'].strip()
+
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 @api_bp.route('/resources/<int:resource_id>/reset-pin', methods=['POST'])
 @login_required
 def reset_resource_pin(resource_id):

@@ -2883,6 +2883,32 @@
                 </form>
                 <div id="resource-upload-status"></div>
             </div>
+
+            <!-- Resource Edit Modal -->
+            <div id="resource-edit-modal" style="display:none; position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;" onclick="if(event.target===this)closeEditResourceModal()">
+                <div style="background:#fff; border-radius:12px; padding:2rem; max-width:480px; width:90%; position:relative; box-shadow:0 8px 24px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
+                    <button onclick="closeEditResourceModal()" style="position:absolute; top:1rem; right:1rem; background:#337a2c; color:#fff; border:none; border-radius:50%; width:36px; height:36px; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center;">×</button>
+                    <h3 style="margin:0 0 1.25rem; color:#212121;">{{ _('Edit Resource') }}</h3>
+                    <input type="hidden" id="edit-resource-id">
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label for="edit-resource-title" style="display:block; font-weight:600; margin-bottom:0.35rem;">{{ _('Title:') }}</label>
+                        <input type="text" id="edit-resource-title" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #ced4da; border-radius:6px; font-size:1rem; box-sizing:border-box;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label for="edit-resource-description" style="display:block; font-weight:600; margin-bottom:0.35rem;">{{ _('Description:') }}</label>
+                        <textarea id="edit-resource-description" rows="3" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #ced4da; border-radius:6px; font-size:1rem; resize:vertical; box-sizing:border-box;"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-bottom:1.5rem;">
+                        <label for="edit-resource-tags" style="display:block; font-weight:600; margin-bottom:0.35rem;">{{ _('Tags:') }}</label>
+                        <input type="text" id="edit-resource-tags" placeholder="{{ _('Enter tags separated by spaces') }}" style="width:100%; padding:0.5rem 0.75rem; border:1px solid #ced4da; border-radius:6px; font-size:1rem; box-sizing:border-box;">
+                    </div>
+                    <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                        <button onclick="closeEditResourceModal()" style="padding:0.5rem 1.25rem; border:1px solid #ced4da; background:#fff; border-radius:6px; cursor:pointer;">{{ _('Cancel') }}</button>
+                        <button onclick="submitEditResource()" style="padding:0.5rem 1.25rem; background:#337a2c; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">{{ _('Save') }}</button>
+                    </div>
+                    <div id="edit-resource-status" style="margin-top:0.75rem; font-size:0.9rem;"></div>
+                </div>
+            </div>
         </section>
 
         <!-- MOXO Test Page -->
@@ -4421,6 +4447,7 @@
                             </p>
                             ${accessButton}
                             ${canDelete ? `
+                                <button onclick="openEditResourceModal(this)" data-id="${resource.id}" data-title="${(resource.title||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-desc="${(resource.description||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-tags="${(resource.tags||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" style="background:#fff; color:#337a2c; border:1px solid #337a2c; padding:0.5rem 1rem; border-radius:4px; cursor:pointer; font-weight:500; margin-left:0.5rem;">{{ _('Edit') }}</button>
                                 <form method="POST" action="/" style="display: inline; margin-left: 0.5rem;" onsubmit="return confirm('{{ _("Are you sure you want to delete this resource?") }}')">
                                     <input type="hidden" name="action" value="delete_resource">
                                     <input type="hidden" name="resource_id" value="${resource.id}">
@@ -4428,12 +4455,12 @@
                                 </form>
                             ` : ''}
                         `;
-                    
+
                         resourcesGrid.appendChild(resourceCard);
                     } else {
                         // Public resource
                         const previewSrc = resource.preview_drive_view_link || (resource.preview_drive_file_id ? `/api/file/${resource.preview_drive_file_id}` : resource.preview_image);
-                        
+
                         resourceCard.innerHTML = `
                             ${resource.preview_image ? `<img src="${previewSrc}" alt="${resource.title}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">` : ''}
                             <h4><img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/book%20icon.png" style="height:1.2em;width:auto;vertical-align:middle;margin-right:0.3em;" alt="">${resource.title}</h4>
@@ -4444,6 +4471,7 @@
                             </p>
                             <a href="${resource.drive_view_link}" target="_blank" style="background: #337a2c; color: white; text-decoration: none; border: 1px solid #337a2c; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 500; transition: all 0.3s ease; display: inline-block;">{{ _('View Resource') }}</a>
                             ${canDelete ? `
+                                <button onclick="openEditResourceModal(this)" data-id="${resource.id}" data-title="${(resource.title||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-desc="${(resource.description||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" data-tags="${(resource.tags||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" style="background:#fff; color:#337a2c; border:1px solid #337a2c; padding:0.5rem 1rem; border-radius:4px; cursor:pointer; font-weight:500; margin-left:0.5rem;">{{ _('Edit') }}</button>
                                 <form method="POST" action="/" style="display: inline; margin-left: 0.5rem;" onsubmit="return confirm('{{ _("Are you sure you want to delete this resource?") }}')">
                                     <input type="hidden" name="action" value="delete_resource">
                                     <input type="hidden" name="resource_id" value="${resource.id}">
@@ -4464,6 +4492,64 @@
                 document.querySelector('.resources-grid').innerHTML = '<p style="text-align: center; color: #dc2626;">{{ _("Error loading materials. Please try again.") }}</p>';
             } finally {
                 currentAbortController = null;
+            }
+        }
+
+        // Resource edit modal functions
+        function openEditResourceModal(btn) {
+            const id = btn.dataset.id;
+            const title = btn.dataset.title;
+            const description = btn.dataset.desc;
+            const tags = btn.dataset.tags;
+            document.getElementById('edit-resource-id').value = id;
+            document.getElementById('edit-resource-title').value = title;
+            document.getElementById('edit-resource-description').value = description;
+            document.getElementById('edit-resource-tags').value = tags;
+            document.getElementById('edit-resource-status').textContent = '';
+            const modal = document.getElementById('resource-edit-modal');
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeEditResourceModal() {
+            document.getElementById('resource-edit-modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        async function submitEditResource() {
+            const id = document.getElementById('edit-resource-id').value;
+            const title = document.getElementById('edit-resource-title').value.trim();
+            const description = document.getElementById('edit-resource-description').value.trim();
+            const tags = document.getElementById('edit-resource-tags').value.trim();
+            const statusEl = document.getElementById('edit-resource-status');
+
+            if (!title) {
+                statusEl.style.color = '#dc2626';
+                statusEl.textContent = '{{ _("Title cannot be empty.") }}';
+                return;
+            }
+
+            statusEl.style.color = '#6b7280';
+            statusEl.textContent = '{{ _("Saving...") }}';
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/resources/${id}`, {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, description, tags })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    closeEditResourceModal();
+                    loadResources();
+                } else {
+                    statusEl.style.color = '#dc2626';
+                    statusEl.textContent = data.error || '{{ _("Error saving changes.") }}';
+                }
+            } catch (e) {
+                statusEl.style.color = '#dc2626';
+                statusEl.textContent = '{{ _("Error saving changes.") }}';
             }
         }
 
