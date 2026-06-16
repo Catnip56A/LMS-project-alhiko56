@@ -294,7 +294,12 @@ const TRANSLATIONS = {
     original: '{{ _("Original") }}',
     translation_failed: '{{ _("Translation failed:") }}',
     translation_error: '{{ _("Translation error:") }}',
-    unknown_error: '{{ _("Unknown error") }}'
+    unknown_error: '{{ _("Unknown error") }}',
+    popup_image_section: '{{ _("Popup Image (shown in Learn More window):") }}',
+    popup_image_help: '{{ _("Optional — this image appears inside the Learn More popup.") }}',
+    popup_image_file: '{{ _("Popup Image File:") }}',
+    popup_image_url_label: '{{ _("Popup Image URL:") }}',
+    popup_image_url_placeholder: '{{ _("https://example.com/image.jpg") }}'
 };
 
 // Gallery data from the backend
@@ -309,7 +314,7 @@ function initializeAboutGallery() {
     const galleryData = aboutGalleryData || [];
     galleryData.forEach((item, index) => {
         if (item && item.url) {
-            addAboutGalleryImageFromData('about-gallery-container', 'about_gallery', item.url || '', item.alt || '', item.caption || '', index);
+            addAboutGalleryImageFromData('about-gallery-container', 'about_gallery', item.url || '', item.alt || '', item.caption || '', item.popup_url || '', index);
         }
     });
 }
@@ -322,7 +327,7 @@ function initializeAboutGallery2() {
     const gallery2Data = aboutGallery2Data || [];
     gallery2Data.forEach((item, index) => {
         if (item && item.url) {
-            addAboutGalleryImageFromData('about-gallery-2-container', 'about_gallery_2', item.url || '', item.alt || '', item.caption || '', index);
+            addAboutGalleryImageFromData('about-gallery-2-container', 'about_gallery_2', item.url || '', item.alt || '', item.caption || '', item.popup_url || '', index);
         }
     });
 }
@@ -407,11 +412,33 @@ function addAboutGalleryImage(containerId, prefix) {
                 </button>
             </div>
         </div>
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #dee2e6;">
+            <label style="display: block; margin-bottom: 4px; font-weight: bold;">${TRANSLATIONS.popup_image_section}</label>
+            <small style="color: #6c757d; display: block; margin-bottom: 8px;">${TRANSLATIONS.popup_image_help}</small>
+            <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                <label><input type="radio" name="${prefix}_popup_input_type_${imageIndex}" value="none" checked> {{ _('None') }}</label>
+                <label><input type="radio" name="${prefix}_popup_input_type_${imageIndex}" value="file"> ${TRANSLATIONS.upload_file}</label>
+                <label><input type="radio" name="${prefix}_popup_input_type_${imageIndex}" value="url"> ${TRANSLATIONS.enter_url}</label>
+            </div>
+            <div class="popup-file-input-group" style="display: none;">
+                <div class="form-group-inline">
+                    <label>${TRANSLATIONS.popup_image_file}</label>
+                    <input type="file" name="${prefix}_popup_file_${imageIndex}" class="form-control" accept="image/*">
+                </div>
+            </div>
+            <div class="popup-url-input-group" style="display: none;">
+                <div class="form-group-inline">
+                    <label>${TRANSLATIONS.popup_image_url_label}</label>
+                    <input type="url" name="${prefix}_popup_url_${imageIndex}" class="form-control"
+                           placeholder="${TRANSLATIONS.popup_image_url_placeholder}" value="">
+                </div>
+            </div>
+        </div>
     `;
 
     container.appendChild(imageDiv);
 
-    // Add radio button event listeners
+    // Add radio button event listeners for main media
     const fileRadio = imageDiv.querySelector(`input[name="about_input_type_${imageIndex}"][value="file"]`);
     const urlRadio = imageDiv.querySelector(`input[name="about_input_type_${imageIndex}"][value="url"]`);
     const fileGroup = imageDiv.querySelector('.file-input-group');
@@ -433,13 +460,33 @@ function addAboutGalleryImage(containerId, prefix) {
         urlInput.required = true;
     });
 
+    // Radio listeners for popup image
+    const popupNoneRadio = imageDiv.querySelector(`input[name="${prefix}_popup_input_type_${imageIndex}"][value="none"]`);
+    const popupFileRadio = imageDiv.querySelector(`input[name="${prefix}_popup_input_type_${imageIndex}"][value="file"]`);
+    const popupUrlRadio  = imageDiv.querySelector(`input[name="${prefix}_popup_input_type_${imageIndex}"][value="url"]`);
+    const popupFileGroup = imageDiv.querySelector('.popup-file-input-group');
+    const popupUrlGroup  = imageDiv.querySelector('.popup-url-input-group');
+
+    popupNoneRadio.addEventListener('change', function() {
+        popupFileGroup.style.display = 'none';
+        popupUrlGroup.style.display = 'none';
+    });
+    popupFileRadio.addEventListener('change', function() {
+        popupFileGroup.style.display = 'block';
+        popupUrlGroup.style.display = 'none';
+    });
+    popupUrlRadio.addEventListener('change', function() {
+        popupFileGroup.style.display = 'none';
+        popupUrlGroup.style.display = 'block';
+    });
+
     // Add event listeners
     imageDiv.querySelector('.remove-feature').addEventListener('click', function() {
         imageDiv.remove();
     });
 }
 
-function addAboutGalleryImageFromData(containerId, prefix, url, alt, caption, itemIndex) {
+function addAboutGalleryImageFromData(containerId, prefix, url, alt, caption, popupUrl, itemIndex) {
     const container = document.getElementById(containerId);
     const imageIndex = container.children.length;
 
@@ -447,6 +494,8 @@ function addAboutGalleryImageFromData(containerId, prefix, url, alt, caption, it
     const escapedUrl = url.replace(/"/g, '&quot;');
     const escapedAlt = alt.replace(/"/g, '&quot;');
     const escapedCaption = caption.replace(/"/g, '&quot;');
+    const escapedPopupUrl = popupUrl.replace(/"/g, '&quot;');
+    const hasPopupUrl = popupUrl && popupUrl.trim() !== '';
 
     // Determine if we have existing URL data
     const hasUrl = url && url.trim() !== '';
@@ -500,11 +549,33 @@ function addAboutGalleryImageFromData(containerId, prefix, url, alt, caption, it
                 </button>
             </div>
         </div>
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #dee2e6;">
+            <label style="display: block; margin-bottom: 4px; font-weight: bold;">${TRANSLATIONS.popup_image_section}</label>
+            <small style="color: #6c757d; display: block; margin-bottom: 8px;">${TRANSLATIONS.popup_image_help}</small>
+            <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                <label><input type="radio" name="${prefix}_popup_input_type_${imageIndex}" value="none" ${!hasPopupUrl ? 'checked' : ''}> {{ _('None') }}</label>
+                <label><input type="radio" name="${prefix}_popup_input_type_${imageIndex}" value="file"> ${TRANSLATIONS.upload_file}</label>
+                <label><input type="radio" name="${prefix}_popup_input_type_${imageIndex}" value="url" ${hasPopupUrl ? 'checked' : ''}> ${TRANSLATIONS.enter_url}</label>
+            </div>
+            <div class="popup-file-input-group" style="display: none;">
+                <div class="form-group-inline">
+                    <label>${TRANSLATIONS.popup_image_file}</label>
+                    <input type="file" name="${prefix}_popup_file_${imageIndex}" class="form-control" accept="image/*">
+                </div>
+            </div>
+            <div class="popup-url-input-group" style="${hasPopupUrl ? 'display: block;' : 'display: none;'}">
+                <div class="form-group-inline">
+                    <label>${TRANSLATIONS.popup_image_url_label}</label>
+                    <input type="url" name="${prefix}_popup_url_${imageIndex}" class="form-control"
+                           placeholder="${TRANSLATIONS.popup_image_url_placeholder}" value="${escapedPopupUrl}">
+                </div>
+            </div>
+        </div>
     `;
 
     container.appendChild(imageDiv);
 
-    // Add radio button event listeners
+    // Add radio button event listeners for main media
     const fileRadio = imageDiv.querySelector(`input[name="about_input_type_${imageIndex}"][value="file"]`);
     const urlRadio = imageDiv.querySelector(`input[name="about_input_type_${imageIndex}"][value="url"]`);
     const fileGroup = imageDiv.querySelector('.file-input-group');
@@ -524,6 +595,26 @@ function addAboutGalleryImageFromData(containerId, prefix, url, alt, caption, it
         urlGroup.style.display = 'block';
         fileInput.required = false;
         urlInput.required = true;
+    });
+
+    // Radio listeners for popup image
+    const popupNoneRadio = imageDiv.querySelector(`input[name="${prefix}_popup_input_type_${imageIndex}"][value="none"]`);
+    const popupFileRadio = imageDiv.querySelector(`input[name="${prefix}_popup_input_type_${imageIndex}"][value="file"]`);
+    const popupUrlRadio  = imageDiv.querySelector(`input[name="${prefix}_popup_input_type_${imageIndex}"][value="url"]`);
+    const popupFileGroup = imageDiv.querySelector('.popup-file-input-group');
+    const popupUrlGroup  = imageDiv.querySelector('.popup-url-input-group');
+
+    popupNoneRadio.addEventListener('change', function() {
+        popupFileGroup.style.display = 'none';
+        popupUrlGroup.style.display = 'none';
+    });
+    popupFileRadio.addEventListener('change', function() {
+        popupFileGroup.style.display = 'block';
+        popupUrlGroup.style.display = 'none';
+    });
+    popupUrlRadio.addEventListener('change', function() {
+        popupFileGroup.style.display = 'none';
+        popupUrlGroup.style.display = 'block';
     });
 
     // Add event listeners

@@ -1181,39 +1181,50 @@ class AboutCompanyView(BaseView):
                     url_key = f'about_gallery_url_{index}'
                     alt_key = f'about_gallery_alt_{index}'
                     caption_key = f'about_gallery_caption_{index}'
-                    
+                    popup_file_key = f'about_gallery_popup_file_{index}'
+                    popup_url_key = f'about_gallery_popup_url_{index}'
+
                     alt = form_data.get(alt_key, '').strip()
                     caption = form_data.get(caption_key, '').strip()
-                    
-                    # Check if a URL was provided
+
+                    # Resolve popup image URL (file upload takes priority over URL)
+                    popup_url = ''
+                    if popup_file_key in request.files and request.files[popup_file_key].filename:
+                        popup_file = request.files[popup_file_key]
+                        uploaded = upload_gallery_image_to_drive(popup_file, popup_file.filename)
+                        if uploaded:
+                            popup_url = uploaded
+                        else:
+                            flash(f'Failed to upload popup image {popup_file.filename} to Google Drive', 'error')
+                    else:
+                        popup_url = form_data.get(popup_url_key, '').strip()
+
+                    # Check if a URL was provided for the main media
                     url = form_data.get(url_key, '').strip()
                     if url:
-                        # Handle direct URL (YouTube, Vimeo, direct video/image links)
-                        about_gallery_images_dict[index] = {'url': url, 'alt': alt, 'caption': caption}
+                        about_gallery_images_dict[index] = {'url': url, 'alt': alt, 'caption': caption, 'popup_url': popup_url}
                         continue
-                    
+
                     # Check if a file was uploaded for this index
                     if file_key in request.files and request.files[file_key].filename:
                         file = request.files[file_key]
                         if file and file.filename:
-                            # Upload to Google Drive instead of local storage
                             drive_url = upload_gallery_image_to_drive(file, file.filename)
                             if drive_url:
-                                # Add image with uploaded URL
-                                about_gallery_images_dict[index] = {'url': drive_url, 'alt': alt, 'caption': caption, 'drive_file_id': None}
+                                about_gallery_images_dict[index] = {'url': drive_url, 'alt': alt, 'caption': caption, 'popup_url': popup_url, 'drive_file_id': None}
                             else:
                                 flash(f'Failed to upload about gallery image {file.filename} to Google Drive', 'error')
                     else:
-                        # No new file uploaded - keep existing image but update alt/caption if provided
+                        # No new file uploaded - keep existing image but update alt/caption/popup_url
                         try:
                             index_num = int(index)
                             if index_num < len(existing_about_images):
-                                # Get existing image and update only the alt/caption
                                 existing_image = existing_about_images[index_num].copy()
                                 if alt:
                                     existing_image['alt'] = alt
                                 if caption:
                                     existing_image['caption'] = caption
+                                existing_image['popup_url'] = popup_url
                                 about_gallery_images_dict[index] = existing_image
                         except (ValueError, IndexError):
                             pass  # Skip invalid indices
@@ -1248,39 +1259,50 @@ class AboutCompanyView(BaseView):
                     url_key = f'about_gallery_2_url_{index}'
                     alt_key = f'about_gallery_2_alt_{index}'
                     caption_key = f'about_gallery_2_caption_{index}'
-                    
+                    popup_file_key = f'about_gallery_2_popup_file_{index}'
+                    popup_url_key = f'about_gallery_2_popup_url_{index}'
+
                     alt = form_data.get(alt_key, '').strip()
                     caption = form_data.get(caption_key, '').strip()
-                    
-                    # Check if a URL was provided
+
+                    # Resolve popup image URL (file upload takes priority over URL)
+                    popup_url = ''
+                    if popup_file_key in request.files and request.files[popup_file_key].filename:
+                        popup_file = request.files[popup_file_key]
+                        uploaded = upload_gallery_image_to_drive(popup_file, popup_file.filename)
+                        if uploaded:
+                            popup_url = uploaded
+                        else:
+                            flash(f'Failed to upload popup image {popup_file.filename} to Google Drive', 'error')
+                    else:
+                        popup_url = form_data.get(popup_url_key, '').strip()
+
+                    # Check if a URL was provided for the main media
                     url = form_data.get(url_key, '').strip()
                     if url:
-                        # Handle direct URL (YouTube, Vimeo, direct video/image links)
-                        about_gallery_2_images_dict[index] = {'url': url, 'alt': alt, 'caption': caption}
+                        about_gallery_2_images_dict[index] = {'url': url, 'alt': alt, 'caption': caption, 'popup_url': popup_url}
                         continue
-                    
+
                     # Check if a file was uploaded for this index
                     if file_key in request.files and request.files[file_key].filename:
                         file = request.files[file_key]
                         if file and file.filename:
-                            # Upload to Google Drive instead of local storage
                             drive_url = upload_gallery_image_to_drive(file, file.filename)
                             if drive_url:
-                                # Add image with uploaded URL
-                                about_gallery_2_images_dict[index] = {'url': drive_url, 'alt': alt, 'caption': caption, 'drive_file_id': None}
+                                about_gallery_2_images_dict[index] = {'url': drive_url, 'alt': alt, 'caption': caption, 'popup_url': popup_url, 'drive_file_id': None}
                             else:
                                 flash(f'Failed to upload about gallery 2 image {file.filename} to Google Drive', 'error')
                     else:
-                        # No new file uploaded - keep existing image but update alt/caption if provided
+                        # No new file uploaded - keep existing image but update alt/caption/popup_url
                         try:
                             index_num = int(index)
                             if index_num < len(existing_about_images_2):
-                                # Get existing image and update only the alt/caption
                                 existing_image = existing_about_images_2[index_num].copy()
                                 if alt:
                                     existing_image['alt'] = alt
                                 if caption:
                                     existing_image['caption'] = caption
+                                existing_image['popup_url'] = popup_url
                                 about_gallery_2_images_dict[index] = existing_image
                         except (ValueError, IndexError):
                             pass  # Skip invalid indices

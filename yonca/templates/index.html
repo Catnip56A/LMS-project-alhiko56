@@ -3125,7 +3125,7 @@
                         <img src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
                         {% endif %}
                         {% if image.caption and image.caption.strip() %}
-                        <div class="gallery-caption gallery-caption-with-modal" data-caption-index="{{ loop.index0 }}" data-full-caption="{{ image.caption | safe }}">
+                        <div class="gallery-caption gallery-caption-with-modal" data-caption-index="{{ loop.index0 }}" data-full-caption="{{ image.caption | safe }}"{% if image.popup_url %} data-popup-url="{{ image.popup_url }}"{% endif %}>
                             <span class="caption-bold-text">{{ image.caption | safe }}</span>
                             <button class="gallery-learn-more-btn">{{ _('Learn More') }}</button>
                         </div>
@@ -3218,7 +3218,7 @@
                         <img src="{{ image.url }}" alt="{{ image.alt }}" loading="lazy">
                         {% endif %}
                         {% if image.caption and image.caption.strip() %}
-                        <div class="gallery-caption gallery-caption-with-modal" data-caption-index="{{ loop.index0 }}" data-full-caption="{{ image.caption | safe }}">
+                        <div class="gallery-caption gallery-caption-with-modal" data-caption-index="{{ loop.index0 }}" data-full-caption="{{ image.caption | safe }}"{% if image.popup_url %} data-popup-url="{{ image.popup_url }}"{% endif %}>
                             <span class="caption-bold-text">{{ image.caption | safe }}</span>
                             <button class="gallery-learn-more-btn">{{ _('Learn More') }}</button>
                         </div>
@@ -3351,14 +3351,15 @@
                     }
                 });
 
-                const galleryItem = captionElement.closest('.gallery-item');
-                const img = galleryItem ? galleryItem.querySelector('.gallery-media-viewport img') : null;
-                const imageHTML = img ? `<img src="${img.src}" alt="${img.alt}" style="width:100%; border-radius:8px; margin-bottom:1.25rem; object-fit:cover; max-height:280px;">` : '';
+                const popupUrl = captionElement.getAttribute('data-popup-url') || '';
+                const popupImageHTML = popupUrl
+                    ? `<img src="${popupUrl.replace(/"/g, '&quot;')}" alt="" style="width:100%; border-radius:8px; margin-bottom:1.25rem; object-fit:contain;">`
+                    : '';
 
                 modal.innerHTML = `
                     <div class="gallery-caption-modal-content" onclick="event.stopPropagation()">
                         <button class="gallery-caption-modal-close" onclick="closeGalleryCaptionModal(event, '${modalId}')">×</button>
-                        ${imageHTML}
+                        ${popupImageHTML}
                         <div style="color: #333333; font-size: 1rem; line-height: 1.6;">
                             ${fullCaptionHTML}
                         </div>
