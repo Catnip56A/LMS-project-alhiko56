@@ -580,7 +580,7 @@
             <a class="nav-link" id="assignments-tab" data-toggle="tab" href="#assignments" role="tab">{{ _('Assignments') }}</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" id="announcements-tab" data-toggle="tab" href="#announcements" role="tab">{{ _('Announcements') }}</a>
+            <a class="nav-link" id="announcements-tab" data-toggle="tab" href="#announcements" role="tab">{{ _('Announcements') }}<span id="announcements-badge" style="display:none; background:#e53e3e; color:#fff; border-radius:10px; padding:1px 7px; font-size:0.72rem; font-weight:700; margin-left:5px; vertical-align:middle;"></span></a>
         </li>
         <li class="nav-item">
             <a class="nav-link" id="reviews-tab" data-toggle="tab" href="#reviews" role="tab">{{ _('Reviews') }}</a>
@@ -2916,4 +2916,25 @@ async function handleFolderExpand(folderId, courseId) {
 </script>
 <div style="margin-bottom: 10rem;"></div>
 {% include 'components/footer.html' %}
+<script>
+(function() {
+    var total = {{ announcements_pagination.total }};
+    var courseId = {{ course.id }};
+    var storageKey = 'ann_seen_' + courseId;
+    var seen = parseInt(localStorage.getItem(storageKey) || '0', 10);
+    var unread = Math.max(0, total - seen);
+    var badge = document.getElementById('announcements-badge');
+    if (badge && unread > 0) {
+        badge.textContent = unread > 99 ? '99+' : String(unread);
+        badge.style.display = '';
+    }
+    var tab = document.getElementById('announcements-tab');
+    if (tab) {
+        tab.addEventListener('click', function() {
+            localStorage.setItem(storageKey, String(total));
+            if (badge) badge.style.display = 'none';
+        });
+    }
+})();
+</script>
 {% endblock %}
