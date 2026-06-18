@@ -3,33 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if current_locale == 'az' %}{{ _('İstifadə Şərtləri') }}{% elif current_locale == 'ru' %}{{ _('Условия использования') }}{% else %}{{ _('Terms of Use') }}{% endif %}</title>
-    <style>
-        .pdf-container {
-            width: 100%;
-            height: 80vh;
-            border: none;
-        }
-        .language-buttons {
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-        .language-buttons a {
-            margin: 0 0.5rem;
-            padding: 0.5rem 1rem;
-            text-decoration: none;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background: #f9f9f9;
-            color: #333;
-        }
-        .language-buttons a.active {
-            background: #2e7d32;
-            color: white;
-        }
-    </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>{% if current_locale == 'az' %}İstifadə Şərtləri{% elif current_locale == 'ru' %}Условия использования{% else %}Terms of Use{% endif %} — Yonca SDC</title>
     <style>
         * {
             margin: 0;
@@ -38,57 +12,127 @@
         }
 
         body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.8;
-            letter-spacing: 0.5px;
             color: #212121;
             background-color: #f5f5f5;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 820px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 2.5rem 2rem;
             background: white;
             min-height: 100vh;
         }
 
         h1 {
             color: #2e7d32;
-            margin-bottom: 2rem;
+            margin-bottom: 0.5rem;
             text-align: center;
+            font-size: 1.9rem;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #757575;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .language-buttons {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .language-buttons a {
+            margin: 0 0.3rem;
+            padding: 0.4rem 1rem;
+            text-decoration: none;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #f9f9f9;
+            color: #333;
+            font-size: 0.9rem;
+            transition: background 0.15s;
+        }
+
+        .language-buttons a.active {
+            background: #2e7d32;
+            color: white;
+            border-color: #2e7d32;
+        }
+
+        .welcome-block {
+            background: #f1f8f1;
+            border-left: 4px solid #2e7d32;
+            padding: 1rem 1.25rem;
+            margin-bottom: 2rem;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .welcome-block p {
+            margin-bottom: 0.75rem;
+        }
+
+        .welcome-block p:last-child {
+            margin-bottom: 0;
         }
 
         h2 {
-            color: #388e3c;
+            color: #2e7d32;
             margin-top: 2rem;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
+            font-size: 1.15rem;
+            border-bottom: 1px solid #e8f5e9;
+            padding-bottom: 0.4rem;
         }
 
-        h3 {
-            color: #4caf50;
+        .section-body {
+            margin-top: 0.5rem;
+        }
+
+        .clause {
+            margin-bottom: 0.9rem;
+        }
+
+        .clause-num {
+            font-weight: 600;
+            color: #388e3c;
+            margin-right: 0.4rem;
+        }
+
+        ul.policy-list {
+            margin: 0.5rem 0 0.75rem 1.5rem;
+        }
+
+        ul.policy-list li {
+            margin-bottom: 0.3rem;
+        }
+
+        .contact-block {
+            margin-top: 2.5rem;
+            padding: 1.25rem;
+            background: #f9fbe7;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .contact-block a {
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .closing-statement {
             margin-top: 1.5rem;
-            margin-bottom: 0.5rem;
-            font-size: 1.2em;
-        }
-
-        hr {
-            border: none;
-            border-top: 1px solid #e0e0e0;
-            margin: 2rem 0;
-        }
-
-        ul {
-            margin-bottom: 1rem;
-            padding-left: 1.5rem;
-        }
-
-        li {
-            margin-bottom: 0.5rem;
+            font-style: italic;
+            color: #424242;
+            text-align: center;
         }
 
         .back-link {
             display: inline-block;
-            margin-top: 2rem;
+            margin-top: 2.5rem;
             color: #2e7d32;
             text-decoration: none;
         }
@@ -99,20 +143,403 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>{% if current_locale == 'az' %}{{ _('İstifadə Şərtləri') }}{% elif current_locale == 'ru' %}{{ _('Условия использования') }}{% else %}{{ _('Terms of Use') }}{% endif %}</h1>
-        <div class="language-buttons">
-            <a href="/set_language/az" class="{% if current_locale == 'az' %}active{% endif %}">Azərbaycan</a>
-            <a href="/set_language/en" class="{% if current_locale == 'en' %}active{% endif %}">English</a>
-            <a href="/set_language/ru" class="{% if current_locale == 'ru' %}active{% endif %}">Русский</a>
-        </div>
-        {% set pdf_filenames = {
-            'az': 'permanent/TERMS&POLICIES/Yonca Terms of Use AZ .pdf',
-            'en': 'permanent/TERMS&POLICIES/Yonca Terms of Use EN.pdf',
-            'ru': 'permanent/TERMS&POLICIES/Yonca Terms of Use RU.pdf'
-        } %}
-        <embed src="{{ url_for('static', filename=pdf_filenames.get(current_locale, pdf_filenames.en)) }}" class="pdf-container" type="application/pdf">
-        <a href="/" class="back-link">{{ _('Back to Home') }}</a>
+<div class="container">
+
+    <h1>
+        {% if current_locale == 'az' %}İstifadə Şərtləri
+        {% elif current_locale == 'ru' %}Условия использования
+        {% else %}Terms of Use
+        {% endif %}
+    </h1>
+
+    <div class="language-buttons">
+        <a href="{{ url_for('main.set_language', lang='az') }}" class="{% if current_locale == 'az' %}active{% endif %}">Azərbaycan</a>
+        <a href="{{ url_for('main.set_language', lang='en') }}" class="{% if current_locale == 'en' %}active{% endif %}">English</a>
+        <a href="{{ url_for('main.set_language', lang='ru') }}" class="{% if current_locale == 'ru' %}active{% endif %}">Русский</a>
     </div>
+
+    {# ─── ENGLISH ─────────────────────────────────────────────────────────── #}
+    {% if current_locale != 'az' and current_locale != 'ru' %}
+
+    <p class="last-updated">Date of Last Update: 30.04.2026</p>
+
+    <div class="welcome-block">
+        <p><strong>Welcome!</strong></p>
+        <p>Yonca Web ("Platform", "Website") is operated by "Yonca SDC" LLC ("Yonca", "we"). By accessing or using the Platform, you (hereinafter, the "User", "you") confirm your agreement to comply with these Terms of Use (hereinafter, the "Terms"). A User is any person who accesses the Platform, uses it, or benefits from the services and features provided through the Platform.</p>
+        <p>If you do not agree with any part of these Terms, you should not use the Platform.</p>
+    </div>
+
+    <h2>1. General Provisions</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">1.1.</span>By using the Platform, you confirm that you are at least 13 years old. In addition, if you are a minor, you confirm that you have obtained the consent of your parent or legal guardian to use the Platform.</p>
+        <p class="clause"><span class="clause-num">1.2.</span>You confirm that the information you provide is accurate, current, and complete. We are not responsible for the processing of false or inaccurate information provided by you.</p>
+    </div>
+
+    <h2>2. Accounts and Authentication</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">2.1.</span>Using certain features of the Platform may require the creation of a User account.</p>
+        <p class="clause"><span class="clause-num">2.2.</span>You are responsible for maintaining the confidentiality of your account login information and for all activities carried out through your account.</p>
+        <p class="clause"><span class="clause-num">2.3.</span>You agree not to share your account with third parties or use other Users' accounts without authorization.</p>
+        <p class="clause"><span class="clause-num">2.4.</span>We reserve the right to suspend or terminate User accounts that violate these Terms.</p>
+    </div>
+
+    <h2>3. User Content</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">3.1.</span><strong>Content Provided by Users</strong></p>
+        <p class="clause"><span class="clause-num">3.1.1.</span>The Platform may allow you to submit, upload, store, or share content such as text, images, files, or messages (hereinafter, "User Content").</p>
+        <p class="clause"><span class="clause-num">3.1.2.</span>Users retain ownership rights to their User Content. However, by submitting content, you grant Yonca a non-exclusive, worldwide, royalty-free license to host, store, process, and display such content solely for the purposes of operating, managing, and improving the Platform.</p>
+        <p class="clause"><span class="clause-num">3.2.</span><strong>Responsibility for User Content</strong></p>
+        <p class="clause"><span class="clause-num">3.2.1.</span>Users are fully responsible for their User Content. Users agree not to upload or share content that:</p>
+        <ul class="policy-list">
+            <li>is illegal, fraudulent, or misleading;</li>
+            <li>infringes the intellectual property or privacy rights of third parties;</li>
+            <li>contains malicious software, viruses, or other harmful code;</li>
+            <li>is offensive, hateful, or aggressive in nature.</li>
+        </ul>
+        <p class="clause"><span class="clause-num">3.2.2.</span>We reserve the right to remove or restrict access to content that violates these Terms or applicable law.</p>
+    </div>
+
+    <h2>4. File Storage and Third-Party Services</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">4.1.</span>Yonca may use third-party services (e.g., cloud storage, API services, or translation services) to provide functions such as file uploading, backup creation, or content processing.</p>
+        <p class="clause"><span class="clause-num">4.2.</span>User Content may only be processed and stored via these services to ensure the functionality of the Platform.</p>
+        <p class="clause"><span class="clause-num">4.3.</span>Except as required by law, Yonca is not responsible for interruptions, data loss, or alteration of data resulting from the activities of third-party service providers.</p>
+        <p class="clause"><span class="clause-num">4.4.</span><strong>Google Drive Integration:</strong></p>
+        <p class="clause"><span class="clause-num">4.4.1.</span>Yonca may allow Users to connect their Google Drive account to the Platform for uploading, storing, accessing, or managing files. This integration is carried out via the Google OAuth 2.0 authorization mechanism.</p>
+        <p class="clause"><span class="clause-num">4.4.2.</span>When connecting a Google Drive account, Yonca requests only the minimum permissions necessary to provide the required functionality, and these permissions are shown to the User during the Google authorization process.</p>
+        <p class="clause"><span class="clause-num">4.4.3.</span>Yonca does not access, read, or modify files outside the scope explicitly authorized by the User.</p>
+        <p class="clause"><span class="clause-num">4.4.4.</span>Files uploaded or managed through Google Drive remain under the User's control and are subject to Google's applicable Terms of Use and Privacy Policy.</p>
+        <p class="clause"><span class="clause-num">4.4.5.</span>Users may revoke Yonca's access to their Google Drive account at any time through the security settings of their Google account.</p>
+    </div>
+
+    <h2>5. Translations and Automated Features</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">5.1.</span>Yonca may provide machine translation or other automated features based on artificial intelligence technologies (e.g., automatic translation).</p>
+        <p class="clause"><span class="clause-num">5.2.</span>These features are provided as is, and their results may contain errors or inaccuracies.</p>
+        <p class="clause"><span class="clause-num">5.3.</span>Yonca does not guarantee the accuracy, completeness, or suitability of automatically generated results for any particular purpose.</p>
+    </div>
+
+    <h2>6. Acceptable Use</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">6.1.</span>When using the Platform, the User agrees not to:</p>
+        <ul class="policy-list">
+            <li><strong>6.1.1.</strong> attempt to misuse, overload, or disrupt the Platform or its infrastructure;</li>
+            <li><strong>6.1.2.</strong> attempt to gain unauthorized access to systems, User accounts, or data;</li>
+            <li><strong>6.1.3.</strong> use the Platform for sending spam, automated data collection (scraping), or other automated misuse purposes;</li>
+            <li><strong>6.1.4.</strong> attempt to bypass security measures or access controls.</li>
+        </ul>
+    </div>
+
+    <h2>7. Intellectual Property Rights</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">7.1.</span>The Yonca name, logo, design, and all content related to the Platform (excluding User Content) are the property of Yonca or its licensors.</p>
+        <p class="clause"><span class="clause-num">7.2.</span>You may not copy, modify, distribute, or reverse-engineer any part of the Platform without written permission.</p>
+    </div>
+
+    <h2>8. Privacy</h2>
+    <div class="section-body">
+        <p>Your use of Yonca is governed by the Privacy Policy, which explains how your information is collected, used, and protected.</p>
+    </div>
+
+    <h2>9. Termination</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">9.1.</span>You may stop using the Platform at any time.</p>
+        <p class="clause"><span class="clause-num">9.2.</span>If you violate these Terms or as required by law, we may immediately suspend or terminate your account access.</p>
+        <p class="clause"><span class="clause-num">9.3.</span>After termination, your access to your account and stored content may be deleted.</p>
+    </div>
+
+    <h2>10. Disclaimer of Warranties</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">10.1.</span>The Platform is provided "as is". To the extent permitted by law:</p>
+        <ul class="policy-list">
+            <li><strong>10.1.1.</strong> We do not guarantee that the Platform will be uninterrupted, error-free, or always available;</li>
+            <li><strong>10.1.2.</strong> We do not make any guarantees regarding the accuracy or reliability of information or results obtained through the Platform.</li>
+        </ul>
+    </div>
+
+    <h2>11. Limitation of Liability</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">11.1.</span>Except as required by law, Yonca shall not be liable for:</p>
+        <ul class="policy-list">
+            <li><strong>11.1.1.</strong> indirect, incidental, or consequential damages;</li>
+            <li><strong>11.1.2.</strong> loss of data, profits, or business opportunities;</li>
+            <li><strong>11.1.3.</strong> issues arising from third-party services or the actions of other Users.</li>
+        </ul>
+    </div>
+
+    <h2>12. Changes</h2>
+    <div class="section-body">
+        <p>We may update these Terms from time to time. Your continued use of the Platform after changes take effect constitutes acceptance of the updated Terms.</p>
+    </div>
+
+    <h2>13. Governing Law</h2>
+    <div class="section-body">
+        <p>These Terms are governed by and construed in accordance with the laws of the Republic of Azerbaijan.</p>
+    </div>
+
+    <h2>14. Contact</h2>
+    <div class="section-body">
+        <p>If you have any questions regarding these Terms, please contact us via the Yonca website.</p>
+    </div>
+
+    <p class="closing-statement">By using Yonca, you confirm that you have read and agree to these Terms of Use.</p>
+
+    {# ─── RUSSIAN ─────────────────────────────────────────────────────────── #}
+    {% elif current_locale == 'ru' %}
+
+    <p class="last-updated">Дата последнего изменения: 30.04.2026</p>
+
+    <div class="welcome-block">
+        <p><strong>Добро пожаловать!</strong></p>
+        <p>Yonca Web («Платформа», «Веб-сайт») управляется «Yonca SDC» ООО («Yonca», «мы»). Получая доступ к Платформе или используя её, вы (далее — «Пользователь», «Вы») подтверждаете своё согласие соблюдать настоящие Условия использования (далее — «Условия»). Под Пользователем понимается любое лицо, которое получает доступ к Платформе, использует её либо пользуется услугами и функциями, предоставляемыми через Платформу.</p>
+        <p>Если вы не согласны с какой-либо частью настоящих Условий, вы не должны использовать Платформу.</p>
+    </div>
+
+    <h2>1. Общие положения</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">1.1.</span>Используя Платформу, вы подтверждаете, что вам исполнилось не менее 13 лет. Кроме того, если вы не достигли совершеннолетия, вы подтверждаете, что получили согласие вашего родителя или законного представителя на использование Платформы.</p>
+        <p class="clause"><span class="clause-num">1.2.</span>Вы подтверждаете, что предоставляемая вами информация является точной, актуальной и полной. Мы не несем ответственности за обработку неверной или неточной информации, предоставленной вами.</p>
+    </div>
+
+    <h2>2. Аккаунты и аутентификация</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">2.1.</span>Для использования некоторых функций Платформы может потребоваться создание учетной записи Пользователя.</p>
+        <p class="clause"><span class="clause-num">2.2.</span>Вы несете ответственность за сохранение конфиденциальности данных для входа в ваш аккаунт, а также за все действия, осуществляемые через ваш аккаунт.</p>
+        <p class="clause"><span class="clause-num">2.3.</span>Вы соглашаетесь не передавать свой аккаунт третьим лицам и не использовать аккаунты других Пользователей без разрешения.</p>
+        <p class="clause"><span class="clause-num">2.4.</span>Мы оставляем за собой право приостанавливать или прекращать действие учетных записей Пользователей, нарушающих настоящие Условия.</p>
+    </div>
+
+    <h2>3. Пользовательский контент</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">3.1.</span><strong>Контент, предоставляемый Пользователем</strong></p>
+        <p class="clause"><span class="clause-num">3.1.1.</span>Платформа может предоставлять вам возможность размещать, загружать, хранить или распространять контент, такой как тексты, изображения, файлы или сообщения (далее — «Пользовательский контент»).</p>
+        <p class="clause"><span class="clause-num">3.1.2.</span>Пользователь сохраняет право собственности на предоставленный им Пользовательский контент. Однако, предоставляя такой контент, вы предоставляете Yonca неисключительную, действующую по всему миру и безвозмездную лицензию на размещение, хранение, обработку и отображение данного контента исключительно в целях обеспечения функционирования, администрирования и улучшения Платформы.</p>
+        <p class="clause"><span class="clause-num">3.2.</span><strong>Ответственность за Пользовательский контент</strong></p>
+        <p class="clause"><span class="clause-num">3.2.1.</span>Пользователь несет полную ответственность за Пользовательский контент, который он размещает. Пользователь соглашается не загружать и не распространять следующий контент:</p>
+        <ul class="policy-list">
+            <li>контент незаконного, мошеннического или вводящего в заблуждение характера;</li>
+            <li>контент, нарушающий права интеллектуальной собственности или право на конфиденциальность третьих лиц;</li>
+            <li>контент, содержащий вредоносное программное обеспечение, вирусы или иной вредоносный код;</li>
+            <li>оскорбительный, разжигающий ненависть или агрессивный контент.</li>
+        </ul>
+        <p class="clause"><span class="clause-num">3.2.2.</span>Мы оставляем за собой право удалять такой контент или ограничивать доступ к нему, если он нарушает настоящие Условия или применимое законодательство.</p>
+    </div>
+
+    <h2>4. Хранение файлов и сторонние сервисы</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">4.1.</span>Yonca может использовать сторонние сервисы (например, облачное хранилище, API-сервисы или сервисы перевода) для обеспечения функций, таких как загрузка файлов, создание резервных копий или обработка контента.</p>
+        <p class="clause"><span class="clause-num">4.2.</span>Пользовательский контент может обрабатываться и храниться через такие сервисы исключительно для обеспечения функциональности Платформы.</p>
+        <p class="clause"><span class="clause-num">4.3.</span>Yonca не несёт ответственности за перебои в работе, потерю данных или их изменение, вызванные деятельностью сторонних поставщиков услуг, за исключением случаев, предусмотренных законом.</p>
+        <p class="clause"><span class="clause-num">4.4.</span><strong>Интеграция Google Drive:</strong></p>
+        <p class="clause"><span class="clause-num">4.4.1.</span>Yonca может предоставлять Пользователям возможность подключать свой аккаунт Google Drive для загрузки, хранения, доступа или управления файлами. Данная интеграция осуществляется с использованием механизма авторизации OAuth 2.0.</p>
+        <p class="clause"><span class="clause-num">4.4.2.</span>При подключении аккаунта Google Drive Yonca запрашивает только минимальные разрешения, необходимые для предоставления соответствующей функциональности, и эти разрешения отображаются Пользователю в процессе авторизации.</p>
+        <p class="clause"><span class="clause-num">4.4.3.</span>Yonca не получает доступ к файлам Пользователя, не читает и не изменяет их за пределами разрешений, прямо предоставленных Пользователем.</p>
+        <p class="clause"><span class="clause-num">4.4.4.</span>Файлы, загруженные или управляемые через Google Drive, остаются под контролем Пользователя и регулируются соответствующими Условиями использования и Политикой конфиденциальности Google.</p>
+        <p class="clause"><span class="clause-num">4.4.5.</span>Пользователь может в любое время отозвать доступ Yonca к своему аккаунту Google Drive через настройки безопасности своего аккаунта Google.</p>
+    </div>
+
+    <h2>5. Переводы и автоматизированные функции</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">5.1.</span>Yonca может предоставлять функции машинного перевода или другие автоматизированные функции, основанные на технологиях искусственного интеллекта (например, автоматический перевод).</p>
+        <p class="clause"><span class="clause-num">5.2.</span>Эти функции предоставляются «как есть», и их результаты могут содержать ошибки или неточности.</p>
+        <p class="clause"><span class="clause-num">5.3.</span>Yonca не гарантирует точность, полноту или пригодность автоматически созданных результатов для каких-либо конкретных целей.</p>
+    </div>
+
+    <h2>6. Допустимое использование</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">6.1.</span>При использовании Платформы Пользователь соглашается не:</p>
+        <ul class="policy-list">
+            <li><strong>6.1.1.</strong> пытаться злоупотреблять, перегружать или нарушать работу Платформы или её инфраструктуры;</li>
+            <li><strong>6.1.2.</strong> пытаться получить несанкционированный доступ к системам, пользовательским аккаунтам или данным;</li>
+            <li><strong>6.1.3.</strong> использовать Платформу для рассылки спама, автоматического сбора данных (scraping) или других целей автоматизированного злоупотребления;</li>
+            <li><strong>6.1.4.</strong> предпринимать попытки обхода мер безопасности или контроля доступа.</li>
+        </ul>
+    </div>
+
+    <h2>7. Права на интеллектуальную собственность</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">7.1.</span>Название Yonca, логотип, дизайн и весь контент, связанный с Платформой (кроме Пользовательского контента), являются собственностью Yonca или её лицензиаров.</p>
+        <p class="clause"><span class="clause-num">7.2.</span>Вы не можете копировать, изменять, распространять или обратным образом разбирать любую часть Платформы без письменного разрешения.</p>
+    </div>
+
+    <h2>8. Конфиденциальность</h2>
+    <div class="section-body">
+        <p>Ваше использование Yonca регулируется Политикой конфиденциальности, в которой объясняется, как собираются, используются и защищаются ваши данные.</p>
+    </div>
+
+    <h2>9. Прекращение использования</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">9.1.</span>Вы можете прекратить использование Платформы в любое время.</p>
+        <p class="clause"><span class="clause-num">9.2.</span>В случае нарушения вами этих Условий или по требованию закона мы можем немедленно приостановить или прекратить доступ к вашему аккаунту.</p>
+        <p class="clause"><span class="clause-num">9.3.</span>После прекращения доступа ваш аккаунт и хранимый контент могут быть удалены.</p>
+    </div>
+
+    <h2>10. Отказ от гарантий</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">10.1.</span>Платформа предоставляется «как есть». В пределах, разрешённых законом:</p>
+        <ul class="policy-list">
+            <li>мы не гарантируем бесперебойную, безошибочную работу Платформы или её постоянную доступность;</li>
+            <li>мы не даём никаких гарантий относительно точности или надежности информации и результатов, полученных через Платформу.</li>
+        </ul>
+    </div>
+
+    <h2>11. Ограничение ответственности</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">11.1.</span>За исключением случаев, предусмотренных законом, Yonca не несёт ответственности за:</p>
+        <ul class="policy-list">
+            <li>косвенные, случайные или последующие убытки;</li>
+            <li>потерю данных, прибыли или деловых возможностей;</li>
+            <li>проблемы, возникшие вследствие действий сторонних сервисов или других Пользователей.</li>
+        </ul>
+    </div>
+
+    <h2>12. Изменения</h2>
+    <div class="section-body">
+        <p>Мы можем время от времени обновлять эти Условия. Продолжение использования Платформы после вступления изменений в силу считается принятием обновлённых Условий.</p>
+    </div>
+
+    <h2>13. Применимое право</h2>
+    <div class="section-body">
+        <p>Настоящие Условия регулируются и толкуются в соответствии с законодательством Азербайджанской Республики.</p>
+    </div>
+
+    <h2>14. Контакты</h2>
+    <div class="section-body">
+        <p>Если у вас есть вопросы по этим Условиям, пожалуйста, свяжитесь с нами через веб-сайт Yonca.</p>
+    </div>
+
+    <p class="closing-statement">Используя Yonca, вы подтверждаете, что ознакомлены с этими Условиями использования и согласны их соблюдать.</p>
+
+    {# ─── AZERBAIJANI ─────────────────────────────────────────────────────── #}
+    {% else %}
+
+    <p class="last-updated">Son dəyişiklik tarixi: 30.04.2026</p>
+
+    <div class="welcome-block">
+        <p><strong>Xoş gəlmişsiniz!</strong></p>
+        <p>Yonca Web ("Platforma", "Veb-sayt") tərəfindən idarə olunur "Yonca SDC" MMC ("Yonca", "Biz"). Platformaya daxil olmaqla və ya ondan istifadə etməklə siz (bundan sonra "İstifadəçi", "Siz") bu İstifadə Şərtlərinə (bundan sonra "Şərtlər") əməl etməyə razı olduğunuzu təsdiq edirsiniz. Platformaya daxil olan, ondan istifadə edən və ya Platforma vasitəsilə təqdim olunan xidmət və funksiyalardan faydalanan hər bir şəxs İstifadəçi başa düşülür.</p>
+        <p>Bu Şərtlərin hər hansı hissəsi ilə razı deyilsinizsə, Platformadan istifadə etməməlisiniz.</p>
+    </div>
+
+    <h2>1. Ümumi müddəalar</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">1.1.</span>Platformadan istifadə etməklə, Siz ən azı 13 yaşa çatdığınızı təsdiq edirsiniz. Bundan əlavə, əgər Siz yetkinlik yaşına çatmamısınızsa, Platformadan istifadə etmək üçün valideyninizin və ya qanuni nümayəndənizin razılığını aldığınızı təsdiq edirsiniz.</p>
+        <p class="clause"><span class="clause-num">1.2.</span>Siz təqdim etdiyiniz məlumatların doğru, aktual və tam olduğunu təsdiq edirsiniz. Təqdim etdiyiniz yanlış və ya qeyri-dəqiq məlumatların emalına görə biz məsuliyyət daşımırıq.</p>
+    </div>
+
+    <h2>2. Hesablar və Doğrulama</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">2.1.</span>Platformanın bəzi funksiyalarından istifadə etmək üçün İstifadəçi hesabının yaradılması tələb oluna bilər.</p>
+        <p class="clause"><span class="clause-num">2.2.</span>Siz hesabınıza aid giriş məlumatlarının məxfiliyinin qorunmasına və hesabınız vasitəsilə həyata keçirilən bütün fəaliyyətlərə görə məsuliyyət daşıyırsınız.</p>
+        <p class="clause"><span class="clause-num">2.3.</span>Siz hesabınızı üçüncü şəxslərlə paylaşmamağa və başqa istifadəçilərin hesablarından icazəsiz istifadə etməməyə razılaşırsınız.</p>
+        <p class="clause"><span class="clause-num">2.4.</span>Biz bu Şərtləri pozan İstifadəçi hesablarını dayandırmaq və ya ləğv etmək hüququnu özümüzdə saxlayırıq.</p>
+    </div>
+
+    <h2>3. İstifadəçi məzmunu</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">3.1.</span><strong>İstifadəçi tərəfindən təqdim olunan məzmun</strong></p>
+        <p class="clause"><span class="clause-num">3.1.1.</span>Platforma Sizə mətn, şəkillər, fayllar və ya mesajlar (bundan sonra "İstifadəçi Məzmunu") kimi məzmunu təqdim etməyə, yükləməyə, saxlamağa və ya paylaşmağa icazə verə bilər.</p>
+        <p class="clause"><span class="clause-num">3.1.2.</span>İstifadəçi təqdim etdiyi İstifadəçi Məzmunu üzərində mülkiyyət hüququnu saxlayır. Bununla belə, məzmunu təqdim etməklə siz Yonca-ya həmin məzmunu yalnız Platformanın fəaliyyətinin təmin edilməsi, idarə olunması və təkmilləşdirilməsi məqsədilə yerləşdirmək, saxlamaq, emal etmək və göstərmək üçün qeyri-eksklüziv, dünya miqyasında və royaltisiz lisenziya verirsiniz.</p>
+        <p class="clause"><span class="clause-num">3.2.</span><strong>İstifadəçi Məzmununa görə məsuliyyət</strong></p>
+        <p class="clause"><span class="clause-num">3.2.1.</span>İstifadəçi Məzmununa görə tam məsuliyyət İstifadəçinin öz üzərinə düşür. İstifadəçi aşağıdakı məzmunu yükləməməyə və ya paylaşmamağa razılaşır:</p>
+        <ul class="policy-list">
+            <li>qanunsuz, saxtakarlıq və ya aldadıcı xarakter daşıyan məzmun;</li>
+            <li>üçüncü şəxslərin əqli mülkiyyət və ya məxfilik hüquqlarını pozan məzmun;</li>
+            <li>zərərli proqram təminatı, virus və ya digər zərərli kod ehtiva edən məzmun;</li>
+            <li>təhqiredici, nifrət dolu və ya aqressiv xarakterli məzmun.</li>
+        </ul>
+        <p class="clause"><span class="clause-num">3.2.2.</span>Bu Şərtləri və ya tətbiq olunan qanunvericiliyi pozan məzmunu silmək və ya ona çıxışı məhdudlaşdırmaq hüququnu özümüzdə saxlayırıq.</p>
+    </div>
+
+    <h2>4. Fayl Saxlama və Üçüncü Tərəf Xidmətləri</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">4.1.</span>Yonca faylların yüklənməsi, ehtiyat nüsxələrinin yaradılması və ya məzmunun emalı kimi funksiyaların təmin edilməsi üçün üçüncü tərəf xidmətlərindən (məsələn, bulud yaddaşı, API xidmətləri və ya tərcümə xidmətləri) istifadə edə bilər.</p>
+        <p class="clause"><span class="clause-num">4.2.</span>İstifadəçi Məzmunu yalnız Platformanın funksionallığını təmin etmək üçün bu xidmətlər vasitəsilə emal oluna və saxlanıla bilər.</p>
+        <p class="clause"><span class="clause-num">4.3.</span>Yonca, qanunla nəzərdə tutulan hallar istisna olmaqla, üçüncü tərəf xidmət təminatçılarının fəaliyyəti nəticəsində yaranan kəsintilər, məlumat itkisi və ya məlumatların dəyişdirilməsi üçün məsuliyyət daşımır.</p>
+        <p class="clause"><span class="clause-num">4.4.</span><strong>Google Drive İnteqrasiyası:</strong></p>
+        <p class="clause"><span class="clause-num">4.4.1.</span>Yonca İstifadəçilərə faylları yükləmək, saxlamaq, əldə etmək və ya idarə etmək məqsədilə öz Google Drive hesablarını tətbiqə qoşmaq imkanı verə bilər. Bu inteqrasiya Google OAuth 2.0 avtorizasiya mexanizmi vasitəsilə həyata keçirilir.</p>
+        <p class="clause"><span class="clause-num">4.4.2.</span>Google Drive hesabını qoşduğunuz zaman Yonca yalnız tələb olunan funksionallığın təmin edilməsi üçün zəruri olan minimum icazələri tələb edir və bu icazələr Google avtorizasiya prosesi zamanı İstifadəçiyə göstərilir.</p>
+        <p class="clause"><span class="clause-num">4.4.3.</span>Yonca İstifadəçinin açıq şəkildə icazə verdiyi çərçivədən kənar fayllara daxil olmur, onları oxumur və dəyişdirmir.</p>
+        <p class="clause"><span class="clause-num">4.4.4.</span>Google Drive vasitəsilə yüklənmiş və ya idarə olunan fayllar İstifadəçinin nəzarəti altında qalır və Google-un müvafiq İstifadə Şərtlərinə və Məxfilik Siyasətinə tabedir.</p>
+        <p class="clause"><span class="clause-num">4.4.5.</span>İstifadəçi istənilən vaxt öz Google Hesabının təhlükəsizlik parametrləri vasitəsilə Yonca-nın Google Drive hesabına girişini ləğv edə bilər.</p>
+    </div>
+
+    <h2>5. Tərcümələr və Avtomatlaşdırılmış Funksiyalar</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">5.1.</span>Yonca maşın tərcüməsi və ya süni intellekt texnologiyalarına əsaslanan digər avtomatlaşdırılmış funksiyalar (məsələn, avtomatik tərcümə) təqdim edə bilər.</p>
+        <p class="clause"><span class="clause-num">5.2.</span>Bu funksiyalar olduğu kimi təqdim olunur və onların nəticələrində səhvlər və ya qeyri-dəqiqliklər ola bilər.</p>
+        <p class="clause"><span class="clause-num">5.3.</span>Yonca avtomatik yaradılmış nəticələrin düzgünlüyünə, tamlığına və ya konkret məqsəd üçün uyğunluğuna zəmanət vermir.</p>
+    </div>
+
+    <h2>6. Məqbul istifadə</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">6.1.</span>İstifadəçi Platformadan istifadə edərkən aşağıdakılarla razılaşır:</p>
+        <ul class="policy-list">
+            <li><strong>6.1.1.</strong> Platformanın və ya onun infrastrukturunun sui-istifadəsinə, həddindən artıq yüklənməsinə və ya pozulmasına cəhd etməmək;</li>
+            <li><strong>6.1.2.</strong> Sistemlərə, istifadəçi hesablarına və ya məlumatlara icazəsiz daxil olmağa çalışmamaq;</li>
+            <li><strong>6.1.3.</strong> Spam göndərmək, məlumatların avtomatik toplanması (scraping) və ya avtomatlaşdırılmış sui-istifadə məqsədləri üçün Platformadan istifadə etməmək;</li>
+            <li><strong>6.1.4.</strong> Təhlükəsizlik və giriş nəzarətini aşmaq cəhdləri etməmək.</li>
+        </ul>
+    </div>
+
+    <h2>7. Əqli Mülkiyyət Hüquqları</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">7.1.</span>Yonca adı, loqosu, dizaynı və platforma ilə əlaqəli bütün məzmun (İstifadəçi Məzmunu istisna olmaqla) Yonca və ya onun lisenziyalaşdırıcılarına məxsusdur.</p>
+        <p class="clause"><span class="clause-num">7.2.</span>Siz yazılı icazə olmadan Platformanın hər hansı hissəsini köçürə, dəyişdirə, paylaya və ya tərsinə çevirə bilməzsiniz.</p>
+    </div>
+
+    <h2>8. Məxfilik</h2>
+    <div class="section-body">
+        <p>Sizin Yonca istifadəniz Məxfilik Siyasəti ilə tənzimlənir, burada məlumatlarınızın necə toplandığı, istifadə edildiyi və qorunduğu izah edilir.</p>
+    </div>
+
+    <h2>9. Xitam</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">9.1.</span>İstənilən vaxt Platformadan istifadəni dayandıra bilərsiniz.</p>
+        <p class="clause"><span class="clause-num">9.2.</span>Bu Şərtləri pozduğunuz halda və ya qanunla tələb olunduğu halda, biz hesabınıza girişinizi dərhal dayandıra və ya ləğv edə bilərik.</p>
+        <p class="clause"><span class="clause-num">9.3.</span>Ləğv edildikdən sonra hesabınıza və saxlanılmış məzmuna çıxışınız silinə bilər.</p>
+    </div>
+
+    <h2>10. Zəmanətlərdən imtina</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">10.1.</span>Platforma olduğu kimi təqdim olunur. Qanunla icazə verilən həddə:</p>
+        <ul class="policy-list">
+            <li>Biz Platformanın fasiləsiz, səhvsiz və ya hər zaman əlçatan olacağına zəmanət vermirik;</li>
+            <li>Biz Platforma vasitəsilə əldə edilən məlumatların və ya nəticələrin dəqiqliyi və etibarlılığı barədə heç bir zəmanət vermirik.</li>
+        </ul>
+    </div>
+
+    <h2>11. Məsuliyyətin məhdudlaşdırılması</h2>
+    <div class="section-body">
+        <p class="clause"><span class="clause-num">11.1.</span>Qanunla nəzərdə tutulan hallar istisna olmaqla, Yonca aşağıdakılara görə məsuliyyət daşımır:</p>
+        <ul class="policy-list">
+            <li>dolayı, təsadüfi və ya nəticə etibarilə yaranan zərərlərə görə;</li>
+            <li>məlumatların, mənfəətin və ya biznes imkanlarının itirilməsinə görə;</li>
+            <li>üçüncü tərəf xidmətləri və ya İstifadəçilərin hərəkətləri nəticəsində yaranan problemlərə görə.</li>
+        </ul>
+    </div>
+
+    <h2>12. Dəyişikliklərin edilməsi</h2>
+    <div class="section-body">
+        <p>Biz bu Şərtləri vaxtaşırı yeniləyə bilərik. Dəyişikliklər qüvvəyə mindikdən sonra, Platformadan davamlı istifadə yenilənmiş Şərtlərin qəbul edilməsi kimi qiymətləndirilir.</p>
+    </div>
+
+    <h2>13. Tətbiq olunan hüquq</h2>
+    <div class="section-body">
+        <p>Bu Şərtlər Azərbaycan Respublikasının qanunvericiliyinə uyğun olaraq tənzimlənir və şərh edilir.</p>
+    </div>
+
+    <h2>14. Əlaqə</h2>
+    <div class="section-body">
+        <p>Bu Şərtlər haqqında suallarınız varsa, zəhmət olmasa Yonca vebsaytı vasitəsilə bizimlə əlaqə saxlayın.</p>
+    </div>
+
+    <p class="closing-statement">Yonca-dan istifadə etməklə siz bu İstifadə Şərtlərini tanış olduğunuzu və onlara əməl etməyə razı olduğunuzu təsdiq edirsiniz.</p>
+
+    {% endif %}
+
+    <a href="/" class="back-link">&#8592; {% if current_locale == 'az' %}Ana səhifəyə qayıt{% elif current_locale == 'ru' %}Вернуться на главную{% else %}Back to Home{% endif %}</a>
+
+</div>
 </body>
 </html>
