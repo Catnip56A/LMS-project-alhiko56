@@ -1253,8 +1253,8 @@ def serve_file(file_id):
             elif any(ext in title_lower for ext in ['.zip', '.rar', '.7z', '.tar', '.gz']):
                 file_type = 'unsupported'
         
-        return render_template('file_viewer.html', 
-                              file_id=file_id, 
+        return render_template('file_viewer.html',
+                              content_id=course_content.id,
                               file_title=file_title,
                               file_type=file_type,
                               back_url=back_url,
@@ -1267,6 +1267,83 @@ def serve_file(file_id):
     
     # If no view link exists, try to construct a direct Google Drive link
     return redirect(f'https://drive.google.com/file/d/{file_id}/view')
+
+
+@api_bp.route('/file/c/<int:content_id>')
+@login_required
+def serve_content_by_db_id(content_id):
+    """Serve course content by its database ID, hiding the Drive file ID from clients."""
+    from yonca.models import CourseContent, Course
+    from flask import render_template, redirect, url_for
+
+    content = CourseContent.query.get(content_id)
+    if not content:
+        return redirect(url_for('main.index', error='file_not_found'))
+
+    is_admin = current_user.is_admin
+    is_teacher = current_user.is_teacher
+    course = Course.query.get(content.course_id)
+    is_enrolled = course and current_user in course.users
+    if not (is_admin or is_teacher or is_enrolled):
+        return redirect(url_for('main.index', error='auth_required'))
+    if not content.is_published and not (is_admin or is_teacher):
+        return redirect(url_for('main.index', error='auth_required'))
+
+    if content.content_type == 'file' and content.drive_file_id:
+        file_title = content.title
+        back_url = url_for('main.course_page_enrolled', course_id=content.course_id)
+        file_type = 'document'
+        title_lower = file_title.lower()
+        if any(ext in title_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']):
+            file_type = 'image'
+        elif any(ext in title_lower for ext in ['.mp3', '.wav', '.ogg', '.m4a', '.aac']):
+            file_type = 'audio'
+        elif any(ext in title_lower for ext in ['.mp4', '.webm', '.ogv', '.mov', '.avi']):
+            file_type = 'video'
+        elif any(ext in title_lower for ext in ['.zip', '.rar', '.7z', '.tar', '.gz']):
+            file_type = 'unsupported'
+        return render_template('file_viewer.html',
+                               content_id=content_id,
+                               file_title=file_title,
+                               file_type=file_type,
+                               back_url=back_url,
+                               current_user=current_user)
+
+    if content.drive_view_link:
+        return redirect(content.drive_view_link)
+    if content.content_data and content.content_data.startswith('http'):
+        return redirect(content.content_data)
+    return redirect(url_for('main.index', error='file_not_found'))
+
+
+@api_bp.route('/file/c/<int:content_id>/embed')
+@login_required
+def serve_content_embed(content_id):
+    """Redirect to the Drive embed URL without exposing the Drive file ID in page HTML."""
+    from yonca.models import CourseContent, Course
+    from flask import redirect, abort
+
+    content = CourseContent.query.get(content_id)
+    if not content or not content.drive_file_id:
+        abort(404)
+
+    is_admin = current_user.is_admin
+    is_teacher = current_user.is_teacher
+    course = Course.query.get(content.course_id)
+    is_enrolled = course and current_user in course.users
+    if not (is_admin or is_teacher or is_enrolled):
+        abort(403)
+    if not content.is_published and not (is_admin or is_teacher):
+        abort(403)
+
+    file_id = content.drive_file_id
+    title_lower = (content.title or '').lower()
+    if any(ext in title_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']):
+        return redirect(f'https://lh3.googleusercontent.com/d/{file_id}')
+    if any(ext in title_lower for ext in ['.mp3', '.wav', '.ogg', '.m4a', '.aac']):
+        return redirect(f'https://drive.google.com/uc?export=view&id={file_id}')
+    return redirect(f'https://drive.google.com/file/d/{file_id}/preview')
+
 
 @api_bp.route('/import-drive-file', methods=['POST'])
 @limiter.limit("5 per 30 seconds")
@@ -1466,9 +1543,6 @@ def get_folder_contents(folder_id):
                 'title': content.title,
                 'description': content.description,
                 'content_type': content.content_type,
-                'content_data': content.content_data,
-                'drive_file_id': content.drive_file_id,
-                'drive_view_link': content.drive_view_link,
                 'allow_others_to_view': content.allow_others_to_view,
                 'order': content.order,
                 'is_published': content.is_published,

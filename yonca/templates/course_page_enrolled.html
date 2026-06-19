@@ -1022,10 +1022,8 @@
                         <div>
                         {% if item.content_type == 'assignment' %}
                         <button class="btn btn-sm btn-info" onclick="viewAssignment('{{ item.content_data }}')">{{ _('View Assignment') }}</button>
-                        {% elif item.content_type == 'file' %}
-                        <a href="/api/file/{{ item.drive_file_id }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
                         {% else %}
-                        <a href="{{ item.content_data }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
+                        <a href="/api/file/c/{{ item.id }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
                         {% endif %}
                         {% if is_teacher_or_admin %}
                         <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#editFileModal" data-file-id="{{ item.id }}" data-file-name="{{ item.title }}" data-file-description="{{ item.description or '' }}">
@@ -2795,9 +2793,9 @@ function bulkToggleVisibilityEnrolled() {
         // Create the file list HTML
         let html = '<ul class="list-group mb-2 file-sortable" data-folder-id="' + folderId + '">';
         contents.forEach(item => {
-            const viewLink = item.content_type === 'file' && item.drive_file_id 
-                ? `/api/file/${item.drive_file_id}` 
-                : (item.content_data || '#');
+            const viewLink = item.content_type === 'assignment'
+                ? '#'
+                : `/api/file/c/${item.id}`;
             html += `
                 <li class="list-group-item d-flex justify-content-between align-items-center" data-file-id="${item.id}">
                     <div style="display: flex; align-items: flex-start; gap: 8px; flex: 1 1 100%; min-width: 0;">
@@ -2885,12 +2883,11 @@ function getFileEmoji(item) {
 
     if (iconMap[ext]) return iconImg(iconMap[ext]);
 
-    // Fallback: check content_type for mime-type hints
-    const mime = (item.content_data || '').toLowerCase();
-    if (mime.startsWith('image/')) return iconImg(iconMap['.jpg']);
-    if (mime.startsWith('video/')) return iconImg(iconMap['.mov']);
-    if (mime.startsWith('audio/')) return iconImg(iconMap['.mp3']);
-    if (mime.includes('pdf') || type.includes('pdf')) return iconImg(iconMap['.pdf']);
+    // Fallback: check content_type for hints
+    if (type.includes('image')) return iconImg(iconMap['.jpg']);
+    if (type.includes('video')) return iconImg(iconMap['.mov']);
+    if (type.includes('audio')) return iconImg(iconMap['.mp3']);
+    if (type.includes('pdf')) return iconImg(iconMap['.pdf']);
     if (type.includes('document') || type.includes('word')) return iconImg(iconMap['.docx']);
     if (type.includes('presentation') || type.includes('powerpoint')) return iconImg(iconMap['.ppt']);
     if (type.includes('zip') || type.includes('compressed') || type.includes('rar')) return iconImg(iconMap['.zip']);

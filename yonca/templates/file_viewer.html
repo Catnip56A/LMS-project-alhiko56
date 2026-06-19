@@ -157,7 +157,7 @@
         <div class="file-viewer-frame">
             {% if file_type == 'image' %}
                 <div class="custom-image-viewer">
-                    <img src="https://lh3.googleusercontent.com/d/{{ file_id }}" alt="{{ file_title }}" oncontextmenu="return false;" draggable="false">
+                    <img src="/api/file/c/{{ content_id }}/embed" alt="{{ file_title }}" oncontextmenu="return false;" draggable="false">
                 </div>
             {% elif file_type == 'audio' %}
                 <div class="custom-audio-viewer">
@@ -166,12 +166,12 @@
                     </div>
                     <h4 style="margin-bottom: 20px; color: #337a2c;">{{ file_title }}</h4>
                     <audio controls controlsList="nodownload">
-                        <source src="https://drive.google.com/uc?export=view&id={{ file_id }}" type="audio/mpeg">
+                        <source src="/api/file/c/{{ content_id }}/embed" type="audio/mpeg">
                         Your browser does not support the audio element.
                     </audio>
                 </div>
             {% elif file_type == 'video' %}
-                <iframe src="https://drive.google.com/file/d/{{ file_id }}/preview" 
+                <iframe src="/api/file/c/{{ content_id }}/embed"
                         style="width: 100%; height: 100%; border: none;"
                         allow="autoplay"
                         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
@@ -184,7 +184,7 @@
                 </div>
             {% else %}
                 {# Default: PDF, documents, presentations, spreadsheets #}
-                <iframe src="https://drive.google.com/file/d/{{ file_id }}/preview" 
+                <iframe src="/api/file/c/{{ content_id }}/embed"
                         style="width: 100%; height: 100%; border: none;"
                         allow="autoplay"
                         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
@@ -228,7 +228,7 @@ function sendTrack(duration) {
     // (content-type negotiation failure → Flask get_json() returns None → 400).
     var params = new URLSearchParams({
         content_type:      'course_content',
-        content_id:        "{{ file_id }}",
+        content_id:        "{{ content_id }}",
         viewing_duration:  duration
     });
 
