@@ -1,9 +1,9 @@
 """
 Authentication routes
 """
-from flask import Blueprint, request, redirect, url_for, flash, jsonify, render_template, current_app
+from flask import Blueprint, request, redirect, url_for, flash, render_template, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from flask_babel import get_locale, gettext as _
+from flask_babel import gettext as _
 from markupsafe import Markup
 from yonca.models import User, db, HomeContent
 import logging
@@ -382,6 +382,38 @@ def google_callback():
         logging.error(f'OAuth token exchange failed: {e}')
         flash('OAuth authentication failed')
         return redirect(url_for('auth.login'))
+
+@auth_bp.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    """Allow the logged-in user to change their password."""
+    home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
+
+    if request.method == 'POST':
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if not current_user.check_password(current_password):
+            flash(_('Current password is incorrect.'))
+            return render_template('change_password.html', home_content=home_content)
+
+        if len(new_password) < 6:
+            flash(_('New password must be at least 6 characters long.'))
+            return render_template('change_password.html', home_content=home_content)
+
+        if new_password != confirm_password:
+            flash(_('New passwords do not match.'))
+            return render_template('change_password.html', home_content=home_content)
+
+        current_user.password = new_password
+        db.session.commit()
+        logging.info(f"User {current_user.username} changed their password")
+        flash(_('Password changed successfully.'))
+        return redirect(url_for('main.index'))
+
+    return render_template('change_password.html', home_content=home_content)
+
 
 @auth_bp.route('/google-account-info')
 @login_required

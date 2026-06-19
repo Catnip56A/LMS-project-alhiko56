@@ -52,23 +52,43 @@ def translate_po_file(po_file_path: str, lang_code: str) -> None:
     # For the source language just copy msgid → msgstr — no API call needed.
     if lang_code == SOURCE_LANG:
         updated = 0
+        cleared = 0
         for entry in po:
-            if entry.msgid and not entry.msgid_plural and not entry.translated():
+            if not entry.msgid or entry.msgid_plural:
+                continue
+            if not entry.msgstr:
                 entry.msgstr = entry.msgid
                 updated += 1
-        if updated:
+            elif 'fuzzy' in entry.flags:
+                entry.flags.remove('fuzzy')
+                cleared += 1
+        if updated or cleared:
             po.save()
-        print(f"  {os.path.relpath(po_file_path)}: {updated} entries copied (source lang)")
+        print(f"  {os.path.relpath(po_file_path)}: {updated} entries copied, {cleared} fuzzy flag(s) cleared (source lang)")
         return
 
-    # Collect entries that still need translation.
-    untranslated = [
-        e for e in po
-        if e.msgid and (
-            (e.msgid_plural and not all(v for v in e.msgstr_plural.values()))
-            or (not e.msgid_plural and not e.translated())
-        )
-    ]
+    # Collect entries that still need translation (msgstr is empty).
+    # Fuzzy entries with a non-empty msgstr are kept as-is; only their fuzzy
+    # flag is cleared so pybabel compile picks them up.
+    untranslated = []
+    cleared_fuzzy = 0
+    for e in po:
+        if not e.msgid:
+            continue
+        if e.msgid_plural:
+            if not all(v for v in e.msgstr_plural.values()):
+                untranslated.append(e)
+        else:
+            if not e.msgstr:
+                untranslated.append(e)
+            elif 'fuzzy' in e.flags:
+                e.flags.remove('fuzzy')
+                cleared_fuzzy += 1
+
+    if cleared_fuzzy and not untranslated:
+        po.save()
+        print(f"  {os.path.relpath(po_file_path)}: cleared {cleared_fuzzy} fuzzy flag(s), nothing to translate")
+        return
 
     if not untranslated:
         print(f"  {os.path.relpath(po_file_path)}: already complete")
