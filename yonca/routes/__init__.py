@@ -10,6 +10,17 @@ from datetime import datetime as dt
 
 main_bp = Blueprint('main', __name__)
 
+def _folder_is_ancestor_of(folder_id, target_id):
+    """Return True if folder_id is an ancestor (parent/grandparent/…) of target_id."""
+    from yonca.models import CourseContentFolder
+    cur = CourseContentFolder.query.get(target_id)
+    while cur and cur.parent_folder_id is not None:
+        if cur.parent_folder_id == folder_id:
+            return True
+        cur = CourseContentFolder.query.get(cur.parent_folder_id)
+    return False
+
+
 def check_page_limitation(page_key):
     """
     Check if a page is limited and redirect non-admin users.
@@ -1279,6 +1290,8 @@ def course_page_enrolled(course_id):
             for folder_id in folder_ids:
                 folder = CourseContentFolder.query.get(int(folder_id))
                 if folder and folder.course_id == course.id and folder.id != target_id_int:
+                    if target_id_int and _folder_is_ancestor_of(folder.id, target_id_int):
+                        continue
                     folder.parent_folder_id = target_id_int
                     moved_count += 1
 
@@ -1402,13 +1415,20 @@ def course_page_enrolled(course_id):
         subqueryload(CourseContent.folder)
     ).order_by(CourseContent.order).all()
 
-    # Load content folders with their subfolders using eager loading
-    # Note: folder items are loaded lazily when folders are expanded
-    content_folders = CourseContentFolder.query.filter_by(course_id=course.id).options(
-        subqueryload(CourseContentFolder.subfolders)
+    # Load all folders and wire the parent→children tree manually.
+    # subqueryload on a self-referential relationship only populates one level,
+    # so folders nested 2+ levels deep lose their children after a redirect.
+    content_folders = CourseContentFolder.query.filter_by(
+        course_id=course.id
     ).order_by(CourseContentFolder.order).all()
 
-    # Separate root folders from subfolders for template
+    folder_map = {f.id: f for f in content_folders}
+    for f in content_folders:
+        f._children = []
+    for f in content_folders:
+        if f.parent_folder_id and f.parent_folder_id in folder_map:
+            folder_map[f.parent_folder_id]._children.append(f)
+
     root_folders = [f for f in content_folders if f.parent_folder_id is None]
 
     # Load assignments with eager-loaded submissions and pagination
@@ -2192,13 +2212,16 @@ def move_folder():
         flash('Folder not found.', 'error')
         return redirect(request.referrer or url_for('main.index'))
 
-    # Prevent moving folder into itself
-    if str(folder_id) == str(new_parent_folder_id):
-        flash('Cannot move folder into itself.', 'error')
+    # Prevent moving a folder into itself or any of its descendants
+    if new_parent_folder_id and (
+        str(folder_id) == str(new_parent_folder_id)
+        or _folder_is_ancestor_of(int(folder_id), int(new_parent_folder_id))
+    ):
+        flash('Cannot move a folder into itself or one of its subfolders.', 'error')
         return redirect(request.referrer or url_for('main.index'))
 
     # Update the parent_folder_id
-    folder.parent_folder_id = new_parent_folder_id if new_parent_folder_id else None
+    folder.parent_folder_id = int(new_parent_folder_id) if new_parent_folder_id else None
     db.session.commit()
 
     flash('Folder moved successfully!', 'success')

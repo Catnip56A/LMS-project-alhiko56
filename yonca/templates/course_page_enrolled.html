@@ -651,8 +651,8 @@
                             <div class="alert alert-warning">{{ _('This folder is locked until you complete the required assignment.') }}</div>
                         {% else %}
 
-            {# Recursively render subfolders - using preloaded data #}
-            {% set subfolders = folder.subfolders|list %}
+            {# Recursively render subfolders - using manually built tree #}
+            {% set subfolders = folder._children %}
             {% if subfolders %}
             <ul class="list-group folder-sortable" data-parent-folder-id="{{ folder.id }}">
                 {% for subfolder in subfolders %}
