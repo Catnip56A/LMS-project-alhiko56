@@ -69,6 +69,7 @@ services:
     volumes:
       - ./data/flask_session:/app/flask_session
       - ./data/logs:/app/logs
+      - ./data/certificates:/app/data/certificates
 
   caddy-dev:
     profiles: [dev]
@@ -141,6 +142,7 @@ services:
     volumes:
       - ./data/flask_session:/app/flask_session
       - ./data/logs:/app/logs
+      - ./data/certificates:/app/data/certificates
 
   # ── Staging ────────────────────────────────────────────────────────────────
   db-staging:
@@ -197,6 +199,7 @@ services:
     volumes:
       - ./data/flask_session:/app/flask_session
       - ./data/logs:/app/logs
+      - ./data/certificates:/app/data/certificates
 networks:
   yonca-proxy:
     external: true

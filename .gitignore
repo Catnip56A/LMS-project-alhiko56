@@ -138,6 +138,5 @@ seed.sql
 .local/
 
 
-#certificate generation
+#certificate templates (keep fonts and tuning.json tracked, but not binary templates)
 */static/certificates/moxo_template.png
-*/static/certificates/generated/

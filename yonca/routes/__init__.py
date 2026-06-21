@@ -1,7 +1,7 @@
 
 from flask import Blueprint, render_template, request, redirect, flash, url_for, jsonify, current_app, abort
 from markupsafe import Markup
-from flask_babel import get_locale, force_locale
+from flask_babel import get_locale, force_locale, _
 from flask_login import current_user, login_required
 from yonca.models import HomeContent
 from werkzeug.utils import secure_filename
@@ -1379,7 +1379,6 @@ def course_page_enrolled(course_id):
 
         elif action == 'give_certificate' and (current_user.is_teacher or current_user.is_admin):
             from yonca.models import Certificate, User
-            from yonca.certificate_generator import generate_certificate_image
             from datetime import datetime as _dt
             student_id = request.form.get('student_id', type=int)
             student = User.query.get(student_id)
@@ -1388,7 +1387,7 @@ def course_page_enrolled(course_id):
             elif not student.first_name or not student.last_name:
                 flash(f'{student.username} has not set their full name yet.', 'warning')
             elif Certificate.query.filter_by(user_id=student_id, course_id=course.id, revoked=False).first():
-                flash('Certificate already issued to this student.', 'info')
+                flash(_('Certificate already issued to this student.'), 'info')
             else:
                 cert = Certificate(
                     user_id=student_id,
@@ -1399,17 +1398,11 @@ def course_page_enrolled(course_id):
                 )
                 db.session.add(cert)
                 db.session.commit()
-                try:
-                    generate_certificate_image(cert)
-                except Exception as e:
-                    flash(f'Certificate issued but image generation failed: {e}', 'warning')
-                else:
-                    flash(f'Certificate issued to {cert.student_name}.', 'success')
+                flash(_('Certificate issued to %(name)s.', name=cert.student_name), 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
         elif action == 'revoke_certificate' and current_user.is_admin:
             from yonca.models import Certificate
-            from yonca.certificate_generator import delete_certificate_files
             from datetime import datetime as _dt
             student_id = request.form.get('student_id', type=int)
             cert = Certificate.query.filter_by(user_id=student_id, course_id=course.id, revoked=False).first()
@@ -1418,8 +1411,9 @@ def course_page_enrolled(course_id):
                 cert.revoked_by = current_user.id
                 cert.revoked_at = _dt.utcnow()
                 db.session.commit()
-                delete_certificate_files(cert.id)
-                flash('Certificate revoked.', 'success')
+                from yonca.certificate_generator import invalidate_cache
+                invalidate_cache(cert.id)
+                flash(_('Certificate revoked.'), 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
     # GET request - render the page
@@ -2345,46 +2339,48 @@ def debug_locale():
 
 @main_bp.route('/certificate/image/<cert_id>')
 def certificate_image(cert_id):
-    """Serve certificate image, regenerating if the file is missing."""
+    import io
     from flask import send_file
     from yonca.models import Certificate
+    from yonca.certificate_generator import get_cached_png_bytes
     cert = Certificate.query.get_or_404(cert_id)
     if cert.revoked:
         abort(410)
-    from yonca.certificate_generator import get_or_generate_image
-    path = get_or_generate_image(cert)
-    return send_file(path, mimetype='image/png')
+    png = get_cached_png_bytes(cert)
+    return send_file(io.BytesIO(png), mimetype='image/png')
 
 
 @main_bp.route('/certificate/download/<cert_id>/image')
 @login_required
 def download_certificate_image(cert_id):
+    import io
     from flask import send_file
     from yonca.models import Certificate
+    from yonca.certificate_generator import get_cached_png_bytes
     cert = Certificate.query.get_or_404(cert_id)
     if cert.user_id != current_user.id and not (current_user.is_admin or current_user.is_teacher):
         abort(403)
     if cert.revoked:
         abort(410)
-    from yonca.certificate_generator import get_or_generate_image
-    path = get_or_generate_image(cert)
-    return send_file(path, mimetype='image/png', as_attachment=True,
+    png = get_cached_png_bytes(cert)
+    return send_file(io.BytesIO(png), mimetype='image/png', as_attachment=True,
                      download_name=f"Certificate-{cert.cert_id_display}.png")
 
 
 @main_bp.route('/certificate/download/<cert_id>/pdf')
 @login_required
 def download_certificate_pdf(cert_id):
+    import io
     from flask import send_file
     from yonca.models import Certificate
+    from yonca.certificate_generator import get_cached_pdf_bytes
     cert = Certificate.query.get_or_404(cert_id)
     if cert.user_id != current_user.id and not (current_user.is_admin or current_user.is_teacher):
         abort(403)
     if cert.revoked:
         abort(410)
-    from yonca.certificate_generator import get_certificate_pdf_path
-    path = get_certificate_pdf_path(cert)
-    return send_file(path, mimetype='application/pdf', as_attachment=True,
+    pdf = get_cached_pdf_bytes(cert)
+    return send_file(io.BytesIO(pdf), mimetype='application/pdf', as_attachment=True,
                      download_name=f"Certificate-{cert.cert_id_display}.pdf")
 
 

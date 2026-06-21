@@ -1570,8 +1570,7 @@ class CertificateTuningView(BaseView):
     @expose('/remove-override', methods=['POST'])
     def remove_override(self):
         import json as _json
-        from yonca.certificate_generator import TUNING_PATH, delete_certificate_files
-        from yonca.models import Certificate
+        from yonca.certificate_generator import TUNING_PATH
         course_id = request.form.get('course_id', '')
         if course_id and course_id != 'default':
             try:
@@ -1583,35 +1582,30 @@ class CertificateTuningView(BaseView):
                 del data[course_id]
                 with open(TUNING_PATH, 'w', encoding='utf-8') as f:
                     _json.dump(data, f, indent=2)
-            # Clear cached images for that course
-            for cert in Certificate.query.filter_by(course_id=int(course_id)).all():
-                delete_certificate_files(cert.id)
             flash('Override removed. Course will now use default tuning.', 'success')
         return redirect(url_for('certificate_tuning.index'))
 
     @expose('/', methods=['GET', 'POST'])
     def index(self):
-        from yonca.certificate_generator import (
-            load_tuning, save_tuning, _DEFAULTS, delete_certificate_files, list_templates, TUNING_PATH
-        )
-        from yonca.models import Certificate
+        from yonca.certificate_generator import load_tuning, save_tuning, _DEFAULTS, list_templates, TUNING_PATH
         import json as _json
 
         courses = Course.query.order_by(Course.title).all()
 
         if request.method == 'POST':
+            from yonca.certificate_generator import invalidate_cache
+            from yonca.models import Certificate
             course_id = request.form.get('course_id', 'default')
             values = self._parse_tuning(request.form, _DEFAULTS)
             save_tuning(course_id, values)
-
+            # Evict cached images so the new tuning takes effect immediately
             if course_id == 'default':
-                certs = Certificate.query.all()
+                certs = Certificate.query.with_entities(Certificate.id).all()
             else:
-                certs = Certificate.query.filter_by(course_id=int(course_id)).all()
-            for cert in certs:
-                delete_certificate_files(cert.id)
-
-            flash('Tuning saved. Cached certificate images cleared.', 'success')
+                certs = Certificate.query.with_entities(Certificate.id).filter_by(course_id=int(course_id)).all()
+            for (cert_id,) in certs:
+                invalidate_cache(cert_id)
+            flash('Tuning saved.', 'success')
             return redirect(url_for('certificate_tuning.index'))
 
         try:

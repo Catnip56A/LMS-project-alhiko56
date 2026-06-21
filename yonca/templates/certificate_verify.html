@@ -25,21 +25,21 @@
 <body>
     <div class="card">
         <div class="badge">✓</div>
-        <h1>Certificate Verified</h1>
-        <p>This is a valid certificate issued by <strong>Yonca</strong>.</p>
+        <h1>{{ _('Certificate Verified') }}</h1>
+        <p>{{ _('This is a valid certificate issued by') }} <strong>Yonca</strong>.</p>
 
         <img class="cert-img"
              src="{{ url_for('main.certificate_image', cert_id=cert.id) }}"
-             alt="Certificate">
+             alt="{{ _('Certificate') }}">
 
         <div class="meta">
-            <p><strong>Issued to:</strong> {{ cert.student_name }}</p>
-            <p><strong>Course:</strong> {{ cert.course.title }}</p>
-            <p><strong>Date of Issue:</strong> {{ cert.issued_at.strftime('%d %B %Y') }}</p>
-            <p><strong>Certificate ID:</strong> {{ cert.cert_id_display }}</p>
+            <p><strong>{{ _('Issued to') }}:</strong> {{ cert.student_name }}</p>
+            <p><strong>{{ _('Course') }}:</strong> {{ cert.course.title }}</p>
+            <p><strong>{{ _('Date of Issue') }}:</strong> {{ cert.issued_at.strftime('%d %B %Y') }}</p>
+            <p><strong>{{ _('Certificate ID') }}:</strong> {{ cert.cert_id_display }}</p>
         </div>
 
-        <p class="brand">Issued by Yonca · yonca-sdc.com</p>
+        <p class="brand">{{ _('Issued by') }} Yonca · yonca-sdc.com</p>
     </div>
 </body>
 </html>
