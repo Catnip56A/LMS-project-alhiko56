@@ -192,14 +192,14 @@
                                id="tpl_{{ loop.index }}"
                                style="display:none;"
                                onchange="onTemplateChange(this)">
-                        <img src="{{ url_for('static', filename='certificates/' ~ fname) }}"
+                        <img src="{{ url_for('certificate_tuning.template_image', filename=fname) }}"
                              style="width:160px;height:100px;object-fit:cover;display:block;">
                         <div style="padding:4px 6px;font-size:11px;color:#555;text-align:center;background:#f8f9fa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                             {{ fname }}
                         </div>
                     </label>
                     {% else %}
-                    <p style="color:#aaa;font-size:13px;">No image files found in <code>static/certificates/</code>.</p>
+                    <p style="color:#aaa;font-size:13px;">No templates found. Upload a PNG to <code>data/cert-templates/</code> on the server.</p>
                     {% endfor %}
                 </div>
             </div>
