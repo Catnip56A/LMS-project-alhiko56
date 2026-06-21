@@ -137,6 +137,3 @@ seed.sql
 # machine-local files (certs, etc.)
 .local/
 
-
-#certificate templates (keep fonts and tuning.json tracked, but not binary templates)
-*/static/certificates/moxo_template.png

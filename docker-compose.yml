@@ -59,7 +59,6 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB}
       GOOGLE_REDIRECT_URI: https://${LOCAL_DOMAIN:-local.yonca-sdc.com}/auth/google/callback
       LIBRETRANSLATE_URL: http://libretranslate:5000
-      CERT_TEMPLATE_DIR: /app/data/cert-templates
     ports:
       - "8000:8000"
     depends_on:
@@ -71,7 +70,6 @@ services:
       - ./data/flask_session:/app/flask_session
       - ./data/logs:/app/logs
       - ./data/certificates:/app/data/certificates
-      - ./data/cert-templates:/app/data/cert-templates
 
   caddy-dev:
     profiles: [dev]
@@ -131,7 +129,6 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-production:5432/${POSTGRES_DB}
       GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
       LIBRETRANSLATE_URL: http://libretranslate:5000
-      CERT_TEMPLATE_DIR: /app/data/cert-templates
     ports:
       - "127.0.0.1:${APP_PORT}:8000"
     depends_on:
@@ -146,7 +143,6 @@ services:
       - ./data/flask_session:/app/flask_session
       - ./data/logs:/app/logs
       - ./data/certificates:/app/data/certificates
-      - ./data/cert-templates:/app/data/cert-templates
 
   # ── Staging ────────────────────────────────────────────────────────────────
   db-staging:
@@ -190,7 +186,6 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB}
       GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
       LIBRETRANSLATE_URL: http://libretranslate:5000
-      CERT_TEMPLATE_DIR: /app/data/cert-templates
     ports:
       - "127.0.0.1:${APP_PORT}:8000"
     depends_on:
@@ -205,7 +200,6 @@ services:
       - ./data/flask_session:/app/flask_session
       - ./data/logs:/app/logs
       - ./data/certificates:/app/data/certificates
-      - ./data/cert-templates:/app/data/cert-templates
 networks:
   yonca-proxy:
     external: true
