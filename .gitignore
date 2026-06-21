@@ -137,3 +137,8 @@ seed.sql
 # machine-local files (certs, etc.)
 .local/
 
+# certificate templates — private, not for public repo; upload via SCP to data/cert-templates/
+yonca/static/certificates/*.png
+yonca/static/certificates/*.jpg
+yonca/static/certificates/*.jpeg
+

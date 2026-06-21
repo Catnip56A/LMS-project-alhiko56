@@ -1558,14 +1558,14 @@ class CertificateTuningView(BaseView):
 
     @expose('/template-image/<filename>')
     def template_image(self, filename):
-        """Serve a template thumbnail from yonca/static/certificates/."""
+        """Serve a template thumbnail from TEMPLATE_DIR."""
         import re
         from flask import send_file, abort as _abort
-        from yonca.certificate_generator import STATIC_CERTS, _IMAGE_EXTS
+        from yonca.certificate_generator import TEMPLATE_DIR, _IMAGE_EXTS
         if not re.fullmatch(r'[\w\-. ]+', filename) or \
                 os.path.splitext(filename)[1].lower() not in _IMAGE_EXTS:
             _abort(400)
-        path = os.path.join(STATIC_CERTS, filename)
+        path = os.path.join(TEMPLATE_DIR, filename)
         if os.path.isfile(path):
             return send_file(path)
         _abort(404)

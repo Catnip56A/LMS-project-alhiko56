@@ -1,13 +1,14 @@
 """
 Certificate image and PDF generation using Pillow + qrcode + img2pdf.
 
-Templates and fonts live in yonca/static/certificates/ and are committed to git
-(baked into the Docker image).  Only two paths need persistent volume mounts:
+Templates are NOT committed to git (public repo). They live in a volume-mounted
+directory on the server and are uploaded via SCP. Three env vars control paths:
 
-  CACHE_DIR   – generated PNG/PDF cache   (env: CERT_CACHE_DIR)
-                default: <project_root>/data/certificates/
-  TUNING_PATH – per-course tuning JSON    (env: CERT_TUNING_PATH)
-                default: <CACHE_DIR>/tuning.json
+  CERT_TEMPLATE_DIR – template PNG images  (default: yonca/static/certificates/)
+  CERT_CACHE_DIR    – generated PNG/PDF    (default: <project_root>/data/certificates/)
+  CERT_TUNING_PATH  – per-course JSON      (default: <CACHE_DIR>/tuning.json)
+
+Fonts are baked into the image at yonca/static/certificates/fonts/ (no images there).
 """
 import io
 import json
@@ -23,9 +24,10 @@ FONT_SCRIPT = os.path.join(STATIC_CERTS, 'fonts', 'GreatVibes-Regular.ttf')
 FONT_COURSE = os.path.join(STATIC_CERTS, 'fonts', 'CormorantSC-Bold.ttf')
 FONT_META   = os.path.join(STATIC_CERTS, 'fonts', 'CormorantGaramond-Regular.ttf')
 
-# Persistent volume paths — each environment has its own data/ dir.
-CACHE_DIR   = os.environ.get('CERT_CACHE_DIR',   os.path.join(os.path.dirname(_HERE), 'data', 'certificates'))
-TUNING_PATH = os.environ.get('CERT_TUNING_PATH', os.path.join(CACHE_DIR, 'tuning.json'))
+_DATA_ROOT   = os.path.join(os.path.dirname(_HERE), 'data')
+CACHE_DIR    = os.environ.get('CERT_CACHE_DIR',    os.path.join(_DATA_ROOT, 'certificates'))
+TUNING_PATH  = os.environ.get('CERT_TUNING_PATH',  os.path.join(CACHE_DIR, 'tuning.json'))
+TEMPLATE_DIR = os.environ.get('CERT_TEMPLATE_DIR', STATIC_CERTS)
 
 _IMAGE_EXTS = {'.jpeg', '.jpg', '.png'}
 
@@ -83,12 +85,12 @@ def save_tuning(course_id, values: dict) -> None:
 # ── Template helpers ──────────────────────────────────────────────────────────
 
 def list_templates() -> list[str]:
-    """Return sorted image filenames from yonca/static/certificates/ (committed to git)."""
+    """Return sorted image filenames from TEMPLATE_DIR."""
     try:
         return sorted(
-            f for f in os.listdir(STATIC_CERTS)
+            f for f in os.listdir(TEMPLATE_DIR)
             if os.path.splitext(f)[1].lower() in _IMAGE_EXTS
-            and os.path.isfile(os.path.join(STATIC_CERTS, f))
+            and os.path.isfile(os.path.join(TEMPLATE_DIR, f))
         )
     except OSError:
         return []
@@ -96,16 +98,16 @@ def list_templates() -> list[str]:
 
 def _find_template() -> str:
     for ext in ('jpeg', 'jpg', 'png'):
-        p = os.path.join(STATIC_CERTS, f'moxo_template.{ext}')
+        p = os.path.join(TEMPLATE_DIR, f'moxo_template.{ext}')
         if os.path.exists(p):
             return p
-    return os.path.join(STATIC_CERTS, 'moxo_template.jpeg')
+    return os.path.join(TEMPLATE_DIR, 'moxo_template.jpeg')
 
 
 def _resolve_template(tuning: dict) -> str:
     name = os.path.basename(tuning.get('template_file') or '')
     if name and os.path.splitext(name)[1].lower() in _IMAGE_EXTS:
-        candidate = os.path.join(STATIC_CERTS, name)
+        candidate = os.path.join(TEMPLATE_DIR, name)
         if os.path.exists(candidate):
             return candidate
     return _find_template()
