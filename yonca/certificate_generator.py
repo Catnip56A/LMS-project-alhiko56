@@ -1,20 +1,20 @@
 """
 Certificate image and PDF generation using Pillow + qrcode + img2pdf.
 
-Generated files are cached in CACHE_DIR (default: data/certificates/ at the
-project root, which should be a persistent Docker volume).  The first request
-for a certificate renders it and writes it to the cache; subsequent requests
-read from disk.  Call invalidate_cache(cert_id) to evict a single entry (e.g.
-on revoke or after a tuning change).
+Three directories matter at runtime — all three should be persistent Docker
+volume mounts so they survive redeploys:
 
-Template image and fonts must be placed at:
-  yonca/static/certificates/moxo_template.jpeg  (or .jpg / .png)
+  CACHE_DIR      – generated PNG/PDF cache          (env: CERT_CACHE_DIR)
+                   default: <project_root>/data/certificates/
+  TEMPLATE_DIR   – uploaded template images         (env: CERT_TEMPLATE_DIR)
+                   default: <project_root>/data/cert-templates/
+  TUNING_PATH    – per-course tuning JSON           (env: CERT_TUNING_PATH)
+                   default: <CACHE_DIR>/tuning.json
+
+Fonts are baked into the image at:
   yonca/static/certificates/fonts/GreatVibes-Regular.ttf
   yonca/static/certificates/fonts/CormorantSC-Bold.ttf
   yonca/static/certificates/fonts/CormorantGaramond-Regular.ttf
-
-Per-course x/y tuning is stored in:
-  yonca/static/certificates/tuning.json
 """
 import io
 import json
@@ -24,18 +24,18 @@ import qrcode
 from PIL import Image, ImageDraw, ImageFont
 
 _HERE = os.path.dirname(__file__)
+_DATA_ROOT = os.path.join(os.path.dirname(_HERE), 'data')
 STATIC_CERTS = os.path.join(_HERE, 'static', 'certificates')
-TUNING_PATH = os.path.join(STATIC_CERTS, 'tuning.json')
+
+# Fonts are always loaded from the baked-in static directory.
 FONT_SCRIPT = os.path.join(STATIC_CERTS, 'fonts', 'GreatVibes-Regular.ttf')
 FONT_COURSE = os.path.join(STATIC_CERTS, 'fonts', 'CormorantSC-Bold.ttf')
 FONT_META   = os.path.join(STATIC_CERTS, 'fonts', 'CormorantGaramond-Regular.ttf')
 
-# Persistent cache directory — override with CERT_CACHE_DIR env var.
-# In Docker this should be a volume mount so the cache survives redeploys.
-CACHE_DIR = os.environ.get(
-    'CERT_CACHE_DIR',
-    os.path.join(os.path.dirname(_HERE), 'data', 'certificates'),
-)
+# Persistent volume paths — override via env vars in docker-compose.
+CACHE_DIR    = os.environ.get('CERT_CACHE_DIR',    os.path.join(_DATA_ROOT, 'certificates'))
+TEMPLATE_DIR = os.environ.get('CERT_TEMPLATE_DIR', os.path.join(_DATA_ROOT, 'cert-templates'))
+TUNING_PATH  = os.environ.get('CERT_TUNING_PATH',  os.path.join(CACHE_DIR, 'tuning.json'))
 
 _IMAGE_EXTS = {'.jpeg', '.jpg', '.png'}
 
@@ -85,6 +85,7 @@ def save_tuning(course_id, values: dict) -> None:
         data['default'] = {**data.get('default', {}), **values}
     else:
         data[str(course_id)] = values
+    os.makedirs(os.path.dirname(TUNING_PATH), exist_ok=True)
     with open(TUNING_PATH, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2)
 
@@ -92,31 +93,40 @@ def save_tuning(course_id, values: dict) -> None:
 # ── Template helpers ──────────────────────────────────────────────────────────
 
 def list_templates() -> list[str]:
-    """Return sorted image filenames directly inside STATIC_CERTS (no subdirs)."""
-    try:
-        return sorted(
-            f for f in os.listdir(STATIC_CERTS)
-            if os.path.splitext(f)[1].lower() in _IMAGE_EXTS
-            and os.path.isfile(os.path.join(STATIC_CERTS, f))
-        )
-    except OSError:
-        return []
+    """Return sorted image filenames from TEMPLATE_DIR (volume) and STATIC_CERTS (baked-in)."""
+    seen: set[str] = set()
+    results: list[str] = []
+    for directory in (TEMPLATE_DIR, STATIC_CERTS):
+        try:
+            for f in sorted(os.listdir(directory)):
+                if (f not in seen
+                        and os.path.splitext(f)[1].lower() in _IMAGE_EXTS
+                        and os.path.isfile(os.path.join(directory, f))):
+                    seen.add(f)
+                    results.append(f)
+        except OSError:
+            pass
+    return results
 
 
 def _find_template() -> str:
-    for ext in ('jpeg', 'jpg', 'png'):
-        p = os.path.join(STATIC_CERTS, f'moxo_template.{ext}')
-        if os.path.exists(p):
-            return p
+    """Return path to a fallback template, preferring TEMPLATE_DIR over STATIC_CERTS."""
+    for directory in (TEMPLATE_DIR, STATIC_CERTS):
+        for ext in ('jpeg', 'jpg', 'png'):
+            p = os.path.join(directory, f'moxo_template.{ext}')
+            if os.path.exists(p):
+                return p
     return os.path.join(STATIC_CERTS, 'moxo_template.jpeg')
 
 
 def _resolve_template(tuning: dict) -> str:
     name = os.path.basename(tuning.get('template_file') or '')
     if name and os.path.splitext(name)[1].lower() in _IMAGE_EXTS:
-        candidate = os.path.join(STATIC_CERTS, name)
-        if os.path.exists(candidate):
-            return candidate
+        # Check TEMPLATE_DIR (volume) first, then STATIC_CERTS (baked-in)
+        for directory in (TEMPLATE_DIR, STATIC_CERTS):
+            candidate = os.path.join(directory, name)
+            if os.path.exists(candidate):
+                return candidate
     return _find_template()
 
 
