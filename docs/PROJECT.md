@@ -115,6 +115,20 @@ ssh user@host "cd ~/deploy/production/yonca && \
   docker compose run --rm migrate-prod flask db stamp head"
 ```
 
+### Uploading certificate templates
+
+Certificate templates are private (not in git). Upload them to each server separately:
+
+```bash
+# Staging
+scp template.png user@staging-server:~/deploy/staging/yonca/data/cert-templates/
+
+# Production
+scp template.png user@server:~/deploy/production/yonca/data/cert-templates/
+```
+
+No restart needed — the volume is live. Templates appear in the admin certificate tuning picker immediately.
+
 ### Restoring production data
 
 ```bash
