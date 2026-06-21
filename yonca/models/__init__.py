@@ -4,6 +4,8 @@ Database models for Yonca application
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+import uuid
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -32,24 +34,12 @@ class User(db.Model, UserMixin):
     google_access_token = db.Column(db.Text)
     google_refresh_token = db.Column(db.Text)
     google_token_expiry = db.Column(db.DateTime)
+    first_name = db.Column(db.String(100), nullable=True)
+    last_name = db.Column(db.String(100), nullable=True)
     login_attempts = db.Column(db.Integer, default=0)  # Track failed login attempts
     last_attempt_time = db.Column(db.DateTime)  # Track time of last login attempt
     courses = db.relationship('Course', secondary=user_courses, backref=db.backref('users', lazy='select'))
     accessed_resources = db.relationship('Resource', secondary=user_resource_access, backref=db.backref('accessed_users', lazy='select'))
-
-    @property
-    def password(self):
-        return self._password
-
-    @password.setter
-    def password(self, plaintext):
-        self._password = generate_password_hash(plaintext)
-
-    def check_password(self, plaintext):
-        return check_password_hash(self._password, plaintext)
-
-    def __repr__(self):
-        return f'<User {self.username}>'
 
     @property
     def password(self):
@@ -533,3 +523,37 @@ class PageLimitation(db.Model):
 
     def __repr__(self):
         return f'<PageLimitation {self.page_key} - Limited: {self.is_limited}>'
+
+
+class Certificate(db.Model):
+    __tablename__ = 'certificates'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    issued_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    issued_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    revoked = db.Column(db.Boolean, default=False, nullable=False)
+    revoked_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    revoked_at = db.Column(db.DateTime, nullable=True)
+    student_name = db.Column(db.String(200), nullable=False)
+
+    user = db.relationship('User', foreign_keys=[user_id])
+    course = db.relationship('Course', foreign_keys=[course_id])
+
+    @property
+    def cert_id_display(self):
+        short = self.id.replace('-', '').upper()[:5]
+        year = self.issued_at.year
+        return f"YONCA-{year}-{short}"
+
+    @property
+    def verify_url(self):
+        try:
+            from flask import url_for
+            return url_for('main.verify_certificate', cert_id=self.id, _external=True)
+        except RuntimeError:
+            return f"https://yonca-sdc.com/certificate/{self.id}"
+
+    def __repr__(self):
+        return f'<Certificate {self.cert_id_display}>'

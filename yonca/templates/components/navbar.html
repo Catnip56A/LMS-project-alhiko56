@@ -56,6 +56,8 @@
                         <a class="dropdown-item" href="/admin/">{{ _('Admin Panel') }}</a>
                         <div class="dropdown-divider"></div>
                         {% endif %}
+                        <a class="dropdown-item" href="{{ url_for('main.profile') }}">{{ _('My Profile') }}</a>
+                        <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="{{ url_for('auth.google_account_info') }}" style="color: #3a6d31; font-weight: 600;">{{ _('Link Google Account') }}</a>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="{{ url_for('auth.change_password') }}">{{ _('Change Password') }}</a>
@@ -114,6 +116,7 @@
         <div id="mobile-user-info" style="margin-top: 1.5rem; text-align: center; display: none;">
             <p style="color: #353e45; margin-bottom: 1rem;">{{ _('Welcome') }}, <span id="mobile-user-name"></span>!</p>
             <button id="mobile-admin-btn" onclick="window.location.href='/admin'" style="display: none;">{{ _('Admin') }}</button>
+            <a href="{{ url_for('main.profile') }}" class="mobile-action-link">{{ _('My Profile') }}</a>
             <a href="{{ url_for('auth.google_account_info') }}" class="mobile-action-link">{{ _('Link Google Account') }}</a>
             <a href="{{ url_for('auth.change_password') }}" class="mobile-action-link">{{ _('Change Password') }}</a>
             <button onclick="window.location.href='/logout'">{{ _('Logout') }}</button>

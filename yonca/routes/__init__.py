@@ -1377,6 +1377,51 @@ def course_page_enrolled(course_id):
             flash(f'Visibility toggled for {toggled_count} items!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
+        elif action == 'give_certificate' and (current_user.is_teacher or current_user.is_admin):
+            from yonca.models import Certificate, User
+            from yonca.certificate_generator import generate_certificate_image
+            from datetime import datetime as _dt
+            student_id = request.form.get('student_id', type=int)
+            student = User.query.get(student_id)
+            if not student:
+                flash('Student not found.', 'error')
+            elif not student.first_name or not student.last_name:
+                flash(f'{student.username} has not set their full name yet.', 'warning')
+            elif Certificate.query.filter_by(user_id=student_id, course_id=course.id, revoked=False).first():
+                flash('Certificate already issued to this student.', 'info')
+            else:
+                cert = Certificate(
+                    user_id=student_id,
+                    course_id=course.id,
+                    issued_by=current_user.id,
+                    issued_at=_dt.utcnow(),
+                    student_name=f"{student.first_name} {student.last_name}",
+                )
+                db.session.add(cert)
+                db.session.commit()
+                try:
+                    generate_certificate_image(cert)
+                except Exception as e:
+                    flash(f'Certificate issued but image generation failed: {e}', 'warning')
+                else:
+                    flash(f'Certificate issued to {cert.student_name}.', 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+        elif action == 'revoke_certificate' and current_user.is_admin:
+            from yonca.models import Certificate
+            from yonca.certificate_generator import delete_certificate_files
+            from datetime import datetime as _dt
+            student_id = request.form.get('student_id', type=int)
+            cert = Certificate.query.filter_by(user_id=student_id, course_id=course.id, revoked=False).first()
+            if cert:
+                cert.revoked = True
+                cert.revoked_by = current_user.id
+                cert.revoked_at = _dt.utcnow()
+                db.session.commit()
+                delete_certificate_files(cert.id)
+                flash('Certificate revoked.', 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
     # GET request - render the page
     from flask_babel import get_locale
     current_locale = str(get_locale())
@@ -1473,7 +1518,22 @@ def course_page_enrolled(course_id):
     
     # Generate folder paths for dropdown menus
     folder_paths = {folder.id: folder.title for folder in content_folders}
-    
+
+    # Certificate data
+    from yonca.models import Certificate
+    my_certificate = None
+    cert_students = []
+    if current_user.is_authenticated:
+        if is_teacher_or_admin:
+            enrolled_students = course.users
+            for student in enrolled_students:
+                cert = Certificate.query.filter_by(user_id=student.id, course_id=course.id, revoked=False).first()
+                cert_students.append({'user': student, 'certificate': cert})
+        else:
+            my_certificate = Certificate.query.filter_by(
+                user_id=current_user.id, course_id=course.id, revoked=False
+            ).first()
+
     return render_template('course_page_enrolled.html',
         course=course,
         home_content=home_content,
@@ -1499,6 +1559,8 @@ def course_page_enrolled(course_id):
         translated_page_features=translated_page_features,
         youtube_guide_video_id=youtube_guide_video_id,
         datetime=dt,
+        my_certificate=my_certificate,
+        cert_students=cert_students,
     )
 
 
@@ -2129,7 +2191,7 @@ def edit_course_page(slug):
         elif action == 'decline_submission' and (current_user.is_admin):
             from yonca.models import CourseAssignmentSubmission
             submission_id = request.form.get('submission_id')
-            
+
             submission = CourseAssignmentSubmission.query.get(submission_id)
             if submission:
                 # Toggle declined status
@@ -2139,7 +2201,7 @@ def edit_course_page(slug):
                     flash('Submission declined successfully!', 'success')
                 else:
                     flash('Declined status cleared!', 'success')
-        
+
         return redirect(request.url, code=303)
     
     # Get all course data
@@ -2278,3 +2340,75 @@ def debug_locale():
     }
     return jsonify(result)
 
+
+# ── Certificate download routes ───────────────────────────────────────────────
+
+@main_bp.route('/certificate/image/<cert_id>')
+def certificate_image(cert_id):
+    """Serve certificate image, regenerating if the file is missing."""
+    from flask import send_file
+    from yonca.models import Certificate
+    cert = Certificate.query.get_or_404(cert_id)
+    if cert.revoked:
+        abort(410)
+    from yonca.certificate_generator import get_or_generate_image
+    path = get_or_generate_image(cert)
+    return send_file(path, mimetype='image/png')
+
+
+@main_bp.route('/certificate/download/<cert_id>/image')
+@login_required
+def download_certificate_image(cert_id):
+    from flask import send_file
+    from yonca.models import Certificate
+    cert = Certificate.query.get_or_404(cert_id)
+    if cert.user_id != current_user.id and not (current_user.is_admin or current_user.is_teacher):
+        abort(403)
+    if cert.revoked:
+        abort(410)
+    from yonca.certificate_generator import get_or_generate_image
+    path = get_or_generate_image(cert)
+    return send_file(path, mimetype='image/png', as_attachment=True,
+                     download_name=f"Certificate-{cert.cert_id_display}.png")
+
+
+@main_bp.route('/certificate/download/<cert_id>/pdf')
+@login_required
+def download_certificate_pdf(cert_id):
+    from flask import send_file
+    from yonca.models import Certificate
+    cert = Certificate.query.get_or_404(cert_id)
+    if cert.user_id != current_user.id and not (current_user.is_admin or current_user.is_teacher):
+        abort(403)
+    if cert.revoked:
+        abort(410)
+    from yonca.certificate_generator import get_certificate_pdf_path
+    path = get_certificate_pdf_path(cert)
+    return send_file(path, mimetype='application/pdf', as_attachment=True,
+                     download_name=f"Certificate-{cert.cert_id_display}.pdf")
+
+
+@main_bp.route('/certificate/<cert_id>')
+def verify_certificate(cert_id):
+    from yonca.models import Certificate, HomeContent
+    cert = Certificate.query.get_or_404(cert_id)
+    home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
+    if cert.revoked:
+        return render_template('certificate_revoked.html', cert=cert, home_content=home_content), 410
+    return render_template('certificate_verify.html', cert=cert, home_content=home_content)
+
+
+# ── User profile (name fields) ────────────────────────────────────────────────
+
+@main_bp.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    from yonca.models import db, HomeContent
+    home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()
+    if request.method == 'POST':
+        current_user.first_name = request.form.get('first_name', '').strip() or None
+        current_user.last_name = request.form.get('last_name', '').strip() or None
+        db.session.commit()
+        flash('Profile updated.')
+        return redirect(url_for('main.profile'))
+    return render_template('profile.html', home_content=home_content)

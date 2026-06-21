@@ -1,0 +1,613 @@
+{% extends 'admin/master.html' %}
+
+{% block head %}
+{{ super() }}
+<style>
+.content-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 10px;
+}
+.section-title { color: #495057; margin: 0; font-size: 1.2rem; font-weight: 600; }
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.field-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6c757d;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.field-group input[type="number"] {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: border-color 0.15s;
+}
+.field-group input.overridden {
+    border-color: #28a745;
+    background: #f0fff4;
+}
+.field-group input.overridden + .hint { color: #28a745; }
+.color-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.color-row .field-group { flex: 1; }
+.hint { font-size: 10px; color: #aaa; margin-top: 2px; }
+.course-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 6px;
+    background: #fff;
+}
+.override-badge {
+    display: inline-block;
+    font-size: 11px;
+    background: #28a745;
+    color: white;
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+.btn-save {
+    background: #337a2c;
+    color: white;
+    border: none;
+    padding: 9px 22px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-right: 8px;
+}
+.btn-save:hover { background: #1e5919; }
+.btn-preview {
+    background: #17a2b8;
+    color: white;
+    border: none;
+    padding: 9px 22px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.btn-preview:hover { background: #138496; }
+.btn-remove-override {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.btn-remove-override:hover { background: #c82333; }
+
+/* Modal */
+#previewModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+#previewModal.open { display: flex; }
+#previewModalInner {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    position: relative;
+}
+#previewModalInner img {
+    max-width: 100%;
+    border-radius: 6px;
+    display: block;
+}
+#previewClose {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-size: 22px;
+    cursor: pointer;
+    color: #555;
+    line-height: 1;
+}
+#previewSpinner {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    font-size: 14px;
+    color: #555;
+}
+#previewError {
+    display: none;
+    color: #dc3545;
+    padding: 20px;
+    font-size: 13px;
+}
+
+/* Overrides table */
+.ov-table th, .ov-table td {
+    padding: 7px 10px;
+    font-size: 12px;
+    border-bottom: 1px solid #dee2e6;
+    white-space: nowrap;
+}
+.ov-table th { background: #f8f9fa; font-weight: 600; }
+.ov-no-override { color: #ccc; font-style: italic; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid" style="padding: 20px;">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category if category != 'message' else 'info' }}" style="padding:10px 14px;border-radius:4px;margin-bottom:12px;">{{ message }}</div>
+    {% endfor %}
+    {% endwith %}
+
+    <div class="content-section">
+        <div class="section-header">
+            <h4 class="section-title"><i class="fa fa-certificate"></i> Certificate Overlay Tuning</h4>
+        </div>
+        <p style="color:#6c757d;font-size:13px;margin-bottom:16px;">
+            All values are <strong>fractions of image dimensions</strong> (0.0 – 1.0), except RGB color channels (0 – 255).
+            Select <em>Default</em> to set the baseline for every course, or pick a specific course to override only that one.
+            <span style="color:#28a745;font-weight:600;">Green fields</span> indicate values that differ from the default for the selected course.
+        </p>
+
+        <form method="post" id="tuningForm">
+            <label style="font-weight:600;font-size:13px;">Template image:</label>
+            <div style="margin-bottom:18px;">
+                <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;" id="templatePicker">
+                    {% for fname in template_files %}
+                    <label id="tpl_label_{{ loop.index }}" style="cursor:pointer;border:2px solid #dee2e6;border-radius:6px;overflow:hidden;transition:border-color 0.15s;max-width:180px;">
+                        <input type="radio" name="template_file" value="{{ fname }}"
+                               id="tpl_{{ loop.index }}"
+                               style="display:none;"
+                               onchange="onTemplateChange(this)">
+                        <img src="{{ url_for('static', filename='certificates/' ~ fname) }}"
+                             style="width:160px;height:100px;object-fit:cover;display:block;">
+                        <div style="padding:4px 6px;font-size:11px;color:#555;text-align:center;background:#f8f9fa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            {{ fname }}
+                        </div>
+                    </label>
+                    {% else %}
+                    <p style="color:#aaa;font-size:13px;">No image files found in <code>static/certificates/</code>.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <label style="font-weight:600;font-size:13px;">Apply to:</label>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                <select class="course-select" name="course_id" id="courseSelect" style="margin-bottom:0;flex:1;">
+                    <option value="default">— Default (all courses) —</option>
+                    {% for course in courses %}
+                    <option value="{{ course.id }}"
+                        {% if raw_json.get(course.id|string) %}data-has-override="1"{% endif %}>
+                        {{ course.title }}
+                        {% if raw_json.get(course.id|string) %}(has override){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="button" class="btn-remove-override" id="removeOverrideBtn"
+                        style="display:none;" onclick="removeOverride()">
+                    Remove Override
+                </button>
+            </div>
+
+            <h6 style="font-weight:600;color:#495057;margin-bottom:10px;">Name text</h6>
+            <div class="field-grid">
+                <div class="field-group">
+                    <label>y_name</label>
+                    <input type="number" name="y_name" id="y_name" step="0.001" min="0" max="1">
+                    <div class="hint">Vertical position of name (fraction of H)</div>
+                </div>
+                <div class="field-group">
+                    <label>font_name_size</label>
+                    <input type="number" name="font_name_size" id="font_name_size" step="0.001" min="0.01" max="0.5">
+                    <div class="hint">Font size as fraction of H</div>
+                </div>
+            </div>
+
+            <h6 style="font-weight:600;color:#495057;margin-bottom:10px;">Name color (RGB 0 – 255)</h6>
+            <div class="color-row">
+                <div class="field-group">
+                    <label>R</label>
+                    <input type="number" name="name_color_r" id="name_color_r" step="1" min="0" max="255">
+                </div>
+                <div class="field-group">
+                    <label>G</label>
+                    <input type="number" name="name_color_g" id="name_color_g" step="1" min="0" max="255">
+                </div>
+                <div class="field-group">
+                    <label>B</label>
+                    <input type="number" name="name_color_b" id="name_color_b" step="1" min="0" max="255">
+                </div>
+            </div>
+
+            <h6 style="font-weight:600;color:#495057;margin-bottom:10px;">Course name</h6>
+            <div class="field-group" style="margin-bottom:12px;">
+                <label>course_label</label>
+                <input type="text" name="course_label" id="course_label"
+                       style="width:100%;padding:6px 8px;border:1px solid #ced4da;border-radius:4px;font-size:13px;"
+                       placeholder="Leave empty to use the actual course title">
+                <div class="hint">Custom text printed on the certificate. If blank, uses the course title from the database.</div>
+            </div>
+            <div class="field-grid">
+                <div class="field-group">
+                    <label>x_course</label>
+                    <input type="number" name="x_course" id="x_course" step="0.001" min="0" max="1">
+                    <div class="hint">Horizontal center (0.5 = centered)</div>
+                </div>
+                <div class="field-group">
+                    <label>y_course</label>
+                    <input type="number" name="y_course" id="y_course" step="0.001" min="0" max="1">
+                    <div class="hint">Vertical position (fraction of H)</div>
+                </div>
+                <div class="field-group">
+                    <label>font_course_size</label>
+                    <input type="number" name="font_course_size" id="font_course_size" step="0.001" min="0.005" max="0.2">
+                    <div class="hint">Font size (fraction of H)</div>
+                </div>
+            </div>
+            <h6 style="font-weight:600;color:#6c757d;font-size:12px;margin-bottom:8px;">Course name color (RGB)</h6>
+            <div class="color-row" style="margin-bottom:16px;">
+                <div class="field-group">
+                    <label>R</label>
+                    <input type="number" name="course_color_r" id="course_color_r" step="1" min="0" max="255">
+                </div>
+                <div class="field-group">
+                    <label>G</label>
+                    <input type="number" name="course_color_g" id="course_color_g" step="1" min="0" max="255">
+                </div>
+                <div class="field-group">
+                    <label>B</label>
+                    <input type="number" name="course_color_b" id="course_color_b" step="1" min="0" max="255">
+                </div>
+            </div>
+
+            <h6 style="font-weight:600;color:#495057;margin-bottom:10px;">Date</h6>
+            <div class="field-grid">
+                <div class="field-group">
+                    <label>x_meta</label>
+                    <input type="number" name="x_meta" id="x_meta" step="0.001" min="0" max="1">
+                    <div class="hint">Left edge (fraction of W)</div>
+                </div>
+                <div class="field-group">
+                    <label>y_date</label>
+                    <input type="number" name="y_date" id="y_date" step="0.001" min="0" max="1">
+                    <div class="hint">Vertical position (fraction of H)</div>
+                </div>
+            </div>
+            <h6 style="font-weight:600;color:#6c757d;font-size:12px;margin-bottom:8px;">Date color (RGB)</h6>
+            <div class="color-row" style="margin-bottom:16px;">
+                <div class="field-group">
+                    <label>R</label>
+                    <input type="number" name="date_color_r" id="date_color_r" step="1" min="0" max="255">
+                </div>
+                <div class="field-group">
+                    <label>G</label>
+                    <input type="number" name="date_color_g" id="date_color_g" step="1" min="0" max="255">
+                </div>
+                <div class="field-group">
+                    <label>B</label>
+                    <input type="number" name="date_color_b" id="date_color_b" step="1" min="0" max="255">
+                </div>
+            </div>
+
+            <h6 style="font-weight:600;color:#495057;margin-bottom:10px;">Certificate ID</h6>
+            <div class="field-grid">
+                <div class="field-group">
+                    <label>x_cert_id</label>
+                    <input type="number" name="x_cert_id" id="x_cert_id" step="0.001" min="0" max="1">
+                    <div class="hint">Left edge (fraction of W)</div>
+                </div>
+                <div class="field-group">
+                    <label>y_cert_id</label>
+                    <input type="number" name="y_cert_id" id="y_cert_id" step="0.001" min="0" max="1">
+                    <div class="hint">Vertical position (fraction of H)</div>
+                </div>
+            </div>
+            <h6 style="font-weight:600;color:#6c757d;font-size:12px;margin-bottom:8px;">Certificate ID color (RGB)</h6>
+            <div class="color-row" style="margin-bottom:16px;">
+                <div class="field-group">
+                    <label>R</label>
+                    <input type="number" name="cert_id_color_r" id="cert_id_color_r" step="1" min="0" max="255">
+                </div>
+                <div class="field-group">
+                    <label>G</label>
+                    <input type="number" name="cert_id_color_g" id="cert_id_color_g" step="1" min="0" max="255">
+                </div>
+                <div class="field-group">
+                    <label>B</label>
+                    <input type="number" name="cert_id_color_b" id="cert_id_color_b" step="1" min="0" max="255">
+                </div>
+            </div>
+
+            <h6 style="font-weight:600;color:#495057;margin-bottom:10px;">QR code</h6>
+            <div class="field-grid" style="margin-bottom:20px;">
+                <div class="field-group">
+                    <label>x_qr</label>
+                    <input type="number" name="x_qr" id="x_qr" step="0.001" min="0" max="1">
+                    <div class="hint">Left edge (fraction of W)</div>
+                </div>
+                <div class="field-group">
+                    <label>y_qr</label>
+                    <input type="number" name="y_qr" id="y_qr" step="0.001" min="0" max="1">
+                    <div class="hint">Top edge (fraction of H)</div>
+                </div>
+                <div class="field-group">
+                    <label>qr_size</label>
+                    <input type="number" name="qr_size" id="qr_size" step="0.001" min="0.01" max="0.5">
+                    <div class="hint">Side length (fraction of H)</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-save">Save Tuning</button>
+            <button type="button" class="btn-preview" onclick="showPreview()">Preview Certificate</button>
+        </form>
+    </div>
+
+    <!-- Per-course overrides table -->
+    <div class="content-section">
+        <div class="section-header">
+            <h4 class="section-title">Per-course Overrides</h4>
+        </div>
+        {% set overridden_courses = [] %}
+        {% for course in courses %}
+            {% if raw_json.get(course.id|string) %}
+                {% set _ = overridden_courses.append(course) %}
+            {% endif %}
+        {% endfor %}
+
+        {% if overridden_courses %}
+        <table class="ov-table" style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    {% for field in field_names %}
+                    <th>{{ field }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in overridden_courses %}
+                {% set t = course_tunings[course.id] %}
+                {% set raw = raw_json.get(course.id|string, {}) %}
+                <tr>
+                    <td><strong>{{ course.title }}</strong></td>
+                    {% for field in field_names %}
+                    <td {% if field in raw %}style="color:#28a745;font-weight:600;"{% endif %}>
+                        {{ t[field] }}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:#aaa;font-size:13px;">No per-course overrides set. All courses use the default tuning.</p>
+        {% endif %}
+
+        <!-- Default row always shown -->
+        <table class="ov-table" style="width:100%;border-collapse:collapse;margin-top:16px;">
+            <thead>
+                <tr>
+                    <th>Default</th>
+                    {% for field in field_names %}
+                    <th>{{ field }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background:#fffde7;">
+                    <td style="font-weight:600;">Default</td>
+                    {% for field in field_names %}
+                    <td style="font-family:monospace;font-size:11px;">{{ defaults[field] }}</td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Preview modal -->
+<div id="previewModal">
+    <div id="previewModalInner">
+        <span id="previewClose" onclick="closePreview()">&times;</span>
+        <h5 style="margin:0 0 14px;font-size:15px;color:#333;">Certificate Preview</h5>
+        <div id="previewSpinner">Generating preview&hellip;</div>
+        <div id="previewError"></div>
+        <img id="previewImg" src="" alt="Preview" style="display:none;">
+        <p style="font-size:11px;color:#aaa;margin-top:10px;margin-bottom:0;">
+            Preview uses sample data. Save to apply changes.
+        </p>
+    </div>
+</div>
+
+<script>
+const courseData   = {{ course_tunings | tojson }};
+const rawJson      = {{ raw_json | tojson }};
+const defaults     = {{ defaults | tojson }};
+const previewUrl   = {{ preview_url | tojson }};
+
+function populateForm(t) {
+    document.getElementById('y_name').value            = t.y_name;
+    document.getElementById('font_name_size').value    = t.font_name_size;
+    document.getElementById('name_color_r').value      = t.name_color[0];
+    document.getElementById('name_color_g').value      = t.name_color[1];
+    document.getElementById('name_color_b').value      = t.name_color[2];
+    document.getElementById('course_label').value      = t.course_label || '';
+    document.getElementById('x_course').value          = t.x_course;
+    document.getElementById('y_course').value          = t.y_course;
+    document.getElementById('font_course_size').value  = t.font_course_size;
+    document.getElementById('course_color_r').value    = t.course_color[0];
+    document.getElementById('course_color_g').value    = t.course_color[1];
+    document.getElementById('course_color_b').value    = t.course_color[2];
+    document.getElementById('x_meta').value            = t.x_meta;
+    document.getElementById('y_date').value            = t.y_date;
+    document.getElementById('date_color_r').value      = t.date_color[0];
+    document.getElementById('date_color_g').value      = t.date_color[1];
+    document.getElementById('date_color_b').value      = t.date_color[2];
+    document.getElementById('x_cert_id').value         = t.x_cert_id;
+    document.getElementById('y_cert_id').value         = t.y_cert_id;
+    document.getElementById('cert_id_color_r').value   = t.cert_id_color[0];
+    document.getElementById('cert_id_color_g').value   = t.cert_id_color[1];
+    document.getElementById('cert_id_color_b').value   = t.cert_id_color[2];
+    document.getElementById('x_qr').value              = t.x_qr;
+    document.getElementById('y_qr').value              = t.y_qr;
+    document.getElementById('qr_size').value           = t.qr_size;
+}
+
+function highlightOverrides(courseId) {
+    const rawOverride = (courseId === 'default') ? {} : (rawJson[courseId] || {});
+    const inputs = document.querySelectorAll('#tuningForm input[type="number"]');
+    inputs.forEach(inp => inp.classList.remove('overridden'));
+
+    if (courseId === 'default') return;
+
+    if ('course_label' in rawOverride) {
+        const lbl = document.getElementById('course_label');
+        if (lbl) lbl.style.borderColor = '#28a745';
+    } else {
+        const lbl = document.getElementById('course_label');
+        if (lbl) lbl.style.borderColor = '';
+    }
+    const scalarFields = [
+        'y_name','font_name_size',
+        'x_course','y_course','font_course_size',
+        'x_meta','y_date','x_cert_id','y_cert_id',
+        'x_qr','y_qr','qr_size'
+    ];
+    scalarFields.forEach(f => {
+        if (f in rawOverride) document.getElementById(f).classList.add('overridden');
+    });
+    [['name_color',    ['name_color_r','name_color_g','name_color_b']],
+     ['course_color',  ['course_color_r','course_color_g','course_color_b']],
+     ['date_color',    ['date_color_r','date_color_g','date_color_b']],
+     ['cert_id_color', ['cert_id_color_r','cert_id_color_g','cert_id_color_b']],
+    ].forEach(([key, ids]) => {
+        if (key in rawOverride) ids.forEach(id => document.getElementById(id).classList.add('overridden'));
+    });
+}
+
+function updateRemoveBtn(courseId) {
+    const btn = document.getElementById('removeOverrideBtn');
+    const hasOverride = courseId !== 'default' && rawJson[courseId];
+    btn.style.display = hasOverride ? 'inline-block' : 'none';
+}
+
+function selectTemplate(filename) {
+    document.querySelectorAll('#templatePicker label').forEach(lbl => {
+        lbl.style.borderColor = '#dee2e6';
+    });
+    if (!filename) return;
+    document.querySelectorAll('#templatePicker input[type="radio"]').forEach(inp => {
+        if (inp.value === filename) {
+            inp.checked = true;
+            inp.closest('label').style.borderColor = '#337a2c';
+        }
+    });
+}
+
+function onTemplateChange(inp) {
+    selectTemplate(inp.value);
+}
+
+document.getElementById('courseSelect').addEventListener('change', function() {
+    const courseId = this.value;
+    const t = (courseId === 'default') ? defaults : (courseData[courseId] || defaults);
+    populateForm(t);
+    highlightOverrides(courseId);
+    updateRemoveBtn(courseId);
+    selectTemplate(t.template_file || '');
+});
+
+function removeOverride() {
+    const courseId = document.getElementById('courseSelect').value;
+    if (courseId === 'default') return;
+    if (!confirm('Remove per-course override for this course? It will revert to default tuning.')) return;
+    const f = document.createElement('form');
+    f.method = 'post';
+    f.action = previewUrl.replace('/preview', '/remove-override');
+    const inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = 'course_id';
+    inp.value = courseId;
+    f.appendChild(inp);
+    document.body.appendChild(f);
+    f.submit();
+}
+
+function showPreview() {
+    document.getElementById('previewModal').classList.add('open');
+    document.getElementById('previewImg').style.display = 'none';
+    document.getElementById('previewError').style.display = 'none';
+    document.getElementById('previewSpinner').style.display = 'block';
+
+    const form = document.getElementById('tuningForm');
+    const data = new FormData(form);
+
+    fetch(previewUrl, { method: 'POST', body: data })
+        .then(resp => {
+            if (!resp.ok) return resp.text().then(t => { throw new Error(t); });
+            return resp.blob();
+        })
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const img = document.getElementById('previewImg');
+            img.src = url;
+            img.style.display = 'block';
+            document.getElementById('previewSpinner').style.display = 'none';
+        })
+        .catch(err => {
+            document.getElementById('previewSpinner').style.display = 'none';
+            const el = document.getElementById('previewError');
+            el.style.display = 'block';
+            el.textContent = 'Preview failed: ' + err.message;
+        });
+}
+
+function closePreview() {
+    document.getElementById('previewModal').classList.remove('open');
+    const img = document.getElementById('previewImg');
+    if (img.src) URL.revokeObjectURL(img.src);
+    img.src = '';
+}
+
+document.getElementById('previewModal').addEventListener('click', function(e) {
+    if (e.target === this) closePreview();
+});
+
+// Init form with defaults on load
+populateForm(defaults);
+selectTemplate(defaults.template_file || '');
+</script>
+{% endblock %}

@@ -585,6 +585,9 @@
         <li class="nav-item">
             <a class="nav-link" id="reviews-tab" data-toggle="tab" href="#reviews" role="tab">{{ _('Reviews') }}</a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" id="certificate-tab" data-toggle="tab" href="#certificate" role="tab">{{ _('Certificate') }}</a>
+        </li>
     </ul>
     </div>
 
@@ -1639,6 +1642,119 @@
                 </div>
                 {% endif %}
             </div>
+        </div>
+    </div>
+
+    <!-- Certificate Tab -->
+    <div class="tab-pane fade" id="certificate" role="tabpanel">
+        <div class="mt-4">
+        {% if is_teacher_or_admin %}
+            <!-- Admin/Teacher certificate management -->
+            <h4>{{ _('Certificates') }} — {{ course.title }}</h4>
+            {% if not cert_students %}
+                <p class="text-muted">{{ _('No enrolled students yet.') }}</p>
+            {% else %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>{{ _('Student') }}</th>
+                            <th>{{ _('Full Name') }}</th>
+                            <th>{{ _('Status') }}</th>
+                            <th>{{ _('Issued') }}</th>
+                            <th>{{ _('Actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in cert_students %}
+                        <tr>
+                            <td>{{ item.user.username }}</td>
+                            <td>
+                                {% if item.user.first_name and item.user.last_name %}
+                                    {{ item.user.first_name }} {{ item.user.last_name }}
+                                {% else %}
+                                    <span class="text-warning">{{ _('Name not set') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.certificate %}
+                                    <span class="badge badge-success">{{ _('Issued') }}</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ _('Not issued') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.certificate %}
+                                    {{ item.certificate.issued_at.strftime('%d %b %Y') }}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>
+                                {% if not item.certificate %}
+                                <form method="POST" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
+                                    <input type="hidden" name="action" value="give_certificate">
+                                    <input type="hidden" name="student_id" value="{{ item.user.id }}">
+                                    <button type="submit" class="btn btn-sm btn-success"
+                                        {% if not item.user.first_name or not item.user.last_name %}disabled title="{{ _('Student must set their full name first') }}"{% endif %}>
+                                        {{ _('Give Certificate') }}
+                                    </button>
+                                </form>
+                                {% else %}
+                                <div class="d-flex flex-wrap" style="gap:4px;">
+                                    <a href="{{ url_for('main.download_certificate_image', cert_id=item.certificate.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('Image') }}</a>
+                                    <a href="{{ url_for('main.download_certificate_pdf', cert_id=item.certificate.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('PDF') }}</a>
+                                    {% if current_user.is_admin %}
+                                    <form method="POST" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}"
+                                          onsubmit="return confirm('{{ _('Revoke this certificate?') }}')">
+                                        <input type="hidden" name="action" value="revoke_certificate">
+                                        <input type="hidden" name="student_id" value="{{ item.user.id }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">{{ _('Revoke') }}</button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+        {% else %}
+            <!-- Student certificate view -->
+            {% if not my_certificate %}
+            <div class="text-center py-5">
+                <div style="font-size:3rem;">🔒</div>
+                <h4 class="mt-3">{{ _('Certificate Not Yet Issued') }}</h4>
+                <p class="text-muted">{{ _('Your certificate will appear here once your instructor marks you as complete.') }}</p>
+                {% if not current_user.first_name or not current_user.last_name %}
+                <div class="alert alert-warning mt-3">
+                    {{ _('Please') }} <a href="{{ url_for('main.profile') }}">{{ _('set your full name in your profile') }}</a> {{ _('so it can appear on your certificate when issued.') }}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <h4>{{ _('Your Certificate') }}</h4>
+            <p>{{ _('Congratulations on completing') }} <strong>{{ course.title }}</strong>!</p>
+            <div class="text-center my-3">
+                <img src="{{ url_for('main.certificate_image', cert_id=my_certificate.id) }}"
+                     alt="{{ _('Your Certificate') }}"
+                     style="max-width:100%; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.15);">
+            </div>
+            <dl class="row mt-3">
+                <dt class="col-sm-3">{{ _('Certificate ID') }}</dt>
+                <dd class="col-sm-9">{{ my_certificate.cert_id_display }}</dd>
+                <dt class="col-sm-3">{{ _('Issued') }}</dt>
+                <dd class="col-sm-9">{{ my_certificate.issued_at.strftime('%d %B %Y') }}</dd>
+                <dt class="col-sm-3">{{ _('Verify') }}</dt>
+                <dd class="col-sm-9"><a href="{{ my_certificate.verify_url }}" target="_blank">{{ my_certificate.verify_url }}</a></dd>
+            </dl>
+            <div class="d-flex flex-wrap mt-3" style="gap:8px;">
+                <a href="{{ url_for('main.download_certificate_image', cert_id=my_certificate.id) }}" class="btn btn-outline-secondary">⬇ {{ _('Download as Image') }}</a>
+                <a href="{{ url_for('main.download_certificate_pdf', cert_id=my_certificate.id) }}" class="btn btn-success">⬇ {{ _('Download as PDF') }}</a>
+            </div>
+            {% endif %}
+        {% endif %}
         </div>
     </div>
 

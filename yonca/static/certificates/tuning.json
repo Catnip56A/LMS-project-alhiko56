@@ -1,0 +1,64 @@
+{
+  "default": {
+    "y_name": 0.26,
+    "font_name_size": 0.09,
+    "name_color": [
+      30,
+      30,
+      80
+    ],
+    "x_meta": 0.265,
+    "y_date": 0.91,
+    "date_color": [
+      40,
+      40,
+      40
+    ],
+    "x_cert_id": 0.265,
+    "y_cert_id": 0.933,
+    "cert_id_color": [
+      40,
+      40,
+      40
+    ],
+    "x_qr": 0.15,
+    "y_qr": 0.88,
+    "qr_size": 0.1
+  },
+  "1": {
+    "y_name": 0.26,
+    "font_name_size": 0.09,
+    "name_color": [
+      30,
+      30,
+      80
+    ],
+    "course_label": "",
+    "x_course": 0.498,
+    "y_course": 0.43,
+    "font_course_size": 0.078,
+    "course_color": [
+      40,
+      40,
+      40
+    ],
+    "x_meta": 0.335,
+    "y_date": 0.9,
+    "date_color": [
+      30,
+      30,
+      80
+    ],
+    "x_cert_id": 0.335,
+    "y_cert_id": 0.93,
+    "cert_id_color": [
+      30,
+      30,
+      80
+    ],
+    "x_qr": 0.15,
+    "y_qr": 0.88,
+    "qr_size": 0.1,
+    "template_file": "moxo_template.png"
+  }
+}

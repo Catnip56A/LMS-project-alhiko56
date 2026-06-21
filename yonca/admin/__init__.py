@@ -1506,6 +1506,136 @@ class TranslateContentView(BaseView):
             print(f"Delete translations error: {error_details}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
+class CertificateTuningView(BaseView):
+    """Admin view for per-course certificate overlay tuning."""
+
+    def is_accessible(self):
+        return current_user.is_authenticated and current_user.is_admin
+
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect(url_for('auth.login'))
+
+    @staticmethod
+    def _parse_tuning(form, defaults):
+        def _f(key):
+            return float(form.get(key, defaults.get(key, 0)))
+        return {
+            'y_name':         _f('y_name'),
+            'font_name_size': _f('font_name_size'),
+            'name_color': [
+                int(form.get('name_color_r', 30)),
+                int(form.get('name_color_g', 30)),
+                int(form.get('name_color_b', 80)),
+            ],
+            'course_label':    (form.get('course_label') or '').strip(),
+            'x_course':        _f('x_course'),
+            'y_course':        _f('y_course'),
+            'font_course_size': _f('font_course_size'),
+            'course_color': [
+                int(form.get('course_color_r', 40)),
+                int(form.get('course_color_g', 40)),
+                int(form.get('course_color_b', 40)),
+            ],
+            'x_meta':   _f('x_meta'),
+            'y_date':   _f('y_date'),
+            'date_color': [
+                int(form.get('date_color_r', 40)),
+                int(form.get('date_color_g', 40)),
+                int(form.get('date_color_b', 40)),
+            ],
+            'x_cert_id':  _f('x_cert_id'),
+            'y_cert_id':  _f('y_cert_id'),
+            'cert_id_color': [
+                int(form.get('cert_id_color_r', 40)),
+                int(form.get('cert_id_color_g', 40)),
+                int(form.get('cert_id_color_b', 40)),
+            ],
+            'x_qr':    _f('x_qr'),
+            'y_qr':    _f('y_qr'),
+            'qr_size': _f('qr_size'),
+            'template_file': os.path.basename(form.get('template_file', '') or ''),
+        }
+
+    @expose('/preview', methods=['POST'])
+    def preview(self):
+        from flask import Response
+        from yonca.certificate_generator import generate_preview_bytes, _DEFAULTS
+        values = self._parse_tuning(request.form, _DEFAULTS)
+        try:
+            png = generate_preview_bytes(values)
+            return Response(png, mimetype='image/png')
+        except FileNotFoundError as e:
+            return str(e), 404
+
+    @expose('/remove-override', methods=['POST'])
+    def remove_override(self):
+        import json as _json
+        from yonca.certificate_generator import TUNING_PATH, delete_certificate_files
+        from yonca.models import Certificate
+        course_id = request.form.get('course_id', '')
+        if course_id and course_id != 'default':
+            try:
+                with open(TUNING_PATH, encoding='utf-8') as f:
+                    data = _json.load(f)
+            except (OSError, _json.JSONDecodeError):
+                data = {}
+            if course_id in data:
+                del data[course_id]
+                with open(TUNING_PATH, 'w', encoding='utf-8') as f:
+                    _json.dump(data, f, indent=2)
+            # Clear cached images for that course
+            for cert in Certificate.query.filter_by(course_id=int(course_id)).all():
+                delete_certificate_files(cert.id)
+            flash('Override removed. Course will now use default tuning.', 'success')
+        return redirect(url_for('certificate_tuning.index'))
+
+    @expose('/', methods=['GET', 'POST'])
+    def index(self):
+        from yonca.certificate_generator import (
+            load_tuning, save_tuning, _DEFAULTS, delete_certificate_files, list_templates, TUNING_PATH
+        )
+        from yonca.models import Certificate
+        import json as _json
+
+        courses = Course.query.order_by(Course.title).all()
+
+        if request.method == 'POST':
+            course_id = request.form.get('course_id', 'default')
+            values = self._parse_tuning(request.form, _DEFAULTS)
+            save_tuning(course_id, values)
+
+            if course_id == 'default':
+                certs = Certificate.query.all()
+            else:
+                certs = Certificate.query.filter_by(course_id=int(course_id)).all()
+            for cert in certs:
+                delete_certificate_files(cert.id)
+
+            flash('Tuning saved. Cached certificate images cleared.', 'success')
+            return redirect(url_for('certificate_tuning.index'))
+
+        try:
+            with open(TUNING_PATH) as _f:
+                raw_json = _json.load(_f)
+        except (OSError, _json.JSONDecodeError):
+            raw_json = {}
+
+        course_tunings = {}
+        for course in courses:
+            course_tunings[course.id] = load_tuning(course.id)
+
+        return self.render(
+            'admin/certificate_tuning.html',
+            courses=courses,
+            course_tunings=course_tunings,
+            raw_json=raw_json,
+            defaults=load_tuning(),
+            field_names=list(_DEFAULTS.keys()),
+            preview_url=url_for('certificate_tuning.preview'),
+            template_files=list_templates(),
+        )
+
+
 def init_admin(app):
     """Initialize admin interface with all views"""
     admin = Admin(app, name='Yonca Admin', index_view=AdminIndexView())
@@ -1519,6 +1649,7 @@ def init_admin(app):
     admin.add_view(AboutCompanyView(name='About Company', endpoint='about_company'))
     admin.add_view(GoogleLoginView(name='Google Login', endpoint='google_login'))
     admin.add_view(LimitationsView(name='Limitations', endpoint='limitations'))
+    admin.add_view(CertificateTuningView(name='Certificate Tuning', endpoint='certificate_tuning'))
     admin.add_view(TranslateContentView(name='Translate', endpoint='translate'))
     admin.add_view(LogoutView(name='Logout', endpoint='logout'))
     return admin

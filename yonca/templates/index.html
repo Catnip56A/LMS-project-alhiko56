@@ -2466,6 +2466,8 @@
                                 <button type="button" class="dropdown-item" onclick="window.location.href='/admin/';">{{ _('Admin Panel') }}</button>
                                 <div class="dropdown-divider"></div>
                                 {% endif %}
+                                <button type="button" class="dropdown-item" onclick="window.location.href='{{ url_for('main.profile') }}';">{{ _('My Profile') }}</button>
+                                <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item" onclick="window.location.href='{{ url_for('auth.google_account_info') }}';">{{ _('Link Google Account') }}</button>
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item" onclick="window.location.href='{{ url_for('auth.change_password') }}';">{{ _('Change Password') }}</button>
@@ -2535,6 +2537,8 @@
                     <button type="button" class="dropdown-item" onclick="window.location.href='/admin/';">{{ _('Admin Panel') }}</button>
                     <div class="dropdown-divider"></div>
                     {% endif %}
+                    <button type="button" class="dropdown-item" onclick="window.location.href='{{ url_for('main.profile') }}';">{{ _('My Profile') }}</button>
+                    <div class="dropdown-divider"></div>
                     <button type="button" class="dropdown-item" onclick="window.location.href='{{ url_for('auth.google_account_info') }}';">{{ _('Link Google Account') }}</button>
                     <div class="dropdown-divider"></div>
                     <button type="button" class="dropdown-item" onclick="window.location.href='{{ url_for('auth.change_password') }}';">{{ _('Change Password') }}</button>

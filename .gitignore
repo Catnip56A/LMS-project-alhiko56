@@ -136,3 +136,8 @@ seed.sql
 
 # machine-local files (certs, etc.)
 .local/
+
+
+#certificate generation
+*/static/certificates/moxo_template.png
+*/static/certificates/generated/
