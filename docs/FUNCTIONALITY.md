@@ -12,7 +12,7 @@ Yonca is a comprehensive learning management platform designed to facilitate onl
 - **Secure Login/Logout**: Users can securely log in and out of the platform
 - **Session Management**: Persistent sessions with automatic timeout
 - **Password Security**: Passwords are hashed using industry-standard encryption
-- **Role-Based Access**: Support for regular users and administrators
+- **Tiered Admin Access**: Three access levels — full admin, sub-admin, and regular user (see Admin section)
 
 #### User Profiles
 - **Personal Information**: Username, email, and profile management
@@ -140,16 +140,44 @@ Yonca is a comprehensive learning management platform designed to facilitate onl
 
 ### 6. Administrative Dashboard
 
-#### Admin Interface
-- **User Management**: Complete CRUD operations for user accounts
-- **Course Administration**: Full course lifecycle management
-- **Resource Oversight**: Manage all learning resources and PDFs
-- **Forum Moderation**: Moderate community discussions
-- **Channel Management**: Create and manage forum channels with different permission levels
-- **System Analytics**: View platform usage statistics
+#### Admin Permission Tiers
+
+The admin system has three levels:
+
+| Level | Condition | Access |
+|---|---|---|
+| **Full admin** | `is_admin=True`, no restrictions | All sections + Permissions management page |
+| **Sub-admin** | `is_admin=True`, specific permissions assigned | Only their assigned sections |
+| **Regular user** | `is_admin=False` | No admin access whatsoever |
+
+Sub-admins can only be created from users who already have `is_admin=True`. Regular users cannot be given sub-admin features.
+
+#### Admin Sections and Their Permission Keys
+
+| Section | Permission key | What it covers |
+|---|---|---|
+| User Management | `user_management` | User list, create/edit/delete users |
+| Course Management | `course_management` | Course CRUD, page builder, analytics |
+| Certificate Management | `certificate_management` | Certificate overlay tuning |
+| Forum Management | `forum_management` | Forum channels and messages |
+| Builder Management | `builder_management` | Home page editor, About Company, content translation |
+| Moxo Test Management | `moxo_test_management` | MOXO test results |
+| Resource Management | `resource_management` | Learning resource library |
+| Limitations Management | `limitations_management` | Page access restrictions |
+
+#### Managing Permissions
+
+Full admins can manage permissions at `/admin/user_permissions/`. Each admin user's row shows checkboxes for all 8 permissions. Checking all boxes restores full admin status (removes restrictions). Sub-admins cannot access the Permissions page.
+
+To promote a user to full admin via CLI:
+```bash
+just make-admin <username>   # dev
+# or on the server: scripts/admin/make_full_admin.py <username>
+```
 
 #### Security Features
-- **Role-Based Access**: Strict admin-only access to administrative functions
+- **Tiered Access Control**: Sub-admins only see sidebar items they have permission for; direct URL access is also blocked
+- **Full admin gate on Permissions page**: Only `is_full_admin` users (unrestricted) can assign permissions to others
 - **Audit Logging**: Track administrative actions
 - **Secure Authentication**: Multi-factor authentication support ready
 
@@ -242,7 +270,7 @@ Yonca is a comprehensive learning management platform designed to facilitate onl
 ## 📊 Data Management
 
 ### Database Schema
-- **User Model**: User accounts with authentication, profile data, and role management
+- **User Model**: User accounts with authentication, profile data, and tiered admin access (`is_admin`, `admin_permissions` JSON for sub-admin permission lists)
 - **Course Model**: Course information, enrollment relationships, and content management
 - **CourseContent Model**: Individual course content items (videos, documents, text)
 - **CourseContentFolder Model**: Hierarchical folder structure for course organization

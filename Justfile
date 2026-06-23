@@ -135,6 +135,14 @@ shell:
 create-admin:
     DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run python scripts/admin/create_admin.py
 
+# Promote an existing user to full admin (Docker dev)
+make-admin username:
+    docker compose --profile dev run --rm \
+      -v {{justfile_directory()}}/scripts:/app/scripts \
+      -e DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB} \
+      -e GOOGLE_REDIRECT_URI=https://localhost/unused \
+      app-dev python scripts/admin/make_full_admin.py {{username}}
+
 # Analytics scripts (local)
 analytics-views:
     DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run python scripts/analytics/view_times.py

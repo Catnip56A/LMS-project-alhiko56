@@ -111,25 +111,42 @@ def get_google_redirect_uri(redirect_uri=None):
     return f"{_resolve_oauth_base_url()}/admin/google_login/"
 from yonca.models import User, Course, ForumMessage, ForumChannel, MoxoTest, Resource, db, HomeContent, CourseContent, ContentView, PageLimitation
 
+ADMIN_PERMISSIONS = [
+    ('user_management',        'User Management'),
+    ('course_management',      'Course Management'),
+    ('certificate_management', 'Certificate Management'),
+    ('forum_management',       'Forum Management'),
+    ('builder_management',     'Builder Management'),
+    ('moxo_test_management',   'Moxo Test Management'),
+    ('resource_management',    'Resource Management'),
+    ('limitations_management', 'Limitations Management'),
+]
+
 class AdminIndexView(AdminIndexView):
     """Custom admin index view with authentication and home content management"""
     
+    def is_accessible(self):
+        return current_user.is_authenticated and current_user.any_admin
+
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect(url_for('auth.login'))
+
     def render(self, template, **kwargs):
         """Override render to ensure admin_base_template is set"""
         if 'admin_base_template' not in kwargs:
-            # Get base template from theme, with fallback
             try:
                 base_template = self.admin.theme.base_template
             except AttributeError:
-                # Fallback to default Flask-Admin base template
                 base_template = 'admin/base.html'
             kwargs['admin_base_template'] = base_template
         return super().render(template, **kwargs)
-    
+
     @expose('/', methods=['GET', 'POST'])
     def index(self):
-        if not current_user.is_authenticated or not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.any_admin:
             return redirect(url_for('auth.login'))
+        if not current_user.has_perm('builder_management'):
+            return self.render('admin/subadmin_home.html')
         
         print(f"ADMIN ACCESS: {current_user.username} (ID: {current_user.id}) accessed home page editor")
         
@@ -378,11 +395,16 @@ class AdminIndexView(AdminIndexView):
         return self.render('admin/index.html', form=form, home_content=home_content)
 
 class SecureModelView(ModelView):
-    """Base model view with authentication"""
-    
+    """Base model view — subclasses set `permission` to gate by a specific permission key."""
+    permission = None
+
     def is_accessible(self):
-        return current_user.is_authenticated and current_user.is_admin
-    
+        if not current_user.is_authenticated:
+            return False
+        if self.permission:
+            return current_user.has_perm(self.permission)
+        return current_user.is_admin
+
     def inaccessible_callback(self, name, **kwargs):
         return redirect(url_for('auth.login'))
 
@@ -397,8 +419,8 @@ class LogoutView(BaseView):
         return redirect(url_for('auth.login'))
     
     def is_accessible(self):
-        return current_user.is_authenticated and current_user.is_admin
-    
+        return current_user.is_authenticated and current_user.any_admin
+
     def inaccessible_callback(self, name, **kwargs):
         return redirect(url_for('auth.login'))
 
@@ -535,7 +557,7 @@ class GoogleLoginView(BaseView):
     
     def is_accessible(self):
         return current_user.is_authenticated and current_user.is_admin
-    
+
     def inaccessible_callback(self, name, **kwargs):
         return redirect(url_for('auth.login'))
 
@@ -544,9 +566,9 @@ class CourseManagementView(BaseView):
     
     @expose('/')
     def index(self):
-        if not current_user.is_authenticated or not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
             return redirect(url_for('auth.login'))
-        
+
         # Fetch all courses
         courses = Course.query.all()
         return self.render('admin/course_management.html', courses=courses)
@@ -554,7 +576,7 @@ class CourseManagementView(BaseView):
     @expose('/course/<int:course_id>')
     def analytics(self, course_id):
         """Viewing-time analytics for a single course"""
-        if not current_user.is_authenticated or not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
             return redirect(url_for('auth.login'))
 
         course = Course.query.get_or_404(course_id)
@@ -642,8 +664,8 @@ class CourseManagementView(BaseView):
                     user_colors=user_colors,
                     home_content=home_content)
     def is_accessible(self):
-        return current_user.is_authenticated and current_user.is_admin
-    
+        return current_user.is_authenticated and current_user.has_perm('course_management')
+
     def inaccessible_callback(self, name, **kwargs):
         return redirect(url_for('auth.login'))
 
@@ -666,6 +688,7 @@ class HomeContentForm(FlaskForm):
 
 class UserView(SecureModelView):
     """Admin view for User model with password management"""
+    permission = 'user_management'
     column_list = ('id', 'username', 'email', 'is_admin', 'courses')
     column_searchable_list = ['username', 'email']
     form_columns = ('username', 'email', 'is_admin', 'is_teacher', 'courses', 'new_password')
@@ -691,6 +714,7 @@ class CourseForm(FlaskForm):
     time_slot = StringField('Time Slot', [Optional()])
 class CourseView(SecureModelView):
     """Admin view for Course model with custom dropdown menu management"""
+    permission = 'course_management'
     column_list = ('id', 'title', 'description', 'time_slot', 'users')
     column_searchable_list = ['title', 'description']
     form = CourseForm
@@ -702,7 +726,7 @@ class CourseView(SecureModelView):
     @expose('/edit/', methods=['GET', 'POST'])
     def edit_view(self, id=None, url=None):
         """Custom edit view with dropdown menu management"""
-        if not current_user.is_authenticated or not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
             return redirect(url_for('auth.login'))
 
         # Get id from request args if not provided
@@ -803,7 +827,7 @@ class CourseView(SecureModelView):
     @expose('/new/', methods=['GET', 'POST'])
     def create_view(self):
         """Custom create view with dropdown menu management"""
-        if not current_user.is_authenticated or not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
             return redirect(url_for('auth.login'))
 
         if request.method == 'POST':
@@ -869,7 +893,7 @@ class CourseView(SecureModelView):
     def page_builder(self):
         """Page builder for course descriptions"""
         print("DEBUG PAGE_BUILDER: Route called")  # ADDED
-        if not current_user.is_authenticated or not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
             return redirect(url_for('auth.login'))
 
         course_id = request.args.get('course_id') or request.form.get('course_id')
@@ -938,6 +962,7 @@ class ResourceForm(Form):
 
 class ResourceView(SecureModelView):
     """Admin view for Resource model with file upload"""
+    permission = 'resource_management'
     column_list = ('id', 'title', 'description', 'tags', 'drive_view_link', 'access_pin', 'pin_expires_at', 'pin_last_reset', 'uploaded_by', 'upload_date', 'is_active', 'reset_pin_button')
     column_searchable_list = ['title', 'description', 'tags']
     form = ResourceForm
@@ -1087,12 +1112,14 @@ class ResourceView(SecureModelView):
 
 class MoxoTestView(SecureModelView):
     """Admin view for MoxoTest model"""
+    permission = 'moxo_test_management'
     column_list = ('id', 'user_id', 'result', 'timestamp')
     column_searchable_list = ['result']
     form_excluded_columns = ('timestamp',)
 
 class ForumChannelView(SecureModelView):
     """Admin view for ForumChannel model"""
+    permission = 'forum_management'
     column_list = ('name', 'slug', 'description', 'requires_login', 'admin_only', 'is_active', 'sort_order', 'created_at')
     column_searchable_list = ['name', 'slug', 'description']
     column_filters = ['requires_login', 'admin_only', 'is_active']
@@ -1121,12 +1148,23 @@ class ForumChannelView(SecureModelView):
         # Proceed with deletion
         return super().delete_model(model)
 
+class ForumMessageView(SecureModelView):
+    """Admin view for ForumMessage model"""
+    permission = 'forum_management'
+
+
 class AboutCompanyView(BaseView):
     """About Company configuration view"""
-    
+
+    def is_accessible(self):
+        return current_user.is_authenticated and current_user.has_perm('builder_management')
+
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect(url_for('auth.login'))
+
     @expose('/', methods=['GET', 'POST'])
     def index(self):
-        if not current_user.is_authenticated or not current_user.is_admin:
+        if not current_user.is_authenticated or not current_user.has_perm('builder_management'):
             return redirect(url_for('auth.login'))
         
         # Handle about company content editing
@@ -1349,18 +1387,16 @@ class AboutCompanyForm(FlaskForm):
 
 class LimitationsView(BaseView):
     """View for managing page limitations (blocking pages for non-admin users)"""
-    
+
     def is_accessible(self):
-        return current_user.is_authenticated and current_user.is_admin
-    
+        return current_user.is_authenticated and current_user.has_perm('limitations_management')
+
     def inaccessible_callback(self, name, **kwargs):
         return redirect(url_for('auth.login'))
     
     @expose('/', methods=['GET', 'POST'])
     def index(self):
         """Display and manage page limitations"""
-        from yonca.models import PageLimitation
-        
         # Define available pages (excluding home)
         pages_config = [
             {'key': 'courses', 'name': 'Courses'},
@@ -1414,10 +1450,10 @@ class LimitationsView(BaseView):
 
 class TranslateContentView(BaseView):
     """View for translating all content with one click"""
-    
+
     def is_accessible(self):
-        return current_user.is_authenticated and current_user.is_admin
-    
+        return current_user.is_authenticated and current_user.has_perm('builder_management')
+
     def inaccessible_callback(self, name, **kwargs):
         return redirect(url_for('auth.login'))
     
@@ -1510,7 +1546,7 @@ class CertificateTuningView(BaseView):
     """Admin view for per-course certificate overlay tuning."""
 
     def is_accessible(self):
-        return current_user.is_authenticated and current_user.is_admin
+        return current_user.is_authenticated and current_user.has_perm('certificate_management')
 
     def inaccessible_callback(self, name, **kwargs):
         return redirect(url_for('auth.login'))
@@ -1644,14 +1680,50 @@ class CertificateTuningView(BaseView):
         )
 
 
+class UserPermissionsView(BaseView):
+    """Manage per-admin permission restrictions. Accessible to full admins only."""
+
+    def is_accessible(self):
+        return current_user.is_authenticated and current_user.is_full_admin
+
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect(url_for('auth.login'))
+
+    @expose('/')
+    def index(self):
+        admins = User.query.filter_by(is_admin=True).order_by(User.username).all()
+        return self.render('admin/user_permissions.html',
+                           admins=admins,
+                           permissions=ADMIN_PERMISSIONS)
+
+    @expose('/save/<int:user_id>', methods=['POST'])
+    def save(self, user_id):
+        user = User.query.get_or_404(user_id)
+        if not user.is_admin:
+            flash('Only admin users can have permission assignments.', 'warning')
+            return redirect(url_for('user_permissions.index'))
+        valid_keys = {p for p, _ in ADMIN_PERMISSIONS}
+        selected = [p for p in request.form.getlist('permissions') if p in valid_keys]
+        # If all permissions selected, treat as full admin (no restrictions)
+        if len(selected) == len(ADMIN_PERMISSIONS):
+            user.admin_permissions = None
+        else:
+            user.admin_permissions = selected if selected else []
+        db.session.commit()
+        status = 'full admin' if user.admin_permissions is None else f'{len(selected)} permissions'
+        flash(f'{user.username} updated — {status}.', 'success')
+        return redirect(url_for('user_permissions.index'))
+
+
 def init_admin(app):
     """Initialize admin interface with all views"""
     admin = Admin(app, name='Yonca Admin', index_view=AdminIndexView())
     admin.add_view(UserView(User, db.session))
     admin.add_view(CourseView(Course, db.session))
     admin.add_view(CourseManagementView(name='Course Management', endpoint='course_management'))
+    admin.add_view(UserPermissionsView(name='Permissions', endpoint='user_permissions'))
     admin.add_view(ForumChannelView(ForumChannel, db.session))
-    admin.add_view(SecureModelView(ForumMessage, db.session))
+    admin.add_view(ForumMessageView(ForumMessage, db.session))
     admin.add_view(ResourceView(Resource, db.session))
     admin.add_view(MoxoTestView(MoxoTest, db.session))
     admin.add_view(AboutCompanyView(name='About Company', endpoint='about_company'))

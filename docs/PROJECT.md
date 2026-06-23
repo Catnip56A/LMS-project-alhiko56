@@ -66,11 +66,34 @@ just db-stamp                        # mark DB as up-to-date (after squash/resto
 ## Common tasks
 
 ```bash
-just install       # sync dependencies
-just translate     # compile .po translation files
-just create-admin  # create an admin user
-just build         # rebuild Docker images
-just logs          # follow app-dev logs
+just install                  # sync dependencies
+just translate                # compile .po translation files
+just create-admin             # create a new admin user (local)
+just make-admin <username>    # promote an existing user to full admin (Docker dev)
+just build                    # rebuild Docker images
+just logs                     # follow app-dev logs
+```
+
+## Admin permission tiers
+
+There are three access levels:
+
+| Level | Condition | What they see |
+|---|---|---|
+| Full admin | `is_admin=True`, `admin_permissions=NULL` | Everything, including the Permissions page |
+| Sub-admin | `is_admin=True`, `admin_permissions=[list]` | Only their assigned sections |
+| Regular user | `is_admin=False` | No admin access |
+
+Permissions are managed at `/admin/user_permissions/` (full admins only). The 8 available permissions are: `user_management`, `course_management`, `certificate_management`, `forum_management`, `builder_management`, `moxo_test_management`, `resource_management`, `limitations_management`.
+
+To promote an existing user to full admin on staging/production (SSH into server first):
+
+```bash
+docker compose --profile staging run --rm \
+  -v $(pwd)/scripts:/app/scripts \
+  -e DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB} \
+  -e GOOGLE_REDIRECT_URI=https://localhost/unused \
+  app-staging python scripts/admin/make_full_admin.py <username>
 ```
 
 ## Deployment

@@ -30,6 +30,7 @@ class User(db.Model, UserMixin):
     _password = db.Column('password', db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     is_teacher = db.Column(db.Boolean, default=False)
+    admin_permissions = db.Column(db.JSON, nullable=True)
     preferred_language = db.Column(db.String(10), default='en')  # User's preferred language for translations
     google_access_token = db.Column(db.Text)
     google_refresh_token = db.Column(db.Text)
@@ -51,6 +52,24 @@ class User(db.Model, UserMixin):
 
     def check_password(self, plaintext):
         return check_password_hash(self._password, plaintext)
+
+    @property
+    def any_admin(self):
+        """True if the user has any admin access (is_admin must be True)."""
+        return self.is_admin
+
+    @property
+    def is_full_admin(self):
+        """True if unrestricted admin: is_admin=True and no permission restrictions set."""
+        return self.is_admin and self.admin_permissions is None
+
+    def has_perm(self, perm: str) -> bool:
+        """True if is_admin with no restrictions, or if perm is in admin_permissions list."""
+        if not self.is_admin:
+            return False
+        if self.admin_permissions is None:
+            return True  # full admin — unrestricted
+        return perm in self.admin_permissions
 
     def __repr__(self):
         return f'<User {self.username}>'

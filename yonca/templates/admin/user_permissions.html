@@ -1,0 +1,73 @@
+{% extends 'admin/base.html' %}
+
+{% block body %}
+<div class="container-fluid" style="padding: 2rem;">
+  <h2 style="color:#337a2c; margin-bottom:0.25rem;">Admin Permissions</h2>
+  <p class="text-muted" style="margin-bottom:1.5rem;">
+    Restrict which sections each admin can access. Checking all permissions grants full unrestricted access.
+    Only users with <strong>Admin</strong> status appear here — regular users cannot be sub-admins.
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ 'success' if cat == 'success' else 'warning' if cat == 'warning' else 'info' }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% if not admins %}
+    <p class="text-muted">No admin users found.</p>
+  {% else %}
+  <div style="overflow-x:auto;">
+    <table class="table table-bordered table-hover" style="background:#fff; min-width:900px;">
+      <thead style="background:#f4f6f4;">
+        <tr>
+          <th style="width:180px;">Admin</th>
+          <th style="width:110px; text-align:center;">Access Level</th>
+          {% for key, label in permissions %}
+          <th style="text-align:center; font-size:0.78rem; min-width:90px;">{{ label }}</th>
+          {% endfor %}
+          <th style="width:80px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in admins %}
+        {% set is_full = user.admin_permissions is none %}
+        <tr>
+          <td>
+            <strong>{{ user.username }}</strong>
+            {% if user.email %}<br><small class="text-muted">{{ user.email }}</small>{% endif %}
+          </td>
+          <td style="text-align:center; vertical-align:middle;">
+            {% if is_full %}
+              <span class="badge badge-success" style="background:#337a2c;">Full Admin</span>
+            {% else %}
+              <span class="badge badge-warning" style="background:#e6a817; color:#fff;">Sub-admin</span>
+            {% endif %}
+          </td>
+
+          <form method="POST" action="{{ url_for('user_permissions.save', user_id=user.id) }}" style="display:contents;">
+            {% for key, label in permissions %}
+            <td style="text-align:center; vertical-align:middle;">
+              <input type="checkbox" name="permissions" value="{{ key }}"
+                {% if is_full or (user.admin_permissions and key in user.admin_permissions) %}checked{% endif %}>
+            </td>
+            {% endfor %}
+            <td style="text-align:center; vertical-align:middle;">
+              <button type="submit" class="btn btn-sm btn-success"
+                      style="background:#337a2c; border-color:#337a2c; color:#fff; padding:0.2rem 0.6rem;">
+                Save
+              </button>
+            </td>
+          </form>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="text-muted" style="font-size:0.85rem; margin-top:0.5rem;">
+    Tip: checking all permissions promotes the user to Full Admin (no restrictions).
+    Unchecking all removes all admin access for that user.
+  </p>
+  {% endif %}
+</div>
+{% endblock %}
