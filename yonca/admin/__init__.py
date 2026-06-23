@@ -585,10 +585,9 @@ class CourseManagementView(BaseView):
         users = sorted(course.users, key=lambda u: u.username.lower())
         user_list = [{'id': u.id, 'username': u.username} for u in users]
 
-        # ── All course content that has a Drive file ──────────────────────────
+        # ── All course content items (tracked by DB id, not Drive file id) ─────
         contents = (CourseContent.query
                     .filter_by(course_id=course_id)
-                    .filter(CourseContent.drive_file_id.isnot(None))
                     .order_by(CourseContent.order, CourseContent.id)
                     .all())
 
@@ -597,23 +596,20 @@ class CourseManagementView(BaseView):
         selected_user_id = request.args.get('user_id', type=int)
 
         for cc in contents:
-            file_id   = cc.drive_file_id
+            content_db_id = str(cc.id)   # ContentView.content_id stores the DB id as a string
             file_title = cc.title
 
-            # ── Aggregate views for this file across all enrolled users ───────
+            # ── Aggregate views for this content item across all enrolled users ─
             rows = (db.session.query(
                         ContentView.user_id,
                         db.func.sum(ContentView.viewing_duration).label('total_dur'),
                         db.func.count(ContentView.id).label('view_count'))
                     .filter(
                         ContentView.content_type == 'course_content',
-                        ContentView.content_id == file_id,
+                        ContentView.content_id == content_db_id,
                         ContentView.user_id.in_([u.id for u in users]))
                     .group_by(ContentView.user_id)
                     .all())
-            print(f"DEBUG: file {file_id} ({file_title}) has {len(rows)} user view rows")
-            for r in rows:
-                print(f"DEBUG:   user {r.user_id}: total_dur={r.total_dur}, view_count={r.view_count}")
 
             views_per_user = {}
             for r in rows:
@@ -623,7 +619,7 @@ class CourseManagementView(BaseView):
                 total_per_user[r.user_id] = total_per_user.get(r.user_id, 0) + dur
 
             file_list.append({
-                'file_id':   file_id,
+                'file_id':    cc.id,
                 'file_title': file_title,
                 'views_per_user': views_per_user,
             })
