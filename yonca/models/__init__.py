@@ -37,6 +37,8 @@ class User(db.Model, UserMixin):
     google_token_expiry = db.Column(db.DateTime)
     first_name = db.Column(db.String(100), nullable=True)
     last_name = db.Column(db.String(100), nullable=True)
+    city = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=True, server_default=db.func.now())
     login_attempts = db.Column(db.Integer, default=0)  # Track failed login attempts
     last_attempt_time = db.Column(db.DateTime)  # Track time of last login attempt
     courses = db.relationship('Course', secondary=user_courses, backref=db.backref('users', lazy='select'))

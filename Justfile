@@ -232,6 +232,9 @@ down:
 build:
     docker compose build
 
+rebuild: ensure-dirs certs
+    docker compose --profile dev up -d --build
+
 logs:
     docker compose --profile dev logs -f app-dev
 

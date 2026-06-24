@@ -168,8 +168,16 @@ def course_description_page(course_id):
     
     # Get translated page features
     translated_page_features = get_translated_json_array('course', course.id, 'page_features', course.page_features, current_locale) if course.page_features else None
-    
-    return render_template('course_description.html', course=course, home_content=home_content, reviews=reviews, is_authenticated=current_user.is_authenticated, current_user=current_user, page_builder_data_translated=page_builder_data_translated, translated_title=translated_title, translated_subtitle=translated_subtitle, translated_page_features=translated_page_features)
+
+    from yonca.models import Certificate as _Cert
+    _issued = _Cert.query.filter_by(course_id=course.id, revoked=False).all()
+    cert_graduates = [
+        {'name': c.student_name, 'date': c.issued_at.strftime('%d %b %Y'), 'city': (c.user.city or '') if c.user else ''}
+        for c in _issued
+        if c.student_name
+    ]
+
+    return render_template('course_description.html', course=course, home_content=home_content, reviews=reviews, is_authenticated=current_user.is_authenticated, current_user=current_user, page_builder_data_translated=page_builder_data_translated, translated_title=translated_title, translated_subtitle=translated_subtitle, translated_page_features=translated_page_features, cert_graduates=cert_graduates)
 
 
 
@@ -1389,11 +1397,20 @@ def course_page_enrolled(course_id):
             elif Certificate.query.filter_by(user_id=student_id, course_id=course.id, revoked=False).first():
                 flash(_('Certificate already issued to this student.'), 'info')
             else:
+                date_mode = request.form.get('date_mode', 'current')
+                issued_at = _dt.utcnow()
+                if date_mode == 'custom':
+                    raw_date = request.form.get('issue_date', '').strip()
+                    try:
+                        issued_at = _dt.strptime(raw_date, '%Y-%m-%d')
+                    except ValueError:
+                        flash(_('Invalid date format.'), 'error')
+                        return redirect(url_for('main.course_page_enrolled', course_id=course.id))
                 cert = Certificate(
                     user_id=student_id,
                     course_id=course.id,
                     issued_by=current_user.id,
-                    issued_at=_dt.utcnow(),
+                    issued_at=issued_at,
                     student_name=f"{student.first_name} {student.last_name}",
                 )
                 db.session.add(cert)
@@ -1527,6 +1544,12 @@ def course_page_enrolled(course_id):
             my_certificate = Certificate.query.filter_by(
                 user_id=current_user.id, course_id=course.id, revoked=False
             ).first()
+    issued_certs = Certificate.query.filter_by(course_id=course.id, revoked=False).all()
+    cert_graduates = [
+        {'name': c.student_name, 'date': c.issued_at.strftime('%d %b %Y'), 'city': (c.user.city or '') if c.user else ''}
+        for c in issued_certs
+        if c.student_name
+    ]
 
     return render_template('course_page_enrolled.html',
         course=course,
@@ -1553,8 +1576,10 @@ def course_page_enrolled(course_id):
         translated_page_features=translated_page_features,
         youtube_guide_video_id=youtube_guide_video_id,
         datetime=dt,
+        now=dt.utcnow(),
         my_certificate=my_certificate,
         cert_students=cert_students,
+        cert_graduates=cert_graduates,
     )
 
 
@@ -2404,6 +2429,7 @@ def profile():
     if request.method == 'POST':
         current_user.first_name = request.form.get('first_name', '').strip() or None
         current_user.last_name = request.form.get('last_name', '').strip() or None
+        current_user.city = request.form.get('city', '').strip() or None
         db.session.commit()
         flash('Profile updated.')
         return redirect(url_for('main.profile'))

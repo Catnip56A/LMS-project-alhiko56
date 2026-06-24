@@ -153,7 +153,7 @@
         <div style="margin-top:1.2rem; width: 100%; box-sizing: border-box;">
             {# Use translated data if available, otherwise use original #}
             {% set page_data = page_builder_data_translated or course.page_builder_data %}
-            {{ render_page_builder_blocks(page_data) | safe }}
+            {{ render_page_builder_blocks(page_data, cert_graduates=cert_graduates) | safe }}
         </div>
     {% elif course.page_description %}
         {# Fallback to plain text description #}

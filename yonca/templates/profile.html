@@ -40,6 +40,13 @@
                        value="{{ current_user.last_name or '' }}"
                        placeholder="{{ _('Enter your last name') }}">
             </div>
+            <div class="form-group">
+                <label for="city" style="font-weight:600; color:#374151;">{{ _('City') }}</label>
+                <input type="text" class="form-control" id="city" name="city"
+                       data-city-input
+                       value="{{ current_user.city or '' }}"
+                       placeholder="{{ _('Start typing your city…') }}">
+            </div>
             <button type="submit" class="btn btn-block" style="background:#337a2c; color:#fff; font-weight:600; padding:0.75rem; border-radius:6px; margin-top:0.5rem;">
                 {{ _('Save Profile') }}
             </button>
@@ -50,4 +57,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/city_autocomplete.js') }}"></script>
+<script>CityAutocomplete.init();</script>
 {% endblock %}

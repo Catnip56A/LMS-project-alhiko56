@@ -685,18 +685,29 @@ class HomeContentForm(FlaskForm):
 class UserView(SecureModelView):
     """Admin view for User model with password management"""
     permission = 'user_management'
-    column_list = ('id', 'username', 'email', 'is_admin', 'courses')
-    column_searchable_list = ['username', 'email']
-    form_columns = ('username', 'email', 'is_admin', 'is_teacher', 'courses', 'new_password')
+    column_list = ('id', 'username', 'email', 'first_name', 'last_name', 'city', 'is_admin', 'courses')
+    column_searchable_list = ['username', 'email', 'first_name', 'last_name', 'city']
+    form_columns = ('username', 'email', 'first_name', 'last_name', 'city', 'is_admin', 'is_teacher', 'courses', 'new_password')
     form_excluded_columns = ('_password', 'password')
     column_formatters = {
         'courses': lambda v, c, m, p: ', '.join([course.title for course in m.courses]) if m.courses else 'None'
     }
-    
+
     form_extra_fields = {
         'new_password': StringField('New Password', [Optional()], description='Leave blank to keep current password')
     }
-    
+
+    form_widget_args = {
+        'city': {'data-city-input': True}
+    }
+
+    extra_js = ['/static/js/city_autocomplete.js']
+    column_filters = ('city', 'created_at')
+
+    create_template = 'admin/user_create_edit.html'
+    edit_template = 'admin/user_create_edit.html'
+    list_template = 'admin/user_list.html'
+
     def on_model_change(self, form, model, is_created):
         """Handle password changes during model creation/update"""
         if form.new_password.data:

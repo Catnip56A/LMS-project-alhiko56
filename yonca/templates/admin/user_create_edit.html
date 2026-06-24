@@ -1,0 +1,13 @@
+{% extends 'admin/model/edit.html' %}
+
+{% block tail %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var cityInput = document.querySelector('[data-city-input]');
+  if (cityInput) {
+    CityAutocomplete.attach(cityInput, '');
+  }
+});
+</script>
+{% endblock %}

@@ -1,7 +1,9 @@
 """Utilities for the no-code page builder"""
 import re
-import html
+import html as _html
 import urllib.parse
+
+_escape = _html.escape
 
 def extract_youtube_id(input_str):
     """
@@ -116,12 +118,12 @@ def preserve_html_tags(text):
         return text
     
     # Unescape HTML entities (convert &lt; to <, &amp; to &, etc.)
-    unescaped_text = html.unescape(text)
+    unescaped_text = _html.unescape(text)
     
     # Return as is - if it contains HTML tags, they will be preserved
     return unescaped_text
 
-def render_page_builder_blocks(blocks):
+def render_page_builder_blocks(blocks, cert_graduates=None):
     """
     Convert page builder JSON blocks to HTML for display
     
@@ -708,6 +710,105 @@ def render_page_builder_blocks(blocks):
             )
 
             html = f'{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}"><div style="{inner_style}">{co_html}</div></div></div></div>'
+            html_parts.append(html)
+
+        elif block_type == 'certificate-wall':
+            title = preserve_html_tags(settings.get('title', 'Our Graduates'))
+            try:
+                columns = max(1, min(6, int(settings.get('columns', 3))))
+            except (TypeError, ValueError):
+                columns = 3
+            show_date = settings.get('showDate', True)
+            empty_text = preserve_html_tags(settings.get('emptyText', 'No certificates have been issued yet.'))
+            padding_mobile = settings.get('paddingMobile', max(15, padding // 2))
+            width_mobile = settings.get('widthMobile', width)
+            wall_id = f'cw-{block_index}'
+            initial_show = 3
+            batch_size = 5
+
+            mobile_css_rules.append(f"""
+                #{block_id} > div {{ width: {width_mobile}% !important; }}
+                #{block_id} > div > div > div {{ padding: {padding_mobile}px !important; }}
+                #{block_id} .cert-wall-grid {{ grid-template-columns: repeat(2, 1fr) !important; }}
+            """)
+
+            title_html = (
+                f'<h3 style="font-size:20px;font-weight:700;color:#337a2c;margin:0 0 20px 0;text-align:center;">'
+                f'{title}</h3>'
+            ) if title else ''
+
+            graduates = cert_graduates or []
+            if not graduates:
+                body_html = (
+                    f'<p style="color:#888;text-align:center;padding:20px 0;font-size:14px;">'
+                    f'{empty_text}</p>'
+                )
+            else:
+                cards_html = ''
+                for idx, grad in enumerate(graduates):
+                    name = _escape(grad.get('name', ''))
+                    initials = ''.join(w[0].upper() for w in name.split() if w)[:2]
+                    date_str = _escape(grad.get('date', ''))
+                    city_str = _escape(grad.get('city', ''))
+                    date_html = (
+                        f'<div style="font-size:12px;color:#888;margin-top:2px;">{date_str}</div>'
+                        if show_date and date_str else ''
+                    )
+                    city_html = (
+                        f'<div style="font-size:12px;color:#337a2c;margin-top:1px;">'
+                        f'<i class="fas fa-map-marker-alt" style="font-size:10px;"></i> {city_str}</div>'
+                        if city_str else ''
+                    )
+                    hidden_attr = ' data-hidden="1"' if idx >= initial_show else ''
+                    display = 'none' if idx >= initial_show else 'flex'
+                    cards_html += (
+                        f'<div class="cw-card"{hidden_attr} style="background:#f0f8f0;'
+                        f'border:1px solid #d4e6d2;border-radius:12px;padding:16px 12px;text-align:center;'
+                        f'display:{display};flex-direction:column;'
+                        f'align-items:center;gap:6px;">'
+                        f'<div style="width:48px;height:48px;border-radius:50%;background:#337a2c;'
+                        f'color:#fff;font-size:18px;font-weight:700;display:flex;align-items:center;'
+                        f'justify-content:center;flex-shrink:0;">{initials}</div>'
+                        f'<div style="font-size:14px;font-weight:600;color:#333;line-height:1.3;">{name}</div>'
+                        f'{city_html}'
+                        f'{date_html}'
+                        f'</div>'
+                    )
+
+                show_more_btn = ''
+                if len(graduates) > initial_show:
+                    remaining = len(graduates) - initial_show
+                    show_more_btn = (
+                        f'<div style="text-align:center;margin-top:16px;">'
+                        f'<button id="{wall_id}-btn" onclick="cwShowMore(\'{wall_id}\',{batch_size})" '
+                        f'style="background:#337a2c;color:#fff;border:none;padding:10px 28px;'
+                        f'border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;">'
+                        f'Show more ({remaining} remaining)</button></div>'
+                        f'<script>'
+                        f'function cwShowMore(id,batch){{'
+                        f'var grid=document.getElementById(id+"-grid");'
+                        f'var hidden=Array.from(grid.querySelectorAll(".cw-card[data-hidden]"));'
+                        f'hidden.slice(0,batch).forEach(function(c){{c.style.display="flex";c.removeAttribute("data-hidden");}});'
+                        f'var remaining=grid.querySelectorAll(".cw-card[data-hidden]").length;'
+                        f'var btn=document.getElementById(id+"-btn");'
+                        f'if(remaining===0){{btn.parentElement.remove();}}'
+                        f'else{{btn.textContent="Show more ("+remaining+" remaining)";}}'
+                        f'}}'
+                        f'</script>'
+                    )
+
+                body_html = (
+                    f'<div id="{wall_id}-grid" class="cert-wall-grid" style="display:grid;'
+                    f'grid-template-columns:repeat({columns},1fr);gap:16px;">'
+                    f'{cards_html}</div>'
+                    f'{show_more_btn}'
+                )
+
+            inner_html = f'{title_html}{body_html}'
+            html = (
+                f'{outer_div_tag}<div style="{shell_style}"><div style="{scale_style}">'
+                f'<div style="{inner_style}">{inner_html}</div></div></div></div>'
+            )
             html_parts.append(html)
 
         # Increment block index for next block's unique ID

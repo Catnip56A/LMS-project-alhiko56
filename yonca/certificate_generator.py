@@ -20,9 +20,11 @@ from PIL import Image, ImageDraw, ImageFont
 _HERE = os.path.dirname(__file__)
 STATIC_CERTS = os.path.join(_HERE, 'static', 'certificates')
 
-FONT_SCRIPT = os.path.join(STATIC_CERTS, 'fonts', 'GreatVibes-Regular.ttf')
-FONT_COURSE = os.path.join(STATIC_CERTS, 'fonts', 'CormorantSC-Bold.ttf')
-FONT_META   = os.path.join(STATIC_CERTS, 'fonts', 'CormorantGaramond-Regular.ttf')
+FONT_SCRIPT  = os.path.join(STATIC_CERTS, 'fonts', 'GreatVibes-Regular.ttf')
+FONT_COURSE  = os.path.join(STATIC_CERTS, 'fonts', 'CormorantGaramond-600.ttf')
+FONT_COURSE2 = os.path.join(STATIC_CERTS, 'fonts', 'Cinzel-400.ttf')
+FONT_META    = os.path.join(STATIC_CERTS, 'fonts', 'LibreBaskerville-400.ttf')
+FONT_META2   = os.path.join(STATIC_CERTS, 'fonts', 'CormorantGaramond-Regular.ttf')
 
 _DATA_ROOT   = os.path.join(os.path.dirname(_HERE), 'data')
 CACHE_DIR    = os.environ.get('CERT_CACHE_DIR',    os.path.join(_DATA_ROOT, 'certificates'))
@@ -113,10 +115,15 @@ def _resolve_template(tuning: dict) -> str:
     return _find_template()
 
 
-def _load_font(path, size):
+def _load_font(path, size, fallback=None):
     try:
         return ImageFont.truetype(path, size=size)
     except (OSError, IOError):
+        if fallback:
+            try:
+                return ImageFont.truetype(fallback, size=size)
+            except (OSError, IOError):
+                pass
         return ImageFont.load_default()
 
 
@@ -134,15 +141,15 @@ def _draw_onto(img, t: dict, student_name: str, course_text: str,
     draw.text((x_name, H * t['y_name']), student_name,
               font=font_name, fill=tuple(t['name_color']))
 
-    # Course name — Cormorant SC Bold, centred around x_course
-    font_course = _load_font(FONT_COURSE, int(H * t['font_course_size']))
+    # Course name — Cormorant Garamond SemiBold, fallback Cinzel
+    font_course = _load_font(FONT_COURSE, int(H * t['font_course_size']), fallback=FONT_COURSE2)
     bbox = draw.textbbox((0, 0), course_text, font=font_course)
     x_course = W * t['x_course'] - (bbox[2] - bbox[0]) / 2
     draw.text((x_course, H * t['y_course']), course_text,
               font=font_course, fill=tuple(t['course_color']))
 
-    # Date and cert ID — Cormorant Garamond
-    font_meta = _load_font(FONT_META, int(H * 0.022))
+    # Date and cert ID — Libre Baskerville, fallback Cormorant Garamond
+    font_meta = _load_font(FONT_META, int(H * 0.022), fallback=FONT_META2)
     draw.text((W * t['x_meta'],    H * t['y_date']),    f"Issued: {date_str}",
               font=font_meta, fill=tuple(t['date_color']))
     draw.text((W * t['x_cert_id'], H * t['y_cert_id']), f"Certificate ID: {cert_display_id}",

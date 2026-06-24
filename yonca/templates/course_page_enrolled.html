@@ -906,7 +906,7 @@
                         <div style="margin-top:1.2rem;">
                             {# Use translated data if available, otherwise use original #}
                             {% set page_data = page_builder_data_translated or course.page_builder_data %}
-                            {{ render_page_builder_blocks(page_data) | safe }}
+                            {{ render_page_builder_blocks(page_data, cert_graduates=cert_graduates) | safe }}
                         </div>
                     {% elif course.page_description %}
                         {# Fallback to plain text description #}
@@ -1690,14 +1690,15 @@
                             </td>
                             <td>
                                 {% if not item.certificate %}
-                                <form method="POST" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
-                                    <input type="hidden" name="action" value="give_certificate">
-                                    <input type="hidden" name="student_id" value="{{ item.user.id }}">
-                                    <button type="submit" class="btn btn-sm btn-success"
-                                        {% if not item.user.first_name or not item.user.last_name %}disabled title="{{ _('Student must set their full name first') }}"{% endif %}>
-                                        {{ _('Give Certificate') }}
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-sm btn-success"
+                                    {% if not item.user.first_name or not item.user.last_name %}
+                                        disabled title="{{ _('Student must set their full name first') }}"
+                                    {% else %}
+                                        data-toggle="modal" data-target="#certDateModal"
+                                        onclick="certModalOpen('{{ item.user.id }}', '{{ item.user.first_name }} {{ item.user.last_name }}')"
+                                    {% endif %}>
+                                    {{ _('Give Certificate') }}
+                                </button>
                                 {% else %}
                                 <div class="d-flex flex-wrap" style="gap:4px;">
                                     <a href="{{ url_for('main.download_certificate_image', cert_id=item.certificate.id) }}" class="btn btn-sm btn-outline-secondary">{{ _('Image') }}</a>
@@ -1719,6 +1720,63 @@
                 </table>
             </div>
             {% endif %}
+
+            <!-- Certificate date modal -->
+            <div class="modal fade" id="certDateModal" tabindex="-1" role="dialog" aria-labelledby="certDateModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-sm" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="certDateModalLabel">{{ _('Issue Date') }}</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="{{ _('Close') }}">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <form method="POST" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" id="certDateForm">
+                            <div class="modal-body">
+                                <input type="hidden" name="action" value="give_certificate">
+                                <input type="hidden" name="student_id" id="certStudentId">
+                                <p class="text-muted small mb-3" id="certStudentName"></p>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="date_mode" id="dateModeCurrent" value="current" checked>
+                                    <label class="form-check-label" for="dateModeCurrent">{{ _('Current date') }}</label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="date_mode" id="dateModeCustom" value="custom">
+                                    <label class="form-check-label" for="dateModeCustom">{{ _('Choose date') }}</label>
+                                </div>
+                                <input type="date" class="form-control" name="issue_date" id="certDatePicker"
+                                       style="display:none;" max="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">{{ _('Cancel') }}</button>
+                                <button type="submit" class="btn btn-success btn-sm">{{ _('Issue Certificate') }}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <script>
+            function certModalOpen(studentId, studentName) {
+                document.getElementById('certStudentId').value = studentId;
+                document.getElementById('certStudentName').textContent = studentName;
+                document.getElementById('dateModeCurrent').checked = true;
+                var picker = document.getElementById('certDatePicker');
+                picker.style.display = 'none';
+                picker.required = false;
+                picker.value = '';
+            }
+            document.addEventListener('change', function (e) {
+                if (e.target && e.target.name === 'date_mode') {
+                    var isCustom = e.target.value === 'custom';
+                    var picker = document.getElementById('certDatePicker');
+                    picker.style.display = isCustom ? 'block' : 'none';
+                    picker.required = isCustom;
+                    if (isCustom && !picker.value) {
+                        picker.value = new Date().toISOString().slice(0, 10);
+                    }
+                }
+            });
+            </script>
 
         {% else %}
             <!-- Student certificate view -->
