@@ -144,13 +144,23 @@ Certificate templates are private (not in git). Upload them to each server separ
 
 ```bash
 # Staging
-scp moxo_template.jpeg magsud@yonca-sdc.com:~/deploy/staging/yonca/data/cert-templates/
+scp yonca/static/certificates/moxo_template.jpeg yonca/static/certificates/moxo_template_legacy.png magsud@yonca-sdc.com:~/deploy/staging/yonca/data/cert-templates/
 
 # Production
-scp moxo_template.jpeg magsud@yonca-sdc.com:~/deploy/production/yonca/data/cert-templates/
+scp yonca/static/certificates/moxo_template.jpeg yonca/static/certificates/moxo_template_legacy.png magsud@yonca-sdc.com:~/deploy/production/yonca/data/cert-templates/
 ```
 
 No restart needed — the volume is live. Templates appear in the admin certificate tuning picker immediately.
+
+To remove an old template:
+
+```bash
+# Staging
+ssh magsud@yonca-sdc.com "rm ~/deploy/staging/yonca/data/cert-templates/moxo_template.png"
+
+# Production
+ssh magsud@yonca-sdc.com "rm ~/deploy/production/yonca/data/cert-templates/moxo_template.png"
+```
 
 ### Restoring production data
 
