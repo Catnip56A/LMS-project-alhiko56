@@ -144,10 +144,10 @@ Certificate templates are private (not in git). Upload them to each server separ
 
 ```bash
 # Staging
-scp template.png user@yonca-sdc.com:~/deploy/staging/yonca/data/cert-templates/
+scp moxo_template.jpeg magsud@yonca-sdc.com:~/deploy/staging/yonca/data/cert-templates/
 
 # Production
-scp template.png user@yonca-sdc.com:~/deploy/production/yonca/data/cert-templates/
+scp moxo_template.jpeg magsud@yonca-sdc.com:~/deploy/production/yonca/data/cert-templates/
 ```
 
 No restart needed — the volume is live. Templates appear in the admin certificate tuning picker immediately.
