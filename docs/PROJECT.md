@@ -143,9 +143,11 @@ ssh user@host "cd ~/deploy/production/yonca && \
 Certificate templates are private (not in git). Upload them to each server separately:
 
 ```bash
-# Use the same host/user as your SSH_HOST / SSH_USER GitHub secrets
-scp template.png user@<SSH_HOST>:~/deploy/staging/yonca/data/cert-templates/   # staging
-scp template.png user@<SSH_HOST>:~/deploy/production/yonca/data/cert-templates/ # production
+# Staging
+scp template.png user@yonca-sdc.com:~/deploy/staging/yonca/data/cert-templates/
+
+# Production
+scp template.png user@yonca-sdc.com:~/deploy/production/yonca/data/cert-templates/
 ```
 
 No restart needed — the volume is live. Templates appear in the admin certificate tuning picker immediately.
