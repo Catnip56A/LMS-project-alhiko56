@@ -161,7 +161,7 @@
     {# ─── ENGLISH ─────────────────────────────────────────────────────────── #}
     {% if current_locale != 'az' and current_locale != 'ru' %}
 
-    <p class="last-updated">Date of Last Update: 30.04.2026</p>
+    <p class="last-updated">Date of Last Update: 26.06.2026</p>
 
     <div class="welcome-block">
         <p><strong>Welcome!</strong></p>
@@ -206,7 +206,7 @@
         <p class="clause"><span class="clause-num">4.3.</span>Except as required by law, Yonca is not responsible for interruptions, data loss, or alteration of data resulting from the activities of third-party service providers.</p>
         <p class="clause"><span class="clause-num">4.4.</span><strong>Google Drive Integration:</strong></p>
         <p class="clause"><span class="clause-num">4.4.1.</span>Yonca may allow Users to connect their Google Drive account to the Platform for uploading, storing, accessing, or managing files. This integration is carried out via the Google OAuth 2.0 authorization mechanism.</p>
-        <p class="clause"><span class="clause-num">4.4.2.</span>When connecting a Google Drive account, Yonca requests only the minimum permissions necessary to provide the required functionality, and these permissions are shown to the User during the Google authorization process.</p>
+        <p class="clause"><span class="clause-num">4.4.2.</span>When connecting a Google Drive account, Yonca requests only the <code>drive.file</code> scope, which limits access to files created or opened through the Application. These permissions are shown to the User during the Google authorization process.</p>
         <p class="clause"><span class="clause-num">4.4.3.</span>Yonca does not access, read, or modify files outside the scope explicitly authorized by the User.</p>
         <p class="clause"><span class="clause-num">4.4.4.</span>Files uploaded or managed through Google Drive remain under the User's control and are subject to Google's applicable Terms of Use and Privacy Policy.</p>
         <p class="clause"><span class="clause-num">4.4.5.</span>Users may revoke Yonca's access to their Google Drive account at any time through the security settings of their Google account.</p>
@@ -287,7 +287,7 @@
     {# ─── RUSSIAN ─────────────────────────────────────────────────────────── #}
     {% elif current_locale == 'ru' %}
 
-    <p class="last-updated">Дата последнего изменения: 30.04.2026</p>
+    <p class="last-updated">Дата последнего изменения: 26.06.2026</p>
 
     <div class="welcome-block">
         <p><strong>Добро пожаловать!</strong></p>
@@ -332,7 +332,7 @@
         <p class="clause"><span class="clause-num">4.3.</span>Yonca не несёт ответственности за перебои в работе, потерю данных или их изменение, вызванные деятельностью сторонних поставщиков услуг, за исключением случаев, предусмотренных законом.</p>
         <p class="clause"><span class="clause-num">4.4.</span><strong>Интеграция Google Drive:</strong></p>
         <p class="clause"><span class="clause-num">4.4.1.</span>Yonca может предоставлять Пользователям возможность подключать свой аккаунт Google Drive для загрузки, хранения, доступа или управления файлами. Данная интеграция осуществляется с использованием механизма авторизации OAuth 2.0.</p>
-        <p class="clause"><span class="clause-num">4.4.2.</span>При подключении аккаунта Google Drive Yonca запрашивает только минимальные разрешения, необходимые для предоставления соответствующей функциональности, и эти разрешения отображаются Пользователю в процессе авторизации.</p>
+        <p class="clause"><span class="clause-num">4.4.2.</span>При подключении аккаунта Google Drive Yonca запрашивает только область доступа <code>drive.file</code>, которая ограничивает доступ файлами, созданными или открытыми через Приложение. Эти разрешения отображаются Пользователю в процессе авторизации Google.</p>
         <p class="clause"><span class="clause-num">4.4.3.</span>Yonca не получает доступ к файлам Пользователя, не читает и не изменяет их за пределами разрешений, прямо предоставленных Пользователем.</p>
         <p class="clause"><span class="clause-num">4.4.4.</span>Файлы, загруженные или управляемые через Google Drive, остаются под контролем Пользователя и регулируются соответствующими Условиями использования и Политикой конфиденциальности Google.</p>
         <p class="clause"><span class="clause-num">4.4.5.</span>Пользователь может в любое время отозвать доступ Yonca к своему аккаунту Google Drive через настройки безопасности своего аккаунта Google.</p>
@@ -413,7 +413,7 @@
     {# ─── AZERBAIJANI ─────────────────────────────────────────────────────── #}
     {% else %}
 
-    <p class="last-updated">Son dəyişiklik tarixi: 30.04.2026</p>
+    <p class="last-updated">Son dəyişiklik tarixi: 26.06.2026</p>
 
     <div class="welcome-block">
         <p><strong>Xoş gəlmişsiniz!</strong></p>
@@ -458,7 +458,7 @@
         <p class="clause"><span class="clause-num">4.3.</span>Yonca, qanunla nəzərdə tutulan hallar istisna olmaqla, üçüncü tərəf xidmət təminatçılarının fəaliyyəti nəticəsində yaranan kəsintilər, məlumat itkisi və ya məlumatların dəyişdirilməsi üçün məsuliyyət daşımır.</p>
         <p class="clause"><span class="clause-num">4.4.</span><strong>Google Drive İnteqrasiyası:</strong></p>
         <p class="clause"><span class="clause-num">4.4.1.</span>Yonca İstifadəçilərə faylları yükləmək, saxlamaq, əldə etmək və ya idarə etmək məqsədilə öz Google Drive hesablarını tətbiqə qoşmaq imkanı verə bilər. Bu inteqrasiya Google OAuth 2.0 avtorizasiya mexanizmi vasitəsilə həyata keçirilir.</p>
-        <p class="clause"><span class="clause-num">4.4.2.</span>Google Drive hesabını qoşduğunuz zaman Yonca yalnız tələb olunan funksionallığın təmin edilməsi üçün zəruri olan minimum icazələri tələb edir və bu icazələr Google avtorizasiya prosesi zamanı İstifadəçiyə göstərilir.</p>
+        <p class="clause"><span class="clause-num">4.4.2.</span>Google Drive hesabını qoşduğunuz zaman Yonca yalnız <code>drive.file</code> icazə sahəsini tələb edir ki, bu da girişi yalnız Tətbiq vasitəsilə yaradılmış və ya açılmış fayllarla məhdudlaşdırır. Bu icazələr Google avtorizasiya prosesi zamanı İstifadəçiyə göstərilir.</p>
         <p class="clause"><span class="clause-num">4.4.3.</span>Yonca İstifadəçinin açıq şəkildə icazə verdiyi çərçivədən kənar fayllara daxil olmur, onları oxumur və dəyişdirmir.</p>
         <p class="clause"><span class="clause-num">4.4.4.</span>Google Drive vasitəsilə yüklənmiş və ya idarə olunan fayllar İstifadəçinin nəzarəti altında qalır və Google-un müvafiq İstifadə Şərtlərinə və Məxfilik Siyasətinə tabedir.</p>
         <p class="clause"><span class="clause-num">4.4.5.</span>İstifadəçi istənilən vaxt öz Google Hesabının təhlükəsizlik parametrləri vasitəsilə Yonca-nın Google Drive hesabına girişini ləğv edə bilər.</p>

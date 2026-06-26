@@ -1481,8 +1481,15 @@ def course_page_enrolled(course_id):
     # Items per page for assignments, announcements, reviews
     per_page = 10  # Can be adjusted or made configurable
 
+    # Check if user is teacher or admin (needed for content filtering below)
+    is_teacher_or_admin = current_user.is_authenticated and (current_user.is_teacher or current_user.is_admin)
+
     # Load all course content with folders using eager loading (no pagination)
-    contents = CourseContent.query.filter_by(course_id=course.id, is_published=True).options(
+    # Non-teacher/admin students only see files that the teacher has made visible (allow_others_to_view=True)
+    _content_query = CourseContent.query.filter_by(course_id=course.id, is_published=True)
+    if not is_teacher_or_admin:
+        _content_query = _content_query.filter_by(allow_others_to_view=True)
+    contents = _content_query.options(
         subqueryload(CourseContent.folder)
     ).order_by(CourseContent.order).all()
 
@@ -1535,9 +1542,6 @@ def course_page_enrolled(course_id):
             user_id=current_user.id, 
             passed=True
         ).all()
-    
-    # Check if user is teacher or admin
-    is_teacher_or_admin = current_user.is_authenticated and (current_user.is_teacher or current_user.is_admin)
     
     # Get home content
     home_content = HomeContent.query.filter_by(is_active=True).first() or HomeContent()

@@ -1373,6 +1373,187 @@ def download_content_by_db_id(content_id):
     return redirect(url_for('main.index', error='file_not_found'))
 
 
+@api_bp.route('/drive-picker-token')
+@login_required
+def get_drive_picker_token():
+    """Return a valid (refreshed if needed) Drive access token for initialising the Google Picker."""
+    from datetime import datetime
+    from yonca.google_drive_service import refresh_credentials
+
+    if not (current_user.is_teacher or current_user.is_admin):
+        return jsonify({'error': 'forbidden'}), 403
+
+    if not current_user.google_access_token:
+        return jsonify({'error': 'no_token', 'message': 'Google account not linked'}), 401
+
+    if current_user.google_token_expiry and datetime.utcnow() >= current_user.google_token_expiry:
+        creds = refresh_credentials(current_user)
+        if not creds:
+            return jsonify({'error': 'refresh_failed', 'message': 'Token refresh failed — please re-link your Google account'}), 401
+
+    return jsonify({'access_token': current_user.google_access_token}), 200
+
+
+def _import_drive_tree(service, structure, course_id, parent_folder_id, published, allow_view, order_ref):
+    """Recursively mirror a Drive folder tree into CourseContentFolder / CourseContent rows.
+
+    order_ref is a one-element list [int] used as a mutable counter shared across calls.
+    Returns the total number of file rows created.
+    """
+    from yonca.models import CourseContent, CourseContentFolder
+    from yonca.google_drive_service import import_drive_file as _import_file
+
+    created = 0
+
+    for folder_info in structure.get('folders', []):
+        cf = CourseContentFolder(
+            course_id=course_id,
+            parent_folder_id=parent_folder_id,
+            title=folder_info['name'],
+            order=order_ref[0],
+        )
+        db.session.add(cf)
+        db.session.flush()
+        order_ref[0] += 1
+        created += _import_drive_tree(service, folder_info['structure'], course_id, cf.id, published, allow_view, order_ref)
+
+    for file_info in structure.get('files', []):
+        file_data = _import_file(service, file_info['id'])
+        if not file_data or (isinstance(file_data, dict) and 'error' in file_data):
+            continue
+        view_link = file_data.get('view_link') or file_data.get('web_view_link', '')
+        item = CourseContent(
+            course_id=course_id,
+            title=file_data.get('name', file_info['name']),
+            description='',
+            content_type='file',
+            content_data=view_link,
+            drive_file_id=file_data.get('file_id'),
+            drive_view_link=view_link,
+            order=order_ref[0],
+            folder_id=parent_folder_id,
+            is_published=published,
+            allow_others_to_view=allow_view,
+            is_imported=True,
+        )
+        db.session.add(item)
+        order_ref[0] += 1
+        created += 1
+
+    return created
+
+
+@api_bp.route('/picker-import', methods=['POST'])
+@limiter.limit("10 per minute")
+@login_required
+def picker_import():
+    """
+    Import a single file that the teacher selected via the Google Picker.
+
+    Calls files().get() to verify access, then permissions().create(type='anyone', role='reader')
+    to make the file embeddable, and finally persists a CourseContent row.
+    """
+    from yonca.models import CourseContent, CourseContentFolder, Course
+    from yonca.google_drive_service import (
+        authenticate, get_file_metadata, set_file_permissions, create_view_only_link,
+    )
+
+    if not (current_user.is_teacher or current_user.is_admin):
+        return jsonify({'error': 'forbidden'}), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON body required'}), 400
+
+    course_id = data.get('course_id')
+    file_id = data.get('file_id', '').strip()
+    file_name = data.get('file_name', '').strip()
+    mime_type = data.get('mime_type', '')
+    folder_id = data.get('folder_id') or None
+    title = data.get('title', '').strip() or file_name
+    published = bool(data.get('published', True))
+    allow_view = bool(data.get('allow_view', True))
+
+    if not course_id or not file_id:
+        return jsonify({'error': 'course_id and file_id are required'}), 400
+
+    course = Course.query.get(int(course_id))
+    if not course:
+        return jsonify({'error': 'Course not found'}), 404
+
+    service = authenticate(current_user)
+    if not service:
+        return jsonify({'error': 'no_token', 'message': 'Please link your Google account first'}), 401
+
+    try:
+        if mime_type == 'application/vnd.google-apps.folder':
+            from yonca.google_drive_service import collect_folder_structure, get_file_metadata as _gmeta
+
+            folder_meta = _gmeta(service, file_id)
+            if isinstance(folder_meta, dict) and 'error' in folder_meta:
+                return jsonify({'error': folder_meta['error']}), 400
+
+            folder_name = title or (folder_meta.get('name') if folder_meta else file_name)
+            structure = collect_folder_structure(service, file_id)
+
+            # Create a root CourseContentFolder mirroring the Drive folder
+            root_cf = CourseContentFolder(
+                course_id=course.id,
+                parent_folder_id=int(folder_id) if folder_id else None,
+                title=folder_name,
+                order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1,
+            )
+            db.session.add(root_cf)
+            db.session.flush()
+
+            order_ref = [1]
+            file_count = _import_drive_tree(service, structure, course.id, root_cf.id, published, allow_view, order_ref)
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'folder': True,
+                'folder_name': folder_name,
+                'imported_count': file_count,
+            }), 200
+
+        # Single file import
+        metadata = get_file_metadata(service, file_id)
+        if isinstance(metadata, dict) and 'error' in metadata:
+            return jsonify({'error': metadata['error']}), 400
+
+        if allow_view:
+            set_file_permissions(service, file_id, make_public=True)
+
+        is_image = mime_type.startswith('image/')
+        view_link = create_view_only_link(service, file_id, is_image)
+
+        content = CourseContent(
+            course_id=course.id,
+            title=title or metadata.get('name', file_name),
+            description='',
+            content_type='file',
+            content_data=view_link,
+            drive_file_id=file_id,
+            drive_view_link=view_link,
+            order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
+            folder_id=int(folder_id) if folder_id else None,
+            is_published=published,
+            allow_others_to_view=allow_view,
+            is_imported=True,
+        )
+        db.session.add(content)
+        db.session.commit()
+
+        return jsonify({'success': True, 'content_id': content.id, 'title': content.title}), 200
+
+    except Exception as e:
+        import traceback
+        print(f'picker_import error: {e}\n{traceback.format_exc()}')
+        db.session.rollback()
+        return jsonify({'error': f'Import failed: {str(e)}'}), 500
+
+
 @api_bp.route('/import-drive-file', methods=['POST'])
 @limiter.limit("5 per 30 seconds")
 @login_required
@@ -1555,11 +1736,12 @@ def get_folder_contents(folder_id):
         if not enrolled:
             return jsonify({'error': 'You must be enrolled in this course to view its contents'}), 403
         
-        # Fetch only published contents for this folder with eager loading
-        contents = CourseContent.query.filter_by(
-            folder_id=folder_id,
-            is_published=True
-        ).options(
+        # Fetch published contents for this folder; students only see files the teacher made visible
+        is_teacher_or_admin = current_user.is_teacher or current_user.is_admin
+        _q = CourseContent.query.filter_by(folder_id=folder_id, is_published=True)
+        if not is_teacher_or_admin:
+            _q = _q.filter_by(allow_others_to_view=True)
+        contents = _q.options(
             subqueryload(CourseContent.folder)
         ).order_by(CourseContent.order).all()
         

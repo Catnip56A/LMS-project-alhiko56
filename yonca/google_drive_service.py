@@ -13,8 +13,8 @@ from flask import url_for, current_app
 from datetime import datetime, timedelta, timedelta
 import requests
 
-# Google Drive API scopes - using full drive scope for complete file access
-SCOPES = ['https://www.googleapis.com/auth/drive']
+# drive.file scope: access only files created by the app or opened via the Picker
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
 FOLDER_ID = None  # Upload to root directory for OAuth users
 
 def authenticate(user=None):
@@ -484,8 +484,8 @@ def import_drive_file(service, file_id_or_url):
         print("DEBUG: No metadata retrieved, returning None")
         return {'error': 'Failed to retrieve file metadata'}
     
-    # Ensure file has proper sharing permissions
-    set_file_permissions(service, file_id)
+    # Grant anyone-with-link read access so the embed viewer works
+    set_file_permissions(service, file_id, make_public=True)
     
     # Create view-only link
     is_image = metadata.get('mimeType', '').startswith('image/')

@@ -110,17 +110,27 @@
             {% endfor %}
         </div>
 
+        {% if current_user and current_user.is_authenticated %}
+        <div id="mobile-user-info" style="margin-top: 1.5rem;">
+            <button id="mobile-user-toggle" onclick="document.getElementById('mobile-user-dropdown').classList.toggle('mobile-user-open')" class="mobile-nav-user-btn">
+                <span>{{ current_user.username }}</span>
+                <span class="mobile-user-chevron">▼</span>
+            </button>
+            <div id="mobile-user-dropdown" style="display:none; flex-direction:column; gap:0.4rem; margin-top:0.4rem; padding-left:0.75rem;">
+                {% if current_user.is_admin %}
+                <a href="/admin/" class="nav-link">{{ _('Admin Panel') }}</a>
+                {% endif %}
+                <a href="{{ url_for('main.profile') }}" class="nav-link">{{ _('My Profile') }}</a>
+                <a href="{{ url_for('auth.google_account_info') }}" class="nav-link">{{ _('Link Google Account') }}</a>
+                <a href="{{ url_for('auth.change_password') }}" class="nav-link">{{ _('Change Password') }}</a>
+                <a href="/logout" class="nav-link">{{ _('Logout') }}</a>
+            </div>
+        </div>
+        {% else %}
         <div id="mobile-auth-buttons" style="margin-top: 1.5rem; text-align: center;">
             <button id="mobile-login-btn" onclick="window.location.href='/login'"><img src="/static/permanent/uis%20for%20additional%20use(icons%20etc)/log%20in%20icon.png" alt="" style="height:1.8em;width:auto;margin-right:5px;vertical-align:middle;"> {{ _('Login') }}</button>
         </div>
-        <div id="mobile-user-info" style="margin-top: 1.5rem; text-align: center; display: none;">
-            <p style="color: #353e45; margin-bottom: 1rem;">{{ _('Welcome') }}, <span id="mobile-user-name"></span>!</p>
-            <button id="mobile-admin-btn" onclick="window.location.href='/admin'" style="display: none;">{{ _('Admin') }}</button>
-            <a href="{{ url_for('main.profile') }}" class="mobile-action-link">{{ _('My Profile') }}</a>
-            <a href="{{ url_for('auth.google_account_info') }}" class="mobile-action-link">{{ _('Link Google Account') }}</a>
-            <a href="{{ url_for('auth.change_password') }}" class="mobile-action-link">{{ _('Change Password') }}</a>
-            <button onclick="window.location.href='/logout'">{{ _('Logout') }}</button>
-        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -410,7 +420,7 @@
     .mobile-action-link {
         display: block;
         width: 100%;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0;
         padding: 0.75rem 1rem;
         border-radius: 4px;
         background: #337a2c;
@@ -422,6 +432,40 @@
     }
 
     .mobile-action-link:hover { background: #3d6b38; color: #f1f5f9; text-decoration: none; }
+
+    #mobile-user-dropdown.mobile-user-open { display: flex !important; }
+
+    .mobile-nav-user-btn {
+        width: 100%;
+        background-color: #fffae6;
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: 6px;
+        padding: 0.9rem 1rem;
+        font-weight: 600;
+        font-size: 1.05rem;
+        color: #353e45;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .mobile-nav-user-btn:hover {
+        background-color: #3d6b38;
+        color: #f1f5f9;
+    }
+
+    .mobile-user-chevron {
+        font-size: 0.75rem;
+        transition: transform 0.2s ease;
+    }
+
+    .mobile-user-open ~ * .mobile-user-chevron,
+    #mobile-user-toggle:has(+ .mobile-user-open) .mobile-user-chevron {
+        transform: rotate(180deg);
+    }
 
     @media (max-width: 991px) {
         #navbarNav { display: none !important; }
@@ -488,19 +532,12 @@
             });
         });
 
-        updateMobileAuthButtons();
         rebalanceNavMain();
         var _navUl = document.querySelector('.navbar-nav-main');
         if (_navUl && window.ResizeObserver) {
             new ResizeObserver(rebalanceNavMain).observe(_navUl);
         }
 
-        if (window.checkUser) {
-            const orig = window.checkUser;
-            window.checkUser = function() {
-                return orig().then(() => updateMobileAuthButtons());
-            };
-        }
     });
 
     function rebalanceNavMain() {

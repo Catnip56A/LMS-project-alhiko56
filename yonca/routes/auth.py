@@ -173,7 +173,7 @@ def link_google_account():
     
     redirect_uri = get_google_link_uri()
     
-    scope = 'openid email profile https://www.googleapis.com/auth/drive'
+    scope = 'openid email profile https://www.googleapis.com/auth/drive.file'
     state = secrets.token_urlsafe(32)  # Generate a secure state
     # Store state in session for verification
     from flask import session
