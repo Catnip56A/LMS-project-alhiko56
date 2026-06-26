@@ -12,6 +12,7 @@ Fonts are baked into the image at yonca/static/certificates/fonts/ (no images th
 """
 import io
 import json
+import math
 import os
 
 import qrcode
@@ -135,9 +136,16 @@ def _draw_onto(img, t: dict, student_name: str, course_text: str,
     W, H = img.size
 
     # Student name — Great Vibes script, horizontally centred
-    font_name = _load_font(FONT_SCRIPT, int(H * t['font_name_size']))
+    base_name_size = int(H * t['font_name_size'])
+    extra_chars = max(0, len(student_name) - 10)
+    if extra_chars:
+        steps = math.ceil(extra_chars / 3)
+        reduction = min(steps * 0.025, 0.15)
+        base_name_size = int(base_name_size * (1 - reduction))
+    font_name = _load_font(FONT_SCRIPT, base_name_size)
     bbox = draw.textbbox((0, 0), student_name, font=font_name)
-    x_name = (W - (bbox[2] - bbox[0])) / 2
+    # Subtract bbox[0] (left bearing) so the rendered pixels are truly centred
+    x_name = (W - (bbox[2] - bbox[0])) / 2 - bbox[0]
     draw.text((x_name, H * t['y_name']), student_name,
               font=font_name, fill=tuple(t['name_color']))
 
