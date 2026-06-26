@@ -1345,6 +1345,34 @@ def serve_content_embed(content_id):
     return redirect(f'https://drive.google.com/file/d/{file_id}/preview')
 
 
+@api_bp.route('/file/c/<int:content_id>/download')
+@login_required
+def download_content_by_db_id(content_id):
+    """Download course content as a file attachment (only if is_downloadable is set)."""
+    from yonca.models import CourseContent, Course
+
+    content = CourseContent.query.get(content_id)
+    if not content:
+        return redirect(url_for('main.index', error='file_not_found'))
+
+    if not content.is_downloadable:
+        return redirect(url_for('main.index', error='download_not_allowed'))
+
+    is_admin = current_user.is_admin
+    is_teacher = current_user.is_teacher
+    course = Course.query.get(content.course_id)
+    is_enrolled = course and current_user in course.users
+    if not (is_admin or is_teacher or is_enrolled):
+        return redirect(url_for('main.index', error='auth_required'))
+    if not content.is_published and not (is_admin or is_teacher):
+        return redirect(url_for('main.index', error='auth_required'))
+
+    if content.drive_file_id:
+        return redirect(f'https://drive.google.com/uc?export=download&id={content.drive_file_id}')
+
+    return redirect(url_for('main.index', error='file_not_found'))
+
+
 @api_bp.route('/import-drive-file', methods=['POST'])
 @limiter.limit("5 per 30 seconds")
 @login_required
@@ -1549,6 +1577,7 @@ def get_folder_contents(folder_id):
                 'created_at': content.created_at.isoformat() if content.created_at else None,
                 'folder_id': content.folder_id,
                 'course_id': content.course_id,
+                'is_downloadable': content.is_downloadable,
             }
             contents_data.append(content_dict)
         

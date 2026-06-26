@@ -673,7 +673,22 @@ def course_page_enrolled(course_id):
             db.session.commit()
             flash(f"File visibility updated: {'Visible to students' if content.allow_others_to_view else 'Private'}", 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-        
+
+        elif action == 'toggle_content_downloadable' and (current_user.is_teacher or current_user.is_admin):
+            from yonca.models import CourseContent
+            content_id = request.form.get('content_id')
+            content = CourseContent.query.get(content_id)
+            if not content:
+                flash('Content not found.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+            if content.course_id != course.id:
+                flash('Content does not belong to this course.', 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+            content.is_downloadable = not content.is_downloadable
+            db.session.commit()
+            flash(f"Download {'enabled' if content.is_downloadable else 'disabled'} for \"{content.title}\".", 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
         # Toggle submission visibility
         elif action == 'toggle_submission_visibility' and current_user.is_authenticated:
             from yonca.models import CourseAssignmentSubmission

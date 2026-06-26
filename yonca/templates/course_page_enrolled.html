@@ -1027,6 +1027,9 @@
                         <button class="btn btn-sm btn-info" onclick="viewAssignment('{{ item.content_data }}')">{{ _('View Assignment') }}</button>
                         {% else %}
                         <a href="/api/file/c/{{ item.id }}" class="btn btn-sm btn-primary" target="_blank">{{ _('View File') }}</a>
+                        {% if item.is_downloadable %}
+                        <a href="/api/file/c/{{ item.id }}/download" class="btn btn-sm btn-success ml-1" title="{{ _('Download') }}"><i class="fas fa-download"></i></a>
+                        {% endif %}
                         {% endif %}
                         {% if is_teacher_or_admin %}
                         <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#editFileModal" data-file-id="{{ item.id }}" data-file-name="{{ item.title }}" data-file-description="{{ item.description or '' }}">
@@ -1041,6 +1044,14 @@
                             <label for="visibility_{{ item.id }}" class="btn btn-sm btn-{{ 'success' if item.allow_others_to_view else 'secondary' }} ml-1" style="margin: 0;">
                                 <input type="checkbox" id="visibility_{{ item.id }}" name="allow_others_to_view" {% if item.allow_others_to_view %}checked{% endif %} onchange="this.form.submit()" style="display: none;">
                                 {{ '👁️ Visible' if item.allow_others_to_view else '🔒 Private' }}
+                            </label>
+                        </form>
+                        <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline; margin-left: 0.5rem;">
+                            <input type="hidden" name="action" value="toggle_content_downloadable">
+                            <input type="hidden" name="content_id" value="{{ item.id }}">
+                            <label for="downloadable_{{ item.id }}" class="btn btn-sm btn-{{ 'success' if item.is_downloadable else 'secondary' }} ml-1" style="margin: 0;">
+                                <input type="checkbox" id="downloadable_{{ item.id }}" onchange="this.form.submit()" style="display: none;">
+                                <i class="fas fa-download"></i> {{ _('Downloadable') if item.is_downloadable else _('Not Downloadable') }}
                             </label>
                         </form>
                         <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline;" onsubmit="return confirm('{{ _('Are you sure you want to delete this file?') }}');">
@@ -2919,7 +2930,10 @@ function bulkToggleVisibilityEnrolled() {
         thisFolderIsEmpty: "{{ _('This folder is empty') }}",
         failedToLoadContents: "{{ _('Failed to load contents. Please try again.') }}",
         confirmDeleteFile: "{{ _('Are you sure you want to delete this file?') }}",
-        errorLoadingContents: "{{ _('Error loading contents') }}"
+        errorLoadingContents: "{{ _('Error loading contents') }}",
+        download: "{{ _('Download') }}",
+        downloadable: "{{ _('Downloadable') }}",
+        notDownloadable: "{{ _('Not Downloadable') }}"
     };
     
     // Function to load folder contents via AJAX
@@ -2993,6 +3007,9 @@ function bulkToggleVisibilityEnrolled() {
                     <div>
                         <a href="${viewLink}" class="btn btn-sm btn-primary" target="_blank">${i18n.viewFile}</a>
             `;
+            if (item.content_type !== 'assignment' && item.is_downloadable) {
+                html += `<a href="/api/file/c/${item.id}/download" class="btn btn-sm btn-success ml-1" title="${i18n.download}"><i class="fas fa-download"></i></a>`;
+            }
             if (isTeacherOrAdmin) {
                 html += `
                         <button type="button" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#editFileModal" data-file-id="${item.id}" data-file-name="${item.title}" data-file-description="${item.description || ''}">
@@ -3001,6 +3018,14 @@ function bulkToggleVisibilityEnrolled() {
                         <button type="button" class="btn btn-warning btn-sm ml-2" data-toggle="modal" data-target="#moveFileModal" data-file-id="${item.id}" data-file-name="${item.title}">
                             ${i18n.moveFile}
                         </button>
+                        <form method="post" action="${coursePageUrl}" style="display: inline; margin-left: 0.5rem;">
+                            <input type="hidden" name="action" value="toggle_content_downloadable">
+                            <input type="hidden" name="content_id" value="${item.id}">
+                            <label class="btn btn-sm btn-${item.is_downloadable ? 'success' : 'secondary'} ml-1" style="margin: 0;">
+                                <input type="checkbox" onchange="this.form.submit()" style="display: none;">
+                                <i class="fas fa-download"></i> ${item.is_downloadable ? i18n.downloadable : i18n.notDownloadable}
+                            </label>
+                        </form>
                         <form method="post" action="${coursePageUrl}" style="display: inline; margin-left: 0.5rem;" onsubmit="return confirm('${i18n.confirmDeleteFile}');">
                             <input type="hidden" name="action" value="delete_content">
                             <input type="hidden" name="content_id" value="${item.id}">

@@ -380,6 +380,7 @@ class CourseContent(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     allow_others_to_view = db.Column(db.Boolean, default=True)  # Allow other users to view this file
     is_imported = db.Column(db.Boolean, default=False)
+    is_downloadable = db.Column(db.Boolean, default=False)
 
     course = db.relationship('Course', backref=db.backref('contents', lazy='dynamic'))
     folder_id = db.Column(db.Integer, db.ForeignKey('course_content_folder.id'), nullable=True)
