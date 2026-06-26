@@ -120,6 +120,15 @@
             margin-left: 0.75rem;
         }
 
+        .user-nav-long .user-nav-name {
+            display: inline-block;
+            max-width: 5rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
         /* Language pills */
         .lang-pills {
             display: flex;
@@ -279,8 +288,9 @@
             margin: 0;
             display: flex;
             gap: clamp(0.2rem, 0.4vw, 0.6rem);
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
             flex: 1;
+            align-content: center;
         }
 
         .nav-link {
@@ -303,7 +313,6 @@
             align-items: center;
             justify-content: center;
             white-space: nowrap;
-            overflow: hidden;
             flex: 1 1 0;
             min-width: 0;
         }
@@ -2458,8 +2467,8 @@
                         {# Auth dropdown or login button #}
                         {% if current_user and current_user.is_authenticated %}
                         <div class="dropdown">
-                            <button type="button" class="nav-link dropdown-toggle" id="userDropdown" role="button">
-                                {{ current_user.username }}
+                            <button type="button" class="nav-link dropdown-toggle{% if current_user.username | length > 6 %} user-nav-long{% endif %}" id="userDropdown" role="button">
+                                <span class="user-nav-name">{{ current_user.username[:6] }}{% if current_user.username | length > 6 %}…{% endif %}</span>
                             </button>
                             <div class="dropdown-menu" id="userDropdown-menu" style="display: none;">
                                 {% if current_user.is_admin %}
@@ -5688,10 +5697,34 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
         }
 
         // Load initial data
+        function rebalanceIndexNav() {
+            var nav = document.getElementById('main-nav');
+            if (!nav || nav.offsetParent === null) return;
+            var items = Array.from(nav.querySelectorAll(':scope > .nav-link'));
+            if (!items.length) return;
+
+            items.forEach(function(a) { a.style.flex = '0 0 auto'; a.style.minWidth = 'max-content'; });
+            var gapPx = parseFloat(getComputedStyle(nav).columnGap) || 4;
+            var availW = nav.clientWidth;
+            var totalW = items.reduce(function(s, a) { return s + a.offsetWidth; }, 0)
+                         + gapPx * (items.length - 1);
+
+            if (totalW <= availW + 1) {
+                items.forEach(function(a) { a.style.flex = '1 1 0'; a.style.minWidth = '0'; });
+            } else {
+                var w = Math.floor((availW - gapPx * 2) / 3);
+                items.forEach(function(a) { a.style.flex = '0 0 ' + w + 'px'; a.style.minWidth = '0'; });
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // Initialize currentUser as undefined to indicate auth check is pending
             window.currentUser = undefined;
-            
+
+            rebalanceIndexNav();
+            var _nav = document.getElementById('main-nav');
+            if (_nav && window.ResizeObserver) new ResizeObserver(rebalanceIndexNav).observe(_nav);
+
             // Initialize translate button visibility based on default language
             const translateButtons = document.querySelectorAll('.translate-btn');
             if (targetLanguage === 'none') {

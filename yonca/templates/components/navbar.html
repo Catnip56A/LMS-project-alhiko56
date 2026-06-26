@@ -48,8 +48,8 @@
                 {# ── Auth ── #}
                 {% if current_user and current_user.is_authenticated %}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        {{ current_user.username }}
+                    <a class="nav-link dropdown-toggle{% if current_user.username | length > 6 %} user-nav-long{% endif %}" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <span class="user-nav-name">{{ current_user.username[:6] }}{% if current_user.username | length > 6 %}…{% endif %}</span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
                         {% if current_user.is_admin %}
@@ -167,14 +167,14 @@
         flex: 1 1 0 !important;
         display: flex !important;
         flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-content: center !important;
         margin-left: 0 !important;
         gap: clamp(0.2rem, 0.4vw, 0.6rem) !important;
         min-width: 0 !important;
     }
 
     .navbar .navbar-nav-main .nav-item {
-        flex: 1 1 0 !important;
-        min-width: 0 !important;
         max-width: none !important;
     }
 
@@ -187,7 +187,6 @@
         box-sizing: border-box !important;
         margin: 0 !important;
         white-space: nowrap !important;
-        overflow: hidden !important;
     }
 
     .navbar-nav-auth {
@@ -205,6 +204,15 @@
     .navbar-nav-auth .nav-link {
         margin: 0 !important;
         padding: 0.5rem 0.9rem !important;
+    }
+
+    .user-nav-long .user-nav-name {
+        display: inline-block;
+        max-width: 5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: middle;
     }
 
     .navbar .nav-link {
@@ -481,6 +489,11 @@
         });
 
         updateMobileAuthButtons();
+        rebalanceNavMain();
+        var _navUl = document.querySelector('.navbar-nav-main');
+        if (_navUl && window.ResizeObserver) {
+            new ResizeObserver(rebalanceNavMain).observe(_navUl);
+        }
 
         if (window.checkUser) {
             const orig = window.checkUser;
@@ -489,6 +502,26 @@
             };
         }
     });
+
+    function rebalanceNavMain() {
+        var ul = document.querySelector('.navbar-nav-main');
+        if (!ul || ul.offsetParent === null) return;
+        var items = Array.from(ul.querySelectorAll(':scope > .nav-item'));
+        if (!items.length) return;
+
+        items.forEach(function(li) { li.style.flex = '0 0 auto'; li.style.minWidth = 'max-content'; });
+        var gapPx = parseFloat(getComputedStyle(ul).columnGap) || 4;
+        var availW = ul.clientWidth;
+        var totalW = items.reduce(function(s, li) { return s + li.offsetWidth; }, 0)
+                     + gapPx * (items.length - 1);
+
+        if (totalW <= availW + 1) {
+            items.forEach(function(li) { li.style.flex = '1 1 0'; li.style.minWidth = '0'; });
+        } else {
+            var w = Math.floor((availW - gapPx * 2) / 3);
+            items.forEach(function(li) { li.style.flex = '0 0 ' + w + 'px'; li.style.minWidth = '0'; });
+        }
+    }
 
     function updateMobileAuthButtons() {
         const authDiv  = document.getElementById('mobile-auth-buttons');
