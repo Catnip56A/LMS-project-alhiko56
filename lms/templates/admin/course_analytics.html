@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+<!-- VERSION: 2025-05-17-CHART-FIX -->
+{% block head %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<style>
+    .chart-card {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 28px;
+    }
+    .metric-label {
+        font-size: 0.82rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+        <a href="{{ url_for('course_management.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fa fa-arrow-left"></i> Back to Course Management
+        </a>
+        <h2 style="margin:0;"><i class="fa fa-chart-bar"></i> Analytics: {{ course.title }}</h2>
+    </div>
+
+    {% if not users %}
+    <div class="alert alert-warning">No enrolled users or no tracked content for this course yet.</div>
+    {% else %}
+
+    <div class="alert alert-info" style="font-size:12px;">
+        <strong>DATA:</strong> Users: {{ users | length }}, Files: {{ files | length }}, Max total: {{ max_total }}s
+    </div>
+
+       <div style="margin-bottom:20px;">
+           <label for="userFilter" style="font-weight:600; margin-right:8px;">Filter by user:</label>
+           <select id="userFilter" class="form-select d-inline-block" style="width:280px;">
+               <option value="">— All users —</option>
+               {% for u in users %}
+               <option value="{{ u.id }}" {% if selected_user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+               {% endfor %}
+           </select>
+           <div class="input-group" style="width:280px;">
+               <label for="fileSearch" style="font-weight:600; margin-right:8px; margin-left:16px;">Search files:</label>
+               <input type="text" id="fileSearch" class="form-control" placeholder="Type to search files..." aria-label="Search files">
+               <button class="btn btn-outline-secondary" type="button" id="clearFileSearch">
+                   <i class="fa fa-times"></i>
+               </button>
+           </div>
+           <a href="{{ url_for('course_management.analytics', course_id=course.id) }}" class="btn btn-outline-secondary btn-sm ms-2">
+               <i class="fa fa-times"></i> Clear All
+           </a>
+       </div>
+
+    <div class="chart-card">
+        <h5><i class="fa fa-clock"></i> Total Watching Time per User</h5>
+        <div style="position:relative; height:350px;">
+            <canvas id="totalTimeChart" width="800" height="350"></canvas>
+            <div id="chart1-status" style="position:absolute;top:0;right:0;font-size:12px;padding:4px 8px;background:rgba(255,255,255,0.9);border-radius:4px;border:1px solid #e9ecef;">Initializing...</div>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h5><i class="fa fa-file"></i> Watching Time per File
+            {% if selected_user_id %}— {{ users | selectattr('id','equalto',selected_user_id) | map(attribute='username') | first }}{% endif %}
+        </h5>
+        <div style="position:relative; height:520px;">
+            <canvas id="perFileChart" width="1200" height="520"></canvas>
+            <div id="chart2-status" style="position:absolute;top:0;right:0;font-size:12px;padding:4px 8px;background:rgba(255,255,255,0.9);border-radius:4px;border:1px solid #e9ecef;">Initializing...</div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+const USER_LIST   = {{ user_list | tojson }};
+const FILE_LIST   = {{ files | tojson }};
+const TOTAL_MAP   = {{ total_per_user | tojson }};
+window.SELECTED_ID = {{ selected_user_id | tojson }};
+const MAX_TOTAL   = {{ max_total }};
+
+const USER_COLORS = {};
+{% for uid, color in user_colors.items() %}
+USER_COLORS[{{ uid }}] = "{{ color }}";
+{% endfor %}
+
+function status(id, msg) {
+    var el = document.getElementById(id);
+    if (el) { el.textContent = msg; console.log('[STATUS]', id, '->', msg); }
+    else { console.error('Status element not found', id); }
+}
+
+// Timeouts to force update
+setTimeout(function() { 
+    var el = document.getElementById('chart1-status');
+    if (el && el.textContent === 'Initializing...') { status('chart1-status', 'TIMEOUT C1'); }
+}, 15000);
+setTimeout(function() { 
+    var el = document.getElementById('chart2-status');
+    if (el && el.textContent === 'Initializing...') { status('chart2-status', 'TIMEOUT C2'); }
+}, 15000);
+
+console.log('[DEBUG] JS loaded, User:', USER_LIST.length, 'Files:', FILE_LIST.length, 'Selected:', SELECTED_ID);
+console.log('[DEBUG] USER_LIST:', USER_LIST);
+console.log('[DEBUG] FILE_LIST:', FILE_LIST);
+
+function initCharts() {
+    console.log('[DEBUG] initCharts called, Chart:', typeof Chart);
+    if (typeof Chart === 'undefined') {
+        console.error('[DEBUG] Chart.js not ready, retrying...');
+        setTimeout(initCharts, 200);
+        return;
+    }
+    setupCharts();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[DEBUG] DOM loaded');
+    console.log('[DEBUG] typeof Chart:', typeof Chart);
+    initCharts();
+    
+    // Setup filter after DOM is ready
+    var filterEl = document.getElementById('userFilter');
+    if (filterEl) {
+        filterEl.addEventListener('change', function() {
+            var uid = this.value ? parseInt(this.value) : null;
+            console.log('[ FILTER ] rebuild with userId:', uid);
+            // Update SELECTED_ID for use in setupCharts
+            window.SELECTED_ID = uid;
+            // Rebuild: destroy and re-init
+            if (window.c1) { window.c1.destroy(); delete window.c1; }
+            if (window.c2) { window.c2.destroy(); delete window.c2; }
+            setupCharts();
+        });
+    }
+    
+    // File search
+    var searchInput = document.getElementById('fileSearch');
+    var clearButton = document.getElementById('clearFileSearch');
+    if (searchInput && clearButton) {
+        // Handle search input
+        searchInput.addEventListener('input', function() {
+            var searchTerm = this.value.trim().toLowerCase();
+            console.log('[ FILE SEARCH ] rebuild with searchTerm:', searchTerm);
+            // Rebuild charts with filtered files
+            if (window.c1) { window.c1.destroy(); delete window.c1; }
+            if (window.c2) { window.c2.destroy(); delete window.c2; }
+            setupCharts();
+        });
+        
+        // Handle clear button
+        clearButton.addEventListener('click', function() {
+            searchInput.value = '';
+            console.log('[ FILE SEARCH ] cleared');
+            // Rebuild charts with all files
+            if (window.c1) { window.c1.destroy(); delete window.c1; }
+            if (window.c2) { window.c2.destroy(); delete window.c2; }
+            setupCharts();
+        });
+        
+        // Also clear on Enter key
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.blur();
+            }
+        });
+    }
+});
+
+function setupCharts() {
+    console.log('[DEBUG] setupCharts called');
+    console.log('[DEBUG] USER_LIST:', USER_LIST);
+    console.log('[DEBUG] FILE_LIST:', FILE_LIST);
+    status('chart1-status', 'SETUP...');
+    status('chart2-status', 'SETUP...');
+    
+    var ctx1 = document.getElementById('totalTimeChart');
+    if (!ctx1) {
+        console.error('Canvas 1 not found');
+        status('chart1-status', 'NO_CANVAS1');
+        return;
+    }
+    
+     var l1 = [], d1 = [], b1 = [];
+     try {
+         if (window.SELECTED_ID) {
+             var u = USER_LIST.find(function(x){ return x.id === window.SELECTED_ID; });
+             if (!u) {
+                 status('chart1-status', 'NO_USER');
+                 return;
+             }
+             l1 = [u.username];
+             d1 = [TOTAL_MAP[window.SELECTED_ID] || 0];
+             b1 = [USER_COLORS[window.SELECTED_ID] || '#ccc'];
+         } else {
+             l1 = USER_LIST.map(function(v){ return v.username; });
+             d1 = USER_LIST.map(function(v){ return TOTAL_MAP[v.id] || 0; });
+             b1 = USER_LIST.map(function(v){ return USER_COLORS[v.id] || '#ccc'; });
+         }
+         
+         window.c1 = new Chart(ctx1, {
+             type: 'bar',
+             data: { labels: l1, datasets: [{ label: 'Seconds', data: d1, backgroundColor: b1, borderRadius: 3 }] },
+             options: { 
+                 responsive: true, 
+                 maintainAspectRatio: false, 
+                 plugins: { legend: { display: false } }, 
+                 scales: { y: { beginAtZero: true } },
+                 onClick: function(e) {
+                     const points = this.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                     if (points.length) {
+                         const firstPoint = points[0];
+                         const userIndex = firstPoint.index;
+                         const userId = l1[userIndex]; // l1 is array of usernames, but we need user ID
+                         // Find user by username in USER_LIST
+                         const user = USER_LIST.find(u => u.username === userId);
+                         if (user) {
+                             console.log('[CHART1 CLICK] User clicked:', user.id, user.username);
+                             // Update user filter dropdown
+                             const userFilter = document.getElementById('userFilter');
+                             if (userFilter) {
+                                 userFilter.value = user.id;
+                                 // Trigger change event to rebuild charts
+                                 userFilter.dispatchEvent(new Event('change'));
+                             }
+                         }
+                     }
+                 }
+             }
+         });
+         status('chart1-status', 'C1 OK');
+     } catch (e) {
+         console.error('Chart 1 error:', e);
+         status('chart1-status', 'ERR: ' + e.message);
+     }
+     
+     // Chart 2 - filter files based on search term
+     var searchTerm = document.getElementById('fileSearch') ? document.getElementById('fileSearch').value.trim().toLowerCase() : '';
+     var filesToShow = FILE_LIST;
+     
+     if (searchTerm) {
+         filesToShow = FILE_LIST.filter(function(f){
+             return f.file_title.toLowerCase().includes(searchTerm);
+         });
+     }
+     
+     if (!filesToShow || filesToShow.length === 0) {
+         status('chart2-status', 'NO_FILES');
+         return;
+     }
+     
+     var ctx2 = document.getElementById('perFileChart');
+     if (!ctx2) {
+         status('chart2-status', 'NO_CANVAS2');
+         return;
+     }
+     
+      try {
+          var selectedUser = window.SELECTED_ID ? USER_LIST.find(function(x){ return x.id === window.SELECTED_ID; }) : null;
+          var l2 = selectedUser ? [selectedUser.username] : USER_LIST.map(function(v){ return v.username; });
+          var ds = filesToShow.map(function(f) {
+              if (window.SELECTED_ID) {
+                  var v = f.views_per_user && f.views_per_user[window.SELECTED_ID] ? f.views_per_user[window.SELECTED_ID].duration : 0;
+                  return { label: f.file_title, data: [v], backgroundColor: [USER_COLORS[window.SELECTED_ID] || '#ccc'], borderRadius: 5 };
+              } else {
+                  var uVals = USER_LIST.map(function(u) { return f.views_per_user && f.views_per_user[u.id] ? f.views_per_user[u.id].duration : 0; });
+                  return { label: f.file_title, data: uVals, backgroundColor: USER_LIST.map(function(u){ return USER_COLORS[u.id] || '#ccc'; }), borderRadius: 5 };
+              }
+          });
+          
+         window.c2 = new Chart(ctx2, {
+             type: 'bar',
+             data: { labels: l2, datasets: ds },
+             options: { 
+                 responsive: true, 
+                 maintainAspectRatio: false, 
+                 plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } }, 
+                 scales: { y: { beginAtZero: true } },
+                 onClick: function(e) {
+                     const points = this.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                     if (points.length) {
+                         const firstPoint = points[0];
+                         const fileIndex = firstPoint.index;
+                         // Get the file title from the label of the dataset
+                         const datasetIndex = firstPoint.datasetIndex;
+                         const fileTitle = this.data.datasets[datasetIndex].label;
+                         console.log('[CHART2 CLICK] File clicked:', fileTitle, 'at index', fileIndex);
+                         // Update file search input
+                         const fileSearch = document.getElementById('fileSearch');
+                         if (fileSearch) {
+                             fileSearch.value = fileTitle;
+                             // Trigger input event to rebuild charts
+                             fileSearch.dispatchEvent(new Event('input'));
+                         }
+                     }
+                 }
+             }
+         });
+         status('chart2-status', 'C2 OK');
+     } catch (e) {
+         console.error('Chart 2 error:', e);
+         status('chart2-status', 'ERR: ' + e.message);
+     }
+}
+  
+</script>
+{% endblock %}

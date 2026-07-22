@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+
+# uv
+.uv/
+
+# Dev/test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Env & secrets
+.env
+*.json
+
+# Runtime data (mounted as volumes)
+flask_session/
+logs/
+data/
+
+# Editors & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Translation sources — only compiled .mo files are needed at runtime
+lms/translations/**/*.po
+lms/translations/**/*.po.*
+lms/translations/messages.pot
+
+# Project noise
+docs/
+scripts/
+instance/
+Additional_scripts/
+*.zip
+*.docx
+*.db
+*.sqlite
+*.sqlite3

@@ -1,10 +1,10 @@
-/* site.css — minimal site-wide styles for Yonca
+/* site.css — minimal site-wide styles for LMS
    Restored to set the requested background color so existing
    site fonts remain unchanged. */
 
 html, body {
     height: 100%;
-    background-color: rgba(255, 255, 255, 0.55); /* requested background */
+    background-color: rgba(249, 231, 203, 0.55);
     overflow-x: hidden;
 }
 
@@ -12,12 +12,12 @@ body {
     color: #222;
 }
 
-/* Import fonts: Playfair Display for headings, Manrope for body (Inter fallback) */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap');
+/* Import fonts: Montserrat for all text */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 
 :root {
-    --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
-    --font-body: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --font-heading: 'Montserrat', sans-serif;
+    --font-body: 'Montserrat', sans-serif;
 }
 
 body {
@@ -61,3 +61,36 @@ em, i { font-style: italic; }
     display: block !important;
 }
 
+
+/* ── Mobile language picker (shared across navbar component and index page) ── */
+.mobile-lang-picker {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1.25rem 0 0;
+}
+
+.mobile-lang-btn {
+    flex: 1;
+    padding: 0.6rem 0;
+    border-radius: 20px;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #353e45;
+    background-color: #fffae6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.mobile-lang-btn:hover {
+    background-color: #1e5919;
+    color: #fafbed;
+    text-decoration: none;
+}
+
+.mobile-lang-btn.active {
+    background-color: #337a2c;
+    color: #fafbed;
+    font-weight: 600;
+}

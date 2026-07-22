@@ -1,0 +1,96 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, staging]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set lowercase repository owner
+        run: echo "REPO_OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: |
+            ghcr.io/${{ env.REPO_OWNER_LC }}/lms:${{ github.ref_name }}
+            ghcr.io/${{ env.REPO_OWNER_LC }}/lms:${{ github.sha }}
+            ${{ github.ref_name == 'main' && format('ghcr.io/{0}/lms:latest', env.REPO_OWNER_LC) || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # No prod/staging server yet — SSH deploy steps disabled for now.
+      # - name: Copy app files
+      #   uses: appleboy/scp-action@v0.1.7
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: ${{ secrets.SSH_USER }}
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     source: "docker-compose.yml,deploy/backup.sh,deploy/restore.sh"
+      #     target: /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name == 'main' && 'production' || 'staging' }}/lms
+
+      # - name: Copy shared Caddy config
+      #   uses: appleboy/scp-action@v0.1.7
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: ${{ secrets.SSH_USER }}
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     source: "deploy/caddy/Caddyfile,deploy/caddy/docker-compose.yml"
+      #     target: /home/${{ secrets.SSH_USER }}/deploy/caddy
+      #     strip_components: 2
+
+      # - name: Deploy via SSH
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: ${{ secrets.SSH_USER }}
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     script: |
+      #       cd /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name == 'main' && 'production' || 'staging' }}/lms
+      #
+      #       cat > .env <<'EOF'
+      #       FLASK_ENV=production
+      #       IMAGE_TAG=${{ github.sha }}
+      #       WEB_CONCURRENCY=${{ vars.WEB_CONCURRENCY || '3' }}
+      #       GHCR_OWNER=${{ env.REPO_OWNER_LC }}
+      #       SECRET_KEY=${{ secrets.SECRET_KEY }}
+      #       POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+      #       POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+      #       POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+      #       GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+      #       GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+      #       DOMAIN=${{ github.ref_name == 'main' && secrets.DOMAIN || secrets.STAGING_DOMAIN }}
+      #       POSTGRES_PORT=${{ github.ref_name == 'main' && '5439' || '5438' }}
+      #       APP_PORT=${{ github.ref_name == 'main' && '5002' || '5001' }}
+      #       COMPOSE_PROFILES=${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      #       EOF
+      #       echo "APP_HOSTNAME=$(grep '^DOMAIN=' .env | cut -d= -f2 | tr '.' '-')" >> .env
+      #
+      #       mkdir -p data/libretranslate && chmod a+w data/libretranslate
+      #       chmod +x deploy/backup.sh deploy/restore.sh
+      #       envir=${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      #       ./deploy/backup.sh $envir /home/${{ secrets.SSH_USER }}/backup/lms/$envir
+      #       echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      #       docker compose pull
+      #       docker compose up -d --remove-orphans
+      #       cd ~/deploy/caddy && docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+      #       docker image prune -f

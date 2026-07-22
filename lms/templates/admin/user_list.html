@@ -1,0 +1,48 @@
+{% extends 'admin/model/list.html' %}
+
+{% block tail %}
+{{ super() }}
+<script src="/static/js/city_autocomplete.js"></script>
+<script>
+(function () {
+    function tryAttach(input) {
+        var row = input.closest('tr');
+        if (!row) return;
+        var labelCell = row.querySelector('td:first-child');
+        if (labelCell && labelCell.textContent.toLowerCase().indexOf('city') !== -1) {
+            CityAutocomplete.attach(input, '');
+        }
+    }
+
+    // Attach to any filter-val inputs already in the DOM
+    function attachToExisting() {
+        document.querySelectorAll('table.filters input.filter-val').forEach(tryAttach);
+    }
+
+    // Watch for dynamically added filter rows (Flask-Admin renders them via JS)
+    var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+            m.addedNodes.forEach(function (node) {
+                if (node.nodeType !== 1) return;
+                var inputs = node.querySelectorAll ? node.querySelectorAll('input.filter-val') : [];
+                inputs.forEach(tryAttach);
+                if (node.matches && node.matches('input.filter-val')) tryAttach(node);
+            });
+        });
+    });
+
+    var filtersTable = document.querySelector('table.filters');
+    if (filtersTable) {
+        observer.observe(filtersTable, { childList: true, subtree: true });
+    }
+
+    // Also run after a short delay to catch filters rendered before observer starts
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(attachToExisting, 100);
+    });
+    if (document.readyState !== 'loading') {
+        setTimeout(attachToExisting, 100);
+    }
+})();
+</script>
+{% endblock %}

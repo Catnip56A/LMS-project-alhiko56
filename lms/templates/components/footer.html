@@ -1,0 +1,36 @@
+<footer style="background-color: rgba(255, 251, 247, 0.8); color: #333; padding: 2rem 0; margin-top: 2rem;">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="contact-info text-center">
+                    <div class="mb-3">
+                        <strong>{{ _('WhatsApp') }}:</strong>
+                        <span style="color: #337a2c;">[WhatsApp Number]</span><br>
+                        <small style="color: #666;">{{ _('Available: Mon-Fri, 9AM-6PM') }}</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>{{ _('Email') }}:</strong>
+                        <a href="mailto:info@example.com" style="color: #337a2c; text-decoration: none;">
+                            info@example.com
+                        </a><br>
+                        <small style="color: #666;">{{ _('We respond within 24 hours') }}</small>
+                    </div>
+
+                    <div>
+                        <strong>{{ _('Location') }}:</strong>
+                        <span style="color: #337a2c;">[Company Address]</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr style="border-color: #ddd; margin: 2rem auto; width: 80%;">
+
+        <div class="row">
+            <div class="col-12 text-center">
+                <p style="color: #666; margin: 0;">&copy; 2025 {{ site_settings.site_name or 'LMS' }}. All rights reserved. | <a href="{{ url_for('main.terms') }}" style="color: #337a2c; text-decoration: none;">{{ _('Terms of Service') }}</a> | <a href="{{ url_for('main.privacy') }}" style="color: #337a2c; text-decoration: none;">{{ _('Privacy policy') }}</a></p>
+            </div>
+        </div>
+    </div>
+</footer>

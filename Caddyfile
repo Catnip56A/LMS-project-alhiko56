@@ -1,0 +1,30 @@
+{$LOCAL_DOMAIN} {
+	tls /certs/local.crt /certs/local.key
+
+	request_body {
+		max_size 500MB
+	}
+
+	handle {
+		reverse_proxy app-dev:8000 {
+			transport http {
+				dial_timeout 10m
+				response_header_timeout 10m
+			}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	header {
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer-when-downgrade"
+	}
+
+	log {
+		output stdout
+		format json
+	}
+
+	encode gzip zstd
+}

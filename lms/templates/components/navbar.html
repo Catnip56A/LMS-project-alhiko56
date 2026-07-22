@@ -1,0 +1,579 @@
+<nav class="navbar navbar-light navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <img src="/static/permanent/LMS%20logo%20transparent.png" alt="LMS" height="60" style="width: auto;">
+        </a>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav navbar-nav-main">
+                <li class="nav-item">
+                    <a class="nav-link" href="/" data-nav="home">{{ _('Home') }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/#courses" data-nav="courses">{{ _('Courses') }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/#forum" data-nav="forum">{{ _('Forum') }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/#resources" data-nav="resources">{{ _('Resources') }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/#moxo-test" data-nav="moxo-test">{{ _('MOXO Test') }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/#about" data-nav="about">{{ _('About') }}</a>
+                </li>
+            </ul>
+
+            <ul class="navbar-nav navbar-nav-auth">
+                {# ── Language picker ── #}
+                {% set lang_labels = {'en': 'EN', 'ru': 'RU'} %}
+                {% set lang_names  = {'en': 'English', 'ru': 'Русский'} %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="langDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <img src="/static/permanent/uis%20for%20additional%20use%28icons%20etc%29/translation%20icon.png" style="height:1.8em;width:auto;vertical-align:middle;" alt=""> {{ lang_labels.get(current_locale, 'EN') }}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="langDropdown">
+                        {% for code, name in lang_names.items() %}
+                        <a class="dropdown-item {% if code == current_locale %}active{% endif %}"
+                           href="/set_language/{{ code }}"
+                           onclick="sessionStorage.setItem('scrollPosition', window.scrollY);">
+                            {{ name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </li>
+
+                {# ── Auth ── #}
+                {% if current_user and current_user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle{% if current_user.username | length > 6 %} user-nav-long{% endif %}" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <span class="user-nav-name">{{ current_user.username[:6] }}{% if current_user.username | length > 6 %}…{% endif %}</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                        {% if current_user.is_admin %}
+                        <a class="dropdown-item" href="/admin/">{{ _('Admin Panel') }}</a>
+                        <div class="dropdown-divider"></div>
+                        {% endif %}
+                        <a class="dropdown-item" href="{{ url_for('main.profile') }}">{{ _('My Profile') }}</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="{{ url_for('auth.google_account_info') }}" style="color: #3a6d31; font-weight: 600;">{{ _('Link Google Account') }}</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="{{ url_for('auth.change_password') }}">{{ _('Change Password') }}</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/logout">{{ _('Logout') }}</a>
+                    </div>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="/login"><img src="/static/permanent/uis%20for%20additional%20use(icons%20etc)/log%20in%20icon.png" alt="" style="height:1.8em;width:auto;margin-right:5px;vertical-align:middle;"> {{ _('Login') }}</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div class="mobile-menu-container">
+            <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                <span class="hamburger-icon">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Mobile Navigation Overlay -->
+<div class="mobile-nav-overlay" id="mobile-nav-overlay">
+    <div class="mobile-nav-menu" id="mobile-nav-menu">
+        <button class="mobile-nav-close" id="mobile-nav-close">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <a href="javascript:void(0)" class="nav-link active" id="mobile-home-link">{{ _('Home') }}</a>
+        <a href="javascript:void(0)" class="nav-link" id="mobile-courses-link">{{ _('Courses') }}</a>
+        <a href="javascript:void(0)" class="nav-link" id="mobile-forum-link">{{ _('Forum') }}</a>
+        <a href="javascript:void(0)" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
+        <a href="javascript:void(0)" class="nav-link" id="mobile-moxo-link">{{ _('MOXO Test') }}</a>
+        <a href="javascript:void(0)" class="nav-link" id="mobile-about-link">{{ _('About Company') }}</a>
+
+        {# Language picker #}
+        {% set lang_names = {'en': 'English', 'ru': 'Русский'} %}
+        <div class="mobile-lang-picker">
+            {% for code, name in lang_names.items() %}
+            <a href="/set_language/{{ code }}"
+               class="mobile-lang-btn {% if code == current_locale %}active{% endif %}">
+                {{ name }}
+            </a>
+            {% endfor %}
+        </div>
+
+        {% if current_user and current_user.is_authenticated %}
+        <div id="mobile-user-info" style="margin-top: 1.5rem;">
+            <button id="mobile-user-toggle" onclick="document.getElementById('mobile-user-dropdown').classList.toggle('mobile-user-open')" class="mobile-nav-user-btn">
+                <span>{{ current_user.username }}</span>
+                <span class="mobile-user-chevron">▼</span>
+            </button>
+            <div id="mobile-user-dropdown" style="display:none; flex-direction:column; gap:0.4rem; margin-top:0.4rem; padding-left:0.75rem;">
+                {% if current_user.is_admin %}
+                <a href="/admin/" class="nav-link">{{ _('Admin Panel') }}</a>
+                {% endif %}
+                <a href="{{ url_for('main.profile') }}" class="nav-link">{{ _('My Profile') }}</a>
+                <a href="{{ url_for('auth.google_account_info') }}" class="nav-link">{{ _('Link Google Account') }}</a>
+                <a href="{{ url_for('auth.change_password') }}" class="nav-link">{{ _('Change Password') }}</a>
+                <a href="/logout" class="nav-link">{{ _('Logout') }}</a>
+            </div>
+        </div>
+        {% else %}
+        <div id="mobile-auth-buttons" style="margin-top: 1.5rem; text-align: center;">
+            <button id="mobile-login-btn" onclick="window.location.href='/login'"><img src="/static/permanent/uis%20for%20additional%20use(icons%20etc)/log%20in%20icon.png" alt="" style="height:1.8em;width:auto;margin-right:5px;vertical-align:middle;"> {{ _('Login') }}</button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .navbar {
+        background: transparent !important;
+        border-bottom: 1px solid transparent;
+        padding: 0.5rem 0;
+        position: sticky;
+        top: 0;
+        z-index: 500;
+        transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .navbar.nav-scrolled {
+        background: #F8E6C8 !important;
+        border-bottom-color: #e0e0e0;
+    }
+
+    .navbar > .container {
+        padding-left: 0.75rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    .navbar-brand {
+        color: #337a2c !important;
+        font-weight: bold;
+        font-size: 1.5rem;
+        margin-right: 1rem !important;
+        flex-shrink: 0;
+    }
+
+    .navbar-brand img {
+        height: 50px;
+        width: auto;
+    }
+
+    .navbar-collapse {
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .navbar-nav-main {
+        flex: 1 1 0 !important;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-content: center !important;
+        margin-left: 0 !important;
+        gap: clamp(0.2rem, 0.4vw, 0.6rem) !important;
+        min-width: 0 !important;
+    }
+
+    .navbar .navbar-nav-main .nav-item {
+        max-width: none !important;
+    }
+
+    .navbar .navbar-nav-main .nav-link {
+        text-align: center !important;
+        justify-content: center !important;
+        display: flex !important;
+        align-items: center !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+    }
+
+    .navbar-nav-auth {
+        flex-shrink: 0 !important;
+        gap: 0.25rem !important;
+        display: flex !important;
+        align-items: center !important;
+        margin-left: 0.6rem !important;
+    }
+
+    .navbar-nav-auth .nav-item {
+        margin: 0 !important;
+    }
+
+    .navbar-nav-auth .nav-link {
+        margin: 0 !important;
+        padding: 0.5rem 0.9rem !important;
+    }
+
+    .user-nav-long .user-nav-name {
+        display: inline-block;
+        max-width: 5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .navbar .nav-link {
+        color: #353e45 !important;
+        font-weight: 500 !important;
+        padding: 0.5rem 0.5em !important;
+        border-radius: 6px !important;
+        transition: all 0.3s ease;
+        background-color: #fffae6 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        border: 1px solid rgba(0,0,0,0.06) !important;
+        font-size: clamp(0.72rem, 1vw, 0.9rem) !important;
+        text-decoration: none !important;
+    }
+
+    .navbar .nav-link:hover {
+        background-color: #3d6b38 !important;
+        color: #f1f5f9 !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        border-color: transparent !important;
+        transform: translateY(-1px);
+    }
+
+    .navbar .nav-link.active {
+        background-color: #337a2c !important;
+        color: #f1f5f9 !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        border-color: transparent !important;
+    }
+
+    .navbar .dropdown-menu {
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border: 1px solid #e0e0e0;
+        margin-top: 0.5rem;
+        background-color: white;
+        padding: 0.5rem 0;
+        right: 0 !important;
+        left: auto !important;
+        min-width: 130px;
+    }
+
+    .navbar .dropdown-item {
+        padding: 0.6rem 1rem;
+        transition: all 0.2s ease;
+        background-color: white;
+        color: black;
+        text-align: left;
+        font-weight: 500;
+    }
+
+    .navbar .dropdown-item:hover {
+        background-color: #337a2c;
+        color: white;
+    }
+
+    .navbar .dropdown-item.active,
+    .navbar .dropdown-item:active {
+        background-color: #337a2c;
+        color: white;
+        font-weight: 600;
+    }
+
+    .navbar .dropdown-divider {
+        margin: 0.4rem 0;
+        border-color: #e0e0e0;
+    }
+
+    /* ── Mobile ── */
+    .mobile-menu-container { display: none; }
+
+    .mobile-menu-toggle {
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 0.5rem;
+        color: #353e45;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hamburger-icon {
+        width: 20px;
+        height: 14px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .hamburger-icon span {
+        display: block;
+        height: 2px;
+        width: 100%;
+        background-color: #353e45;
+        border-radius: 1px;
+        transition: all 0.3s ease;
+    }
+
+    .mobile-menu-toggle:hover .hamburger-icon span { background-color: #337a2c; }
+    .mobile-menu-toggle:hover { background: #e5e7eb; border-color: #337a2c; transform: scale(1.05); }
+
+    .mobile-nav-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+    }
+
+    .mobile-nav-overlay.active { display: block; }
+
+    .mobile-nav-menu {
+        position: fixed;
+        top: 0;
+        right: -300px;
+        width: 280px;
+        height: 100%;
+        background: white;
+        box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        transition: right 0.3s ease;
+        z-index: 1001;
+        padding: 2rem 1rem;
+        overflow-y: auto;
+    }
+
+    .mobile-nav-menu.active { right: 0; }
+
+    .mobile-nav-menu .nav-link {
+        display: block;
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 6px;
+        text-align: center;
+        font-size: 1.05rem;
+        color: #353e45;
+        text-decoration: none;
+        background-color: #fffae6;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .mobile-nav-menu .nav-link:hover {
+        background-color: #3d6b38;
+        color: #f1f5f9;
+        transform: translateY(-1px);
+    }
+
+    .mobile-nav-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        font-size: 1.8rem;
+        color: #353e45;
+        cursor: pointer;
+        padding: 0;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s ease;
+    }
+
+    .mobile-nav-close:hover { color: #3a6d31; }
+
+    #mobile-auth-buttons button,
+    #mobile-user-info button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    #mobile-login-btn { background: #337a2c; color: white; }
+    #mobile-login-btn:hover { background: #3d6b38; }
+
+    #mobile-admin-btn { background: #3d6b38; color: white; }
+    #mobile-admin-btn:hover { background: #337a2c; }
+
+    #mobile-user-info button:last-child { background: #f3f4f6; color: #353e45; }
+    #mobile-user-info button:last-child:hover { background: #e5e7eb; }
+
+    .mobile-action-link {
+        display: block;
+        width: 100%;
+        margin-bottom: 0;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        background: #337a2c;
+        color: #f1f5f9;
+        text-decoration: none;
+        text-align: center;
+        font-weight: 500;
+        transition: background 0.2s ease;
+    }
+
+    .mobile-action-link:hover { background: #3d6b38; color: #f1f5f9; text-decoration: none; }
+
+    #mobile-user-dropdown.mobile-user-open { display: flex !important; }
+
+    .mobile-nav-user-btn {
+        width: 100%;
+        background-color: #fffae6;
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: 6px;
+        padding: 0.9rem 1rem;
+        font-weight: 600;
+        font-size: 1.05rem;
+        color: #353e45;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .mobile-nav-user-btn:hover {
+        background-color: #3d6b38;
+        color: #f1f5f9;
+    }
+
+    .mobile-user-chevron {
+        font-size: 0.75rem;
+        transition: transform 0.2s ease;
+    }
+
+    .mobile-user-open ~ * .mobile-user-chevron,
+    #mobile-user-toggle:has(+ .mobile-user-open) .mobile-user-chevron {
+        transform: rotate(180deg);
+    }
+
+    @media (max-width: 991px) {
+        #navbarNav { display: none !important; }
+        .mobile-menu-container { display: block; }
+    }
+</style>
+
+<script>
+    (function() {
+        var nav = document.querySelector('.navbar');
+        function getScrollY() {
+            return Math.max(
+                window.scrollY || 0,
+                document.documentElement.scrollTop || 0,
+                document.body.scrollTop || 0
+            );
+        }
+        function updateNav() {
+            if (nav) nav.classList.toggle('nav-scrolled', getScrollY() > 30);
+        }
+        updateNav();
+        window.addEventListener('scroll', updateNav, { passive: true });
+        document.addEventListener('scroll', updateNav, { passive: true, capture: true });
+        document.documentElement.addEventListener('scroll', updateNav, { passive: true });
+    })();
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+        const mobileNavMenu    = document.getElementById('mobile-nav-menu');
+        const mobileNavClose   = document.getElementById('mobile-nav-close');
+
+        function closeMobileMenu() {
+            mobileNavOverlay.classList.remove('active');
+            mobileNavMenu.classList.remove('active');
+        }
+
+        if (mobileMenuToggle) mobileMenuToggle.addEventListener('click', () => {
+            mobileNavOverlay.classList.add('active');
+            mobileNavMenu.classList.add('active');
+        });
+
+        if (mobileNavClose)   mobileNavClose.addEventListener('click', closeMobileMenu);
+        if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', e => {
+            if (e.target === mobileNavOverlay) closeMobileMenu();
+        });
+
+        const destinations = {
+            'mobile-home-link':      '/',
+            'mobile-courses-link':   '/#courses',
+            'mobile-forum-link':     '/#forum',
+            'mobile-resources-link': '/#resources',
+            'mobile-moxo-link':      '/#moxo-test',
+            'mobile-about-link':     '/#about',
+        };
+
+        document.querySelectorAll('#mobile-nav-menu .nav-link').forEach(link => {
+            link.addEventListener('click', e => {
+                const dest = destinations[link.id];
+                if (!dest) return;
+                e.preventDefault();
+                closeMobileMenu();
+                window.location.href = dest;
+            });
+        });
+
+        rebalanceNavMain();
+        var _navUl = document.querySelector('.navbar-nav-main');
+        if (_navUl && window.ResizeObserver) {
+            new ResizeObserver(rebalanceNavMain).observe(_navUl);
+        }
+
+    });
+
+    function rebalanceNavMain() {
+        var ul = document.querySelector('.navbar-nav-main');
+        if (!ul || ul.offsetParent === null) return;
+        var items = Array.from(ul.querySelectorAll(':scope > .nav-item'));
+        if (!items.length) return;
+
+        items.forEach(function(li) { li.style.flex = '0 0 auto'; li.style.minWidth = 'max-content'; });
+        var gapPx = parseFloat(getComputedStyle(ul).columnGap) || 4;
+        var availW = ul.clientWidth;
+        var totalW = items.reduce(function(s, li) { return s + li.offsetWidth; }, 0)
+                     + gapPx * (items.length - 1);
+
+        if (totalW <= availW + 1) {
+            items.forEach(function(li) { li.style.flex = '1 1 0'; li.style.minWidth = '0'; });
+        } else {
+            var w = Math.floor((availW - gapPx * 2) / 3);
+            items.forEach(function(li) { li.style.flex = '0 0 ' + w + 'px'; li.style.minWidth = '0'; });
+        }
+    }
+
+    function updateMobileAuthButtons() {
+        const authDiv  = document.getElementById('mobile-auth-buttons');
+        const userDiv  = document.getElementById('mobile-user-info');
+        const userName = document.getElementById('mobile-user-name');
+        const adminBtn = document.getElementById('mobile-admin-btn');
+
+        if (window.currentUser) {
+            if (authDiv) authDiv.style.display = 'none';
+            if (userDiv) userDiv.style.display = 'block';
+            if (userName) userName.textContent = window.currentUser.username;
+            if (adminBtn) adminBtn.style.display = window.currentUser.is_admin ? 'block' : 'none';
+        } else {
+            if (authDiv) authDiv.style.display = 'block';
+            if (userDiv) userDiv.style.display = 'none';
+        }
+    }
+</script>
