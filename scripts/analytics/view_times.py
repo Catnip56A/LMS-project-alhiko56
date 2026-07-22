@@ -11,8 +11,8 @@ from collections import defaultdict
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from yonca import create_app
-from yonca.models import db, User, ContentView, CourseContent
+from lms import create_app
+from lms.models import db, User, ContentView, CourseContent
 
 
 def format_duration(seconds):

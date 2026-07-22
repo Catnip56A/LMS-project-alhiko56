@@ -2,7 +2,7 @@
 """Verify file_viewer JS tracking: correct duration for a simulated 20s view."""
 import os, time, socket, json
 from threading import Thread
-from yonca import create_app
+from lms import create_app
 
 app = create_app()
 
@@ -16,7 +16,7 @@ s.connect(('127.0.0.1', 5000)); s.close()
 print('[1] werkzeug up')
 
 with app.app_context():
-    from yonca.models import CourseContent, Course, ContentView, db
+    from lms.models import CourseContent, Course, ContentView, db
     cc = CourseContent.query.first()
     if not cc or not cc.drive_file_id:
         print('No course_content with drive_file_id — aborting'); quit()

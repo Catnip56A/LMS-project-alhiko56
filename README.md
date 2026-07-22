@@ -55,10 +55,10 @@ scp user@host:/remote/file.txt ./local/
 **`Justfile` — database tunnels to production/staging:**
 ```justfile
 db-tunnel-prod:
-    ssh -L 5439:127.0.0.1:5439 yonca-sdc.com -N
+    ssh -L 5439:127.0.0.1:5439 yourdomain.example.com -N
 
 db-tunnel-staging:
-    ssh -L 5438:127.0.0.1:5438 yonca-sdc.com -N
+    ssh -L 5438:127.0.0.1:5438 yourdomain.example.com -N
 ```
 `-L local:remote_host:remote_port` — forwards traffic from your local port through the tunnel.
 `-N` — don't open a shell, just hold the tunnel open.
@@ -66,7 +66,7 @@ db-tunnel-staging:
 **`Justfile` — pull database directly from a running container:**
 ```justfile
 db-pull-staging:
-    ssh yonca-sdc.com "docker compose ... exec -T db pg_dump ..." \
+    ssh yourdomain.example.com "docker compose ... exec -T db pg_dump ..." \
       | docker compose exec -T db pg_restore ...
 ```
 Notice the pipe `|`. The `pg_dump` output is streamed through SSH directly into `pg_restore` locally — no temp file needed.
@@ -79,7 +79,7 @@ Notice the pipe `|`. The `pg_dump` output is streamed through SSH directly into 
     host: ${{ secrets.SSH_HOST }}
     key: ${{ secrets.SSH_PRIVATE_KEY }}
     script: |
-      cd ~/deploy/staging/yonca
+      cd ~/deploy/staging/lms
       docker compose up -d
 ```
 The CI server connects to the production server with a private key stored as a GitHub secret. It runs shell commands remotely, exactly like you would in a terminal.
@@ -197,7 +197,7 @@ app-dev:
 # prod: pull pre-built image from registry
 app:
   profiles: [prod]
-  image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
+  image: ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG:-latest}
 ```
 
 ```bash
@@ -218,16 +218,16 @@ If the container is deleted, the data is still in `./data/postgres` on the host.
 ```yaml
 # app's docker-compose.yml
 networks:
-  yonca-proxy:
+  lms-proxy:
     external: true      # this network already exists, we just join it
 
 # caddy's docker-compose.yml (deploy/caddy/docker-compose.yml)
 networks:
-  yonca-proxy:
-    name: yonca-proxy   # this one owns and creates the network
+  lms-proxy:
+    name: lms-proxy   # this one owns and creates the network
 ```
 
-Caddy lives in its own compose project but shares the `yonca-proxy` network with the app. Caddy can reach the app container by its hostname. No ports need to be exposed to the internet — only ports 80 and 443 on Caddy.
+Caddy lives in its own compose project but shares the `lms-proxy` network with the app. Caddy can reach the app container by its hostname. No ports need to be exposed to the internet — only ports 80 and 443 on Caddy.
 
 ---
 
@@ -242,7 +242,7 @@ HTTPS encrypts traffic between the browser and server. Without it:
 
 ### How certificates work
 
-A certificate says: "I am `yonca-sdc.com` and this authority (CA) vouches for me."
+A certificate says: "I am `yourdomain.example.com` and this authority (CA) vouches for me."
 Browsers trust certificates signed by well-known CAs. Self-signed certificates trigger browser warnings.
 
 ### Development vs production
@@ -256,8 +256,8 @@ Browsers trust certificates signed by well-known CAs. Self-signed certificates t
 
 **Production — Caddy handles everything automatically:**
 ```
-yonca-sdc.com {           # Caddy sees this domain, auto-fetches Let's Encrypt
-  reverse_proxy yonca-sdc-com:8000
+yourdomain.example.com {           # Caddy sees this domain, auto-fetches Let's Encrypt
+  reverse_proxy lms-sdc-com:8000
 }
 ```
 No certificate files to manage. Caddy renews them automatically before expiry.
@@ -268,7 +268,7 @@ From `Justfile`:
 ```justfile
 certs:
     #!/usr/bin/env bash
-    DOMAIN="${LOCAL_DOMAIN:-local.yonca-sdc.com}"
+    DOMAIN="${LOCAL_DOMAIN:-local.yourdomain.example.com}"
     if [ -f ".local/certs/local.crt" ]; then
       echo "Certs already exist — skipping."
       exit 0
@@ -294,7 +294,7 @@ caddy-dev:
 }
 ```
 
-Result: `https://local.yonca-sdc.com` works in your browser with no warnings, enabling real Google OAuth callbacks during development.
+Result: `https://local.yourdomain.example.com` works in your browser with no warnings, enabling real Google OAuth callbacks during development.
 
 ---
 
@@ -310,8 +310,8 @@ Write code  →  Test locally  →  git commit  →  git push  →  GitHub Actio
 
 | Branch | Environment | URL |
 |---|---|---|
-| `main` | Production | yonca-sdc.com |
-| `staging` | Staging | staging.yonca-sdc.com |
+| `main` | Production | yourdomain.example.com |
+| `staging` | Staging | staging.yourdomain.example.com |
 
 Push to either branch triggers an automated deploy. **Never push broken code to `main`.**
 Work on a feature branch, test on `staging`, merge to `main` when confident.
@@ -342,14 +342,14 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           source: "docker-compose.yml,deploy/backup.sh,deploy/restore.sh"
-          target: /home/.../deploy/staging/yonca
+          target: /home/.../deploy/staging/lms
 
       # 3. SSH in, write .env, backup DB, pull new image, restart
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
           script: |
-            ./deploy/backup.sh ~/backup/yonca/staging    # backup BEFORE deploy
+            ./deploy/backup.sh ~/backup/lms/staging    # backup BEFORE deploy
             docker compose pull
             docker compose up -d --remove-orphans
             docker image prune -f
@@ -380,7 +380,7 @@ Every image is tagged with the exact commit hash that built it. You can always r
 ```justfile
 set dotenv-load                     # auto-load .env file
 
-_ssh_host := env('SSH_HOST', 'yonca-sdc.com')  # variable with default
+_ssh_host := env('SSH_HOST', 'yourdomain.example.com')  # variable with default
 
 # Recipe with dependencies: `just up` will run `certs` first
 up: certs
@@ -431,7 +431,7 @@ Files should be grouped by **what they are** or **what feature they belong to** 
 ### This project's layout
 
 ```
-yonca/                    # Python package — the Flask application
+lms/                    # Python package — the Flask application
 ├── __init__.py           # app factory: create_app()
 ├── config.py             # environment-based configuration classes
 ├── models/               # SQLAlchemy models (one file per domain object)
@@ -460,7 +460,7 @@ If a function doesn't clearly belong in a file, it needs its own home or a bette
 
 **Config never goes in code.** Hardcoded URLs, ports, credentials, and feature flags belong in environment variables or config files — never in Python files.
 
-**Scripts are not the application.** One-off admin tools live in `scripts/`, not mixed with application code in `yonca/`.
+**Scripts are not the application.** One-off admin tools live in `scripts/`, not mixed with application code in `lms/`.
 
 **Migrations are generated, not written.** The `migrations/versions/` folder is managed by Alembic. Don't create files there manually unless you know exactly what you're doing.
 
@@ -518,7 +518,7 @@ Always write the `downgrade()` function. You will need it someday.
 ### The workflow
 
 ```bash
-# 1. Change a model in yonca/models/something.py
+# 1. Change a model in lms/models/something.py
 # 2. Generate migration
 just makemigrations "describe what changed"
 
@@ -527,7 +527,7 @@ just makemigrations "describe what changed"
 just migrate
 
 # 5. Commit both the model change AND the migration file together
-git add yonca/models/something.py migrations/versions/...
+git add lms/models/something.py migrations/versions/...
 git commit -m "add avatar field to user"
 ```
 
@@ -538,7 +538,7 @@ git commit -m "add avatar field to user"
 **Backup** (`deploy/backup.sh`):
 ```bash
 docker compose exec -T db \
-  pg_dump -U yonca_user -Fc yonca_db > backup_2026-03-17.dump
+  pg_dump -U lms_user -Fc lms_db > backup_2026-03-17.dump
 ```
 `-Fc` = custom binary format, smaller and faster than plain SQL.
 The script keeps the 7 most recent backups and deletes older ones.
@@ -546,7 +546,7 @@ The script keeps the 7 most recent backups and deletes older ones.
 **Restore** (`deploy/restore.sh`):
 ```bash
 docker compose exec -T db \
-  pg_restore -U yonca_user -d yonca_db --clean --if-exists \
+  pg_restore -U lms_user -d lms_db --clean --if-exists \
   < backup_2026-03-17.dump
 ```
 `--clean` drops existing objects before recreating them.
@@ -574,10 +574,10 @@ The model does not know your codebase, your deployment, your constraints, or you
 ### What to say
 
 **State the constraint first, then the task:**
-> "We use Flask blueprints. Don't suggest restructuring into a single routes file. Add an endpoint to `yonca/routes/courses.py` that..."
+> "We use Flask blueprints. Don't suggest restructuring into a single routes file. Add an endpoint to `lms/routes/courses.py` that..."
 
 **Name the files you're working in:**
-> "In `yonca/models/user.py`, add a `last_seen` timestamp column. Don't touch the migration — I'll generate it with `just makemigrations`."
+> "In `lms/models/user.py`, add a `last_seen` timestamp column. Don't touch the migration — I'll generate it with `just makemigrations`."
 
 **Describe what you don't want:**
 > "Don't add comments. Don't add error handling for cases that can't happen. Don't refactor anything I didn't ask about."
@@ -607,7 +607,7 @@ Output: [just the changed code / just the function / a diff]
 
 For this project specifically, always mention:
 - "This is a Flask app with blueprints"
-- "Use SQLAlchemy models in `yonca/models/`"
+- "Use SQLAlchemy models in `lms/models/`"
 - "Migrations are managed with Alembic — don't write raw SQL"
 - "Env vars come from `.env`, accessed via `os.environ` in `config.py`"
 
@@ -632,12 +632,12 @@ If those values are hardcoded in the source code:
 **`.env.example`** — committed to git, shows what variables exist with placeholder values:
 ```bash
 SECRET_KEY=change-me
-POSTGRES_DB=yonca_db
-POSTGRES_USER=yonca_user
+POSTGRES_DB=lms_db
+POSTGRES_USER=lms_user
 POSTGRES_PASSWORD=changeme
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-DOMAIN=yonca-sdc.com
+DOMAIN=yourdomain.example.com
 ```
 
 **`.env`** — your actual values, never committed to git (in `.gitignore`):
@@ -647,7 +647,7 @@ POSTGRES_PASSWORD=hunter2
 GOOGLE_CLIENT_ID=123456789.apps.googleusercontent.com
 ```
 
-**`yonca/config.py`** — reads vars and fails loudly if required ones are missing:
+**`lms/config.py`** — reads vars and fails loudly if required ones are missing:
 ```python
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY')
@@ -731,7 +731,7 @@ A clean one means you can clone a repo and be running it in 10 minutes on any ma
 
 ```bash
 git clone <repo>
-cd yonca
+cd lms
 cp .env.example .env          # fill in real values
 just install                  # uv sync — installs dependencies
 just up                       # starts postgres + migrate + app + caddy

@@ -1,4 +1,4 @@
-# Yonca — Claude Instructions
+# LMS — Claude Instructions
 
 ## Project
 Flask LMS (Learning Management System). Python 3.13, PostgreSQL 17, Bootstrap 4, Jinja2.
@@ -14,9 +14,9 @@ just make-admin <username> # Promote an existing user to full admin (Docker dev)
 ```
 
 ## Architecture rules
-- Application factory in `yonca/__init__.py`
+- Application factory in `lms/__init__.py`
 - Blueprints: `routes/__init__.py` (main), `routes/api.py`, `routes/auth.py`, `admin/__init__.py`
-- Models all in `yonca/models/__init__.py`
+- Models all in `lms/models/__init__.py`
 - `core_translator.py` — no Flask/DB dependency, used by both runtime and dev scripts
 - `translation_service.py` — runtime only, requires app context and DB
 
@@ -40,7 +40,7 @@ Three tiers: **Full admin** (`is_admin=True`, `admin_permissions=NULL`) → **Su
 ## Translation pipeline
 Order matters: **clear → extract → update → translate → fix-placeholders → compile**
 
-Protected brand term: `{YONCA}` placeholder in `core_translator.py`. LibreTranslate must be running (`just libre-ready`) before translating.
+Protected brand term: `{LMS}` placeholder in `core_translator.py`. LibreTranslate must be running (`just libre-ready`) before translating.
 
 Two translation caches in DB: `translation` table (gettext strings) and `content_translation` table (page builder content). If placeholders appear in the UI, check both tables.
 

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="{{ current_locale }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Account Info - LMS</title>
+    <style>
+        body {
+            background: #f8fafc;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #374151;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .container h1 {
+            text-align: center;
+            color: #337a2c;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .account-info {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 2rem;
+        }
+
+        .info-item {
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .info-value {
+            color: #6b7280;
+            font-family: monospace;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+            margin-bottom: 2rem;
+        }
+
+        .actions {
+            text-align: center;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 1.235rem;
+        }
+
+        .btn-primary {
+            background: #337a2c;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2c6424;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            margin-left: 1rem;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 2rem;
+            color: #6b7280;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: #374151;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Linked Google Account</h1>
+
+        {% if error %}
+        <div class="error-message">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% else %}
+        <div class="account-info">
+            <div class="info-item">
+                <span class="info-label">Email:</span>
+                <span class="info-value">{{ account_info.email }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Name:</span>
+                <span class="info-value">{{ account_info.name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Token Expires:</span>
+                <span class="info-value">{{ account_info.token_expiry or 'Unknown' }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Has Refresh Token:</span>
+                <span class="info-value">{{ 'Yes' if account_info.has_refresh_token else 'No' }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="actions">
+            {% if not error %}
+            <a href="{{ url_for('auth.link_google_account') }}" class="btn btn-primary">Re-link Google Account</a>
+            {% else %}
+            <a href="{{ url_for('auth.link_google_account') }}" class="btn btn-primary">Link Google Account</a>
+            {% endif %}
+            <a href="{{ url_for('main.index') }}" class="btn btn-secondary">Back to Home</a>
+        </div>
+
+        <a href="javascript:history.back()" class="back-link">← Go Back</a>
+    </div>
+</body>
+</html>

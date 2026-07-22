@@ -1,0 +1,251 @@
+{% extends 'admin/master.html' %}
+{% block head %}
+{{ super() }}
+<style>
+    .content-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        background: white;
+        max-width: 700px;
+    }
+    .section-title {
+        font-weight: bold;
+        color: #495057;
+    }
+    .form-group-inline {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .form-group-inline label {
+        min-width: 140px;
+        font-weight: 500;
+    }
+    .form-group-inline input {
+        flex: 1;
+    }
+    .btn-save {
+        background: #337a2c;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .btn-save:hover {
+        background: #809c13;
+    }
+    .toolbar {
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 10px 20px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div style="margin-bottom: 20px;">
+                <a href="/" class="btn btn-success" style="float: right;">
+                    <i class="fa fa-home"></i> Return to Site
+                </a>
+            </div>
+            <h1><i class="fa fa-cog"></i> Site Settings</h1>
+            <p class="text-muted">Basic site branding and contact information</p>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="google-drive-status" id="google-drive-status">
+            {% if current_user.google_access_token %}
+                <div class="alert alert-success" style="display: inline-block; padding: 8px 16px; margin: 0;">
+                    <i class="fa fa-google"></i> Google Drive Connected
+                </div>
+            {% else %}
+                <div class="alert alert-warning" style="display: inline-block; padding: 8px 16px; margin: 0;">
+                    <i class="fa fa-google"></i> Google Drive Not Connected
+                    <a href="{{ url_for('google_login.index') }}" class="btn btn-sm btn-primary" style="margin-left: 10px;">
+                        Connect Now
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        <div style="margin-left: auto;">
+            <button type="button" class="btn btn-outline-success" id="translate-all" title="Translate All Content">
+                <i class="fa fa-language"></i> Translate Content
+            </button>
+            <button type="button" class="btn btn-outline-danger" id="delete-translations" title="Delete All Translations">
+                <i class="fa fa-trash"></i> Delete Translations
+            </button>
+        </div>
+    </div>
+
+    <form method="post" id="content-form">
+        {{ form.hidden_tag() }}
+
+        <div class="content-section">
+            <h4 class="section-title"><i class="fa fa-building"></i> Site Branding</h4>
+
+            <div class="form-group-inline">
+                <label for="site_name">Site Name:</label>
+                <input type="text" id="site_name" name="site_name" class="form-control"
+                       value="{{ form.site_name.data or 'LMS' }}">
+            </div>
+
+            <div class="form-group-inline">
+                <label for="site_logo_url">Site Logo URL:</label>
+                <input type="text" id="site_logo_url" name="site_logo_url" class="form-control"
+                       value="{{ form.site_logo_url.data or '' }}">
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h4 class="section-title"><i class="fa fa-envelope"></i> Contact Information</h4>
+
+            <div class="form-group-inline">
+                <label for="contact_whatsapp">WhatsApp:</label>
+                <input type="text" id="contact_whatsapp" name="contact_whatsapp" class="form-control"
+                       value="{{ form.contact_whatsapp.data or '' }}">
+            </div>
+
+            <div class="form-group-inline">
+                <label for="contact_email">Email:</label>
+                <input type="text" id="contact_email" name="contact_email" class="form-control"
+                       value="{{ form.contact_email.data or 'info@example.com' }}">
+            </div>
+
+            <div class="form-group-inline">
+                <label for="contact_address">Address:</label>
+                <input type="text" id="contact_address" name="contact_address" class="form-control"
+                       value="{{ form.contact_address.data or '' }}">
+            </div>
+        </div>
+
+        <button type="submit" class="btn-save">
+            <i class="fa fa-save"></i> Save Changes
+        </button>
+    </form>
+</div>
+
+<script>
+document.getElementById('translate-all').addEventListener('click', async function() {
+    const button = this;
+    const originalHtml = button.innerHTML;
+
+    if (!confirm('This will translate all courses and resources to Russian. The system will automatically detect the source language of each content piece and create translations. This process runs in the background and may take several minutes. Continue?')) {
+        return;
+    }
+
+    button.disabled = true;
+    button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Queuing translation job...';
+
+    try {
+        const response = await fetch('/admin/translate/translate-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            const jobId = result.job_id;
+            button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Translation job started...';
+            await pollJobStatus(jobId, button, originalHtml);
+        } else {
+            const escapedError = (result.error || '').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+            alert(`✗ Failed to queue translation job: ${escapedError}`);
+            button.disabled = false;
+            button.innerHTML = originalHtml;
+        }
+    } catch (error) {
+        const escapedMessage = (error.message || '').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+        alert(`✗ Error: ${escapedMessage}`);
+        button.disabled = false;
+        button.innerHTML = originalHtml;
+    }
+});
+
+async function pollJobStatus(jobId, button, originalHtml) {
+    try {
+        const response = await fetch(`/admin/translate/job-status/${jobId}`);
+        const result = await response.json();
+
+        if (result.success) {
+            const job = result.job;
+
+            if (job.status === 'completed') {
+                const stats = job.result || {};
+                const escapedMessage = (job.message || '').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+                alert(`✓ Translation completed successfully!\n\n${escapedMessage}\n\nProcessed: ${stats.total_processed || 0} items\n- ${stats.courses || 0} courses\n- ${stats.resources || 0} resources\n\nRefresh the page to see translated content when changing languages.`);
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+            } else if (job.status === 'failed') {
+                const escapedError = (job.error || '').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+                alert(`✗ Translation failed: ${escapedError}`);
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+            } else {
+                const escapedMessage = (job.message || '').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+                button.innerHTML = `<i class="fa fa-spinner fa-spin"></i> ${job.progress || 0}% - ${escapedMessage}`;
+                setTimeout(() => pollJobStatus(jobId, button, originalHtml), 2000);
+            }
+        } else {
+            const escapedError = (result.error || '').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+            alert(`✗ Failed to check job status: ${escapedError}`);
+            button.disabled = false;
+            button.innerHTML = originalHtml;
+        }
+    } catch (error) {
+        const errorMessage = error && error.message ? error.message : 'Unknown error occurred';
+        const escapedMessage = errorMessage.replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+        alert(`✗ Error checking job status: ${escapedMessage}`);
+        button.disabled = false;
+        button.innerHTML = originalHtml;
+    }
+}
+
+document.getElementById('delete-translations').addEventListener('click', async function() {
+    const button = this;
+    const originalHtml = button.innerHTML;
+
+    if (!confirm('⚠️ WARNING: This will permanently delete ALL translations for Russian language!\n\nThis action cannot be undone. Are you sure you want to continue?')) {
+        return;
+    }
+    if (!confirm('🔴 FINAL WARNING: All translations will be lost and content will display in English only until re-translated.\n\nClick OK to proceed with deletion.')) {
+        return;
+    }
+
+    button.disabled = true;
+    button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Deleting...';
+
+    try {
+        const response = await fetch('/admin/translate/delete-translations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            const escapedMessage = result.message.replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+            alert(`✓ Translations deleted successfully!\n\n${escapedMessage}\n\nContent will now display in English. Use "Translate Content" to re-create translations.`);
+        } else {
+            const escapedError = result.error.replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+            alert(`✗ Deletion failed: ${escapedError}`);
+        }
+    } catch (error) {
+        const escapedMessage = error.message.replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+        alert(`✗ Error: ${escapedMessage}`);
+    } finally {
+        button.disabled = false;
+        button.innerHTML = originalHtml;
+    }
+});
+</script>
+{% endblock %}

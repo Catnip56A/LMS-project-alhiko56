@@ -86,7 +86,7 @@ def fix_po_file(po_path: Path) -> int:
 
 
 def main() -> None:
-    po_dir = Path(__file__).parent.parent.parent / 'yonca' / 'translations'
+    po_dir = Path(__file__).parent.parent.parent / 'lms' / 'translations'
     grand_total = 0
 
     for po_file in sorted(po_dir.glob('*/LC_MESSAGES/messages.po')):

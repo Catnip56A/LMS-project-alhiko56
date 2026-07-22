@@ -5,7 +5,7 @@ on:
     branches: [main, staging]
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/yonca
+  IMAGE: ghcr.io/${{ github.repository_owner }}/lms
 
 jobs:
   deploy:
@@ -45,7 +45,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "docker-compose.yml,deploy/backup.sh,deploy/restore.sh"
-          target: /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name == 'main' && 'production' || 'staging' }}/yonca
+          target: /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name == 'main' && 'production' || 'staging' }}/lms
 
       - name: Copy shared Caddy config
         uses: appleboy/scp-action@v0.1.7
@@ -64,7 +64,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name == 'main' && 'production' || 'staging' }}/yonca
+            cd /home/${{ secrets.SSH_USER }}/deploy/${{ github.ref_name == 'main' && 'production' || 'staging' }}/lms
 
             cat > .env <<'EOF'
             FLASK_ENV=production
@@ -87,7 +87,7 @@ jobs:
             mkdir -p data/libretranslate && chmod a+w data/libretranslate
             chmod +x deploy/backup.sh deploy/restore.sh
             envir=${{ github.ref_name == 'main' && 'production' || 'staging' }} 
-            ./deploy/backup.sh $envir /home/${{ secrets.SSH_USER }}/backup/yonca/$envir
+            ./deploy/backup.sh $envir /home/${{ secrets.SSH_USER }}/backup/lms/$envir
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose pull
             docker compose up -d --remove-orphans

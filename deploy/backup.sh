@@ -11,14 +11,14 @@ ENVIRONMENT="${1:?Usage: $0 <environment> <backup_dir>}"
 BACKUP_DIR="${2:?Usage: $0 <environment> <backup_dir>}"
 
 TIMESTAMP=$(date +%F_%H-%M-%S)
-BACKUP_FILE="${BACKUP_DIR}/yonca_${TIMESTAMP}.dump"
+BACKUP_FILE="${BACKUP_DIR}/lms_${TIMESTAMP}.dump"
 
 mkdir -p "$BACKUP_DIR"
 
 echo "[$(date)] Starting backup..."
 
 docker compose exec -T db-${ENVIRONMENT} \
-  pg_dump -U yonca_user -Fc yonca_db > "$BACKUP_FILE"
+  pg_dump -U lms_user -Fc lms_db > "$BACKUP_FILE"
 
 echo "[$(date)] Backup saved to $BACKUP_FILE ($(du -sh "$BACKUP_FILE" | cut -f1))"
 

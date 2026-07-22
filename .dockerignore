@@ -29,9 +29,9 @@ data/
 Thumbs.db
 
 # Translation sources — only compiled .mo files are needed at runtime
-yonca/translations/**/*.po
-yonca/translations/**/*.po.*
-yonca/translations/messages.pot
+lms/translations/**/*.po
+lms/translations/**/*.po.*
+lms/translations/messages.pot
 
 # Project noise
 docs/

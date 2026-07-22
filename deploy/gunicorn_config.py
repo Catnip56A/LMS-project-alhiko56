@@ -1,4 +1,4 @@
-# Gunicorn configuration file for Yonca
+# Gunicorn configuration file for LMS
 import os
 
 # Server socket
@@ -23,7 +23,7 @@ errorlog = os.environ.get("GUNICORN_ERROR_LOG", "logs/gunicorn-error.log")
 loglevel = "info"
 
 # Process naming
-proc_name = "yonca"
+proc_name = "lms"
 
 # Server mechanics
 daemon = False

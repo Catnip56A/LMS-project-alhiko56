@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('Certificate Revoked') }} — {{ site_settings.site_name or 'LMS' }}{% endblock %}
+
+{% block content %}
+<div style="text-align:center; padding:80px 20px;">
+    <div style="font-size:3rem;">⚠️</div>
+    <h2>{{ _('Certificate Revoked') }}</h2>
+    <p>{{ _('This certificate') }} (ID: {{ cert.cert_id_display }}) {{ _('has been revoked and is no longer valid.') }}</p>
+    <p class="text-muted">{{ _('If you believe this is an error, please contact the issuing organization.') }}</p>
+</div>
+{% endblock %}

@@ -1,9 +1,9 @@
-yonca-sdc.com {
+yourdomain.example.com {
 	request_body {
 		max_size 500MB
 	}
 
-	reverse_proxy yonca-sdc-com:8000 {
+	reverse_proxy yourdomain-example-com:8000 {
 		transport http {
 			dial_timeout 10m
 			response_header_timeout 10m
@@ -25,12 +25,12 @@ yonca-sdc.com {
 	encode gzip zstd
 }
 
-staging.yonca-sdc.com {
+staging.yourdomain.example.com {
 	request_body {
 		max_size 500MB
 	}
 
-	reverse_proxy staging-yonca-sdc-com:8000 {
+	reverse_proxy staging-yourdomain-example-com:8000 {
 		transport http {
 			dial_timeout 10m
 			response_header_timeout 10m

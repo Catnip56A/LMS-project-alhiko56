@@ -10,8 +10,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./data:/data
     networks:
-      - yonca-proxy
+      - lms-proxy
 
 networks:
-  yonca-proxy:
-    name: yonca-proxy    # owns the network — created on first `docker compose up`
+  lms-proxy:
+    name: lms-proxy    # owns the network — created on first `docker compose up`

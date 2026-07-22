@@ -6,7 +6,7 @@ Context for LLM assistants working on this codebase.
 
 ## Project
 
-Yonca is a Flask-based Learning Management System. Multi-language (az/en/ru), Google OAuth + Drive integration, admin panel, forum, course management, resource library.
+LMS is a Flask-based Learning Management System. Multi-language (az/en/ru), Google OAuth + Drive integration, admin panel, forum, course management, resource library.
 
 **Stack:** Python 3.13, Flask, SQLAlchemy, Alembic, PostgreSQL 17, Caddy, Gunicorn, Docker Compose, uv, just.
 
@@ -22,7 +22,7 @@ Justfile                Task runner — read this first to understand workflows
 docker-compose.yml      Three profiles: dev, prod-dev, prod
 Dockerfile              Multi-stage, uv-based
 
-yonca/
+lms/
   __init__.py           create_app() factory
   config.py             Config classes — reads from os.environ only
   models/__init__.py    All SQLAlchemy models (19 models)
@@ -93,7 +93,7 @@ GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DOMAIN
 
 `migrate` / `migrate-prod` run `flask db upgrade` and exit before the app starts (`service_completed_successfully`).
 
-`prod` uses image from GHCR: `ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG}`.
+`prod` uses image from GHCR: `ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG}`.
 `dev` and `prod-dev` build locally.
 
 ---
@@ -136,7 +136,7 @@ just prod-dev-trust              # trust Caddy CA (once per machine)
 2. SCP: copies `docker-compose.yml`, `Caddyfile`, `backup.sh`, `restore.sh` to server
 3. SSH: writes `.env` from secrets, pulls image, restarts containers
 
-Deploy path: `/home/${SSH_USER}/deploy/${branch}/yonca/`
+Deploy path: `/home/${SSH_USER}/deploy/${branch}/lms/`
 
 ---
 
@@ -146,13 +146,13 @@ Deploy path: `/home/${SSH_USER}/deploy/${branch}/yonca/`
 
 **Migration generation needs an empty DB.** `flask db migrate` compares models against the current DB state. If the DB already has all tables, it generates an empty migration. To generate a fresh initial migration, use a throwaway empty postgres container.
 
-**`pg_isready` without `-d` logs FATAL.** The healthcheck uses `-d ${POSTGRES_DB}` to avoid spurious `database "yonca_user" does not exist` errors in postgres logs.
+**`pg_isready` without `-d` logs FATAL.** The healthcheck uses `-d ${POSTGRES_DB}` to avoid spurious `database "lms_user" does not exist` errors in postgres logs.
 
 **Heredoc indentation in GitHub Actions.** The `cat > .env << 'EOF'` block must have zero indentation on its content lines, otherwise leading whitespace becomes part of the variable names and env vars silently fail to load.
 
 **Seed / restore workflow.** After restoring a dump from the old app, the `alembic_version` table contains an unknown revision ID. Clear it and stamp:
 ```bash
-docker compose exec db psql -U yonca_user -d yonca_db -c "DELETE FROM alembic_version;"
+docker compose exec db psql -U lms_user -d lms_db -c "DELETE FROM alembic_version;"
 just db-stamp
 ```
 

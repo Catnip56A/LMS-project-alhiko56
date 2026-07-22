@@ -74,7 +74,7 @@ def find_po_files(base_path):
     # Prefer the package translations directory, but allow a project-level
     # `translations` folder as a fallback. This mirrors other scripts.
     candidates = [
-        Path(base_path) / 'yonca' / 'translations',
+        Path(base_path) / 'lms' / 'translations',
         Path(base_path) / 'translations',
     ]
 

@@ -9,11 +9,11 @@ import os
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from yonca import create_app
-from yonca.models import db, User
+from lms import create_app
+from lms.models import db, User
 
 
-def create_admin_user(username='admin', email='admin@yonca.local', password='yonca2023'):
+def create_admin_user(username='admin', email='admin@lms.local', password='lms2026'):
     """Create an admin user in the database."""
     
     app = create_app()
@@ -51,8 +51,8 @@ def create_admin_user(username='admin', email='admin@yonca.local', password='yon
 if __name__ == '__main__':
     # Parse command line arguments
     username = sys.argv[1] if len(sys.argv) > 1 else 'admin'
-    email = sys.argv[2] if len(sys.argv) > 2 else 'admin@yonca.local'
-    password = sys.argv[3] if len(sys.argv) > 3 else 'yonca2023'
+    email = sys.argv[2] if len(sys.argv) > 2 else 'admin@lms.local'
+    password = sys.argv[3] if len(sys.argv) > 3 else 'lms2026'
     
     print(f"Creating admin user with username '{username}'...")
     success = create_admin_user(username, email, password)

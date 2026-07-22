@@ -17,8 +17,8 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from yonca import create_app
-from yonca.models import db, User
+from lms import create_app
+from lms.models import db, User
 
 
 def make_full_admin(username: str) -> bool:

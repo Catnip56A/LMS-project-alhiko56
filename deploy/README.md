@@ -23,8 +23,8 @@ See `docker-compose.yml` and `Justfile` at the project root.
 | Profile | Command | URL |
 |---|---|---|
 | `dev` | `just up` | `http://localhost:5000` |
-| `prod-dev` | `just prod-dev-up` | `https://local.yonca-sdc.com` |
-| `prod` | `just prod-up` | `https://yonca-sdc.com` |
+| `prod-dev` | `just prod-dev-up` | `https://local.yourdomain.example.com` |
+| `prod` | `just prod-up` | `https://yourdomain.example.com` |
 
 ### Server layout
 
@@ -34,8 +34,8 @@ See `docker-compose.yml` and `Justfile` at the project root.
     docker-compose.yml
     Caddyfile
     data/                 # TLS certs
-  production/yonca/       # prod app compose project
-  staging/yonca/          # staging app compose project
+  production/lms/       # prod app compose project
+  staging/lms/          # staging app compose project
 ```
 
 ### Ports
@@ -53,15 +53,15 @@ See `docker-compose.yml` and `Justfile` at the project root.
 
 ```bash
 # Linux
-sudo cp dnsmasq/local.conf /etc/dnsmasq.d/yonca-local.conf
+sudo cp dnsmasq/local.conf /etc/dnsmasq.d/lms-local.conf
 sudo systemctl restart dnsmasq
 
 # macOS (Homebrew)
-cp dnsmasq/local.conf $(brew --prefix)/etc/dnsmasq.d/yonca-local.conf
+cp dnsmasq/local.conf $(brew --prefix)/etc/dnsmasq.d/lms-local.conf
 brew services restart dnsmasq
 ```
 
-Verify: `dig local.yonca-sdc.com +short`  — should return `127.0.0.1`
+Verify: `dig local.yourdomain.example.com +short`  — should return `127.0.0.1`
 
 Then trust Caddy's local CA (once per machine):
 ```bash
@@ -71,7 +71,7 @@ just prod-dev-trust
 ### Production server
 
 ```bash
-sudo cp dnsmasq/prod.conf /etc/dnsmasq.d/yonca.conf
+sudo cp dnsmasq/prod.conf /etc/dnsmasq.d/lms.conf
 sudo systemctl restart dnsmasq
 ```
 
@@ -88,10 +88,10 @@ sudo systemctl restart dnsmasq
 ./backup.sh
 
 # Restore
-./restore.sh ~/backups/yonca/yonca_2026-03-17.dump
+./restore.sh ~/backups/lms/lms_2026-03-17.dump
 
 # Cron (add on server, runs daily at 3am)
-0 3 * * * cd ~/deploy/production/yonca && ./backup.sh >> ~/logs/backup.log 2>&1
+0 3 * * * cd ~/deploy/production/lms && ./backup.sh >> ~/logs/backup.log 2>&1
 ```
 
 ---
@@ -111,8 +111,8 @@ Required in `Settings → Secrets → Actions`:
 | `POSTGRES_PASSWORD` | Database password |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `DOMAIN` | Production domain (`yonca-sdc.com`) |
-| `STAGING_DOMAIN` | Staging domain (`staging.yonca-sdc.com`) |
+| `DOMAIN` | Production domain (`yourdomain.example.com`) |
+| `STAGING_DOMAIN` | Staging domain (`staging.yourdomain.example.com`) |
 
 Optional variable (`Settings → Variables → Actions`):
 

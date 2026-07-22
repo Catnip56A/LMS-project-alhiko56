@@ -57,7 +57,7 @@ services:
     environment:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB}
-      GOOGLE_REDIRECT_URI: https://${LOCAL_DOMAIN:-local.yonca-sdc.com}/auth/google/callback
+      GOOGLE_REDIRECT_URI: https://${LOCAL_DOMAIN:-local.yourdomain.example.com}/auth/google/callback
       LIBRETRANSLATE_URL: http://libretranslate:5000
       CERT_TEMPLATE_DIR: /app/data/cert-templates
     ports:
@@ -78,7 +78,7 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
-      LOCAL_DOMAIN: ${LOCAL_DOMAIN:-local.yonca-sdc.com}
+      LOCAL_DOMAIN: ${LOCAL_DOMAIN:-local.yourdomain.example.com}
     ports:
       - "80:80"
       - "443:443"
@@ -110,7 +110,7 @@ services:
 
   migrate-production:
     profiles: [production]
-    image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG:-latest}
     restart: no
     env_file: .env
     environment:
@@ -122,7 +122,7 @@ services:
 
   app-production:
     profiles: [production]
-    image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG:-latest}
     hostname: ${APP_HOSTNAME}
     restart: unless-stopped
     env_file: .env
@@ -141,7 +141,7 @@ services:
         condition: service_healthy
     networks:
       - default
-      - yonca-proxy
+      - lms-proxy
     volumes:
       - ./data/flask_session:/app/flask_session
       - ./data/logs:/app/logs
@@ -169,7 +169,7 @@ services:
 
   migrate-staging:
     profiles: [staging]
-    image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG:-latest}
     restart: no
     env_file: .env
     environment:
@@ -181,7 +181,7 @@ services:
 
   app-staging:
     profiles: [staging]
-    image: ghcr.io/${GHCR_OWNER}/yonca:${IMAGE_TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG:-latest}
     hostname: ${APP_HOSTNAME}
     restart: unless-stopped
     env_file: .env
@@ -200,13 +200,13 @@ services:
         condition: service_healthy
     networks:
       - default
-      - yonca-proxy
+      - lms-proxy
     volumes:
       - ./data/flask_session:/app/flask_session
       - ./data/logs:/app/logs
       - ./data/certificates:/app/data/certificates
       - ./data/cert-templates:/app/data/cert-templates
 networks:
-  yonca-proxy:
+  lms-proxy:
     external: true
-    name: yonca-proxy
+    name: lms-proxy

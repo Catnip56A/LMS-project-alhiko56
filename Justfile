@@ -1,6 +1,6 @@
 set dotenv-load
 
-_ssh_host  := env('SSH_HOST', 'yonca-sdc.com')
+_ssh_host  := env('SSH_HOST', 'yourdomain.example.com')
 _libre_url := env('LIBRETRANSLATE_URL', 'http://localhost:5050')
 
 default:
@@ -26,8 +26,8 @@ db-pull-production:
     fi
 
     echo "Restoring database from production..."
-    ssh {{_ssh_host}} "docker compose -f ~/deploy/production/yonca/docker-compose.yml exec -T db-production pg_dump -U yonca_user -Fc yonca_db" \
-      | docker compose exec -T db-dev pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
+    ssh {{_ssh_host}} "docker compose -f ~/deploy/production/lms/docker-compose.yml exec -T db-production pg_dump -U lms_user -Fc lms_db" \
+      | docker compose exec -T db-dev pg_restore -U lms_user -d lms_db --clean --if-exists --no-owner --no-acl
     echo "Database restored successfully"
 
     echo "Stamping database version..."
@@ -54,8 +54,8 @@ db-pull-staging:
     fi
 
     echo "Restoring database from staging..."
-    ssh {{_ssh_host}} "docker compose -f ~/deploy/staging/yonca/docker-compose.yml exec -T db-staging pg_dump -U yonca_user -Fc yonca_db" \
-      | docker compose exec -T db-dev pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
+    ssh {{_ssh_host}} "docker compose -f ~/deploy/staging/lms/docker-compose.yml exec -T db-staging pg_dump -U lms_user -Fc lms_db" \
+      | docker compose exec -T db-dev pg_restore -U lms_user -d lms_db --clean --if-exists --no-owner --no-acl
     echo "Database restored successfully"
 
     echo "Stamping database version..."
@@ -82,8 +82,8 @@ db-pull-backup:
     fi
 
     echo "Restoring database from latest backup..."
-    ssh {{_ssh_host}} "cat $(ls -t ~/backup/yonca/staging/*.dump | head -1)" \
-      | docker compose exec -T db-dev pg_restore -U yonca_user -d yonca_db --clean --if-exists --no-owner --no-acl
+    ssh {{_ssh_host}} "cat $(ls -t ~/backup/lms/staging/*.dump | head -1)" \
+      | docker compose exec -T db-dev pg_restore -U lms_user -d lms_db --clean --if-exists --no-owner --no-acl
     echo "Database restored successfully"
 
     echo "Stamping database version..."
@@ -98,7 +98,7 @@ db-pull-backup:
     echo "Done!"
 
 # Derived vars for local (non-Docker) execution — mirrors docker-compose behaviour
-_db_url  := "postgresql://" + env('POSTGRES_USER', 'yonca_user') + ":" + env('POSTGRES_PASSWORD', 'changeme') + "@127.0.0.1:5432/" + env('POSTGRES_DB', 'yonca_db')
+_db_url  := "postgresql://" + env('POSTGRES_USER', 'lms_user') + ":" + env('POSTGRES_PASSWORD', 'changeme') + "@127.0.0.1:5432/" + env('POSTGRES_DB', 'lms_db')
 _redir   := "http://localhost:5000/auth/google/callback"
 
 # Install dependencies
@@ -159,22 +159,22 @@ db-stamp:
     docker compose --profile dev run --rm migrate-dev flask db stamp head
 
 # Run LibreTranslate locally for dev-time translation (PO files, testing)
-# Binds to localhost:5050. Stop with: docker stop yonca-libretranslate
+# Binds to localhost:5050. Stop with: docker stop lms-libretranslate
 libre:
     #!/usr/bin/env bash
     mkdir -p ./data/libretranslate
     chmod a+rwx ./data/libretranslate
-    if docker inspect yonca-libretranslate > /dev/null 2>&1; then
+    if docker inspect lms-libretranslate > /dev/null 2>&1; then
       echo "LibreTranslate already running."
     else
       docker run -d --rm \
-        --name yonca-libretranslate \
+        --name lms-libretranslate \
         -p 127.0.0.1:5050:5000 \
         -v "$(pwd)/data/libretranslate:/home/libretranslate/.local/share" \
         libretranslate/libretranslate \
         --load-only en,ru  # az disabled — translation quality insufficient
       echo "LibreTranslate starting at http://localhost:5050 (may take a minute to load models)"
-      echo "Stop with: docker stop yonca-libretranslate"
+      echo "Stop with: docker stop lms-libretranslate"
     fi
 
 # Poll LibreTranslate until it responds (max 2 min). Depends on libre so it
@@ -195,28 +195,28 @@ libre-ready: libre
 
 # Compile translations
 translate-compile:
-    uv run pybabel compile -d yonca/translations
+    uv run pybabel compile -d lms/translations
 
 extract-messages:
-    uv run pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot yonca
+    uv run pybabel extract -F lms/babel.cfg -o lms/translations/messages.pot lms
 
 translate-all: libre-ready
-    uv run pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot yonca
-    uv run pybabel update -i yonca/translations/messages.pot -d yonca/translations
+    uv run pybabel extract -F lms/babel.cfg -o lms/translations/messages.pot lms
+    uv run pybabel update -i lms/translations/messages.pot -d lms/translations
     uv run python scripts/translations/auto_translate_po.py
     uv run python scripts/translations/fix_placeholders_v2.py
-    uv run pybabel compile -f -d yonca/translations
-    docker stop yonca-libretranslate
+    uv run pybabel compile -f -d lms/translations
+    docker stop lms-libretranslate
 
 # Nuclear reset: clears ALL translations then re-translates everything from scratch
 translate-reset: libre-ready
     uv run python scripts/translations/clear_all_po_translations.py
-    uv run pybabel extract -F yonca/babel.cfg -o yonca/translations/messages.pot yonca
-    uv run pybabel update -i yonca/translations/messages.pot -d yonca/translations
+    uv run pybabel extract -F lms/babel.cfg -o lms/translations/messages.pot lms
+    uv run pybabel update -i lms/translations/messages.pot -d lms/translations
     uv run python scripts/translations/auto_translate_po.py
     uv run python scripts/translations/fix_placeholders_v2.py
-    uv run pybabel compile -f -d yonca/translations
-    docker stop yonca-libretranslate
+    uv run pybabel compile -f -d lms/translations
+    docker stop lms-libretranslate
 
 translate-fix-placeholders: libre-ready
     uv run python scripts/translations/fix_placeholders_v2.py
@@ -241,7 +241,7 @@ logs:
 # Generate local TLS cert if not already present
 certs:
     #!/usr/bin/env bash
-    DOMAIN="${LOCAL_DOMAIN:-local.yonca-sdc.com}"
+    DOMAIN="${LOCAL_DOMAIN:-local.yourdomain.example.com}"
     if [ -f ".local/certs/local.crt" ] && [ -f ".local/certs/local.key" ]; then
       echo "Certs already exist — skipping. Delete .local/certs/ to regenerate."
       exit 0

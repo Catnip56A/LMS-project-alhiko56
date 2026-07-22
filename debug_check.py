@@ -1,5 +1,5 @@
-from yonca import create_app, db
-from yonca.models import CourseContent, ContentView
+from lms import create_app, db
+from lms.models import CourseContent, ContentView
 
 app = create_app()
 with app.app_context():

@@ -1,5 +1,5 @@
-from yonca.models import User
-from yonca.google_drive_service import SCOPES, authenticate
+from lms.models import User
+from lms.google_drive_service import SCOPES, authenticate
 
 print("=== OAuth Configuration Debug ===\n")
 print(f"Current SCOPES in code: {SCOPES}\n")
@@ -34,9 +34,9 @@ else:
                 print("\n⚠️  This means the OAuth scope is still restricted.")
                 print("Try fully disconnecting from Google:")
                 print("  1. Go to https://myaccount.google.com/permissions")
-                print("  2. Find and REMOVE 'Yonca'")
-                print("  3. Clear browser cookies for Yonca")
-                print("  4. Log out and back in to Yonca")
+                print("  2. Find and REMOVE 'LMS'")
+                print("  3. Clear browser cookies for LMS")
+                print("  4. Log out and back in to LMS")
                 print("  5. Authenticate with Google again")
         else:
             print("❌ Authentication failed")

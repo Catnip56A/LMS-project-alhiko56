@@ -94,7 +94,7 @@ def fix_po_file(po_file_path):
 
 
 # Fix all .po files
-po_dir = Path('yonca/translations')
+po_dir = Path('lms/translations')
 total_fixes = 0
 
 for po_file in po_dir.glob('*/LC_MESSAGES/messages.po'):

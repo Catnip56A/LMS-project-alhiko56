@@ -9,23 +9,23 @@ import os
 import sys
 import importlib.util
 
-# Add project root to path so we can import yonca modules
+# Add project root to path so we can import lms modules
 _project_root = os.path.join(os.path.dirname(__file__), '..', '..')
 sys.path.insert(0, _project_root)
 
 # Load core_translator directly from its file to avoid triggering
-# yonca/__init__.py, which requires DATABASE_URL and SECRET_KEY at import time.
+# lms/__init__.py, which requires DATABASE_URL and SECRET_KEY at import time.
 _spec = importlib.util.spec_from_file_location(
     "core_translator",
-    os.path.join(os.path.dirname(__file__), '..', '..', 'yonca', 'core_translator.py'),
+    os.path.join(os.path.dirname(__file__), '..', '..', 'lms', 'core_translator.py'),
 )
 _core_translator = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_core_translator)
 
-# Load constants directly to avoid importing yonca/__init__.py
+# Load constants directly to avoid importing lms/__init__.py
 _const_spec = importlib.util.spec_from_file_location(
     "constants",
-    os.path.join(os.path.dirname(__file__), '..', '..', 'yonca', 'constants.py'),
+    os.path.join(os.path.dirname(__file__), '..', '..', 'lms', 'constants.py'),
 )
 _constants = importlib.util.module_from_spec(_const_spec)
 _const_spec.loader.exec_module(_constants)
@@ -40,7 +40,7 @@ SUPPORTED_LANGUAGES = _constants.SUPPORTED_LANGUAGES
 LANGUAGE_NAMES = _constants.LANGUAGE_NAMES
 
 LANGUAGES = {lang: LANGUAGE_NAMES.get(lang, lang) for lang in SUPPORTED_LANGUAGES}
-TRANSLATIONS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'yonca', 'translations')
+TRANSLATIONS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'lms', 'translations')
 LIBRE_URL = os.environ.get('LIBRETRANSLATE_URL') or None
 CHUNK_SIZE = 50
 SOURCE_LANG = 'en'
