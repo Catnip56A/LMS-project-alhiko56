@@ -4,9 +4,6 @@ on:
   push:
     branches: [main, staging]
 
-env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/lms
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -16,6 +13,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set lowercase repository owner
+        run: echo "REPO_OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -32,9 +32,9 @@ jobs:
         with:
           push: true
           tags: |
-            ${{ env.IMAGE }}:${{ github.ref_name }}
-            ${{ env.IMAGE }}:${{ github.sha }}
-            ${{ github.ref_name == 'main' && format('{0}:latest', env.IMAGE) || '' }}
+            ghcr.io/${{ env.REPO_OWNER_LC }}/lms:${{ github.ref_name }}
+            ghcr.io/${{ env.REPO_OWNER_LC }}/lms:${{ github.sha }}
+            ${{ github.ref_name == 'main' && format('ghcr.io/{0}/lms:latest', env.REPO_OWNER_LC) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -70,7 +70,7 @@ jobs:
             FLASK_ENV=production
             IMAGE_TAG=${{ github.sha }}
             WEB_CONCURRENCY=${{ vars.WEB_CONCURRENCY || '3' }}
-            GHCR_OWNER=${{ github.repository_owner }}
+            GHCR_OWNER=${{ env.REPO_OWNER_LC }}
             SECRET_KEY=${{ secrets.SECRET_KEY }}
             POSTGRES_DB=${{ secrets.POSTGRES_DB }}
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
