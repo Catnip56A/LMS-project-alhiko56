@@ -143,3 +143,7 @@ lms/static/certificates/*.png
 lms/static/certificates/*.jpg
 lms/static/certificates/*.jpeg
 
+# designer UI assets — not committed, synced via GHCR (just ui-assets-push / ui-assets-pull)
+static/permanent/UI/*
+!static/permanent/UI/.gitkeep
+

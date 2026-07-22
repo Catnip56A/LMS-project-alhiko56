@@ -253,3 +253,26 @@ certs:
 # calls uv sync
 sync:
     uv sync
+
+# Push static/permanent/UI to GHCR as a private image (designer runs this after adding files)
+# One-time setup: docker login ghcr.io -u <github-username> -p <PAT with write:packages scope>
+ui-assets-push:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    owner=$(echo "${GHCR_OWNER:?set GHCR_OWNER in .env}" | tr '[:upper:]' '[:lower:]')
+    docker build -f deploy/ui-assets.Dockerfile -t "ghcr.io/$owner/lms-ui-assets:latest" .
+    docker push "ghcr.io/$owner/lms-ui-assets:latest"
+    echo "Pushed ghcr.io/$owner/lms-ui-assets:latest"
+    echo "First time only: on github.com, open the lms-ui-assets package settings and set visibility to Private."
+
+# Pull the latest designer UI assets from GHCR into static/permanent/UI
+# One-time setup: docker login ghcr.io -u <github-username> -p <PAT with read:packages scope>
+ui-assets-pull:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    owner=$(echo "${GHCR_OWNER:?set GHCR_OWNER in .env}" | tr '[:upper:]' '[:lower:]')
+    docker pull "ghcr.io/$owner/lms-ui-assets:latest"
+    cid=$(docker create "ghcr.io/$owner/lms-ui-assets:latest")
+    docker cp "$cid:/assets/." static/permanent/UI/
+    docker rm "$cid" > /dev/null
+    echo "Synced into static/permanent/UI/"
