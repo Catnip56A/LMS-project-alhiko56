@@ -1,0 +1,112 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<div class="container-fluid">
+    <h2><i class="fa fa-users"></i> Access — {{ course.title }}</h2>
+    <p><a href="{{ url_for('course_management.index') }}">&laquo; Back to Course Management</a></p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ 'success' if cat == 'success' else 'warning' if cat == 'warning' else 'info' }}">{{ msg }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-body">
+            <h5 class="card-title">Open-source / Public</h5>
+            <p class="card-text">When public, any logged-in user can instantly join this course from its page without a promo code.</p>
+            <form method="POST" action="{{ url_for('course_management.toggle_public', course_id=course.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm {{ 'btn-warning' if course.is_public else 'btn-success' }}">
+                    {% if course.is_public %}Make Private{% else %}Make Public{% endif %}
+                </button>
+                <span class="badge badge-{{ 'success' if course.is_public else 'secondary' }}" style="margin-left: 10px;">
+                    {{ 'Public' if course.is_public else 'Private' }}
+                </span>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-body">
+                    <h5 class="card-title">Enrolled Students ({{ enrolled|length }})</h5>
+                    {% if enrolled %}
+                    <table class="table table-sm">
+                        <tbody>
+                        {% for u in enrolled %}
+                            <tr>
+                                <td>{{ u.username }} {% if u.email %}<small class="text-muted">({{ u.email }})</small>{% endif %}</td>
+                                <td style="text-align: right;">
+                                    <form method="POST" action="{{ url_for('course_management.remove_student', course_id=course.id, user_id=u.id) }}" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No students enrolled yet.</p>
+                    {% endif %}
+
+                    <hr>
+                    <h6>Add Student</h6>
+                    <form method="POST" action="{{ url_for('course_management.add_student', course_id=course.id) }}" class="form-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <select name="user_id" class="form-control" style="margin-right: 10px; min-width: 200px;">
+                            {% for u in candidates %}
+                            <option value="{{ u.id }}">{{ u.username }}{% if u.email %} ({{ u.email }}){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-primary">Add</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-body">
+                    <h5 class="card-title">Promo Codes</h5>
+                    {% if promo_codes %}
+                    <table class="table table-sm">
+                        <thead><tr><th>Code</th><th>Uses</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                        {% for p in promo_codes %}
+                            <tr>
+                                <td><code>{{ p.code }}</code></td>
+                                <td>{{ p.uses_count }}{% if p.max_uses %} / {{ p.max_uses }}{% else %} / &infin;{% endif %}</td>
+                                <td>
+                                    {% if p.is_valid %}<span class="badge badge-success">Active</span>{% else %}<span class="badge badge-secondary">Expired</span>{% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    <a href="{{ url_for('main.join_via_link', code=p.code) }}" target="_blank" class="btn btn-sm btn-outline-secondary">Link</a>
+                                    <form method="POST" action="{{ url_for('course_management.delete_promo_code', promo_id=p.id) }}" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">No promo codes yet.</p>
+                    {% endif %}
+
+                    <hr>
+                    <h6>Generate Promo Code</h6>
+                    <form method="POST" action="{{ url_for('course_management.create_promo_code', course_id=course.id) }}" class="form-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="number" name="max_uses" class="form-control" placeholder="Max uses (blank = unlimited)" style="margin-right: 10px; width: 220px;">
+                        <button type="submit" class="btn btn-sm btn-primary">Generate</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3,10 +3,12 @@ Background job system for long-running tasks like content translation
 """
 import threading
 import time
+import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
-import json
 from lms.models import db, BackgroundJob as BackgroundJobModel
+
+logger = logging.getLogger(__name__)
 
 class JobStatus:
     """Job status constants"""
@@ -114,7 +116,7 @@ class JobManager:
         self.running = True
         self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
         self.worker_thread.start()
-        print("Background job worker started")
+        logger.info("Background job worker started")
 
     def stop_worker(self):
         """Stop the background worker"""
@@ -141,7 +143,7 @@ class JobManager:
         # Store function reference for when job is executed
         # Note: This won't persist across app restarts, but for now we'll handle this
         # by having the worker know which functions to call based on job type
-        print(f"Queued job {job_id} of type {job_type}")
+        logger.info(f"Queued job {job_id} of type {job_type}")
         return job_id
 
     def get_job(self, job_id: str) -> Optional[BackgroundJob]:
@@ -171,7 +173,7 @@ class JobManager:
                         # No jobs, wait before checking again
                         time.sleep(1)
                 except Exception as e:
-                    print(f"Error in worker loop: {e}")
+                    logger.error(f"Error in worker loop: {e}")
                     time.sleep(5)  # Wait longer on error
 
     def _execute_job(self, job: BackgroundJob):
@@ -180,7 +182,7 @@ class JobManager:
             job.status = JobStatus.RUNNING
             job.started_at = datetime.now()
             job.save()
-            print(f"Starting job {job.id}")
+            logger.info(f"Starting job {job.id}")
 
             # Execute the job function based on type
             if job.type == 'translate_content':
@@ -195,12 +197,12 @@ class JobManager:
             job.completed_at = datetime.now()
             job.save()
 
-            print(f"Completed job {job.id}")
+            logger.info(f"Completed job {job.id}")
 
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
-            print(f"Failed job {job.id}: {error_details}")
+            logger.error(f"Failed job {job.id}: {error_details}")
             
             job.status = JobStatus.FAILED
             job.error = str(e)
@@ -249,7 +251,7 @@ class JobManager:
                     job.message = f"Translated {stats['courses']} courses..."
                     job.save()
                 except Exception as e:
-                    print(f"Failed to translate course {course.id}: {e}")
+                    logger.error(f"Failed to translate course {course.id}: {e}")
                     continue
 
             # Process resources
@@ -265,7 +267,7 @@ class JobManager:
                     job.message = f"Translated {stats['resources']} resources..."
                     job.save()
                 except Exception as e:
-                    print(f"Failed to translate resource {resource.id}: {e}")
+                    logger.error(f"Failed to translate resource {resource.id}: {e}")
                     continue
 
             # Commit all changes
@@ -277,10 +279,10 @@ class JobManager:
 
             return stats
 
-        except Exception as e:
+        except Exception:
             import traceback
             error_details = traceback.format_exc()
-            print(f"Translation job error: {error_details}")
+            logger.error(f"Translation job error: {error_details}")
             raise
 
 # Global job manager instance

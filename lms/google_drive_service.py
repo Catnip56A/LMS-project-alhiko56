@@ -2,29 +2,74 @@
 Google Drive service for file uploads and sharing
 Build: 2026-04-23T12:45:00Z
 """
-from __future__ import print_function
 import os.path
-import json
+import logging
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
-from flask import url_for, current_app
-from datetime import datetime, timedelta, timedelta
+from flask import current_app
+from datetime import datetime, timedelta
 import requests
+
+logger = logging.getLogger(__name__)
 
 # drive.file scope: access only files created by the app or opened via the Picker
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 FOLDER_ID = None  # Upload to root directory for OAuth users
 
+def get_drive_writer_user():
+    """Return the User designated as the system-wide Drive writer, if any.
+
+    Interim stand-in for the Phase 4 worker account: instead of creating a
+    dummy Google account to act as a shared service identity (dubious under
+    Google's ToS), an admin can designate their own already-linked account as
+    the writer everyone's uploads route through. Pointer only — no separate
+    token storage, it just reads the designated User's existing OAuth columns.
+    """
+    from lms.models import AppSetting, User
+    setting = AppSetting.query.filter_by(key='drive_writer_user_id').first()
+    if not setting or not setting.value:
+        return None
+    user = User.query.get(int(setting.value))
+    if not user or not user.google_access_token:
+        return None
+    return user
+
+
+def set_drive_writer(user):
+    """Designate `user`'s linked Google account as the system-wide Drive writer."""
+    from lms.models import AppSetting, db
+    setting = AppSetting.query.filter_by(key='drive_writer_user_id').first()
+    if setting:
+        setting.value = str(user.id)
+    else:
+        setting = AppSetting(key='drive_writer_user_id', value=str(user.id))
+        db.session.add(setting)
+    db.session.commit()
+
+
+def clear_drive_writer():
+    """Remove the designated Drive writer, reverting uploads to per-user OAuth."""
+    from lms.models import AppSetting, db
+    AppSetting.query.filter_by(key='drive_writer_user_id').delete()
+    db.session.commit()
+
+
 def authenticate(user=None):
-    """Authenticate and return the Google Drive service using user's OAuth tokens"""
+    """Authenticate and return the Google Drive service using OAuth tokens.
+
+    When `user` isn't given, uses the designated Drive writer (see
+    `set_drive_writer`) if one is set, falling back to the current user.
+    """
+    if user is None:
+        user = get_drive_writer_user()
     if user is None:
         from flask_login import current_user
         user = current_user
-    
+
     if not user or not user.google_access_token:
-        print('No Google OAuth tokens available for user')
+        logger.info('No Google OAuth tokens available for user')
         return None
 
     creds = None
@@ -35,7 +80,7 @@ def authenticate(user=None):
             creds = refresh_credentials(user)
             if not creds:
                 # Refresh failed, clear tokens
-                print('Token refresh failed, clearing tokens')
+                logger.error('Token refresh failed, clearing tokens')
                 user.google_access_token = None
                 user.google_refresh_token = None
                 user.google_token_expiry = None
@@ -43,7 +88,7 @@ def authenticate(user=None):
                 db.session.commit()
                 return None
         else:
-            print('Access token expired and no refresh token available')
+            logger.info('Access token expired and no refresh token available')
             # Clear expired token
             user.google_access_token = None
             user.google_refresh_token = None
@@ -78,10 +123,10 @@ def authenticate(user=None):
                 if hasattr(service._http, 'http') and hasattr(service._http.http, 'timeout'):
                     service._http.http.timeout = 300  # Also set on underlying httplib2.Http
             
-            print("Google Drive service authenticated successfully using OAuth (with 5min timeout)")
+            logger.info("Google Drive service authenticated successfully using OAuth (with 5min timeout)")
             return service
         except Exception as e:
-            print(f'Failed to build Google Drive service: {e}')
+            logger.error(f'Failed to build Google Drive service: {e}')
             # Clear invalid tokens so user can re-authenticate
             user.google_access_token = None
             user.google_refresh_token = None
@@ -90,7 +135,7 @@ def authenticate(user=None):
             db.session.commit()
             return None
     else:
-        print('Failed to authenticate with Google Drive')
+        logger.error('Failed to authenticate with Google Drive')
         return None
 
 def get_linked_google_account(user=None):
@@ -107,7 +152,7 @@ def get_linked_google_account(user=None):
         if user.google_refresh_token:
             creds = refresh_credentials(user)
             if not creds:
-                print('Token refresh failed for account info, clearing tokens')
+                logger.error('Token refresh failed for account info, clearing tokens')
                 from lms.models import db, User
                 db.session.query(User).filter_by(id=user.id).update({
                     'google_access_token': None,
@@ -117,7 +162,7 @@ def get_linked_google_account(user=None):
                 db.session.commit()
                 return {'error': 'Token refresh failed'}
         else:
-            print('Access token expired and no refresh token available for account info')
+            logger.info('Access token expired and no refresh token available for account info')
             from lms.models import db, User
             db.session.query(User).filter_by(id=user.id).update({
                 'google_access_token': None,
@@ -142,7 +187,7 @@ def get_linked_google_account(user=None):
         }
     except requests.HTTPError as e:
         if e.response.status_code == 401:
-            print('Token is invalid (401), clearing tokens')
+            logger.info('Token is invalid (401), clearing tokens')
             from lms.models import db, User
             db.session.query(User).filter_by(id=user.id).update({
                 'google_access_token': None,
@@ -152,10 +197,10 @@ def get_linked_google_account(user=None):
             db.session.commit()
             return {'error': 'Invalid or expired token'}
         else:
-            print(f'Failed to get Google account info: HTTP {e.response.status_code}')
+            logger.error(f'Failed to get Google account info: HTTP {e.response.status_code}')
             return {'error': f'HTTP {e.response.status_code}: {e.response.text}'}
     except Exception as e:
-        print(f'Failed to get Google account info: {e}')
+        logger.error(f'Failed to get Google account info: {e}')
         return {'error': str(e)}
 
 def refresh_credentials(user):
@@ -196,7 +241,7 @@ def refresh_credentials(user):
             scopes=SCOPES
         )
     except Exception as e:
-        print(f'Failed to refresh token: {e}')
+        logger.error(f'Failed to refresh token: {e}')
         return None
 
 def upload_file(service, file_path, file_name=None, folder_id=None):
@@ -218,22 +263,22 @@ def upload_file(service, file_path, file_name=None, folder_id=None):
         ).execute()
         return uploaded_file['id']
     except HttpError as error:
-        print(f'An error occurred: {error}')
+        logger.error(f'An error occurred: {error}')
         return None
 
 def create_view_only_link(service, file_id, is_image=False):
     """Create a view-only link for files - returns direct Google Drive link"""
-    print(f"DEBUG: create_view_only_link called with file_id={file_id}, is_image={is_image}")
+    logger.debug(f"create_view_only_link called with file_id={file_id}, is_image={is_image}")
     
     if is_image:
         # For images, return direct Google Drive image link
         view_link = f"https://lh3.googleusercontent.com/d/{file_id}"
-        print(f"DEBUG: Returning image view_link: {view_link}")
+        logger.debug(f"Returning image view_link: {view_link}")
         return view_link
     else:
         # For non-images (PDFs, documents), return direct Google Drive viewer link
         view_link = f"https://drive.google.com/file/d/{file_id}/view"
-        print(f"DEBUG: Returning file view_link: {view_link}")
+        logger.debug(f"Returning file view_link: {view_link}")
         return view_link
 
 def set_file_permissions(service, file_id, make_public=False, max_retries=3):
@@ -256,9 +301,9 @@ def set_file_permissions(service, file_id, make_public=False, max_retries=3):
                     supportsAllDrives=True
                 ).execute()
                 elapsed = time.time() - start_time
-                print(f"DEBUG: File {file_id} made public (took {elapsed:.2f}s)")
+                logger.debug(f"File {file_id} made public (took {elapsed:.2f}s)")
                 if elapsed > 30:  # Warn if taking more than 30 seconds
-                    print(f"WARNING: Making file public took {elapsed:.2f}s - approaching timeout limits")
+                    logger.warning(f"Making file public took {elapsed:.2f}s - approaching timeout limits")
                 return True
             else:
                 # Remove public permissions to make file private
@@ -270,36 +315,36 @@ def set_file_permissions(service, file_id, make_public=False, max_retries=3):
                     for permission in permissions.get('permissions', []):
                         if permission.get('type') == 'anyone':
                             service.permissions().delete(fileId=file_id, permissionId=permission['id'], supportsAllDrives=True).execute()
-                            print(f"DEBUG: Removed public permission from file {file_id}")
+                            logger.debug(f"Removed public permission from file {file_id}")
                     
                     elapsed = time.time() - start_time
-                    print(f"DEBUG: File {file_id} made private (took {elapsed:.2f}s)")
+                    logger.debug(f"File {file_id} made private (took {elapsed:.2f}s)")
                     if elapsed > 30:  # Warn if taking more than 30 seconds
-                        print(f"WARNING: Making file private took {elapsed:.2f}s - approaching timeout limits")
+                        logger.warning(f"Making file private took {elapsed:.2f}s - approaching timeout limits")
                     return True
                 except HttpError as error:
-                    print(f'Error removing public permissions: {error}')
+                    logger.error(f'Error removing public permissions: {error}')
                     # If removing fails, still return True to not break the flow
-                    print(f"DEBUG: File {file_id} kept as is (may already be private)")
+                    logger.debug(f"File {file_id} kept as is (may already be private)")
                     return True
         except HttpError as error:
             elapsed = time.time() - start_time
-            print(f'An error occurred setting permissions (attempt {attempt + 1}/{max_retries + 1}, {elapsed:.2f}s): {error}')
+            logger.error(f'An error occurred setting permissions (attempt {attempt + 1}/{max_retries + 1}, {elapsed:.2f}s): {error}')
             if attempt < max_retries:
-                print(f'Retrying in 1 second...')
+                logger.info('Retrying in 1 second...')
                 time.sleep(1)
                 continue
             return False
         except (ConnectionResetError, ConnectionError, TimeoutError, OSError) as error:
             elapsed = time.time() - start_time
-            print(f'Network/timeout error occurred setting permissions for file {file_id} (attempt {attempt + 1}/{max_retries + 1}, {elapsed:.2f}s): {error}')
+            logger.error(f'Network/timeout error occurred setting permissions for file {file_id} (attempt {attempt + 1}/{max_retries + 1}, {elapsed:.2f}s): {error}')
             if attempt < max_retries:
                 # Exponential backoff for timeout errors
                 delay = min(2 ** attempt, 10)  # Max 10 seconds delay
-                print(f'Retrying in {delay} seconds...')
+                logger.info(f'Retrying in {delay} seconds...')
                 time.sleep(delay)
                 continue
-            print(f'DEBUG: File {file_id} permissions unchanged due to network/timeout issues after {max_retries + 1} attempts - continuing import')
+            logger.debug(f'File {file_id} permissions unchanged due to network/timeout issues after {max_retries + 1} attempts - continuing import')
             return True  # Return True to not break the import flow
 
 def delete_file(service, file_id):
@@ -308,7 +353,7 @@ def delete_file(service, file_id):
         service.files().delete(fileId=file_id, supportsAllDrives=True).execute()
         return True
     except HttpError as error:
-        print(f'An error occurred: {error}')
+        logger.error(f'An error occurred: {error}')
         return False
 
 def download_file(service, file_id, local_path):
@@ -323,10 +368,10 @@ def download_file(service, file_id, local_path):
             done = False
             while done is False:
                 status, done = downloader.next_chunk()
-                print(f"Download {int(status.progress() * 100)}%.")
+                logger.info(f"Download {int(status.progress() * 100)}%.")
         return True
     except HttpError as error:
-        print(f'An error occurred downloading file: {error}')
+        logger.error(f'An error occurred downloading file: {error}')
         return False
 
 def extract_file_id_from_url(drive_url):
@@ -340,21 +385,21 @@ def extract_file_id_from_url(drive_url):
         r'[?&]id=([a-zA-Z0-9_-]+)',  # ?id=FILE_ID or &id=FILE_ID
     ]
     
-    print(f"DEBUG: extract_file_id_from_url input: {drive_url}")
+    logger.debug(f"extract_file_id_from_url input: {drive_url}")
     
     for pattern in patterns:
         match = re.search(pattern, drive_url)
         if match:
             extracted_id = match.group(1)
-            print(f"DEBUG: Pattern '{pattern}' matched, extracted ID: {extracted_id}")
+            logger.debug(f"Pattern '{pattern}' matched, extracted ID: {extracted_id}")
             return extracted_id
     
     # If no pattern matches, assume it's already a file ID (direct ID format)
     if re.match(r'^[a-zA-Z0-9_-]+$', drive_url):
-        print(f"DEBUG: Treating input as direct ID: {drive_url}")
+        logger.debug(f"Treating input as direct ID: {drive_url}")
         return drive_url
     
-    print(f"DEBUG: Failed to extract ID from: {drive_url}")
+    logger.debug(f"Failed to extract ID from: {drive_url}")
     return None
 
 def get_file_metadata(service, file_id):
@@ -370,22 +415,22 @@ def get_file_metadata(service, file_id):
         ).execute()
         
         elapsed = time.time() - start_time
-        print(f"DEBUG: get_file_metadata for {file_id} took {elapsed:.2f}s")
+        logger.debug(f"get_file_metadata for {file_id} took {elapsed:.2f}s")
         if elapsed > 30:  # Warn if taking more than 30 seconds
-            print(f"WARNING: get_file_metadata took {elapsed:.2f}s - approaching timeout limits")
+            logger.warning(f"get_file_metadata took {elapsed:.2f}s - approaching timeout limits")
         return file
     except HttpError as error:
         elapsed = time.time() - start_time
         if error.resp.status == 404:
             # File not found - log at debug level to avoid cluttering logs
-            print(f"DEBUG: File {file_id} not found (404) after {elapsed:.2f}s")
+            logger.debug(f"File {file_id} not found (404) after {elapsed:.2f}s")
         else:
-            print(f'An error occurred getting file metadata after {elapsed:.2f}s: {error}')
+            logger.error(f'An error occurred getting file metadata after {elapsed:.2f}s: {error}')
         # Return error information for better handling
         return {'error': str(error), 'error_code': error.resp.status}
     except (ConnectionResetError, ConnectionError, TimeoutError, OSError) as error:
         elapsed = time.time() - start_time
-        print(f'Network/timeout error occurred getting file metadata for {file_id} after {elapsed:.2f}s: {error}')
+        logger.error(f'Network/timeout error occurred getting file metadata for {file_id} after {elapsed:.2f}s: {error}')
         return {'error': f'Network/timeout error: {str(error)}', 'error_code': 0}
 
 def list_folder_contents(service, folder_id):
@@ -403,17 +448,17 @@ def list_folder_contents(service, folder_id):
         
         elapsed = time.time() - start_time
         items_count = len(results.get('files', []))
-        print(f"DEBUG: list_folder_contents for {folder_id} returned {items_count} items in {elapsed:.2f}s")
+        logger.debug(f"list_folder_contents for {folder_id} returned {items_count} items in {elapsed:.2f}s")
         if elapsed > 30:  # Warn if taking more than 30 seconds
-            print(f"WARNING: list_folder_contents took {elapsed:.2f}s - approaching timeout limits")
+            logger.warning(f"list_folder_contents took {elapsed:.2f}s - approaching timeout limits")
         return results.get('files', [])
     except HttpError as error:
         elapsed = time.time() - start_time
-        print(f'An error occurred listing folder contents after {elapsed:.2f}s: {error}')
+        logger.error(f'An error occurred listing folder contents after {elapsed:.2f}s: {error}')
         return []
     except (ConnectionResetError, ConnectionError, TimeoutError, OSError) as error:
         elapsed = time.time() - start_time
-        print(f'Network/timeout error occurred listing folder contents for {folder_id} after {elapsed:.2f}s: {error}')
+        logger.error(f'Network/timeout error occurred listing folder contents for {folder_id} after {elapsed:.2f}s: {error}')
         return []
 
 def collect_folder_structure(service, folder_id, base_path=""):
@@ -452,23 +497,23 @@ def collect_folder_structure(service, folder_id, base_path=""):
         
         return structure
     except Exception as e:
-        print(f'Error collecting folder structure: {e}')
+        logger.error(f'Error collecting folder structure: {e}')
         return structure
 
 def import_drive_file(service, file_id_or_url):
     """Import a single file from Google Drive and return its metadata with view link"""
-    print(f"DEBUG: import_drive_file called with: {file_id_or_url}")
+    logger.debug(f"import_drive_file called with: {file_id_or_url}")
     file_id = extract_file_id_from_url(file_id_or_url)
-    print(f"DEBUG: extracted file_id: {file_id}")
+    logger.debug(f"extracted file_id: {file_id}")
     if not file_id:
-        print("DEBUG: No file_id extracted, returning None")
+        logger.debug("No file_id extracted, returning None")
         return None
     
     account = get_linked_google_account()
-    print(f"DEBUG: Google account being used: {account}")
+    logger.debug(f"Google account being used: {account}")
     
     metadata = get_file_metadata(service, file_id)
-    print(f"DEBUG: get_file_metadata returned: {metadata}")
+    logger.debug(f"get_file_metadata returned: {metadata}")
     
     # Check if metadata contains an error
     if isinstance(metadata, dict) and 'error' in metadata:
@@ -481,7 +526,7 @@ def import_drive_file(service, file_id_or_url):
             return {'error': f'Google Drive API error: {metadata["error"]}'}
     
     if not metadata:
-        print("DEBUG: No metadata retrieved, returning None")
+        logger.debug("No metadata retrieved, returning None")
         return {'error': 'Failed to retrieve file metadata'}
     
     # Grant anyone-with-link read access so the embed viewer works
@@ -499,21 +544,21 @@ def import_drive_file(service, file_id_or_url):
         'view_link': view_link or metadata.get('webViewLink'),
         'icon_link': metadata.get('iconLink')
     }
-    print(f"DEBUG: import_drive_file returning: {result['name']}")
+    logger.debug(f"import_drive_file returning: {result['name']}")
     return result
 
 def import_drive_folder(service, folder_id_or_url):
     """Import all files and folders from a Google Drive folder recursively and return metadata"""
-    print(f"DEBUG: import_drive_folder called with: {folder_id_or_url}")
+    logger.debug(f"import_drive_folder called with: {folder_id_or_url}")
     folder_id = extract_file_id_from_url(folder_id_or_url)
-    print(f"DEBUG: extracted folder_id: {folder_id}")
+    logger.debug(f"extracted folder_id: {folder_id}")
     if not folder_id:
-        print("DEBUG: No folder_id extracted, returning None")
+        logger.debug("No folder_id extracted, returning None")
         return None
     
     # Get folder metadata
     folder_metadata = get_file_metadata(service, folder_id)
-    print(f"DEBUG: folder_metadata: {folder_metadata}")
+    logger.debug(f"folder_metadata: {folder_metadata}")
     
     # Check if folder_metadata contains an error
     if isinstance(folder_metadata, dict) and 'error' in folder_metadata:
@@ -526,12 +571,12 @@ def import_drive_folder(service, folder_id_or_url):
             return {'error': f'Google Drive API error: {folder_metadata["error"]}'}
     
     if not folder_metadata or folder_metadata.get('mimeType') != 'application/vnd.google-apps.folder':
-        print("DEBUG: Invalid folder metadata or not a folder, returning None")
+        logger.debug("Invalid folder metadata or not a folder, returning None")
         return {'error': 'Invalid folder. Please make sure the URL points to a Google Drive folder.'}
     
     # Recursively collect all files and folders
     folder_structure = collect_folder_structure(service, folder_id)
-    print(f"DEBUG: Collected folder structure with {len(folder_structure['folders'])} folders and {len(folder_structure['files'])} files")
+    logger.debug(f"Collected folder structure with {len(folder_structure['folders'])} folders and {len(folder_structure['files'])} files")
     
     # Flatten the structure into a list of files with their folder paths
     all_files = []
@@ -576,5 +621,5 @@ def import_drive_folder(service, folder_id_or_url):
         'files': imported_files,
         'total_files': len(imported_files)
     }
-    print(f"DEBUG: import_drive_folder returning {len(imported_files)} files from recursive import")
+    logger.debug(f"import_drive_folder returning {len(imported_files)} files from recursive import")
     return result

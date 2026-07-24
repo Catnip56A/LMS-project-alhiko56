@@ -150,7 +150,7 @@ document.getElementById('translate-all').addEventListener('click', async functio
     try {
         const response = await fetch('/admin/translate/translate-content', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' }
         });
         const result = await response.json();
 
@@ -228,7 +228,7 @@ document.getElementById('delete-translations').addEventListener('click', async f
     try {
         const response = await fetch('/admin/translate/delete-translations', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' }
         });
         const result = await response.json();
 

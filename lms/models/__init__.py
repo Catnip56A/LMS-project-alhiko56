@@ -3,17 +3,23 @@ Database models for LMS application
 """
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
+from sqlalchemy.ext.associationproxy import association_proxy
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 db = SQLAlchemy()
 
-# Association table for many-to-many relationship between User and Course
-user_courses = db.Table('user_courses',
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
-    db.Column('course_id', db.Integer, db.ForeignKey('course.id'), primary_key=True)
-)
+# How a user ended up enrolled in a course (Enrollment.joined_via) — one of the
+# non-exclusive join paths from the access & enrollment model.
+JOIN_VIA_PROMO_CODE = 'promo_code'
+JOIN_VIA_DIRECT_LINK = 'direct_link'
+JOIN_VIA_DIRECT_ADD = 'direct_add'
+JOIN_VIA_INSTANT_PUBLIC = 'instant_public'
+
+# Valid QuizQuestion.question_type values — enforced by a DB CHECK constraint (defense in
+# depth for any write path) and restricted to a dropdown in the admin form (see admin/__init__.py).
+QUIZ_QUESTION_TYPES = ('mcq', 'true_false', 'short_answer')
 
 # Association table for tracking which users have accessed which resources via PIN
 user_resource_access = db.Table('user_resource_access',
@@ -28,6 +34,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=True)  # Made nullable for non-Google users
     _password = db.Column('password', db.String(200), nullable=False)
+    email_verified = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))
     is_admin = db.Column(db.Boolean, default=False)
     is_teacher = db.Column(db.Boolean, default=False)
     admin_permissions = db.Column(db.JSON, nullable=True)
@@ -41,7 +48,8 @@ class User(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, nullable=True, server_default=db.func.now())
     login_attempts = db.Column(db.Integer, default=0)  # Track failed login attempts
     last_attempt_time = db.Column(db.DateTime)  # Track time of last login attempt
-    courses = db.relationship('Course', secondary=user_courses, backref=db.backref('users', lazy='select'))
+    enrollments = db.relationship('Enrollment', back_populates='user', cascade='all, delete-orphan')
+    courses = association_proxy('enrollments', 'course', creator=lambda course: Enrollment(course=course))
     accessed_resources = db.relationship('Resource', secondary=user_resource_access, backref=db.backref('accessed_users', lazy='select'))
 
     @property
@@ -87,8 +95,70 @@ class Course(db.Model):
     # Tags for course filtering
     tags = db.Column(db.JSON, default=[])
 
+    # Open-source/public flag: visible and instantly joinable by any user, not just enrollees
+    is_public = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))
+
+    enrollments = db.relationship('Enrollment', back_populates='course', cascade='all, delete-orphan')
+    users = association_proxy('enrollments', 'user', creator=lambda user: Enrollment(user=user))
+
     def __repr__(self):
         return f'<Course {self.title}>'
+
+
+class Enrollment(db.Model):
+    """Join-object between User and Course — tracks how/when someone joined.
+
+    Replaces the old plain user_courses association table so each membership
+    can record its join path (see JOIN_VIA_* constants) instead of just the fact
+    of membership. `paid` is a stub for future paid enrollment (not used yet).
+    """
+    __tablename__ = 'enrollment'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id', ondelete='CASCADE'), nullable=False)
+    joined_via = db.Column(db.String(30), nullable=False, default=JOIN_VIA_DIRECT_ADD, server_default=JOIN_VIA_DIRECT_ADD)
+    enrolled_at = db.Column(db.DateTime, server_default=db.func.now())
+    promo_code_id = db.Column(db.Integer, db.ForeignKey('promo_code.id'), nullable=True)
+    paid = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'course_id', name='uq_enrollment_user_course'),)
+
+    user = db.relationship('User', back_populates='enrollments')
+    course = db.relationship('Course', back_populates='enrollments')
+    promo_code = db.relationship('PromoCode', backref=db.backref('enrollments', lazy='select'))
+
+    def __repr__(self):
+        return f'<Enrollment user={self.user_id} course={self.course_id} via={self.joined_via}>'
+
+
+class PromoCode(db.Model):
+    """Promo code issued by an admin/teacher to let people join a course without
+    being directly added. Redeemed via the code itself (typed) or a direct link
+    that wraps the same code — both are join paths for the same PromoCode row.
+    """
+    __tablename__ = 'promo_code'
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id', ondelete='CASCADE'), nullable=False)
+    code = db.Column(db.String(40), unique=True, nullable=False)
+    max_uses = db.Column(db.Integer, nullable=True)  # None = unlimited
+    uses_count = db.Column(db.Integer, nullable=False, default=0)
+    issued_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    course = db.relationship('Course', backref=db.backref('promo_codes', lazy='select', cascade='all, delete-orphan'))
+    issued_by = db.relationship('User', foreign_keys=[issued_by_id])
+
+    @property
+    def is_valid(self):
+        if self.expires_at and datetime.utcnow() > self.expires_at:
+            return False
+        if self.max_uses is not None and self.uses_count >= self.max_uses:
+            return False
+        return True
+
+    def __repr__(self):
+        return f'<PromoCode {self.code}>'
 
 class ForumMessage(db.Model):
     """Forum message model for community discussions"""
@@ -115,6 +185,7 @@ class ForumChannel(db.Model):
     requires_login = db.Column(db.Boolean, default=False)  # Whether login is required
     admin_only = db.Column(db.Boolean, default=False)  # Whether admin access is required
     is_active = db.Column(db.Boolean, default=True)  # Whether channel is visible
+    is_public = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))  # Open-source/public: visible to non-enrolled users
     sort_order = db.Column(db.Integer, default=0)  # Display order
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
@@ -327,6 +398,8 @@ class CourseContentFolder(db.Model):
     parent_folder = db.relationship('CourseContentFolder', remote_side=[id], backref=db.backref('subfolders', lazy='select'))
     locked_until_assignment_id = db.Column(db.Integer, db.ForeignKey('course_assignment.id'), nullable=True)
     locked_until_assignment = db.relationship('CourseAssignment', foreign_keys=[locked_until_assignment_id])
+    locked_until_quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=True)
+    locked_until_quiz = db.relationship('Quiz', foreign_keys=[locked_until_quiz_id])
 
     def __repr__(self):
         return f'<CourseContentFolder {self.title}>'
@@ -343,9 +416,132 @@ class CourseAssignment(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     
     course = db.relationship('Course', backref=db.backref('assignments', lazy='dynamic'))
-    
+
     def __repr__(self):
         return f'<CourseAssignment {self.title}>'
+
+
+def _check_quiz_answer(question, submitted):
+    """Auto-grade a single answer against its question's correct_answer."""
+    if question.question_type == 'mcq':
+        return submitted == question.correct_answer
+    if question.question_type == 'true_false':
+        return bool(submitted) == bool(question.correct_answer)
+    if question.question_type == 'short_answer':
+        return isinstance(submitted, str) and submitted.strip().lower() == str(question.correct_answer).strip().lower()
+    return False
+
+
+class Quiz(db.Model):
+    """Quiz belonging to a course — MCQ, true/false, and short-answer questions."""
+    __tablename__ = 'quiz'
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id', ondelete='CASCADE'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    time_limit_minutes = db.Column(db.Integer, nullable=True)  # None = untimed
+    max_attempts = db.Column(db.Integer, nullable=True)  # None = unlimited
+    passing_score = db.Column(db.Integer, nullable=False, default=70)  # percentage
+    is_published = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    course = db.relationship('Course', backref=db.backref('quizzes', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<Quiz {self.title}>'
+
+
+class QuizQuestion(db.Model):
+    """A single question on a Quiz. `correct_answer` shape depends on question_type:
+    mcq -> index into `options`; true_false -> bool; short_answer -> case-insensitive string match.
+    """
+    __tablename__ = 'quiz_question'
+    __table_args__ = (
+        db.CheckConstraint(
+            "question_type IN ('mcq', 'true_false', 'short_answer')",
+            name='ck_quiz_question_type'),
+    )
+    id = db.Column(db.Integer, primary_key=True)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id', ondelete='CASCADE'), nullable=False)
+    question_text = db.Column(db.Text, nullable=False)
+    question_type = db.Column(db.String(20), nullable=False, default='mcq')  # mcq | true_false | short_answer
+    options = db.Column(db.JSON, nullable=True)  # mcq only: list[str]
+    correct_answer = db.Column(db.JSON, nullable=False)
+    points = db.Column(db.Integer, nullable=False, default=1)
+    order = db.Column(db.Integer, nullable=False, default=0)
+
+    quiz = db.relationship('Quiz', backref=db.backref(
+        'questions', lazy='select', order_by='QuizQuestion.order', cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<QuizQuestion {self.id}>'
+
+
+class QuizAttempt(db.Model):
+    """One student's attempt at a Quiz. Graded once, at submission."""
+    __tablename__ = 'quiz_attempt'
+    id = db.Column(db.Integer, primary_key=True)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    started_at = db.Column(db.DateTime, server_default=db.func.now())
+    submitted_at = db.Column(db.DateTime, nullable=True)
+    score = db.Column(db.Integer, nullable=True)  # percentage 0-100, set on submit
+    passed = db.Column(db.Boolean, nullable=True)  # set on submit; drives folder gating like CourseAssignmentSubmission.passed
+
+    quiz = db.relationship('Quiz', backref=db.backref('attempts', lazy='dynamic', cascade='all, delete-orphan'))
+    user = db.relationship('User')
+
+    @property
+    def deadline(self):
+        if self.quiz.time_limit_minutes is None:
+            return None
+        return self.started_at + timedelta(minutes=self.quiz.time_limit_minutes)
+
+    @property
+    def is_expired(self):
+        deadline = self.deadline
+        return deadline is not None and datetime.utcnow() > deadline
+
+    def grade(self):
+        """Auto-grade all answers and set score/passed/submitted_at. Caller commits."""
+        questions = {q.id: q for q in self.quiz.questions}
+        total_points = sum(q.points for q in questions.values()) or 1
+        earned = 0
+        for answer in self.answers:
+            question = questions.get(answer.question_id)
+            if question is None:
+                continue
+            correct = _check_quiz_answer(question, answer.answer)
+            answer.is_correct = correct
+            answer.points_awarded = question.points if correct else 0
+            earned += answer.points_awarded
+        self.score = round((earned / total_points) * 100)
+        self.passed = self.score >= self.quiz.passing_score
+        self.submitted_at = datetime.utcnow()
+
+    def __repr__(self):
+        return f'<QuizAttempt quiz={self.quiz_id} user={self.user_id}>'
+
+
+class QuizAnswer(db.Model):
+    """A student's answer to one question within a QuizAttempt."""
+    __tablename__ = 'quiz_answer'
+    id = db.Column(db.Integer, primary_key=True)
+    attempt_id = db.Column(db.Integer, db.ForeignKey('quiz_attempt.id', ondelete='CASCADE'), nullable=False)
+    question_id = db.Column(db.Integer, db.ForeignKey('quiz_question.id', ondelete='CASCADE'), nullable=False)
+    answer = db.Column(db.JSON, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    points_awarded = db.Column(db.Integer, nullable=False, default=0)
+
+    __table_args__ = (db.UniqueConstraint('attempt_id', 'question_id', name='uq_quiz_answer_attempt_question'),)
+
+    attempt = db.relationship('QuizAttempt', backref=db.backref(
+        'answers', lazy='select', cascade='all, delete-orphan'))
+    question = db.relationship('QuizQuestion')
+
+    def __repr__(self):
+        return f'<QuizAnswer attempt={self.attempt_id} question={self.question_id}>'
+
 
 class CourseAnnouncement(db.Model):
     """Course announcements/messages"""

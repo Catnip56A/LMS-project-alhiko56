@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'components/csrf_meta.html' %}
     <style>html{background:#F9E7CB}</style>
 
 
@@ -6253,5 +6254,6 @@ populateCourseDropdown(dropdown, mockCourse, isEnrolled);
         })();
     </script>
     {% include 'components/footer.html' %}
+    {% include 'components/cookie_consent.html' %}
 </body>
 </html>

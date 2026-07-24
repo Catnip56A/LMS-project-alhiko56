@@ -22,6 +22,10 @@ class Config:
     SESSION_COOKIE_PATH = '/'
     PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
 
+    # Global request body size cap (covers lecture video uploads); per-context limits
+    # (e.g. preview images) are enforced separately in lms/upload_validation.py
+    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH_MB', 500)) * 1024 * 1024
+
     GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
     GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
     # Browser-restricted API key with Google Picker API enabled (public, safe to expose to browser)

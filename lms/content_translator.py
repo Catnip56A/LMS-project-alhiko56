@@ -2,15 +2,18 @@
 Content translation helper for automatic translation of dynamic content
 """
 import re
+import logging
 from lms.models import ContentTranslation, db
 from lms.translation_service import translation_service
+
+logger = logging.getLogger(__name__)
 
 try:
     from langdetect import detect, LangDetectException
     LANGDETECT_AVAILABLE = True
 except ImportError:
     LANGDETECT_AVAILABLE = False
-    print("Warning: langdetect not available. Install with: pip install langdetect")
+    logger.warning("langdetect not available. Install with: pip install langdetect")
 
 # Import centralized language constants
 
@@ -66,7 +69,7 @@ def translate_content(content_type, content_id, field_name, text, source_languag
     # Auto-detect source language if not provided
     if source_language is None:
         source_language = detect_language(text)
-        print(f"   Detected language: {source_language} for {content_type}:{content_id}.{field_name}")
+        logger.debug(f"Detected language: {source_language} for {content_type}:{content_id}.{field_name}")
 
     # Use provided session or fall back to db.session
     if session is None:
@@ -89,13 +92,13 @@ def translate_content(content_type, content_id, field_name, text, source_languag
 
             if is_html:
                 translated = translation_service.translate_html(text, target_lang, source_language)
-                print(f"   Translated HTML content for {content_type}:{content_id}.{field_name} -> {target_lang}")
+                logger.debug(f"Translated HTML content for {content_type}:{content_id}.{field_name} -> {target_lang}")
             else:
                 translated = translation_service.get_translation(text, target_lang, source_language)
 
             # Skip if translation is empty or unchanged (LibreTranslate unavailable)
             if not translated or translated == text:
-                print(f"Warning: Translation unchanged/failed for {content_type}:{content_id}.{field_name} -> {target_lang}")
+                logger.warning(f"Translation unchanged/failed for {content_type}:{content_id}.{field_name} -> {target_lang}")
                 continue
 
             # Check if translation already exists
@@ -121,19 +124,16 @@ def translate_content(content_type, content_id, field_name, text, source_languag
                 session.add(new_translation)
 
             saved += 1
-            print(f"✓ Translated {content_type}:{content_id}.{field_name} -> {target_lang}")
+            logger.debug(f"Translated {content_type}:{content_id}.{field_name} -> {target_lang}")
 
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error translating {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
-            print(f"ERROR: Translation failed for {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
+            logger.error(f"Translation failed for {content_type}:{content_id}.{field_name} -> {target_lang}: {e}")
 
     # Flush translations to database
     try:
         session.flush()
     except Exception as e:
-        print(f"Error flushing translations: {e}")
+        logger.error(f"Error flushing translations: {e}")
 
     return saved
 
@@ -161,7 +161,7 @@ def translate_json_array(content_type, content_id, field_name, json_array, text_
         detect_text = first_item.get('description') or first_item.get('title') or first_item.get('text') or ''
         if detect_text:
             source_language = detect_language(detect_text)
-            print(f"   Detected language for {field_name}: {source_language}")
+            logger.debug(f"Detected language for {field_name}: {source_language}")
         else:
             source_language = 'en'
     elif source_language is None:
@@ -232,7 +232,7 @@ def translate_string_array(content_type, content_id, field_name, string_array, s
         for item in string_array:
             if isinstance(item, str) and item.strip():
                 source_language = detect_language(item)
-                print(f"   Detected language for {field_name}: {source_language}")
+                logger.debug(f"Detected language for {field_name}: {source_language}")
                 break
         if source_language is None:
             source_language = 'en'

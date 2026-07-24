@@ -1,9 +1,10 @@
 
 from flask import Blueprint, render_template, request, redirect, flash, url_for, jsonify, current_app, abort
 from markupsafe import Markup
-from flask_babel import get_locale, force_locale, _
+from flask_babel import get_locale, _
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
+from lms.upload_validation import validate_upload, UploadValidationError
 import os
 from datetime import datetime as dt
 
@@ -69,7 +70,7 @@ def index():
                     try:
                         delete_file(service, resource.drive_file_id)
                     except Exception as e:
-                        print(f"Error deleting resource from Google Drive: {e}")
+                        current_app.logger.error(f"Error deleting resource from Google Drive: {e}")
             # Delete from database
             db.session.delete(resource)
             db.session.commit()
@@ -95,7 +96,7 @@ def index():
                     try:
                         delete_file(service, pdf.drive_file_id)
                     except Exception as e:
-                        print(f"Error deleting PDF from Google Drive: {e}")
+                        current_app.logger.error(f"Error deleting PDF from Google Drive: {e}")
             # Delete from database
             db.session.delete(pdf)
             db.session.commit()
@@ -107,10 +108,187 @@ def index():
         site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
     except Exception as e:
         # Log the error but don't crash - return empty SiteSettings
-        print(f"Database error in index route: {e}")
+        current_app.logger.error(f"Database error in index route: {e}")
         site_settings = SiteSettings()
 
     return render_template('index.html', is_authenticated=current_user.is_authenticated, site_settings=site_settings)
+
+
+@main_bp.route('/course/<int:course_id>/join', methods=['POST'])
+@login_required
+def join_public_course(course_id):
+    """Instant-join path: only for courses explicitly marked open-source/public."""
+    from lms.models import Course, Enrollment, JOIN_VIA_INSTANT_PUBLIC, db
+
+    course = Course.query.get_or_404(course_id)
+    if not course.is_public:
+        flash(_('This course is not open for instant joining.'), 'error')
+        return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+    if current_user not in course.users:
+        db.session.add(Enrollment(user=current_user, course=course, joined_via=JOIN_VIA_INSTANT_PUBLIC))
+        db.session.commit()
+        flash(_('You have joined %(title)s.', title=course.title), 'success')
+    return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+
+def _redeem_promo_code(code_str, joined_via):
+    """Validate and redeem a promo code for current_user.
+
+    Returns (course, error_message) — exactly one of which is None/falsy.
+    """
+    from lms.models import PromoCode, Enrollment, db
+
+    code_str = (code_str or '').strip()
+    if not code_str:
+        return None, _('Please enter a promo code.')
+
+    promo = PromoCode.query.filter_by(code=code_str).first()
+    if not promo:
+        return None, _('Invalid promo code.')
+    if not promo.is_valid:
+        return None, _('This promo code has expired or reached its use limit.')
+
+    course = promo.course
+    if current_user in course.users:
+        return course, None  # already enrolled — redemption is a no-op success
+
+    db.session.add(Enrollment(user=current_user, course=course, joined_via=joined_via, promo_code=promo))
+    promo.uses_count += 1
+    db.session.commit()
+    return course, None
+
+
+@main_bp.route('/join', methods=['GET', 'POST'])
+@login_required
+def join_with_code():
+    """Promo-code join path: type a code."""
+    from lms.models import JOIN_VIA_PROMO_CODE
+
+    if request.method == 'POST':
+        course, error = _redeem_promo_code(request.form.get('code'), JOIN_VIA_PROMO_CODE)
+        if error:
+            flash(error, 'error')
+            return render_template('join.html')
+        flash(_('You have joined %(title)s.', title=course.title), 'success')
+        return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+    return render_template('join.html')
+
+
+@main_bp.route('/join/<code>', methods=['GET', 'POST'])
+def join_via_link(code):
+    """Direct-link join path: a shareable URL wrapping a promo code."""
+    from lms.models import PromoCode, JOIN_VIA_DIRECT_LINK
+
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login', next=url_for('main.join_via_link', code=code)))
+
+    promo = PromoCode.query.filter_by(code=code).first()
+    if not promo:
+        abort(404)
+
+    if request.method == 'POST':
+        course, error = _redeem_promo_code(code, JOIN_VIA_DIRECT_LINK)
+        if error:
+            flash(error, 'error')
+            return redirect(url_for('main.index'))
+        flash(_('You have joined %(title)s.', title=course.title), 'success')
+        return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+    # GET is a confirmation page only — no state change, so link prefetch/scanners can't auto-join someone
+    already_enrolled = current_user in promo.course.users
+    return render_template('join_confirm.html', promo=promo, already_enrolled=already_enrolled)
+
+
+@main_bp.route('/course/<int:course_id>/quiz/<int:quiz_id>', methods=['GET', 'POST'])
+@login_required
+def quiz_overview(course_id, quiz_id):
+    from lms.models import Course, Quiz, QuizAttempt, SiteSettings, db
+
+    course = Course.query.get_or_404(course_id)
+    quiz = Quiz.query.filter_by(id=quiz_id, course_id=course_id).first_or_404()
+    is_staff = current_user.is_teacher or current_user.is_admin
+    if not is_staff and current_user not in course.users:
+        flash(_('You must be enrolled in this course to take this quiz.'), 'error')
+        return redirect(url_for('main.course_page_enrolled', course_id=course_id))
+
+    attempts = (QuizAttempt.query
+                .filter_by(quiz_id=quiz.id, user_id=current_user.id)
+                .order_by(QuizAttempt.started_at.desc())
+                .all())
+    attempts_used = len(attempts)
+    can_start = quiz.max_attempts is None or attempts_used < quiz.max_attempts
+
+    if request.method == 'POST':
+        if not can_start:
+            flash(_('You have used all your attempts for this quiz.'), 'error')
+            return redirect(url_for('main.quiz_overview', course_id=course_id, quiz_id=quiz_id))
+        attempt = QuizAttempt(quiz=quiz, user=current_user)
+        db.session.add(attempt)
+        db.session.commit()
+        return redirect(url_for('main.quiz_attempt', attempt_id=attempt.id))
+
+    site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
+    return render_template('quiz_overview.html', course=course, quiz=quiz,
+                            attempts=attempts, attempts_used=attempts_used, can_start=can_start,
+                            site_settings=site_settings, current_locale=str(get_locale()))
+
+
+@main_bp.route('/quiz/attempt/<int:attempt_id>', methods=['GET', 'POST'])
+@login_required
+def quiz_attempt(attempt_id):
+    from lms.models import QuizAttempt, QuizAnswer, SiteSettings, db
+
+    attempt = QuizAttempt.query.get_or_404(attempt_id)
+    if attempt.user_id != current_user.id:
+        abort(403)
+
+    if attempt.submitted_at:
+        return redirect(url_for('main.quiz_result', attempt_id=attempt.id))
+
+    quiz = attempt.quiz
+    if request.method == 'POST':
+        # Deliberately doesn't reject a slightly-late POST here — the countdown timer
+        # (rendered client-side) auto-submits at the deadline, so server-side rejection
+        # would just punish normal network latency for an honest on-time submission.
+        for question in quiz.questions:
+            field_name = f'question_{question.id}'
+            if question.question_type == 'mcq':
+                raw = request.form.get(field_name)
+                try:
+                    value = int(raw) if raw not in (None, '') else None
+                except (TypeError, ValueError):
+                    # Malformed submission — grade as unanswered rather than 500ing
+                    value = None
+            elif question.question_type == 'true_false':
+                raw = request.form.get(field_name)
+                value = {'true': True, 'false': False}.get(raw)
+            else:
+                value = request.form.get(field_name, '')
+            db.session.add(QuizAnswer(attempt=attempt, question_id=question.id, answer=value))
+        attempt.grade()
+        db.session.commit()
+        return redirect(url_for('main.quiz_result', attempt_id=attempt.id))
+
+    site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
+    return render_template('quiz_take.html', attempt=attempt, quiz=quiz,
+                            site_settings=site_settings, current_locale=str(get_locale()))
+
+
+@main_bp.route('/quiz/attempt/<int:attempt_id>/result')
+@login_required
+def quiz_result(attempt_id):
+    from lms.models import QuizAttempt, SiteSettings
+
+    attempt = QuizAttempt.query.get_or_404(attempt_id)
+    if attempt.user_id != current_user.id:
+        abort(403)
+    if not attempt.submitted_at:
+        return redirect(url_for('main.quiz_attempt', attempt_id=attempt.id))
+
+    site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
+    return render_template('quiz_result.html', attempt=attempt, quiz=attempt.quiz,
+                            site_settings=site_settings, current_locale=str(get_locale()))
 
 
 # Enrolled-only course page
@@ -279,17 +457,23 @@ def course_page_enrolled(course_id):
             if not uploaded_file:
                 flash('Please select a file to upload.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
+
+            try:
+                validate_upload(uploaded_file, max_bytes=current_app.config['MAX_CONTENT_LENGTH'])
+            except UploadValidationError as e:
+                flash(str(e), 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
             # Create temporary directory
             temp_dir = os.path.join('static', 'temp')
             os.makedirs(temp_dir, exist_ok=True)
-            
+
             # Generate unique filename
             filename = secure_filename(uploaded_file.filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             unique_filename = f"{current_user.id}_{timestamp}_{filename}"
             temp_file_path = os.path.join(temp_dir, unique_filename)
-            
+
             # Save the file temporarily
             uploaded_file.save(temp_file_path)
             
@@ -303,7 +487,7 @@ def course_page_enrolled(course_id):
             try:
                 drive_file_id = upload_file(service, temp_file_path, filename)
             except Exception as e:
-                print(f"Error uploading to Drive: {e}")
+                current_app.logger.error(f"Error uploading to Drive: {e}")
                 if "insufficientPermissions" in str(e) or "403" in str(e):
                     flash(Markup('Your Google account does not have sufficient Drive permissions. Please <a href="/auth/link-google-account" class="alert-link">re-link your Google account</a> to grant full Drive access.'), 'error')
                 else:
@@ -311,7 +495,7 @@ def course_page_enrolled(course_id):
                 # Clean up temporary file
                 try:
                     os.remove(temp_file_path)
-                except:
+                except Exception:
                     pass
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
@@ -320,7 +504,7 @@ def course_page_enrolled(course_id):
                 # Clean up temporary file
                 try:
                     os.remove(temp_file_path)
-                except:
+                except Exception:
                     pass
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
@@ -329,7 +513,7 @@ def course_page_enrolled(course_id):
                 try:
                     set_file_permissions(service, drive_file_id, make_public=True)
                 except Exception as e:
-                    print(f"Warning: Could not set file permissions: {e}")
+                    current_app.logger.warning(f"Warning: Could not set file permissions: {e}")
                     # Continue anyway - file is uploaded, just might have restricted permissions
             
             # Create view-only link
@@ -369,7 +553,7 @@ def course_page_enrolled(course_id):
             # Clean up temporary file
             try:
                 os.remove(temp_file_path)
-            except:
+            except Exception:
                 pass
             
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
@@ -433,20 +617,26 @@ def course_page_enrolled(course_id):
             if not uploaded_file:
                 flash('Please select a file to upload.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
+
+            try:
+                validate_upload(uploaded_file, max_bytes=current_app.config['MAX_CONTENT_LENGTH'])
+            except UploadValidationError as e:
+                flash(str(e), 'error')
+                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
             # Create temporary directory
             temp_dir = os.path.join('static', 'temp')
             os.makedirs(temp_dir, exist_ok=True)
-            
+
             # Generate unique filename
             filename = secure_filename(uploaded_file.filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             unique_filename = f"{timestamp}_{filename}"
             temp_file_path = os.path.join(temp_dir, unique_filename)
-            
+
             # Save the file temporarily
             uploaded_file.save(temp_file_path)
-            
+
             # Upload to Google Drive
             from lms.google_drive_service import authenticate, upload_file, create_view_only_link, set_file_permissions
             service = authenticate()
@@ -457,7 +647,7 @@ def course_page_enrolled(course_id):
             try:
                 drive_file_id = upload_file(service, temp_file_path, filename)
             except Exception as e:
-                print(f"Error uploading to Drive: {e}")
+                current_app.logger.error(f"Error uploading to Drive: {e}")
                 if "insufficientPermissions" in str(e) or "403" in str(e):
                     flash(Markup('Your Google account does not have sufficient Drive permissions. Please <a href="/auth/link-google-account" class="alert-link">re-link your Google account</a> to grant full Drive access.'), 'error')
                 else:
@@ -465,7 +655,7 @@ def course_page_enrolled(course_id):
                 # Clean up temporary file
                 try:
                     os.remove(temp_file_path)
-                except:
+                except Exception:
                     pass
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
@@ -474,7 +664,7 @@ def course_page_enrolled(course_id):
                 # Clean up temporary file
                 try:
                     os.remove(temp_file_path)
-                except:
+                except Exception:
                     pass
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
@@ -483,7 +673,7 @@ def course_page_enrolled(course_id):
                 try:
                     set_file_permissions(service, drive_file_id, make_public=True)
                 except Exception as e:
-                    print(f"Warning: Could not set file permissions: {e}")
+                    current_app.logger.warning(f"Warning: Could not set file permissions: {e}")
                     # Continue anyway - file is uploaded, just might have restricted permissions
             
             # Create view-only link
@@ -513,7 +703,7 @@ def course_page_enrolled(course_id):
             # Clean up temporary file
             try:
                 os.remove(temp_file_path)
-            except:
+            except Exception:
                 pass
             
             flash('File uploaded successfully!', 'success')
@@ -538,7 +728,7 @@ def course_page_enrolled(course_id):
                     try:
                         delete_file(service, content.drive_file_id)
                     except Exception as e:
-                        print(f"Error deleting file from Google Drive: {e}")
+                        current_app.logger.error(f"Error deleting file from Google Drive: {e}")
 
             # Delete from database
             db.session.delete(content)
@@ -570,7 +760,7 @@ def course_page_enrolled(course_id):
                     try:
                         delete_file(service, submission.drive_file_id)
                     except Exception as e:
-                        print(f"Error deleting file from Google Drive: {e}")
+                        current_app.logger.error(f"Error deleting file from Google Drive: {e}")
             
             # Delete from database
             db.session.delete(submission)
@@ -600,7 +790,7 @@ def course_page_enrolled(course_id):
                     try:
                         set_file_permissions(service, content.drive_file_id, make_public=content.allow_others_to_view)
                     except Exception as e:
-                        print(f"Error updating Drive permissions: {e}")
+                        current_app.logger.error(f"Error updating Drive permissions: {e}")
             
             db.session.commit()
             flash(f"File visibility updated: {'Visible to students' if content.allow_others_to_view else 'Private'}", 'success')
@@ -648,7 +838,7 @@ def course_page_enrolled(course_id):
                     try:
                         set_file_permissions(service, submission.drive_file_id, make_public=submission.allow_others_to_view)
                     except Exception as e:
-                        print(f"Error updating Drive permissions: {e}")
+                        current_app.logger.error(f"Error updating Drive permissions: {e}")
             
             db.session.commit()
             flash(f"Submission visibility updated: {'Visible to others' if submission.allow_others_to_view else 'Private'}", 'success')
@@ -778,7 +968,7 @@ def course_page_enrolled(course_id):
                         try:
                             delete_file(service, submission.drive_file_id)
                         except Exception as e:
-                            print(f"Error deleting submission file from Google Drive: {e}")
+                            current_app.logger.error(f"Error deleting submission file from Google Drive: {e}")
                 db.session.delete(submission)
             
             # Delete assignment
@@ -889,20 +1079,20 @@ def course_page_enrolled(course_id):
         # Import single file from Google Drive
         elif action == 'import_drive_file' and (current_user.is_teacher or current_user.is_admin):
             drive_url = request.form.get('drive_url', '').strip()
-            print(f"DEBUG: import_drive_file action called with drive_url: {drive_url}")
+            current_app.logger.debug(f"import_drive_file action called with drive_url: {drive_url}")
             if not drive_url:
                 flash('Please provide a Google Drive file URL or ID.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
             from lms.google_drive_service import authenticate, import_drive_file
             service = authenticate()
-            print(f"DEBUG: authenticate() returned: {service is not None}")
+            current_app.logger.debug(f"authenticate() returned: {service is not None}")
             if not service:
                 flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
             file_data = import_drive_file(service, drive_url)
-            print(f"DEBUG: import_drive_file() returned: {file_data}")
+            current_app.logger.debug(f"import_drive_file() returned: {file_data}")
             if isinstance(file_data, dict) and 'error' in file_data:
                 error_msg = file_data["error"]
                 if 'error_code' in file_data and file_data['error_code'] == 404:
@@ -932,31 +1122,31 @@ def course_page_enrolled(course_id):
                 allow_others_to_view=request.form.get('import_allow_view') == 'on',
                 is_imported=True
             )
-            print(f"DEBUG: Created CourseContent object: {content.title}, drive_file_id: {content.drive_file_id}")
+            current_app.logger.debug(f"Created CourseContent object: {content.title}, drive_file_id: {content.drive_file_id}")
             db.session.add(content)
-            print("DEBUG: Added content to session")
+            current_app.logger.debug("Added content to session")
             db.session.commit()
-            print("DEBUG: Committed to database")
+            current_app.logger.debug("Committed to database")
             flash(f'Successfully imported: {file_data["name"]}', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Import entire folder from Google Drive
         elif action == 'import_drive_folder' and (current_user.is_teacher or current_user.is_admin):
             folder_url = request.form.get('drive_url', '').strip()
-            print(f"DEBUG: import_drive_folder action called with folder_url: {folder_url}")
+            current_app.logger.debug(f"import_drive_folder action called with folder_url: {folder_url}")
             if not folder_url:
                 flash('Please provide a Google Drive folder URL or ID.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
             from lms.google_drive_service import authenticate, import_drive_folder
             service = authenticate()
-            print(f"DEBUG: authenticate() returned: {service is not None}")
+            current_app.logger.debug(f"authenticate() returned: {service is not None}")
             if not service:
                 flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
             folder_data = import_drive_folder(service, folder_url)
-            print(f"DEBUG: import_drive_folder() returned: {folder_data}")
+            current_app.logger.debug(f"import_drive_folder() returned: {folder_data}")
             if isinstance(folder_data, dict) and 'error' in folder_data:
                 error_msg = folder_data["error"]
                 if 'error_code' in folder_data and folder_data['error_code'] == 404:
@@ -1025,13 +1215,13 @@ def course_page_enrolled(course_id):
             root_course_folder = CourseContentFolder(
                 course_id=course.id,
                 title=folder_data['folder_name'],
-                description=f'Imported from Google Drive folder',
+                description='Imported from Google Drive folder',
                 order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1
             )
             db.session.add(root_course_folder)
             db.session.flush()
             
-            print(f"DEBUG: Created root course folder: {root_course_folder.title}, id: {root_course_folder.id}")
+            current_app.logger.debug(f"Created root course folder: {root_course_folder.title}, id: {root_course_folder.id}")
             
             # Reconstruct folder structure from flat file list
             folder_structure = {'folders': [], 'files': []}
@@ -1101,7 +1291,7 @@ def course_page_enrolled(course_id):
                     subfolder = CourseContentFolder(
                         course_id=course.id,
                         title=subfolder_name,
-                        description=f'Subfolder imported from Google Drive',
+                        description='Subfolder imported from Google Drive',
                         order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1,
                         parent_folder_id=current_folder_id
                     )
@@ -1125,9 +1315,9 @@ def course_page_enrolled(course_id):
                         db.session.add(content)
                         imported_count += 1
             
-            print(f"DEBUG: Added {imported_count} content items to session")
+            current_app.logger.debug(f"Added {imported_count} content items to session")
             db.session.commit()
-            print("DEBUG: Committed recursive folder import to database")
+            current_app.logger.debug("Committed recursive folder import to database")
             flash(f'Successfully imported folder "{folder_data["folder_name"]}" with {imported_count} files from all subfolders!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
@@ -1152,7 +1342,7 @@ def course_page_enrolled(course_id):
                             try:
                                 delete_file(service, content.drive_file_id)
                             except Exception as e:
-                                print(f"Error deleting file from Google Drive: {e}")
+                                current_app.logger.error(f"Error deleting file from Google Drive: {e}")
                     db.session.delete(content)
                     deleted_count += 1
 
@@ -1458,10 +1648,22 @@ def course_page_enrolled(course_id):
     passed_subs = []
     if current_user.is_authenticated:
         passed_subs = CourseAssignmentSubmission.query.filter_by(
-            user_id=current_user.id, 
+            user_id=current_user.id,
             passed=True
         ).all()
-    
+
+    # Get passed quiz IDs for current user (for folder locking) + this course's quizzes
+    from lms.models import Quiz, QuizAttempt
+    passed_quiz_attempts = []
+    if current_user.is_authenticated:
+        passed_quiz_attempts = (QuizAttempt.query
+                                 .join(Quiz)
+                                 .filter(QuizAttempt.user_id == current_user.id,
+                                         Quiz.course_id == course.id,
+                                         QuizAttempt.passed.is_(True))
+                                 .all())
+    quizzes = Quiz.query.filter_by(course_id=course.id, is_published=True).all()
+
     # Get home content
     site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
     
@@ -1507,6 +1709,8 @@ def course_page_enrolled(course_id):
         reviews=reviews,
         reviews_pagination=reviews_pagination,
         passed_assignment_ids=[sub.assignment_id for sub in passed_subs],
+        passed_quiz_ids=[a.quiz_id for a in passed_quiz_attempts],
+        quizzes=quizzes,
         folder_paths=folder_paths,
         translated_title=translated_title,
         datetime=dt,
@@ -1529,7 +1733,7 @@ def courses():
     try:
         site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
     except Exception as e:
-        print(f"Database error in courses route: {e}")
+        current_app.logger.error(f"Database error in courses route: {e}")
         site_settings = SiteSettings()
     return render_template('index.html', 
                          is_authenticated=current_user.is_authenticated, 
@@ -1542,7 +1746,7 @@ def forum():
     try:
         site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
     except Exception as e:
-        print(f"Database error in forum route: {e}")
+        current_app.logger.error(f"Database error in forum route: {e}")
         site_settings = SiteSettings()
     return render_template('index.html', 
                          is_authenticated=current_user.is_authenticated, 
@@ -1555,7 +1759,7 @@ def resources():
     try:
         site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
     except Exception as e:
-        print(f"Database error in resources route: {e}")
+        current_app.logger.error(f"Database error in resources route: {e}")
         site_settings = SiteSettings()
     return render_template('index.html', 
                          is_authenticated=current_user.is_authenticated, 
@@ -1568,7 +1772,7 @@ def moxo_test():
     try:
         site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
     except Exception as e:
-        print(f"Database error in moxo-test route: {e}")
+        current_app.logger.error(f"Database error in moxo-test route: {e}")
         site_settings = SiteSettings()
     return render_template('index.html', 
                          is_authenticated=current_user.is_authenticated, 
@@ -1581,7 +1785,7 @@ def about():
     try:
         site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
     except Exception as e:
-        print(f"Database error in about route: {e}")
+        current_app.logger.error(f"Database error in about route: {e}")
         site_settings = SiteSettings()
     return render_template('index.html', 
                          is_authenticated=current_user.is_authenticated, 
@@ -1633,17 +1837,23 @@ def edit_course_page(slug):
             if not uploaded_file:
                 flash('No file was uploaded.', 'error')
                 return redirect(request.url, code=303)
-            
+
+            try:
+                validate_upload(uploaded_file, max_bytes=current_app.config['MAX_CONTENT_LENGTH'])
+            except UploadValidationError as e:
+                flash(str(e), 'error')
+                return redirect(request.url, code=303)
+
             # Create temporary directory
             temp_dir = os.path.join('static', 'temp')
             os.makedirs(temp_dir, exist_ok=True)
-            
+
             # Generate unique filename
             filename = secure_filename(uploaded_file.filename)
             timestamp = dt.now().strftime('%Y%m%d_%H%M%S')
             unique_filename = f"{timestamp}_{filename}"
             temp_file_path = os.path.join(temp_dir, unique_filename)
-            
+
             # Save the file temporarily
             uploaded_file.save(temp_file_path)
             
@@ -1657,7 +1867,7 @@ def edit_course_page(slug):
             try:
                 drive_file_id = upload_file(service, temp_file_path, filename)
             except Exception as e:
-                print(f"Error uploading to Drive: {e}")
+                current_app.logger.error(f"Error uploading to Drive: {e}")
                 if "insufficientPermissions" in str(e) or "403" in str(e):
                     flash(Markup('Your Google account does not have sufficient Drive permissions. Please <a href="/auth/link-google-account" class="alert-link">re-link your Google account</a> to grant full Drive access.'), 'error')
                 else:
@@ -1665,7 +1875,7 @@ def edit_course_page(slug):
                 # Clean up temporary file
                 try:
                     os.remove(temp_file_path)
-                except:
+                except Exception:
                     pass
                 return redirect(request.url, code=303)
             
@@ -1674,7 +1884,7 @@ def edit_course_page(slug):
                 # Clean up temporary file
                 try:
                     os.remove(temp_file_path)
-                except:
+                except Exception:
                     pass
                 return redirect(request.url, code=303)
             
@@ -1687,7 +1897,7 @@ def edit_course_page(slug):
             # Clean up temporary file
             try:
                 os.remove(temp_file_path)
-            except:
+            except Exception:
                 pass
             
             # Optional folder assignment
@@ -1712,20 +1922,20 @@ def edit_course_page(slug):
         elif action == 'import_drive_file':
             # Import a single file from Google Drive
             drive_url = request.form.get('drive_url', '').strip()
-            print(f"DEBUG: import_drive_file action called with drive_url: {drive_url}")
+            current_app.logger.debug(f"import_drive_file action called with drive_url: {drive_url}")
             if not drive_url:
                 flash('Please provide a Google Drive file URL or ID.', 'error')
                 return redirect(request.url, code=303)
             
             from lms.google_drive_service import authenticate, import_drive_file
             service = authenticate()
-            print(f"DEBUG: authenticate() returned: {service is not None}")
+            current_app.logger.debug(f"authenticate() returned: {service is not None}")
             if not service:
                 flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
                 return redirect(request.url, code=303)
             
             file_data = import_drive_file(service, drive_url)
-            print(f"DEBUG: import_drive_file() returned: {file_data}")
+            current_app.logger.debug(f"import_drive_file() returned: {file_data}")
             if isinstance(file_data, dict) and 'error' in file_data:
                 error_msg = file_data["error"]
                 if 'error_code' in file_data and file_data['error_code'] == 404:
@@ -1755,30 +1965,31 @@ def edit_course_page(slug):
                 allow_others_to_view=request.form.get('import_allow_view') == 'on',
                 is_imported=True
             )
-            print(f"DEBUG: Created CourseContent object: {content.title}, drive_file_id: {content.drive_file_id}")
+            current_app.logger.debug(f"Created CourseContent object: {content.title}, drive_file_id: {content.drive_file_id}")
             db.session.add(content)
-            print("DEBUG: Added content to session")
+            current_app.logger.debug("Added content to session")
             db.session.commit()
-            print("DEBUG: Committed to database")
+            current_app.logger.debug("Committed to database")
             flash(f'Successfully imported: {file_data["name"]}', 'success')
             
         elif action == 'import_drive_folder':
             # Import entire folder from Google Drive
             folder_url = request.form.get('drive_url', '').strip()
-            print(f"DEBUG: import_drive_folder action called with folder_url: {folder_url}")
+            current_app.logger.debug(f"import_drive_folder action called with folder_url: {folder_url}")
             if not folder_url:
                 flash('Please provide a Google Drive folder URL or ID.', 'error')
                 return redirect(request.url, code=303)
-            
+
+            from lms.models import CourseContentFolder
             from lms.google_drive_service import authenticate, import_drive_folder
             service = authenticate()
-            print(f"DEBUG: authenticate() returned: {service is not None}")
+            current_app.logger.debug(f"authenticate() returned: {service is not None}")
             if not service:
                 flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
                 return redirect(request.url, code=303)
             
             folder_data = import_drive_folder(service, folder_url)
-            print(f"DEBUG: import_drive_folder() returned: {folder_data}")
+            current_app.logger.debug(f"import_drive_folder() returned: {folder_data}")
             if isinstance(folder_data, dict) and 'error' in folder_data:
                 error_msg = folder_data["error"]
                 if 'error_code' in folder_data and folder_data['error_code'] == 404:
@@ -1847,13 +2058,13 @@ def edit_course_page(slug):
             course_folder = CourseContentFolder(
                 course_id=course.id,
                 title=folder_data['folder_name'],
-                description=f'Imported from Google Drive folder',
+                description='Imported from Google Drive folder',
                 order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1
             )
             db.session.add(course_folder)
             db.session.flush()
             
-            print(f"DEBUG: Created root course folder: {course_folder.title}, id: {course_folder.id}")
+            current_app.logger.debug(f"Created root course folder: {course_folder.title}, id: {course_folder.id}")
             
             # Reconstruct folder structure from flat file list
             folder_structure = {'folders': [], 'files': []}
@@ -1916,7 +2127,7 @@ def edit_course_page(slug):
                     subfolder = CourseContentFolder(
                         course_id=course.id,
                         title=subfolder_name,
-                        description=f'Subfolder imported from Google Drive',
+                        description='Subfolder imported from Google Drive',
                         order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1,
                         parent_folder_id=course_folder.id
                     )
@@ -1940,9 +2151,9 @@ def edit_course_page(slug):
                         db.session.add(content)
                         imported_count += 1
             
-            print(f"DEBUG: Added {imported_count} content items to session")
+            current_app.logger.debug(f"Added {imported_count} content items to session")
             db.session.commit()
-            print("DEBUG: Committed recursive folder import to database")
+            current_app.logger.debug("Committed recursive folder import to database")
             flash(f'Successfully imported folder "{folder_data["folder_name"]}" with {imported_count} files from all subfolders!', 'success')
             
         elif action == 'add_assignment':
@@ -1980,7 +2191,7 @@ def edit_course_page(slug):
             try:
                 current_app.logger.info('Add folder attempt for course_id=%s by user=%s title=%s', course.id, getattr(current_user, 'id', None), folder_title)
             except Exception:
-                print('Add folder attempt', course.id, getattr(current_user, 'id', None), folder_title)
+                current_app.logger.debug(f"Add folder attempt: course={course.id} user={getattr(current_user, 'id', None)} title={folder_title}")
 
             if folder_title:
                 from lms.models import CourseContentFolder
@@ -2001,7 +2212,7 @@ def edit_course_page(slug):
                     else:
                         current_app.logger.info('Using DB URI: %s', db_uri)
                 except Exception:
-                    print('DB URI debug failed')
+                    current_app.logger.debug("DB URI debug failed")
 
                 db.session.commit()
 
@@ -2046,7 +2257,7 @@ def edit_course_page(slug):
                             try:
                                 delete_file(service, content.drive_file_id)
                             except Exception as e:
-                                print(f"Error deleting file from Google Drive: {e}")
+                                current_app.logger.error(f"Error deleting file from Google Drive: {e}")
                     
                     # Delete from database
                     db.session.delete(content)
@@ -2142,7 +2353,7 @@ def edit_course_page(slug):
 @main_bp.route('/course/<slug>/messages')
 @login_required
 def view_course_messages(slug):
-    from lms.models import Course, CourseAnnouncement, CourseAnnouncementReply, db
+    from lms.models import Course, CourseAnnouncement, CourseAnnouncementReply
     from slugify import slugify
     # Only allow admin/teacher
     if not current_user.is_admin:
@@ -2216,30 +2427,30 @@ def move_folder():
 @main_bp.route('/set_language/<lang>')
 def set_language(lang):
     """Set the language for the current session"""
-    from flask import session, redirect, request, make_response
-    
-    print(f"DEBUG: Attempting to set language to: {lang}")
-    print(f"DEBUG: Session before: {dict(session)}")
+    from flask import session, redirect, request
+
+    current_app.logger.debug(f"Attempting to set language to: {lang}")
+    current_app.logger.debug(f"Session before: {dict(session)}")
     
     if lang in ['en', 'ru', 'az']:
         session['language'] = lang
         session.modified = True
         session.permanent = True
-        print(f"DEBUG: Language set to: {lang}")
-        print(f"DEBUG: Session after: {dict(session)}")
+        current_app.logger.debug(f"Language set to: {lang}")
+        current_app.logger.debug(f"Session after: {dict(session)}")
     else:
-        print(f"DEBUG: Invalid language: {lang}")
+        current_app.logger.debug(f"Invalid language: {lang}")
     
     # Redirect back to the referring page or home
     redirect_url = request.referrer or url_for('main.index')
-    print(f"DEBUG: Redirecting to: {redirect_url}")
+    current_app.logger.debug(f"Redirecting to: {redirect_url}")
     return redirect(redirect_url)
 
 
 @main_bp.route('/debug/locale')
 def debug_locale():
     """Debug endpoint to check locale settings"""
-    from flask import session, jsonify
+    from flask import session
     from flask_babel import get_locale as babel_get_locale
     
     try:
@@ -2338,3 +2549,40 @@ def profile():
         flash('Profile updated.')
         return redirect(url_for('main.profile'))
     return render_template('profile.html', site_settings=site_settings)
+
+
+@main_bp.route('/profile/export')
+@login_required
+def export_my_data():
+    """Self-service GDPR data export — download the current user's own data as JSON."""
+    import json
+    from flask import Response
+    from lms.data_export import export_user_data
+
+    data = export_user_data(current_user)
+    body = json.dumps(data, indent=2)
+    return Response(
+        body,
+        mimetype='application/json',
+        headers={'Content-Disposition': f'attachment; filename=lms_data_{current_user.username}.json'}
+    )
+
+
+@main_bp.route('/profile/delete', methods=['POST'])
+@login_required
+def delete_my_account():
+    """Self-service GDPR account deletion — anonymizes the account and logs the user out."""
+    from flask_login import logout_user
+    from lms.models import db
+    from lms.data_export import anonymize_user
+
+    password = request.form.get('password', '')
+    if not current_user.check_password(password):
+        flash('Incorrect password. Account was not deleted.', 'error')
+        return redirect(url_for('main.profile'))
+
+    anonymize_user(current_user)
+    db.session.commit()
+    logout_user()
+    flash('Your account and personal data have been deleted.')
+    return redirect(url_for('main.index'))

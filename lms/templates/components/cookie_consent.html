@@ -1,0 +1,24 @@
+<div id="cookie-consent-banner" style="display:none; position:fixed; left:0; right:0; bottom:0; z-index:9999; background:#1e5919; color:#fffcf0; padding:1rem 1.25rem; box-shadow:0 -2px 8px rgba(0,0,0,0.15); font-family:'Montserrat', sans-serif;">
+    <div style="max-width:960px; margin:0 auto; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem;">
+        <p style="margin:0; font-size:0.9rem; flex:1 1 320px;">
+            {{ _('This site uses essential cookies to keep you logged in and remember your language preference.') }}
+            <a href="/privacy" style="color:#fffcf0; text-decoration:underline;">{{ _('Privacy policy') }}</a>
+        </p>
+        <button id="cookie-consent-accept" style="background:#337a2c; color:#fffcf0; border:none; border-radius:6px; padding:0.5rem 1.25rem; font-weight:600; cursor:pointer; flex-shrink:0;">
+            {{ _('Got it') }}
+        </button>
+    </div>
+</div>
+<script>
+    (function() {
+        var KEY = 'lms_cookie_consent';
+        if (!localStorage.getItem(KEY)) {
+            var banner = document.getElementById('cookie-consent-banner');
+            banner.style.display = 'block';
+            document.getElementById('cookie-consent-accept').addEventListener('click', function() {
+                localStorage.setItem(KEY, '1');
+                banner.style.display = 'none';
+            });
+        }
+    })();
+</script>

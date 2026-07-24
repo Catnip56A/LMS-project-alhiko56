@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ quiz.title }} - {{ course.title }} - {{ site_settings.site_name or 'LMS' }}{% endblock %}
+
+{% block content %}
+{% include 'components/navbar.html' %}
+
+<div class="container" style="max-width: 720px; padding: 2rem 1rem;">
+    <p><a href="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">&laquo; {{ _('Back to course') }}</a></p>
+
+    <div class="card" style="border-radius: 12px;">
+        <div class="card-body">
+            <h1 style="color: #337a2c; font-size: 1.75rem;">{{ quiz.title }}</h1>
+            {% if quiz.description %}
+            <p class="text-muted">{{ quiz.description }}</p>
+            {% endif %}
+
+            <ul class="list-unstyled" style="margin: 1.5rem 0;">
+                <li>{{ _('Questions:') }} <strong>{{ quiz.questions|length }}</strong></li>
+                <li>{{ _('Time limit:') }} <strong>{% if quiz.time_limit_minutes %}{{ quiz.time_limit_minutes }} {{ _('minutes') }}{% else %}{{ _('None') }}{% endif %}</strong></li>
+                <li>{{ _('Attempts:') }} <strong>{{ attempts_used }}{% if quiz.max_attempts %} / {{ quiz.max_attempts }}{% else %} / &infin;{% endif %}</strong></li>
+                <li>{{ _('Passing score:') }} <strong>{{ quiz.passing_score }}%</strong></li>
+            </ul>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-warning">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% if can_start %}
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-success">{{ _('Start Attempt') }}</button>
+            </form>
+            {% else %}
+            <p class="text-danger">{{ _('You have used all your attempts for this quiz.') }}</p>
+            {% endif %}
+
+            {% if attempts %}
+            <hr>
+            <h5>{{ _('Past Attempts') }}</h5>
+            <table class="table table-sm">
+                <thead><tr><th>{{ _('Date') }}</th><th>{{ _('Score') }}</th><th>{{ _('Result') }}</th></tr></thead>
+                <tbody>
+                {% for a in attempts %}
+                    <tr>
+                        <td>{{ a.started_at.strftime('%Y-%m-%d %H:%M') if a.started_at else '' }}</td>
+                        <td>
+                            {% if a.submitted_at %}{{ a.score }}%{% else %}<a href="{{ url_for('main.quiz_attempt', attempt_id=a.id) }}">{{ _('Resume') }}</a>{% endif %}
+                        </td>
+                        <td>
+                            {% if a.submitted_at %}
+                                {% if a.passed %}<span class="badge badge-success">{{ _('Passed') }}</span>{% else %}<span class="badge badge-danger">{{ _('Failed') }}</span>{% endif %}
+                            {% else %}
+                                <span class="badge badge-secondary">{{ _('In progress') }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% include 'components/footer.html' %}
+{% endblock %}

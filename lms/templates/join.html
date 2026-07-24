@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="{{ current_locale }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'components/csrf_meta.html' %}
+    <title>Join a Course - LMS</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%270.9em%27 font-size=%2790%27%3E%F0%9F%8D%80%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Montserrat', sans-serif; }
+        body {
+            background: rgba(254, 251, 250, 0.15);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #374151;
+        }
+
+        .login-container {
+            background: #ffffff;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .login-container h1 {
+            text-align: center;
+            color: #337a2c;
+            margin-bottom: 0.75rem;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-weight: 600;
+            font-size: 1.235rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.875rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            font-family: inherit;
+            text-transform: uppercase;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #337a2c;
+            box-shadow: 0 0 0 3px rgba(171, 195, 47, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.875rem;
+            background: #337a2c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background: #809c13;
+            transform: translateY(-1px);
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .back-link a {
+            color: #337a2c;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link a:hover {
+            color: #809c13;
+            text-decoration: underline;
+        }
+
+        .error {
+            color: #dc2626;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding: 0.75rem;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .logo img {
+            height: 60px;
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <a href="/">
+                <img src="/static/permanent/LMS%20logo%20transparent.png" alt="LMS">
+            </a>
+        </div>
+        <h1>{{ _('Join a Course') }}</h1>
+        <p class="subtitle">{{ _('Enter the promo code your teacher or admin gave you.') }}</p>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="error">
+                    {% for message in messages %}
+                        {{ message }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <div class="form-group">
+                <label for="code">{{ _('Promo Code:') }}</label>
+                <input type="text" id="code" name="code" required autofocus>
+            </div>
+            <button type="submit">{{ _('Join') }}</button>
+        </form>
+        <div class="back-link">
+            <a href="{{ url_for('main.index') }}">{{ _('Back to LMS') }}</a>
+        </div>
+    </div>
+    {% include 'components/cookie_consent.html' %}
+</body>
+</html>

@@ -55,6 +55,30 @@
         <div style="text-align:center; margin-top:1.2rem;">
             <a href="{{ url_for('main.index') }}" style="color:#337a2c; font-weight:500; text-decoration:none;">← {{ _('Back to Home') }}</a>
         </div>
+
+        <hr style="margin:1.75rem 0; border-color:#e5e7eb;">
+
+        <h2 style="font-size:1.05rem; font-weight:700; color:#374151; margin-bottom:0.75rem;">{{ _('Your data') }}</h2>
+
+        <a href="{{ url_for('main.export_my_data') }}" class="btn btn-block" style="background:#f3f4f6; color:#374151; font-weight:600; padding:0.65rem; border-radius:6px; text-align:center; text-decoration:none; display:block; margin-bottom:0.75rem;">
+            {{ _('Download my data (JSON)') }}
+        </a>
+
+        <button type="button" onclick="document.getElementById('delete-account-panel').style.display='block'; this.style.display='none';" class="btn btn-block" style="background:#fef2f2; color:#dc2626; font-weight:600; padding:0.65rem; border-radius:6px; border:1px solid #fecaca;">
+            {{ _('Delete my account') }}
+        </button>
+
+        <div id="delete-account-panel" style="display:none; margin-top:0.75rem; padding:1rem; background:#fef2f2; border:1px solid #fecaca; border-radius:6px;">
+            <p style="font-size:0.85rem; color:#7f1d1d; margin-bottom:0.75rem;">
+                {{ _('This permanently removes your personal data (name, email, login) from this account. This cannot be undone. Confirm your password to proceed.') }}
+            </p>
+            <form method="POST" action="{{ url_for('main.delete_my_account') }}" onsubmit="return confirm('{{ _('Are you absolutely sure? This cannot be undone.') }}');">
+                <input type="password" name="password" class="form-control" placeholder="{{ _('Current password') }}" required style="margin-bottom:0.75rem;">
+                <button type="submit" class="btn btn-block" style="background:#dc2626; color:#fff; font-weight:600; padding:0.65rem; border-radius:6px;">
+                    {{ _('Permanently delete my account') }}
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

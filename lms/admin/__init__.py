@@ -4,15 +4,22 @@ Admin interface views and configuration
 import os
 import secrets
 import requests
+import logging
 from datetime import datetime, timedelta
 from flask import flash, redirect, url_for, request, current_app, session
 from flask_admin import Admin, AdminIndexView, expose, BaseView
 from flask_admin.contrib.sqla import ModelView
 from markupsafe import Markup
-from wtforms import Form, FileField, StringField, TextAreaField, BooleanField
-from wtforms.validators import Optional, DataRequired
+from wtforms import Form, FileField, StringField, TextAreaField, BooleanField, SelectField
+from wtforms.validators import Optional, DataRequired, ValidationError, NumberRange
+from flask_admin.model.form import InlineFormAdmin
 from flask_login import current_user
 from flask_wtf import FlaskForm
+from lms.models import User, Course, ForumMessage, ForumChannel, MoxoTest, Resource, db, SiteSettings, CourseContent, ContentView, AppSetting, Enrollment, Quiz, QuizQuestion, QUIZ_QUESTION_TYPES
+from flask_admin.contrib.sqla.fields import QuerySelectMultipleField
+from lms.password_policy import validate_password_strength, PasswordPolicyError
+
+logger = logging.getLogger(__name__)
 
 
 def _resolve_oauth_base_url():
@@ -43,7 +50,6 @@ def get_google_redirect_uri(redirect_uri=None):
     if redirect_uri:
         return redirect_uri
     return f"{_resolve_oauth_base_url()}/admin/google_login/"
-from lms.models import User, Course, ForumMessage, ForumChannel, MoxoTest, Resource, db, SiteSettings, CourseContent, ContentView
 
 ADMIN_PERMISSIONS = [
     ('user_management',        'User Management'),
@@ -214,7 +220,7 @@ class GoogleLoginView(BaseView):
                 return redirect(url_for('admin.index'))
             
             except requests.RequestException as e:
-                print(f'OAuth token exchange failed: {e}')
+                logger.error(f'OAuth token exchange failed: {e}')
                 flash('OAuth authentication failed')
                 return redirect(url_for('google_login.index'))
         
@@ -240,22 +246,22 @@ class GoogleLoginView(BaseView):
     @expose('/connect')
     def connect(self):
         if not current_user.is_authenticated or not current_user.is_admin:
-            print("DEBUG: User not authenticated or not admin, redirecting to login")
+            logger.debug("User not authenticated or not admin, redirecting to login")
             return redirect(url_for('auth.login'))
         
-        print(f"DEBUG: Admin Google connect called for user {current_user.username}")
+        logger.debug(f"Admin Google connect called for user {current_user.username}")
         
         try:
             # Redirect to Google OAuth with next parameter to return to admin
             # Use configurable redirect URI
             redirect_uri = get_google_redirect_uri()
             
-            print(f"DEBUG: Admin OAuth - request.host={request.host}, GOOGLE_REDIRECT_URI={os.environ.get('GOOGLE_REDIRECT_URI')}, redirect_uri={redirect_uri}")
+            logger.debug(f"Admin OAuth - request.host={request.host}, GOOGLE_REDIRECT_URI={os.environ.get('GOOGLE_REDIRECT_URI')}, redirect_uri={redirect_uri}")
             
             # Build the OAuth URL manually to ensure correct redirect URI
             client_id = current_app.config.get('GOOGLE_CLIENT_ID')
             if not client_id:
-                print("DEBUG: No GOOGLE_CLIENT_ID configured")
+                logger.debug("No GOOGLE_CLIENT_ID configured")
                 flash('Google OAuth not configured')
                 return redirect(url_for('admin.index'))
                 
@@ -275,11 +281,11 @@ class GoogleLoginView(BaseView):
                 f"access_type=offline&prompt=consent"
             )
             
-            print(f"DEBUG: Redirecting to Google OAuth: {auth_url}")
+            logger.debug(f"Redirecting to Google OAuth: {auth_url}")
             return redirect(auth_url)
             
         except Exception as e:
-            print(f"DEBUG: Error in admin Google connect: {e}")
+            logger.error(f"Error in admin Google connect: {e}")
             flash(f'Error connecting to Google: {str(e)}')
             return redirect(url_for('google_login.index'))
     
@@ -386,6 +392,91 @@ class CourseManagementView(BaseView):
                     max_total=max_total,
                     user_colors=user_colors,
                     site_settings=site_settings)
+    @expose('/course/<int:course_id>/manage', methods=['GET'])
+    def manage_access(self, course_id):
+        """Direct-add students, promo codes, and the open-source/public flag for a course."""
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
+            return redirect(url_for('auth.login'))
+
+        course = Course.query.get_or_404(course_id)
+        enrolled = sorted(course.users, key=lambda u: u.username.lower())
+        enrolled_ids = {u.id for u in enrolled}
+        candidates = (User.query
+                      .filter(~User.id.in_(enrolled_ids) if enrolled_ids else True)
+                      .order_by(User.username)
+                      .all())
+        return self.render('admin/course_access.html',
+                            course=course,
+                            enrolled=enrolled,
+                            candidates=candidates,
+                            promo_codes=course.promo_codes)
+
+    @expose('/course/<int:course_id>/toggle_public', methods=['POST'])
+    def toggle_public(self, course_id):
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
+            return redirect(url_for('auth.login'))
+        course = Course.query.get_or_404(course_id)
+        course.is_public = not course.is_public
+        db.session.commit()
+        flash(f'{course.title} is now {"public" if course.is_public else "private"}.', 'success')
+        return redirect(url_for('course_management.manage_access', course_id=course.id))
+
+    @expose('/course/<int:course_id>/add_student', methods=['POST'])
+    def add_student(self, course_id):
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
+            return redirect(url_for('auth.login'))
+        course = Course.query.get_or_404(course_id)
+        user_id = request.form.get('user_id', type=int)
+        user = User.query.get(user_id) if user_id else None
+        if not user:
+            flash('Select a user to add.', 'warning')
+        elif user in course.users:
+            flash(f'{user.username} is already enrolled.', 'warning')
+        else:
+            db.session.add(Enrollment(user=user, course=course, joined_via='direct_add'))
+            db.session.commit()
+            flash(f'{user.username} added to {course.title}.', 'success')
+        return redirect(url_for('course_management.manage_access', course_id=course.id))
+
+    @expose('/course/<int:course_id>/remove_student/<int:user_id>', methods=['POST'])
+    def remove_student(self, course_id, user_id):
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
+            return redirect(url_for('auth.login'))
+        enrollment = Enrollment.query.filter_by(course_id=course_id, user_id=user_id).first()
+        if enrollment:
+            user = enrollment.user
+            db.session.delete(enrollment)
+            db.session.commit()
+            flash(f'{user.username} removed from the course.', 'success')
+        return redirect(url_for('course_management.manage_access', course_id=course_id))
+
+    @expose('/course/<int:course_id>/promo_code', methods=['POST'])
+    def create_promo_code(self, course_id):
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
+            return redirect(url_for('auth.login'))
+        from lms.models import PromoCode
+
+        course = Course.query.get_or_404(course_id)
+        max_uses = request.form.get('max_uses', type=int)
+        code = secrets.token_hex(4).upper()
+        promo = PromoCode(course=course, code=code, max_uses=max_uses, issued_by=current_user)
+        db.session.add(promo)
+        db.session.commit()
+        flash(f'Promo code {code} created.', 'success')
+        return redirect(url_for('course_management.manage_access', course_id=course.id))
+
+    @expose('/promo_code/<int:promo_id>/delete', methods=['POST'])
+    def delete_promo_code(self, promo_id):
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
+            return redirect(url_for('auth.login'))
+        from lms.models import PromoCode
+
+        promo = PromoCode.query.get_or_404(promo_id)
+        course_id = promo.course_id
+        db.session.delete(promo)
+        db.session.commit()
+        return redirect(url_for('course_management.manage_access', course_id=course_id))
+
     def is_accessible(self):
         return current_user.is_authenticated and current_user.has_perm('course_management')
 
@@ -405,14 +496,22 @@ class UserView(SecureModelView):
     permission = 'user_management'
     column_list = ('id', 'username', 'email', 'first_name', 'last_name', 'city', 'is_admin', 'courses')
     column_searchable_list = ['username', 'email', 'first_name', 'last_name', 'city']
-    form_columns = ('username', 'email', 'first_name', 'last_name', 'city', 'is_admin', 'is_teacher', 'courses', 'new_password')
+    form_columns = ('username', 'email', 'first_name', 'last_name', 'city', 'is_admin', 'is_teacher', 'course_ids', 'new_password')
     form_excluded_columns = ('_password', 'password')
     column_formatters = {
         'courses': lambda v, c, m, p: ', '.join([course.title for course in m.courses]) if m.courses else 'None'
     }
 
     form_extra_fields = {
-        'new_password': StringField('New Password', [Optional()], description='Leave blank to keep current password')
+        'new_password': StringField('New Password', [Optional()], description='Leave blank to keep current password'),
+        # 'course_ids' rather than 'courses': courses is an association_proxy over Enrollment now
+        # (not a plain relationship), so it's handled explicitly in on_model_change instead of
+        # relying on Flask-Admin's default populate_obj / association_proxy's bulk-replace.
+        'course_ids': QuerySelectMultipleField(
+            'Courses',
+            query_factory=lambda: Course.query.order_by(Course.title).all(),
+            get_label='title',
+        ),
     }
 
     form_widget_args = {
@@ -426,10 +525,35 @@ class UserView(SecureModelView):
     edit_template = 'admin/user_create_edit.html'
     list_template = 'admin/user_list.html'
 
+    def on_form_prefill(self, form, id):
+        user = User.query.get(id)
+        if user is not None:
+            form.course_ids.data = list(user.courses)
+
     def on_model_change(self, form, model, is_created):
-        """Handle password changes during model creation/update"""
+        """Handle password + course-enrollment changes during model creation/update"""
+        if is_created:
+            # Admin-created accounts are a trusted action — skip self-service email verification
+            model.email_verified = True
         if form.new_password.data:
+            try:
+                validate_password_strength(form.new_password.data)
+            except PasswordPolicyError as e:
+                raise ValidationError(str(e)) from e
             model.password = form.new_password.data
+
+        # Diff selected courses against existing Enrollment rows explicitly rather than
+        # assigning through the courses association_proxy (its bulk-replace mishandles
+        # overlapping add/remove sets — see model comment on Enrollment).
+        selected_course_ids = {c.id for c in (form.course_ids.data or [])}
+        current_enrollments = {e.course_id: e for e in model.enrollments}
+        for course_id, enrollment in current_enrollments.items():
+            if course_id not in selected_course_ids:
+                db.session.delete(enrollment)
+        for course_id in selected_course_ids:
+            if course_id not in current_enrollments:
+                db.session.add(Enrollment(user=model, course_id=course_id, joined_via='direct_add'))
+
         return super(UserView, self).on_model_change(form, model, is_created)
 
 class CourseForm(FlaskForm):
@@ -437,6 +561,68 @@ class CourseForm(FlaskForm):
     title = StringField('Title', [DataRequired()])
     description = TextAreaField('Description', [Optional()])
     time_slot = StringField('Time Slot', [Optional()])
+class QuizQuestionInline(InlineFormAdmin):
+    """Inline question form on QuizView. question_type is a fixed dropdown (not free
+    text) so it can't drift from QUIZ_QUESTION_TYPES / the ck_quiz_question_type
+    DB constraint; options/correct_answer stay as JSON textareas (Phase 9 scope for a
+    friendlier authoring UI) but get inline format hints.
+    """
+    form_overrides = {'question_type': SelectField}
+    form_args = {
+        'question_type': {
+            'choices': [(t, 'MCQ' if t == 'mcq' else t.replace('_', ' ').title()) for t in QUIZ_QUESTION_TYPES],
+        },
+        'options': {
+            'description': 'MCQ only — JSON array of choices, e.g. ["Paris", "London", "Berlin"]',
+        },
+        'correct_answer': {
+            'description': (
+                'MCQ: zero-based index into options above, e.g. 0. '
+                'True/False: true or false. '
+                'Short answer: the expected text (matched case-insensitively).'
+            ),
+        },
+    }
+
+
+class QuizView(SecureModelView):
+    """Admin view for Quiz + inline questions.
+
+    The underlying options/correct_answer fields are still raw JSON columns — a
+    proper quiz authoring UI (question banks, reordering, etc.) is Phase 9 scope
+    — but `quiz_question_builder.js` swaps in a friendlier options-list /
+    correct-answer picker that matches the selected question type client-side
+    and keeps the JSON fields in sync underneath, so submission is unchanged.
+    """
+    permission = 'course_management'
+    column_list = ('id', 'title', 'course', 'passing_score', 'max_attempts', 'time_limit_minutes', 'is_published')
+    form_columns = ('course', 'title', 'description', 'time_limit_minutes', 'max_attempts', 'passing_score', 'is_published', 'questions')
+    extra_js = ['/static/js/quiz_question_builder.js']
+    form_args = {
+        'passing_score': {'validators': [NumberRange(min=0, max=100, message='Passing score must be 0–100.')]},
+        'max_attempts': {'validators': [Optional(), NumberRange(min=1, message='Max attempts must be at least 1, or blank for unlimited.')]},
+        'time_limit_minutes': {'validators': [Optional(), NumberRange(min=1, message='Time limit must be at least 1 minute, or blank for untimed.')]},
+    }
+    inline_models = (QuizQuestionInline(QuizQuestion),)
+
+    def on_model_change(self, form, model, is_created):
+        for q in model.questions:
+            if q.question_type not in QUIZ_QUESTION_TYPES:
+                raise ValidationError(f'"{q.question_text[:40]}": invalid question type "{q.question_type}".')
+            if q.question_type == 'mcq':
+                if not isinstance(q.options, list) or len(q.options) < 2:
+                    raise ValidationError(f'"{q.question_text[:40]}": MCQ needs an options list with at least 2 choices.')
+                if not isinstance(q.correct_answer, int) or not (0 <= q.correct_answer < len(q.options)):
+                    raise ValidationError(f'"{q.question_text[:40]}": correct_answer must be a valid index into options (0–{len(q.options) - 1}).')
+            elif q.question_type == 'true_false':
+                if not isinstance(q.correct_answer, bool):
+                    raise ValidationError(f'"{q.question_text[:40]}": correct_answer must be true or false.')
+            elif q.question_type == 'short_answer':
+                if not isinstance(q.correct_answer, str) or not q.correct_answer.strip():
+                    raise ValidationError(f'"{q.question_text[:40]}": correct_answer must be non-empty text.')
+        return super(QuizView, self).on_model_change(form, model, is_created)
+
+
 class CourseView(SecureModelView):
     """Admin view for Course model"""
     permission = 'course_management'
@@ -479,9 +665,9 @@ class CourseView(SecureModelView):
                 from lms.content_translator import auto_translate_course
                 auto_translate_course(course)
                 db.session.commit()
-                print(f"Auto-translated course: {course.title}")
+                logger.info(f"Auto-translated course: {course.title}")
             except Exception as e:
-                print(f"Warning: Failed to auto-translate course {course.id}: {str(e)}")
+                logger.warning(f"Failed to auto-translate course {course.id}: {str(e)}")
 
             flash('Course updated successfully!', 'success')
             return redirect(url_for('admin.index'))
@@ -524,9 +710,9 @@ class CourseView(SecureModelView):
                 from lms.content_translator import auto_translate_course
                 auto_translate_course(course)
                 db.session.commit()
-                print(f"Auto-translated new course: {course.title}")
+                logger.info(f"Auto-translated new course: {course.title}")
             except Exception as e:
-                print(f"Warning: Failed to auto-translate new course {course.id}: {str(e)}")
+                logger.warning(f"Failed to auto-translate new course {course.id}: {str(e)}")
 
             flash('Course created successfully!', 'success')
             return redirect(url_for('admin.index'))
@@ -589,17 +775,20 @@ class ResourceView(SecureModelView):
                 import random
                 from flask import flash
                 from lms.google_drive_service import authenticate, upload_file, create_view_only_link
-                
+                from lms.upload_validation import validate_upload, IMAGE_MIME_TYPES
+
                 try:
+                    validate_upload(preview_file, max_bytes=10 * 1024 * 1024, expected_mimes=IMAGE_MIME_TYPES)
+
                     # Create temporary directory
                     temp_dir = os.path.join(current_app.static_folder, 'temp')
                     os.makedirs(temp_dir, exist_ok=True)
-                    
+
                     # Generate secure filename
                     filename = secure_filename(preview_file.filename)
                     unique_filename = f"preview_{random.randint(1000, 9999)}_{filename}"
                     temp_file_path = os.path.join(temp_dir, unique_filename)
-                    
+
                     # Save file temporarily
                     preview_file.save(temp_file_path)
                     
@@ -622,7 +811,7 @@ class ResourceView(SecureModelView):
                     # Clean up temporary file
                     try:
                         os.remove(temp_file_path)
-                    except:
+                    except Exception:
                         pass
                         
                 except Exception as e:
@@ -636,17 +825,20 @@ class ResourceView(SecureModelView):
                 import random
                 from flask import flash
                 from lms.google_drive_service import authenticate, upload_file, create_view_only_link
-                
+                from lms.upload_validation import validate_upload
+
                 try:
+                    validate_upload(file, max_bytes=current_app.config['MAX_CONTENT_LENGTH'])
+
                     # Create temporary directory
                     temp_dir = os.path.join(current_app.static_folder, 'temp')
                     os.makedirs(temp_dir, exist_ok=True)
-                    
+
                     # Generate secure filename
                     filename = secure_filename(file.filename)
                     unique_filename = f"{random.randint(1000, 9999)}_{filename}"
                     temp_file_path = os.path.join(temp_dir, unique_filename)
-                    
+
                     # Save file temporarily
                     file.save(temp_file_path)
                     
@@ -670,7 +862,7 @@ class ResourceView(SecureModelView):
                     # Clean up temporary file
                     try:
                         os.remove(temp_file_path)
-                    except:
+                    except Exception:
                         pass
                         
                 except Exception as e:
@@ -799,8 +991,7 @@ class TranslateContentView(BaseView):
         
         try:
             from lms.models import ContentTranslation, Translation
-            from lms.constants import SUPPORTED_LANGUAGES
-            
+
             # Count translations before deletion
             ru_content_count = ContentTranslation.query.filter_by(target_language='ru').count()
             ru_cache_count = Translation.query.filter_by(target_language='ru').count()
@@ -827,7 +1018,7 @@ class TranslateContentView(BaseView):
             from flask import jsonify
             import traceback
             error_details = traceback.format_exc()
-            print(f"Delete translations error: {error_details}")
+            logger.error(f"Delete translations error: {error_details}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
 class CertificateTuningView(BaseView):
@@ -1003,13 +1194,56 @@ class UserPermissionsView(BaseView):
         return redirect(url_for('user_permissions.index'))
 
 
+class DriveWriterView(BaseView):
+    """Designate an admin's linked Google account as the system-wide Drive
+    writer (interim stand-in for the Phase 4 worker account). Full admins only.
+    """
+
+    def is_accessible(self):
+        return current_user.is_authenticated and current_user.is_full_admin
+
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect(url_for('auth.login'))
+
+    @expose('/')
+    def index(self):
+        from lms.google_drive_service import get_drive_writer_user
+        writer = get_drive_writer_user()
+        setting = AppSetting.query.filter_by(key='drive_writer_user_id').first() if writer else None
+        return self.render(
+            'admin/drive_writer.html',
+            writer=writer,
+            writer_since=setting.updated_at if setting else None,
+            current_user_linked=bool(current_user.google_access_token),
+        )
+
+    @expose('/set', methods=['POST'])
+    def set(self):
+        from lms.google_drive_service import set_drive_writer
+        if not current_user.google_access_token:
+            flash('Link your own Google account first (Admin → Connect Google Drive).', 'warning')
+            return redirect(url_for('drive_writer.index'))
+        set_drive_writer(current_user)
+        flash(f'{current_user.username} is now the system-wide Drive writer. All uploads will route through this account.', 'success')
+        return redirect(url_for('drive_writer.index'))
+
+    @expose('/clear', methods=['POST'])
+    def clear(self):
+        from lms.google_drive_service import clear_drive_writer
+        clear_drive_writer()
+        flash('Drive writer cleared - uploads now use each user\'s own linked account again.', 'info')
+        return redirect(url_for('drive_writer.index'))
+
+
 def init_admin(app):
     """Initialize admin interface with all views"""
     admin = Admin(app, name='LMS Admin', index_view=AdminIndexView())
     admin.add_view(UserView(User, db.session))
     admin.add_view(CourseView(Course, db.session))
+    admin.add_view(QuizView(Quiz, db.session))
     admin.add_view(CourseManagementView(name='Course Management', endpoint='course_management'))
     admin.add_view(UserPermissionsView(name='Permissions', endpoint='user_permissions'))
+    admin.add_view(DriveWriterView(name='Drive Writer', endpoint='drive_writer'))
     admin.add_view(ForumChannelView(ForumChannel, db.session))
     admin.add_view(ForumMessageView(ForumMessage, db.session))
     admin.add_view(ResourceView(Resource, db.session))

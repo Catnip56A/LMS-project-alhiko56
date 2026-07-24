@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'components/csrf_meta.html' %}
     <title>{{ course.title }} - Course Management</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -842,5 +843,6 @@
             form.submit();
         }
     </script>
+    {% include 'components/cookie_consent.html' %}
 </body>
 </html>

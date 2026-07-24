@@ -1,0 +1,58 @@
+{% extends 'admin/base.html' %}
+
+{% block body %}
+<div class="container-fluid" style="padding: 2rem; max-width: 700px;">
+  <h2 style="color:#337a2c; margin-bottom:0.25rem;">Drive Writer</h2>
+  <p class="text-muted" style="margin-bottom:1.5rem;">
+    Interim stand-in for the future dedicated worker account (Phase 4). When set, every
+    upload/delete/permission change goes through the designated admin's linked Google
+    account instead of whichever user triggered it — so course content lives under one
+    account instead of being scattered across every user's personal Drive. This is a
+    <strong>test-only</strong> mechanism; it will be replaced by a proper worker/service
+    account later.
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ 'success' if cat == 'success' else 'warning' if cat == 'warning' else 'info' }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card" style="border:1px solid #e5e7eb; border-radius:8px;">
+    <div class="card-body">
+      {% if writer %}
+        <p>
+          Current Drive writer: <strong>{{ writer.username }}</strong>
+          {% if writer.email %}<span class="text-muted">({{ writer.email }})</span>{% endif %}
+          {% if writer_since %}<br><small class="text-muted">Set {{ writer_since.strftime('%Y-%m-%d %H:%M') }} UTC</small>{% endif %}
+        </p>
+        {% if writer.id == current_user.id %}
+          <p class="text-muted" style="font-size:0.85rem;">That's you — all writes currently route through your account.</p>
+        {% endif %}
+        <form method="POST" action="{{ url_for('drive_writer.clear') }}" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-secondary btn-sm">Clear writer (revert to per-user uploads)</button>
+        </form>
+      {% else %}
+        <p class="text-muted">No Drive writer is currently set — uploads use each user's own linked Google account.</p>
+      {% endif %}
+
+      <hr>
+
+      {% if current_user_linked %}
+        <form method="POST" action="{{ url_for('drive_writer.set') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-success" style="background:#337a2c; border-color:#337a2c;">
+            Make me ({{ current_user.username }}) the Drive writer
+          </button>
+        </form>
+      {% else %}
+        <p class="text-muted" style="font-size:0.9rem;">
+          Link your own Google account first via
+          <a href="{{ url_for('google_login.index') }}">Connect Google Drive</a>, then come back here.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -6,9 +6,20 @@ from flask_login import LoginManager
 from flask_cors import CORS
 from flask_session import Session
 from flask_babel import Babel
+from flask_wtf import CSRFProtect
+from lms.logging_config import configure_logging
 from lms.extensions import limiter
 from lms.config import config
-from lms.models import db, User, Course, ForumMessage, ForumChannel, Resource, PDFDocument, MoxoTest, Translation
+from lms.models import (
+    db, User,
+    Course as Course,
+    ForumMessage as ForumMessage,
+    ForumChannel as ForumChannel,
+    Resource as Resource,
+    PDFDocument as PDFDocument,
+    MoxoTest as MoxoTest,
+    Translation as Translation,
+)
 from flask_migrate import Migrate
 from lms.admin import init_admin
 from lms.routes.auth import auth_bp
@@ -16,17 +27,19 @@ from lms.routes.api import api_bp
 from lms.routes import main_bp
 import os
 import psycopg2
-from urllib.parse import urlparse
 import logging
+from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
 
 def create_database_if_not_exists(database_url):
     """Create PostgreSQL database if it doesn't exist"""
     parsed = urlparse(database_url)
     db_name = parsed.path.lstrip('/')
-    
+
     # Connect to the default postgres database
     postgres_url = database_url.replace(f'/{db_name}', '/postgres')
-    
+
     try:
         conn = psycopg2.connect(postgres_url)
         conn.autocommit = True
@@ -34,11 +47,11 @@ def create_database_if_not_exists(database_url):
         cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
         if not cur.fetchone():
             cur.execute('CREATE DATABASE "%s"' % db_name)
-            print(f"Database {db_name} created.")
+            logger.info(f"Database {db_name} created.")
         cur.close()
         conn.close()
     except Exception as e:
-        print(f"Error creating database: {e}")
+        logger.error(f"Error creating database: {e}")
 
 def create_app(config_name='development'):
     """Create and configure Flask application"""
@@ -49,20 +62,20 @@ def create_app(config_name='development'):
     template_dir = os.path.join(package_dir, 'templates')
     
     app = Flask(__name__, static_folder=static_dir, static_url_path='/static', template_folder=template_dir)
-    
-    # Configure logging
-    logging.basicConfig(level=logging.INFO)
-    
+
     # Load configuration
     app.config.from_object(config[config_name])
-    
+
+    # Configure structured (JSON, rotating) logging
+    configure_logging(app)
+
     # Create PostgreSQL database if it doesn't exist
     # if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI']:
     #     create_database_if_not_exists(app.config['SQLALCHEMY_DATABASE_URI'])
     
     # Initialize extensions
     db.init_app(app)
-    migrate = Migrate(app, db)
+    Migrate(app, db)
     
     login_manager = LoginManager(app)
     login_manager.login_view = 'auth.login'
@@ -72,7 +85,10 @@ def create_app(config_name='development'):
         """Handle unauthorized requests - return JSON for API, redirect for web"""
         if request.path.startswith('/api/'):
             return jsonify({'error': 'Authentication required'}), 401
-        return redirect(url_for('auth.login'))
+        next_url = request.path
+        if request.query_string:
+            next_url += '?' + request.query_string.decode()
+        return redirect(url_for('auth.login', next=next_url))
     
     @login_manager.user_loader
     def load_user(user_id):
@@ -130,14 +146,23 @@ def create_app(config_name='development'):
     
     app.jinja_env.filters['nl2br'] = nl2br_filter
     
-    # Enable CORS with credentials support
-    CORS(app, supports_credentials=True)
-    
+    # CORS is opt-in: this is a same-origin monolith (templates + API served together),
+    # so cross-origin credentialed requests are only enabled if an allowlist is configured.
+    # (Previously CORS(app, supports_credentials=True) with no origins allowed any origin
+    # to make credentialed requests, since flask-cors reflects the request Origin in that case.)
+    allowed_origins = [o.strip() for o in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()]
+    if allowed_origins:
+        CORS(app, supports_credentials=True, origins=allowed_origins)
+
     # Initialize session management
     Session(app)
 
     # Initialize rate limiter
     limiter.init_app(app)
+
+    # Initialize CSRF protection globally (all POST/PUT/PATCH/DELETE routes and forms)
+    csrf = CSRFProtect(app)
+    app.extensions['csrf'] = csrf
 
     # Initialize admin interface
     admin = init_admin(app)
@@ -155,7 +180,6 @@ def create_app(config_name='development'):
         locale = get_locale()
         # Ensure it's always a string, not a Locale object
         locale_str = str(locale) if locale else 'en'
-        print(f"DEBUG: inject_locale() returning: {locale_str} (original: {locale}, type: {type(locale)})")
         return {'current_locale': locale_str}
     
     # Add template helper for content translation
@@ -192,7 +216,6 @@ def create_app(config_name='development'):
     @app.context_processor
     def inject_render_functions():
         """Make rendering functions available in templates"""
-        import re
         import os
         from urllib.parse import urlparse, parse_qs
 
@@ -204,7 +227,6 @@ def create_app(config_name='development'):
             drive_link = getattr(item, 'drive_view_link', '') or ''
 
             # Import URL parsing functions
-            from urllib.parse import urlparse, parse_qs
 
             # Try to get MIME type from Google Drive API first (most reliable)
             mime_type = ''
@@ -220,7 +242,7 @@ def create_app(config_name='development'):
                             metadata = get_file_metadata(service, drive_file_id)
                             if metadata and 'mimeType' in metadata:
                                 mime_type = metadata['mimeType']
-                except Exception as e:
+                except Exception:
                     pass
 
             # If we got MIME type, map it to extension
@@ -277,7 +299,7 @@ def create_app(config_name='development'):
                     if 'filename' in query_params:
                         filename_param = query_params['filename'][0]
                         _, ext = os.path.splitext(filename_param.lower())
-                except:
+                except Exception:
                     pass
 
                 # If no filename parameter, try extracting from URL path (avoid domain parts)
@@ -291,14 +313,14 @@ def create_app(config_name='development'):
                                 filename_from_url = part.split('?')[0]
                                 _, ext = os.path.splitext(filename_from_url.lower())
                                 break
-                    except:
+                    except Exception:
                         pass
 
             # If no extension from URL, try title
             if not ext and filename:
                 try:
                     _, ext = os.path.splitext(filename.lower())
-                except:
+                except Exception:
                     # Fallback: extract extension manually
                     parts = filename.lower().rsplit('.', 1)
                     if len(parts) == 2:

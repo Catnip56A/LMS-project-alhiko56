@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="{{ current_locale }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'components/csrf_meta.html' %}
+    <title>Join {{ promo.course.title }} - LMS</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%270.9em%27 font-size=%2790%27%3E%F0%9F%8D%80%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Montserrat', sans-serif; }
+        body {
+            background: rgba(254, 251, 250, 0.15);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #374151;
+        }
+
+        .login-container {
+            background: #ffffff;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .login-container h1 {
+            color: #337a2c;
+            margin-bottom: 0.75rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        button, .btn-link {
+            width: 100%;
+            padding: 0.875rem;
+            background: #337a2c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: block;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+
+        button:hover, .btn-link:hover {
+            background: #809c13;
+        }
+
+        .logo {
+            margin-bottom: 1rem;
+        }
+
+        .logo img {
+            height: 60px;
+            width: auto;
+        }
+
+        .already {
+            color: #1d4ed8;
+            margin-bottom: 1.5rem;
+            padding: 0.75rem;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <a href="/">
+                <img src="/static/permanent/LMS%20logo%20transparent.png" alt="LMS">
+            </a>
+        </div>
+        {% if already_enrolled %}
+            <h1>{{ _('Already joined') }}</h1>
+            <p class="already">{{ _("You're already enrolled in %(title)s.", title=promo.course.title) }}</p>
+            <a class="btn-link" href="{{ url_for('main.course_page_enrolled', course_id=promo.course.id) }}">{{ _('Go to course') }}</a>
+        {% else %}
+            <h1>{{ _('Join %(title)s?', title=promo.course.title) }}</h1>
+            <p class="subtitle">{{ _("You've been invited to join this course.") }}</p>
+            <form method="POST">
+                <button type="submit">{{ _('Join Course') }}</button>
+            </form>
+        {% endif %}
+    </div>
+    {% include 'components/cookie_consent.html' %}
+</body>
+</html>

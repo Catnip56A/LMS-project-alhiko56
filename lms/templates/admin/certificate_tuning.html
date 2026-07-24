@@ -183,6 +183,7 @@
         </p>
 
         <form method="post" id="tuningForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label style="font-weight:600;font-size:13px;">Template image:</label>
             <div style="margin-bottom:18px;">
                 <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;" id="templatePicker">

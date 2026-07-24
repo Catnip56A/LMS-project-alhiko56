@@ -22,6 +22,9 @@
                             <a href="{{ url_for('course_management.analytics', course_id=course.id) }}" class="btn btn-info btn-sm">
                                 <i class="fa fa-chart-bar"></i> Analytics
                             </a>
+                            <a href="{{ url_for('course_management.manage_access', course_id=course.id) }}" class="btn btn-secondary btn-sm">
+                                <i class="fa fa-users"></i> Access
+                            </a>
                         </div>
                     </div>
                 </div>

@@ -46,6 +46,7 @@
           </td>
 
           <form method="POST" action="{{ url_for('user_permissions.save', user_id=user.id) }}" style="display:contents;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {% for key, label in permissions %}
             <td style="text-align:center; vertical-align:middle;">
               <input type="checkbox" name="permissions" value="{{ key }}"

@@ -29,6 +29,7 @@ dependencies = [
     "pillow>=12.2.0",
     "qrcode>=8.2",
     "img2pdf>=0.6.3",
+    "filetype>=1.2.0",
 ]
 
 [tool.uv]

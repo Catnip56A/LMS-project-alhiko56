@@ -2,9 +2,7 @@
 API routes for courses, forum, and resources
 """
 import os
-import time
 import re
-import logging
 import requests
 from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify, current_app, redirect, url_for, Response
@@ -14,6 +12,7 @@ from lms.extensions import limiter
 from lms.models import Course, ForumMessage, ForumChannel, Resource, PDFDocument, Translation, db
 from lms.translation_service import translation_service
 from lms.google_drive_service import authenticate, upload_file, create_view_only_link, set_file_permissions, import_drive_file, import_drive_folder
+from lms.upload_validation import validate_upload, UploadValidationError, IMAGE_MIME_TYPES, PDF_MIME_TYPES
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -159,7 +158,9 @@ def get_current_user():
         return jsonify({
             'id': current_user.id,
             'username': current_user.username,
+            'email': current_user.email,
             'is_admin': current_user.is_admin,
+            'preferred_language': current_user.preferred_language,
             'courses': [{
                 'id': c.id,
                 'title': get_translated_content('course', c.id, 'title', c.title, user_locale),
@@ -344,10 +345,7 @@ def delete_forum_message(message_id):
 def upload_resource():
     """Upload a new learning resource"""
     from flask import request
-    from werkzeug.utils import secure_filename
-    import os
     import random
-    import string
     from flask_login import current_user
     
     # Check if user is authenticated and is admin
@@ -393,6 +391,11 @@ def upload_resource():
     if 'preview_image' in request.files:
         preview_file = request.files['preview_image']
         if preview_file and preview_file.filename != '':
+            try:
+                validate_upload(preview_file, max_bytes=10 * 1024 * 1024, expected_mimes=IMAGE_MIME_TYPES)
+            except UploadValidationError as e:
+                return jsonify({'error': str(e)}), 400
+
             # Generate secure filename for preview image
             preview_filename = secure_filename(preview_file.filename)
             preview_unique_filename = f"preview_{random.randint(1000, 9999)}_{preview_filename}"
@@ -409,38 +412,43 @@ def upload_resource():
                     try:
                         set_file_permissions(service, preview_drive_file_id, make_public=True)
                     except Exception as e:
-                        print(f"Error setting preview permissions: {e}")
+                        current_app.logger.error(f"Error setting preview permissions: {e}")
                     # Create view-only link for preview image
                     preview_image_url = create_view_only_link(service, preview_drive_file_id, is_image=True)
                     preview_drive_view_link = preview_image_url  # Store the view link
             except Exception as e:
-                print(f"Error uploading preview to Drive: {e}")
+                current_app.logger.error(f"Error uploading preview to Drive: {e}")
                 if "insufficientPermissions" in str(e) or "403" in str(e):
                     return jsonify({'error': 'Your Google account does not have sufficient permissions. Please re-link your Google account with full Drive access.'}), 403
             
             # Clean up temporary preview file
             try:
                 os.remove(preview_temp_path)
-            except:
+            except Exception:
                 pass
     
     # PIN is now always auto-generated (no user input allowed)
     
     try:
-        
+        validate_upload(file, max_bytes=current_app.config['MAX_CONTENT_LENGTH'])
+    except UploadValidationError as e:
+        return jsonify({'error': str(e)}), 400
+
+    try:
+
         # Generate secure filename
         filename = secure_filename(file.filename)
         unique_filename = f"{random.randint(1000, 9999)}_{filename}"
         temp_file_path = os.path.join(temp_dir, unique_filename)
-        
+
         # Save file temporarily
         file.save(temp_file_path)
-        
+
         # Upload to Google Drive
         try:
             drive_file_id = upload_file(service, temp_file_path, filename)
         except Exception as e:
-            print(f"Error uploading to Drive: {e}")
+            current_app.logger.error(f"Error uploading to Drive: {e}")
             if "insufficientPermissions" in str(e) or "403" in str(e):
                 return jsonify({'error': 'Your Google account does not have sufficient permissions. Please re-link your Google account with full Drive access.'}), 403
             return jsonify({'error': 'Failed to upload file to Google Drive'}), 500
@@ -451,14 +459,14 @@ def upload_resource():
         # Set file permissions to make it publicly accessible
         try:
             success = set_file_permissions(service, drive_file_id, make_public=True)
-            print(f"DEBUG: set_file_permissions for resource {drive_file_id} returned: {success}")
+            current_app.logger.debug(f"set_file_permissions for resource {drive_file_id} returned: {success}")
         except Exception as e:
-            print(f"Error setting file permissions: {e}")
+            current_app.logger.error(f"Error setting file permissions: {e}")
             # Continue anyway - view link creation might still work
         
         # Create view-only link - check if file is an image
         is_image = is_image_file(file.filename)
-        print(f"DEBUG: File {file.filename} detected as image: {is_image}")
+        current_app.logger.debug(f"File {file.filename} detected as image: {is_image}")
         view_link = create_view_only_link(service, drive_file_id, is_image=is_image)
         if not view_link:
             return jsonify({'error': 'Failed to create view link'}), 500
@@ -488,7 +496,7 @@ def upload_resource():
         # Clean up temporary file
         try:
             os.remove(temp_file_path)
-        except:
+        except Exception:
             pass
         
         return jsonify({
@@ -508,7 +516,7 @@ def upload_resource():
         if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
             try:
                 os.remove(temp_file_path)
-            except:
+            except Exception:
                 pass
         return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
@@ -516,7 +524,6 @@ def upload_resource():
 def get_resources():
     """Get all learning resources"""
     from flask_login import current_user
-    from datetime import datetime
     from flask import session
     from lms.content_translator import get_translated_content
 
@@ -699,8 +706,6 @@ def download_resource(resource_id, pin):
 def upload_pdf():
     """Upload a new PDF document"""
     from flask import request
-    from werkzeug.utils import secure_filename
-    import os
     import random
     import string
     from flask_login import current_user
@@ -728,7 +733,12 @@ def upload_pdf():
     # Validate file type
     if not file.filename.lower().endswith('.pdf'):
         return jsonify({'error': 'Only PDF files are allowed'}), 400
-    
+
+    try:
+        validate_upload(file, max_bytes=current_app.config['MAX_CONTENT_LENGTH'], expected_mimes=PDF_MIME_TYPES)
+    except UploadValidationError as e:
+        return jsonify({'error': str(e)}), 400
+
     # Get form data
     title = request.form.get('title', '').strip()
     description = request.form.get('description', '').strip()
@@ -767,7 +777,7 @@ def upload_pdf():
         try:
             drive_file_id = upload_file(service, temp_file_path, filename)
         except Exception as e:
-            print(f"Error uploading to Drive: {e}")
+            current_app.logger.error(f"Error uploading to Drive: {e}")
             if "insufficientPermissions" in str(e) or "403" in str(e):
                 return jsonify({'error': 'Your Google account does not have sufficient permissions. Please re-link your Google account with full Drive access.'}), 403
             return jsonify({'error': 'Failed to upload file to Google Drive'}), 500
@@ -799,7 +809,7 @@ def upload_pdf():
         # Clean up temporary file
         try:
             os.remove(temp_file_path)
-        except:
+        except Exception:
             pass
         
         return jsonify({
@@ -816,24 +826,9 @@ def upload_pdf():
         if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
             try:
                 os.remove(temp_file_path)
-            except:
+            except Exception:
                 pass
         return jsonify({'error': f'Upload failed: {str(e)}'}), 500
-
-@api_bp.route('/user')
-def get_user():
-    """Get current user information (or null if not authenticated)"""
-    if current_user.is_authenticated:
-        return jsonify({
-            'id': current_user.id,
-            'username': current_user.username,
-            'email': current_user.email,
-            'is_admin': current_user.is_admin,
-            'preferred_language': current_user.preferred_language,
-            'courses': [{'id': c.id, 'title': c.title, 'description': c.description} for c in current_user.courses]
-        })
-    else:
-        return jsonify(None)
 
 # Translation endpoints
 @api_bp.route('/translate', methods=['POST'])
@@ -1414,7 +1409,7 @@ def picker_import():
 
     except Exception as e:
         import traceback
-        print(f'picker_import error: {e}\n{traceback.format_exc()}')
+        current_app.logger.error(f'picker_import error: {e}\n{traceback.format_exc()}')
         db.session.rollback()
         return jsonify({'error': f'Import failed: {str(e)}'}), 500
 
@@ -1428,7 +1423,7 @@ def import_drive_file_endpoint():
     The file must have been selected via Google Picker for access.
     """
     from lms.google_drive_service import (
-        authenticate, import_drive_file, import_drive_folder
+        authenticate
     )
     
     data = request.get_json()
@@ -1436,7 +1431,6 @@ def import_drive_file_endpoint():
         return jsonify({'error': 'Request body must be JSON'}), 400
     
     file_id = data.get('file_id')
-    file_name = data.get('file_name')
     mime_type = data.get('mime_type', '')
     
     if not file_id:
@@ -1468,8 +1462,8 @@ def import_drive_file_endpoint():
         
     except Exception as e:
         import traceback
-        print(f'Error importing file {file_id}: {str(e)}')
-        print(traceback.format_exc())
+        current_app.logger.error(f'Error importing file {file_id}: {str(e)}')
+        current_app.logger.error(traceback.format_exc())
         return jsonify({
             'error': 'Failed to import file',
             'message': str(e)
@@ -1483,7 +1477,7 @@ def import_drive_file_to_resource():
     Import a Google Drive file to create or update a Resource.
     Used when adding files to course resources.
     """
-    from lms.google_drive_service import authenticate, import_drive_file
+    from lms.google_drive_service import authenticate
     
     data = request.get_json()
     if not data:
@@ -1533,8 +1527,6 @@ def import_drive_file_to_resource():
             }), 200
         else:
             # Create new resource with imported file data
-            from lms.models import Resource
-            
             resource = Resource(
                 name=file_data.get('name'),
                 drive_file_id=file_data.get('file_id'),
@@ -1556,8 +1548,8 @@ def import_drive_file_to_resource():
         
     except Exception as e:
         import traceback
-        print(f'Error importing file {file_id} to resource: {str(e)}')
-        print(traceback.format_exc())
+        current_app.logger.error(f'Error importing file {file_id} to resource: {str(e)}')
+        current_app.logger.error(traceback.format_exc())
         return jsonify({
             'error': 'Failed to import file to resource',
             'message': str(e)
@@ -1638,8 +1630,8 @@ def get_folder_contents(folder_id):
         
     except Exception as e:
         import traceback
-        print(f'Error fetching folder contents for folder {folder_id}: {str(e)}')
-        print(traceback.format_exc())
+        current_app.logger.error(f'Error fetching folder contents for folder {folder_id}: {str(e)}')
+        current_app.logger.error(traceback.format_exc())
         return jsonify({
             'error': 'Failed to fetch folder contents',
             'message': str(e)

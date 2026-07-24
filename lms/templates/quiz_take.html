@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ quiz.title }} - {{ site_settings.site_name or 'LMS' }}{% endblock %}
+
+{% block content %}
+{% include 'components/navbar.html' %}
+
+<div class="container" style="max-width: 720px; padding: 2rem 1rem;">
+    <div class="card" style="border-radius: 12px;">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <h1 style="color: #337a2c; font-size: 1.5rem;">{{ quiz.title }}</h1>
+                {% if attempt.deadline %}
+                <div id="quiz-timer" class="badge badge-warning" style="font-size: 1rem; padding: 0.5rem 0.75rem;" data-deadline="{{ attempt.deadline.isoformat() }}Z"></div>
+                {% endif %}
+            </div>
+
+            <form method="POST" id="quiz-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% for question in quiz.questions %}
+                <div class="quiz-question" style="margin: 1.5rem 0; padding-bottom: 1.5rem; border-bottom: 1px solid #e5e7eb;">
+                    <p><strong>{{ loop.index }}. {{ question.question_text }}</strong> <span class="text-muted">({{ question.points }} {{ _('pt') if question.points == 1 else _('pts') }})</span></p>
+
+                    {% if question.question_type == 'mcq' %}
+                        {% for option in question.options %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" id="q{{ question.id }}_opt{{ loop.index0 }}" value="{{ loop.index0 }}" required>
+                            <label class="form-check-label" for="q{{ question.id }}_opt{{ loop.index0 }}">{{ option }}</label>
+                        </div>
+                        {% endfor %}
+                    {% elif question.question_type == 'true_false' %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" id="q{{ question.id }}_true" value="true" required>
+                            <label class="form-check-label" for="q{{ question.id }}_true">{{ _('True') }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" id="q{{ question.id }}_false" value="false" required>
+                            <label class="form-check-label" for="q{{ question.id }}_false">{{ _('False') }}</label>
+                        </div>
+                    {% else %}
+                        <input type="text" class="form-control" name="question_{{ question.id }}" required>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <button type="submit" class="btn btn-success">{{ _('Submit Quiz') }}</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% include 'components/footer.html' %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+(function() {
+    var timerEl = document.getElementById('quiz-timer');
+    if (!timerEl) return;
+    var deadline = new Date(timerEl.dataset.deadline).getTime();
+    var form = document.getElementById('quiz-form');
+    var submitted = false;
+
+    function tick() {
+        var remaining = deadline - Date.now();
+        if (remaining <= 0) {
+            timerEl.textContent = '{{ _("Time is up") }}';
+            if (!submitted) {
+                submitted = true;
+                form.submit();
+            }
+            return;
+        }
+        var mins = Math.floor(remaining / 60000);
+        var secs = Math.floor((remaining % 60000) / 1000);
+        timerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+        setTimeout(tick, 1000);
+    }
+    tick();
+
+    form.addEventListener('submit', function() { submitted = true; });
+})();
+</script>
+{% endblock %}
