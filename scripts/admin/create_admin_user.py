@@ -30,7 +30,6 @@ def create_admin_user(username='admin', email='admin@lms.local', password='lms20
             username=username,
             email=email,
             is_admin=True,
-            is_teacher=True,
             preferred_language='en'
         )
         user.password = password

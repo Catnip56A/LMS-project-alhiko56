@@ -13,6 +13,20 @@
 
     <div class="card" style="margin-bottom: 20px;">
         <div class="card-body">
+            <h5 class="card-title">Owner</h5>
+            <p class="card-text">
+                {% if course.creator %}
+                    <strong>{{ course.creator.username }}</strong> — can manage this course and assign/remove
+                    co-teachers, same as an admin, but scoped to just this course.
+                {% else %}
+                    <span class="text-muted">No self-service owner (admin-created course).</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;">
+        <div class="card-body">
             <h5 class="card-title">Open-source / Public</h5>
             <p class="card-text">When public, any logged-in user can instantly join this course from its page without a promo code.</p>
             <form method="POST" action="{{ url_for('course_management.toggle_public', course_id=course.id) }}">
@@ -36,13 +50,30 @@
                     <table class="table table-sm">
                         <tbody>
                         {% for u in enrolled %}
+                            {% set enrollment = enrollment_by_user.get(u.id) %}
+                            {% set is_owner = course.created_by == u.id %}
                             <tr>
-                                <td>{{ u.username }} {% if u.email %}<small class="text-muted">({{ u.email }})</small>{% endif %}</td>
-                                <td style="text-align: right;">
+                                <td>
+                                    {{ u.username }} {% if u.email %}<small class="text-muted">({{ u.email }})</small>{% endif %}
+                                    {% if is_owner %}<span class="badge badge-primary ml-1">Owner</span>{% elif enrollment and enrollment.is_teacher %}<span class="badge badge-info ml-1">Teacher</span>{% endif %}
+                                </td>
+                                <td style="text-align: right; white-space: nowrap;">
+                                    {% if not is_owner %}
+                                    <form method="POST" action="{{ url_for('course_management.toggle_teacher', course_id=course.id, user_id=u.id) }}" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-info">{% if enrollment and enrollment.is_teacher %}Remove Teacher{% else %}Make Teacher{% endif %}</button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('course_management.transfer_owner', course_id=course.id, user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('Transfer ownership of this course to {{ u.username }}?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">Make Owner</button>
+                                    </form>
                                     <form method="POST" action="{{ url_for('course_management.remove_student', course_id=course.id, user_id=u.id) }}" style="display:inline;">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
                                     </form>
+                                    {% else %}
+                                    <span class="text-muted" style="font-size: 0.85rem;">Current owner</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}

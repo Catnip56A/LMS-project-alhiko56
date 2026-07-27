@@ -16,17 +16,11 @@ JOIN_VIA_PROMO_CODE = 'promo_code'
 JOIN_VIA_DIRECT_LINK = 'direct_link'
 JOIN_VIA_DIRECT_ADD = 'direct_add'
 JOIN_VIA_INSTANT_PUBLIC = 'instant_public'
+JOIN_VIA_CREATOR = 'creator'
 
 # Valid QuizQuestion.question_type values — enforced by a DB CHECK constraint (defense in
 # depth for any write path) and restricted to a dropdown in the admin form (see admin/__init__.py).
 QUIZ_QUESTION_TYPES = ('mcq', 'true_false', 'short_answer')
-
-# Association table for tracking which users have accessed which resources via PIN
-user_resource_access = db.Table('user_resource_access',
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
-    db.Column('resource_id', db.Integer, db.ForeignKey('resource.id'), primary_key=True),
-    db.Column('accessed_at', db.DateTime, server_default=db.func.now())
-)
 
 class User(db.Model, UserMixin):
     """User model for authentication and course enrollment"""
@@ -36,7 +30,6 @@ class User(db.Model, UserMixin):
     _password = db.Column('password', db.String(200), nullable=False)
     email_verified = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))
     is_admin = db.Column(db.Boolean, default=False)
-    is_teacher = db.Column(db.Boolean, default=False)
     admin_permissions = db.Column(db.JSON, nullable=True)
     preferred_language = db.Column(db.String(10), default='en')  # User's preferred language for translations
     google_access_token = db.Column(db.Text)
@@ -50,7 +43,6 @@ class User(db.Model, UserMixin):
     last_attempt_time = db.Column(db.DateTime)  # Track time of last login attempt
     enrollments = db.relationship('Enrollment', back_populates='user', cascade='all, delete-orphan')
     courses = association_proxy('enrollments', 'course', creator=lambda course: Enrollment(course=course))
-    accessed_resources = db.relationship('Resource', secondary=user_resource_access, backref=db.backref('accessed_users', lazy='select'))
 
     @property
     def password(self):
@@ -98,8 +90,31 @@ class Course(db.Model):
     # Open-source/public flag: visible and instantly joinable by any user, not just enrollees
     is_public = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))
 
+    # Self-service creator, if any — NULL for courses created via the admin panel (pre-existing
+    # or admin-created). Lets a non-admin/non-teacher user manage the specific course they made.
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    creator = db.relationship('User', foreign_keys=[created_by])
+
     enrollments = db.relationship('Enrollment', back_populates='course', cascade='all, delete-orphan')
     users = association_proxy('enrollments', 'user', creator=lambda user: Enrollment(user=user))
+
+    def is_managed_by(self, user):
+        """True if `user` can manage this specific course: any admin (global rights), the
+        course's creator, or a user assigned as a teacher for this specific course (via
+        Enrollment.is_teacher — see is_owned_by for who can grant that)."""
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_admin or self.created_by == user.id:
+            return True
+        enrollment = Enrollment.query.filter_by(course_id=self.id, user_id=user.id).first()
+        return bool(enrollment and enrollment.is_teacher)
+
+    def is_owned_by(self, user):
+        """True if `user` can transfer ownership or assign/unassign co-teachers for this
+        course: an admin, or this course's creator specifically (not just any teacher)."""
+        if not user or not user.is_authenticated:
+            return False
+        return user.is_admin or self.created_by == user.id
 
     def __repr__(self):
         return f'<Course {self.title}>'
@@ -120,6 +135,9 @@ class Enrollment(db.Model):
     enrolled_at = db.Column(db.DateTime, server_default=db.func.now())
     promo_code_id = db.Column(db.Integer, db.ForeignKey('promo_code.id'), nullable=True)
     paid = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))
+    # Per-course teacher role — assigned by the course's creator or an admin (see
+    # Course.is_managed_by). Replaces the old global User.is_teacher flag.
+    is_teacher = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))
 
     __table_args__ = (db.UniqueConstraint('user_id', 'course_id', name='uq_enrollment_user_course'),)
 
@@ -213,58 +231,6 @@ class CourseAssignmentSubmission(db.Model):
 
     def __repr__(self):
         return f'<CourseAssignmentSubmission {self.id}>'
-
-class Resource(db.Model):
-    """Resource model for learning materials"""
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    tags = db.Column(db.String(500))  # Space-separated tags
-    preview_image = db.Column(db.String(300))  # Preview image URL or path
-    preview_drive_file_id = db.Column(db.String(100))  # Google Drive file ID for preview image
-    preview_drive_view_link = db.Column(db.String(300))  # Google Drive view link for preview image
-    drive_file_id = db.Column(db.String(100))  # Google Drive file ID
-    drive_view_link = db.Column(db.String(300))  # Google Drive view link
-    is_image_file = db.Column(db.Boolean, default=False)  # Whether the main file is an image
-    access_pin = db.Column(db.String(10), nullable=True)
-    pin_expires_at = db.Column(db.DateTime, nullable=True)
-    pin_last_reset = db.Column(db.DateTime, server_default=db.func.now())
-    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    upload_date = db.Column(db.DateTime, server_default=db.func.now())
-    is_active = db.Column(db.Boolean, default=True)
-    allow_others_to_view = db.Column(db.Boolean, default=True)  # Allow other users to view this file
-    is_imported = db.Column(db.Boolean, default=False)  # True = imported from user's Drive, do not delete from Drive on removal
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Generate initial random PIN and expiration time
-        if not self.access_pin:
-            self.generate_new_pin()
-
-    def generate_new_pin(self):
-        """Generate a new random 6-character PIN and set expiration to 10 minutes from now"""
-        import random
-        import string
-        from datetime import datetime, timedelta
-
-        self.access_pin = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        self.pin_expires_at = datetime.utcnow() + timedelta(minutes=10)
-        self.pin_last_reset = datetime.utcnow()
-
-    def is_pin_expired(self):
-        """Check if the current PIN has expired"""
-        from datetime import datetime
-        if not self.access_pin:
-            return False  # No PIN means no expiration
-        return datetime.utcnow() > self.pin_expires_at
-
-    def reset_pin(self):
-        """Reset the PIN with a new random value and 10-minute expiration"""
-        if self.access_pin:  # Only reset if there's currently a PIN
-            self.generate_new_pin()
-
-    def __repr__(self):
-        return f'<Resource {self.title}>'
 
 class MoxoTest(db.Model):
     """Test result model for user assessments"""
@@ -601,6 +567,7 @@ class BackgroundJob(db.Model):
     status = db.Column(db.String(20), nullable=False, default='queued')  # queued, running, completed, failed
     progress = db.Column(db.Integer, default=0)  # 0-100
     message = db.Column(db.Text)
+    data = db.Column(db.JSON)  # Job-type-specific input parameters (e.g. {'course_id': 5})
     result = db.Column(db.JSON)  # Store result data as JSON
     error = db.Column(db.Text)  # Store error message if failed
     created_at = db.Column(db.DateTime, server_default=db.func.now())

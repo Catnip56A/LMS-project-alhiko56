@@ -1,21 +1,5 @@
 services:
 
-  # ── Infrastructure ────────────────────────────────────────────────────────────
-
-  libretranslate:
-    profiles: [dev, production, staging]
-    image: libretranslate/libretranslate
-    restart: unless-stopped
-    command: ["--load-only", "en,az,ru"]
-    volumes:
-      - ./data/libretranslate:/home/libretranslate/.local/share
-    healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:5000/languages')\""]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 120s
-
   # ── Development ───────────────────────────────────────────────────────────────
   db-dev:
     image: postgres:17-alpine
@@ -31,6 +15,20 @@ services:
       - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-dev:
+    image: redis:7-alpine
+    profiles: [dev]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -57,19 +55,34 @@ services:
     environment:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis-dev:6379/0
       GOOGLE_REDIRECT_URI: https://${LOCAL_DOMAIN:-local.yourdomain.example.com}/auth/google/callback
-      LIBRETRANSLATE_URL: http://libretranslate:5000
       CERT_TEMPLATE_DIR: /app/data/cert-templates
     depends_on:
       migrate-dev:
         condition: service_completed_successfully
-      libretranslate:
+      redis-dev:
         condition: service_healthy
     volumes:
       - ./data/flask_session:/app/flask_session
       - ./data/logs:/app/logs
       - ./data/certificates:/app/data/certificates
       - ./data/cert-templates:/app/data/cert-templates
+
+  worker-dev:
+    profiles: [dev]
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis-dev:6379/0
+    depends_on:
+      migrate-dev:
+        condition: service_completed_successfully
+      redis-dev:
+        condition: service_healthy
+    command: python -m lms.worker
 
   caddy-dev:
     profiles: [dev]
@@ -106,6 +119,18 @@ services:
       timeout: 5s
       retries: 5
 
+  redis-production:
+    image: redis:7-alpine
+    profiles: [production]
+    restart: unless-stopped
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   migrate-production:
     profiles: [production]
     image: ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG:-latest}
@@ -127,15 +152,15 @@ services:
     environment:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-production:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis-production:6379/0
       GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
-      LIBRETRANSLATE_URL: http://libretranslate:5000
       CERT_TEMPLATE_DIR: /app/data/cert-templates
     ports:
       - "127.0.0.1:${APP_PORT}:8000"
     depends_on:
       migrate-production:
         condition: service_completed_successfully
-      libretranslate:
+      redis-production:
         condition: service_healthy
     networks:
       - default
@@ -145,6 +170,21 @@ services:
       - ./data/logs:/app/logs
       - ./data/certificates:/app/data/certificates
       - ./data/cert-templates:/app/data/cert-templates
+
+  worker-production:
+    profiles: [production]
+    image: ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-production:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis-production:6379/0
+    depends_on:
+      migrate-production:
+        condition: service_completed_successfully
+      redis-production:
+        condition: service_healthy
+    command: python -m lms.worker
 
   # ── Staging ────────────────────────────────────────────────────────────────
   db-staging:
@@ -161,6 +201,18 @@ services:
       - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-staging:
+    image: redis:7-alpine
+    profiles: [staging]
+    restart: unless-stopped
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -186,15 +238,15 @@ services:
     environment:
       FLASK_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis-staging:6379/0
       GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
-      LIBRETRANSLATE_URL: http://libretranslate:5000
       CERT_TEMPLATE_DIR: /app/data/cert-templates
     ports:
       - "127.0.0.1:${APP_PORT}:8000"
     depends_on:
       migrate-staging:
         condition: service_completed_successfully
-      libretranslate:
+      redis-staging:
         condition: service_healthy
     networks:
       - default
@@ -204,6 +256,21 @@ services:
       - ./data/logs:/app/logs
       - ./data/certificates:/app/data/certificates
       - ./data/cert-templates:/app/data/cert-templates
+
+  worker-staging:
+    profiles: [staging]
+    image: ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis-staging:6379/0
+    depends_on:
+      migrate-staging:
+        condition: service_completed_successfully
+      redis-staging:
+        condition: service_healthy
+    command: python -m lms.worker
 networks:
   lms-proxy:
     external: true

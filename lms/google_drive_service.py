@@ -18,6 +18,84 @@ logger = logging.getLogger(__name__)
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 FOLDER_ID = None  # Upload to root directory for OAuth users
 
+class WorkerCredentials:
+    """The actual Phase 4 worker-account identity — a single dedicated Google account's
+    OAuth tokens, stored in AppSetting rather than on any User row.
+
+    Duck-types the three attributes authenticate()/refresh_credentials() read and write
+    (google_access_token/google_refresh_token/google_token_expiry) so both functions work
+    unmodified against this instead of a User. Distinct from the interim Drive Writer
+    stopgap above, which just points at an existing admin's own linked account rather than
+    storing separate credentials — see setup_checklist.md Phase 4.
+    """
+    _SETTING_KEYS = {
+        'google_access_token': 'worker_google_access_token',
+        'google_refresh_token': 'worker_google_refresh_token',
+        'google_token_expiry': 'worker_google_token_expiry',
+    }
+
+    def _get_setting(self, attr):
+        from lms.models import AppSetting
+        setting = AppSetting.query.filter_by(key=self._SETTING_KEYS[attr]).first()
+        return setting.value if setting else None
+
+    def _set_setting(self, attr, value):
+        from lms.models import AppSetting, db
+        key = self._SETTING_KEYS[attr]
+        setting = AppSetting.query.filter_by(key=key).first()
+        if value is None:
+            if setting:
+                db.session.delete(setting)
+            return
+        if setting:
+            setting.value = value
+        else:
+            db.session.add(AppSetting(key=key, value=value))
+
+    @property
+    def google_access_token(self):
+        return self._get_setting('google_access_token')
+
+    @google_access_token.setter
+    def google_access_token(self, value):
+        self._set_setting('google_access_token', value)
+
+    @property
+    def google_refresh_token(self):
+        return self._get_setting('google_refresh_token')
+
+    @google_refresh_token.setter
+    def google_refresh_token(self, value):
+        self._set_setting('google_refresh_token', value)
+
+    @property
+    def google_token_expiry(self):
+        raw = self._get_setting('google_token_expiry')
+        return datetime.fromisoformat(raw) if raw else None
+
+    @google_token_expiry.setter
+    def google_token_expiry(self, value):
+        self._set_setting('google_token_expiry', value.isoformat() if value else None)
+
+
+def get_worker_credentials():
+    """Return the worker-account credentials if one has actually been linked, else None."""
+    creds = WorkerCredentials()
+    if not creds.google_access_token:
+        return None
+    return creds
+
+
+def clear_worker_credentials():
+    """Disconnect the worker account, clearing its stored tokens."""
+    creds = WorkerCredentials()
+    creds.google_access_token = None
+    creds.google_refresh_token = None
+    creds.google_token_expiry = None
+    from lms.models import db
+    db.session.commit()
+
+
 def get_drive_writer_user():
     """Return the User designated as the system-wide Drive writer, if any.
 
@@ -59,11 +137,12 @@ def clear_drive_writer():
 def authenticate(user=None):
     """Authenticate and return the Google Drive service using OAuth tokens.
 
-    When `user` isn't given, uses the designated Drive writer (see
-    `set_drive_writer`) if one is set, falling back to the current user.
+    When `user` isn't given, resolves in priority order: the real Phase 4 worker account
+    (get_worker_credentials), then the interim Drive Writer stopgap (get_drive_writer_user),
+    then the current user.
     """
     if user is None:
-        user = get_drive_writer_user()
+        user = get_worker_credentials() or get_drive_writer_user()
     if user is None:
         from flask_login import current_user
         user = current_user
@@ -153,22 +232,18 @@ def get_linked_google_account(user=None):
             creds = refresh_credentials(user)
             if not creds:
                 logger.error('Token refresh failed for account info, clearing tokens')
-                from lms.models import db, User
-                db.session.query(User).filter_by(id=user.id).update({
-                    'google_access_token': None,
-                    'google_refresh_token': None,
-                    'google_token_expiry': None,
-                })
+                from lms.models import db
+                user.google_access_token = None
+                user.google_refresh_token = None
+                user.google_token_expiry = None
                 db.session.commit()
                 return {'error': 'Token refresh failed'}
         else:
             logger.info('Access token expired and no refresh token available for account info')
-            from lms.models import db, User
-            db.session.query(User).filter_by(id=user.id).update({
-                'google_access_token': None,
-                'google_refresh_token': None,
-                'google_token_expiry': None,
-            })
+            from lms.models import db
+            user.google_access_token = None
+            user.google_refresh_token = None
+            user.google_token_expiry = None
             db.session.commit()
             return {'error': 'Access token expired'}
     
@@ -188,12 +263,10 @@ def get_linked_google_account(user=None):
     except requests.HTTPError as e:
         if e.response.status_code == 401:
             logger.info('Token is invalid (401), clearing tokens')
-            from lms.models import db, User
-            db.session.query(User).filter_by(id=user.id).update({
-                'google_access_token': None,
-                'google_refresh_token': None,
-                'google_token_expiry': None,
-            })
+            from lms.models import db
+            user.google_access_token = None
+            user.google_refresh_token = None
+            user.google_token_expiry = None
             db.session.commit()
             return {'error': 'Invalid or expired token'}
         else:

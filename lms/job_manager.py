@@ -1,14 +1,24 @@
 """
-Background job system for long-running tasks like content translation
+Background job system for long-running tasks like content translation.
+
+Jobs are enqueued onto Redis via RQ (see lms/queue.py) and picked up by a separate worker
+process (lms/worker.py) — not a thread inside the Flask process. Job status/progress is
+still tracked in the BackgroundJob DB table so the existing polling API (admin panel's
+job-status endpoint) and BackgroundJob.to_dict() contract are unchanged.
 """
-import threading
-import time
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from lms.models import db, BackgroundJob as BackgroundJobModel
 
 logger = logging.getLogger(__name__)
+
+# Recurring full-catalog translation sweep — the "interval" side of the translation
+# trigger (see run_scheduled_translation_sweep / ensure_translation_sweep_scheduled below).
+# The "threshold" side is per-course jobs queued right after a create/edit (admin/__init__.py).
+TRANSLATION_SWEEP_JOB_ID = 'translation-sweep-recurring'
+TRANSLATION_SWEEP_INTERVAL_HOURS = 24
+
 
 class JobStatus:
     """Job status constants"""
@@ -56,6 +66,10 @@ class BackgroundJob:
         self.model.message = value
 
     @property
+    def data(self):
+        return self.model.data
+
+    @property
     def result(self):
         return self.model.result
 
@@ -100,50 +114,200 @@ class BackgroundJob:
         db.session.add(self.model)
         db.session.commit()
 
+
+def _execute_job(job: 'BackgroundJob'):
+    """Run one job's handler, tracking status/progress on the DB row throughout."""
+    try:
+        job.status = JobStatus.RUNNING
+        job.started_at = datetime.now()
+        job.save()
+        logger.info(f"Starting job {job.id}")
+
+        if job.type == 'translate_content':
+            result = _execute_translate_content_job(job)
+        elif job.type == 'translate_course':
+            result = _execute_translate_course_job(job)
+        else:
+            raise ValueError(f"Unknown job type: {job.type}")
+
+        job.status = JobStatus.COMPLETED
+        job.result = result
+        job.progress = 100
+        job.message = "Job completed successfully"
+        job.completed_at = datetime.now()
+        job.save()
+
+        logger.info(f"Completed job {job.id}")
+
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Failed job {job.id}: {error_details}")
+
+        job.status = JobStatus.FAILED
+        job.error = str(e)
+        job.completed_at = datetime.now()
+        job.save()
+
+
+def _execute_translate_content_job(job):
+    """Execute the full-catalog translate content job (manual admin trigger or the
+    recurring sweep — see run_scheduled_translation_sweep)."""
+    try:
+        from lms.content_translator import auto_translate_course, spot_check_translations
+        from lms.models import Course
+
+        # Get total counts for progress calculation
+        total_items = Course.query.count()
+        processed_items = 0
+
+        # Initialize stats
+        stats = {
+            'courses': 0,
+            'total_processed': 0
+        }
+
+        job.message = "Starting translation process..."
+        logger.info("🔄 Translation job started")
+
+        # Process courses
+        job.message = "Translating courses..."
+        courses = Course.query.all()
+        for i, course in enumerate(courses):
+            try:
+                auto_translate_course(course)
+                stats['courses'] += 1
+                stats['total_processed'] += 1
+                processed_items += 1
+                job.progress = int((processed_items / total_items) * 100) if total_items else 100
+                job.message = f"Translated {stats['courses']} courses..."
+                job.save()
+            except Exception as e:
+                logger.error(f"Failed to translate course {course.id}: {e}")
+                continue
+
+        # Commit all changes
+        db.session.commit()
+
+        stats['spot_check'] = spot_check_translations()
+
+        job.progress = 100
+        job.message = f"Translation completed! Processed {stats['total_processed']} total items."
+        job.save()
+
+        return stats
+
+    except Exception:
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Translation job error: {error_details}")
+        raise
+
+
+def _execute_translate_course_job(job):
+    """Execute a single-course translate job — the "threshold" trigger, queued right
+    after a course is created/edited in the admin panel (admin/__init__.py) so new/changed
+    content gets translated within seconds instead of waiting for the nightly sweep."""
+    from lms.content_translator import auto_translate_course
+    from lms.models import Course
+
+    course_id = (job.data or {}).get('course_id')
+    course = Course.query.get(course_id) if course_id else None
+    if not course:
+        raise ValueError(f"translate_course job {job.id}: course {course_id!r} not found")
+
+    job.message = f"Translating course {course.title!r}..."
+    job.save()
+
+    auto_translate_course(course)
+    db.session.commit()
+
+    job.progress = 100
+    job.message = f"Translated course {course.title!r}."
+    job.save()
+
+    return {'course_id': course.id}
+
+
+def run_queued_job(job_id: str):
+    """RQ entrypoint — runs in the worker process (lms/worker.py), which has already
+    pushed a Flask app context for its whole lifetime, so this can use the DB directly."""
+    job_model = BackgroundJobModel.query.get(job_id)
+    if not job_model:
+        logger.error(f"Job {job_id} not found in database")
+        return
+    _execute_job(BackgroundJob(job_model))
+
+
+def run_scheduled_translation_sweep():
+    """RQ scheduler entrypoint for the recurring full-catalog translation sweep (the
+    "interval" trigger). Re-enqueues itself under the same job_id for the next interval
+    when done, so once bootstrapped (see ensure_translation_sweep_scheduled) this repeats
+    indefinitely using only the existing worker (with_scheduler=True) — no separate cron
+    process or rq-scheduler dependency needed."""
+    import uuid
+    from lms.queue import job_queue
+
+    job_id = str(uuid.uuid4())
+    job_model = BackgroundJobModel(id=job_id, type='translate_content', status=JobStatus.QUEUED, message='', error='')
+    db.session.add(job_model)
+    db.session.commit()
+
+    try:
+        _execute_job(BackgroundJob(job_model))
+    finally:
+        job_queue.enqueue_in(
+            timedelta(hours=TRANSLATION_SWEEP_INTERVAL_HOURS),
+            run_scheduled_translation_sweep,
+            job_id=TRANSLATION_SWEEP_JOB_ID,
+        )
+        logger.info(f"Rescheduled translation sweep for {TRANSLATION_SWEEP_INTERVAL_HOURS}h from now")
+
+
+def ensure_translation_sweep_scheduled():
+    """Bootstrap the recurring translation sweep. Idempotent and safe to call on every
+    worker startup — no-ops if a sweep is already scheduled, so restarting the worker
+    process (e.g. `just worker` during dev) doesn't spawn duplicate recurring chains."""
+    from rq.registry import ScheduledJobRegistry
+    from lms.queue import job_queue
+
+    registry = ScheduledJobRegistry(queue=job_queue)
+    if TRANSLATION_SWEEP_JOB_ID in registry.get_job_ids():
+        logger.info("Translation sweep already scheduled, skipping bootstrap")
+        return
+
+    job_queue.enqueue_in(
+        timedelta(minutes=1),
+        run_scheduled_translation_sweep,
+        job_id=TRANSLATION_SWEEP_JOB_ID,
+    )
+    logger.info(f"Bootstrapped recurring translation sweep (every {TRANSLATION_SWEEP_INTERVAL_HOURS}h)")
+
+
 class JobManager:
-    """Manages background jobs using database persistence"""
-
-    def __init__(self):
-        self.worker_thread = None
-        self.running = False
-
-    def start_worker(self, app):
-        """Start the background worker thread"""
-        if self.worker_thread and self.worker_thread.is_alive():
-            return
-
-        self.app = app
-        self.running = True
-        self.worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
-        self.worker_thread.start()
-        logger.info("Background job worker started")
-
-    def stop_worker(self):
-        """Stop the background worker"""
-        self.running = False
-        if self.worker_thread:
-            self.worker_thread.join(timeout=5)
+    """Enqueues jobs onto Redis (RQ) and reads their status back from the DB."""
 
     def queue_job(self, job_type: str, job_data: Dict[str, Any]) -> str:
         """Queue a new job and return its ID"""
         import uuid
+        from lms.queue import job_queue
+
         job_id = str(uuid.uuid4())
-        
+
         # Create job in database
         job_model = BackgroundJobModel(
             id=job_id,
             type=job_type,
             status=JobStatus.QUEUED,
             message='',
+            data=job_data or None,
             error=''
         )
         db.session.add(job_model)
         db.session.commit()
 
-        # Store function reference for when job is executed
-        # Note: This won't persist across app restarts, but for now we'll handle this
-        # by having the worker know which functions to call based on job type
-        logger.info(f"Queued job {job_id} of type {job_type}")
+        job_queue.enqueue(run_queued_job, job_id)
+        logger.info(f"Queued job {job_id} of type {job_type} onto Redis")
         return job_id
 
     def get_job(self, job_id: str) -> Optional[BackgroundJob]:
@@ -158,132 +322,6 @@ class JobManager:
         jobs = BackgroundJobModel.query.order_by(BackgroundJobModel.created_at.desc()).limit(50).all()
         return {job.id: BackgroundJob(job).to_dict() for job in jobs}
 
-    def _worker_loop(self):
-        """Main worker loop that processes queued jobs from database"""
-        with self.app.app_context():
-            while self.running:
-                try:
-                    # Get next queued job from database
-                    job_model = BackgroundJobModel.query.filter_by(status=JobStatus.QUEUED).order_by(BackgroundJobModel.created_at).first()
-                    
-                    if job_model:
-                        job = BackgroundJob(job_model)
-                        self._execute_job(job)
-                    else:
-                        # No jobs, wait before checking again
-                        time.sleep(1)
-                except Exception as e:
-                    logger.error(f"Error in worker loop: {e}")
-                    time.sleep(5)  # Wait longer on error
-
-    def _execute_job(self, job: BackgroundJob):
-        """Execute a single job"""
-        try:
-            job.status = JobStatus.RUNNING
-            job.started_at = datetime.now()
-            job.save()
-            logger.info(f"Starting job {job.id}")
-
-            # Execute the job function based on type
-            if job.type == 'translate_content':
-                result = self._execute_translate_content_job(job)
-            else:
-                raise ValueError(f"Unknown job type: {job.type}")
-
-            job.status = JobStatus.COMPLETED
-            job.result = result
-            job.progress = 100
-            job.message = "Job completed successfully"
-            job.completed_at = datetime.now()
-            job.save()
-
-            logger.info(f"Completed job {job.id}")
-
-        except Exception as e:
-            import traceback
-            error_details = traceback.format_exc()
-            logger.error(f"Failed job {job.id}: {error_details}")
-            
-            job.status = JobStatus.FAILED
-            job.error = str(e)
-            job.completed_at = datetime.now()
-            job.save()
-
-    def _execute_translate_content_job(self, job):
-        """Execute the translate content job"""
-        try:
-            from lms.content_translator import (
-                auto_translate_course,
-                auto_translate_resource,
-            )
-            from lms.models import Course, Resource
-            import logging
-            logger = logging.getLogger(__name__)
-
-            # Get total counts for progress calculation
-            total_courses = Course.query.count()
-            total_resources = Resource.query.count()
-
-            total_items = total_courses + total_resources
-            processed_items = 0
-
-            # Initialize stats
-            stats = {
-                'courses': 0,
-                'resources': 0,
-                'total_processed': 0
-            }
-
-            # Process all content types sequentially
-            job.message = "Starting translation process..."
-            logger.info("🔄 Translation job started")
-
-            # Process courses
-            job.message = "Translating courses..."
-            courses = Course.query.all()
-            for i, course in enumerate(courses):
-                try:
-                    auto_translate_course(course)
-                    stats['courses'] += 1
-                    stats['total_processed'] += 1
-                    processed_items += 1
-                    job.progress = int((processed_items / total_items) * 100)
-                    job.message = f"Translated {stats['courses']} courses..."
-                    job.save()
-                except Exception as e:
-                    logger.error(f"Failed to translate course {course.id}: {e}")
-                    continue
-
-            # Process resources
-            job.message = "Translating resources..."
-            resources = Resource.query.all()
-            for i, resource in enumerate(resources):
-                try:
-                    auto_translate_resource(resource)
-                    stats['resources'] += 1
-                    stats['total_processed'] += 1
-                    processed_items += 1
-                    job.progress = int((processed_items / total_items) * 100)
-                    job.message = f"Translated {stats['resources']} resources..."
-                    job.save()
-                except Exception as e:
-                    logger.error(f"Failed to translate resource {resource.id}: {e}")
-                    continue
-
-            # Commit all changes
-            db.session.commit()
-
-            job.progress = 100
-            job.message = f"Translation completed! Processed {stats['total_processed']} total items."
-            job.save()
-
-            return stats
-
-        except Exception:
-            import traceback
-            error_details = traceback.format_exc()
-            logger.error(f"Translation job error: {error_details}")
-            raise
 
 # Global job manager instance
 job_manager = JobManager()

@@ -1,5 +1,3 @@
-password: TempTest#Pass1
-
 # LMS Rework — Manual Setup Checklist
 
 Things only you can do (accounts, consoles, keys) for each phase of the rework roadmap
@@ -40,18 +38,30 @@ to **Admin → Drive Writer** and designate their own already-linked Google acco
 system-wide writer — all uploads/deletes route through it instead of each user's own
 account. Test-only; nothing here is a substitute for steps 1–4 below.
 
+**The real mechanism is now built** (`Admin → Drive Worker`, `/admin/drive_worker/`) — a
+dedicated place to store one Google account's OAuth tokens server-side, independent of any
+`User` row. Once connected there, it automatically takes priority over the Drive Writer
+stopgap above for every upload/delete/permission-change. All that's left is the manual setup
+only you can do:
+
 1. [ ] **Create a new Google account** not tied to any team member — e.g.
   `lms.drive.worker@gmail.com` (name it whatever you like). Free personal account is fine
   for Phase 1 of the Drive rollout (15 GB).
-2. [ ] **Add it as a test user** on the existing Google Cloud OAuth consent screen, if the
+2. [x] **Add it as a test user** on the existing Google Cloud OAuth consent screen, if the
   app is still in "Testing" publishing status (Google Cloud Console → APIs & Services →
   OAuth consent screen → Test users). This is a common gotcha — without it, the worker
   account's login will be silently rejected by Google.
-3. [ ] **Log in as the worker account** and run through the app's existing "Link Google
-  Account" admin flow once, so it can grant Drive access. I'll then store the resulting
-  refresh token server-side (not on a `User` row) and switch all Drive writes to use it.
+3. [x] **In your browser, sign into Google as the worker account** (not your own), then go
+  to `Admin → Drive Worker` (full admins only) and click "Connect Worker Account". It'll ask
+  for Drive access under whichever Google account is signed in in that browser tab.
 4. No new `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` needed — the existing OAuth app/client
   is reused; only the account authorizing it changes.
+5. On the OAuth consent screen's **Scopes** section, declare
+  `https://www.googleapis.com/auth/drive.file` (not the broader `drive` scope — the app was
+  briefly requesting the broad one, but that's been tightened to match what
+  `google_drive_service.py` actually uses).
+
+**Phase 4 is done** — worker account connected and verified live.
 
 *(Phase 2 of the Drive rollout — moving to a paid Google Workspace Shared Drive — is
 explicitly deferred until we're past the local-only build.)*
@@ -60,16 +70,18 @@ explicitly deferred until we're past the local-only build.)*
 
 ## Phase 5 — Translation pipeline (DeepL)
 
-1. [ ] **Sign up at [deepl.com/pro-api](https://www.deepl.com/pro-api)** for the free API
-  plan (500k characters/month, no cost at this scale).
-2. [ ] Grab the API key and set:
-  ```
-  DEEPL_API_KEY=
-  ```
-3. Azerbaijani is out of scope for the translation swap (DeepL doesn't support it, and `az`
-  stays disabled per `constants.py`) — nothing to set up there unless you decide to revisit
-  Azerbaijani later, in which case it'd be a separate Google Cloud Translation or Azure
-  Translator key.
+1. [x] **Sign up at [deepl.com/pro-api](https://www.deepl.com/pro-api)** for the free API
+  plan. Account dashboard shows usage as a lifetime cap (1,000,000 characters total), not a
+  monthly-resetting quota — check deepl.com's account page for your plan's exact terms
+  rather than relying on this doc.
+2. [x] `DEEPL_API_KEY` set in `.env`. Verified live — a real translation landed in
+  `content_translation` via the recurring sweep, and 6 UI strings were translated through
+  the `.po` pipeline.
+3. Azerbaijani support has been removed from the app entirely (not just disabled) — DeepL
+  doesn't support it, and it's gone from `constants.py`, the locale selector, the `.po`
+  translation files, and the hand-translated legal pages. Re-adding it later would mean
+  reintroducing the language end-to-end (a separate translation engine that supports it,
+  plus UI/legal-page work), not just flipping a flag back on.
 
 ---
 

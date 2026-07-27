@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if current_locale == 'az' %}İstifadə Şərtləri{% elif current_locale == 'ru' %}Условия использования{% else %}Terms of Use{% endif %} — LMS</title>
+    <title>{% if current_locale == 'ru' %}Условия использования{% else %}Terms of Use{% endif %} — LMS</title>
     <style>
         * {
             margin: 0;
@@ -146,20 +146,18 @@
 <div class="container">
 
     <h1>
-        {% if current_locale == 'az' %}İstifadə Şərtləri
-        {% elif current_locale == 'ru' %}Условия использования
+        {% if current_locale == 'ru' %}Условия использования
         {% else %}Terms of Use
         {% endif %}
     </h1>
 
     <div class="language-buttons">
-        <a href="{{ url_for('main.set_language', lang='az') }}" class="{% if current_locale == 'az' %}active{% endif %}">Azərbaycan</a>
         <a href="{{ url_for('main.set_language', lang='en') }}" class="{% if current_locale == 'en' %}active{% endif %}">English</a>
         <a href="{{ url_for('main.set_language', lang='ru') }}" class="{% if current_locale == 'ru' %}active{% endif %}">Русский</a>
     </div>
 
     {# ─── ENGLISH ─────────────────────────────────────────────────────────── #}
-    {% if current_locale != 'az' and current_locale != 'ru' %}
+    {% if current_locale != 'ru' %}
 
     <p class="last-updated">Date of Last Update: 26.06.2026</p>
 
@@ -410,135 +408,9 @@
 
     <p class="closing-statement">Используя LMS, вы подтверждаете, что ознакомлены с этими Условиями использования и согласны их соблюдать.</p>
 
-    {# ─── AZERBAIJANI ─────────────────────────────────────────────────────── #}
-    {% else %}
-
-    <p class="last-updated">Son dəyişiklik tarixi: 26.06.2026</p>
-
-    <div class="welcome-block">
-        <p><strong>Xoş gəlmişsiniz!</strong></p>
-        <p>LMS Web ("Platforma", "Veb-sayt") tərəfindən idarə olunur "LMS" MMC ("LMS", "Biz"). Platformaya daxil olmaqla və ya ondan istifadə etməklə siz (bundan sonra "İstifadəçi", "Siz") bu İstifadə Şərtlərinə (bundan sonra "Şərtlər") əməl etməyə razı olduğunuzu təsdiq edirsiniz. Platformaya daxil olan, ondan istifadə edən və ya Platforma vasitəsilə təqdim olunan xidmət və funksiyalardan faydalanan hər bir şəxs İstifadəçi başa düşülür.</p>
-        <p>Bu Şərtlərin hər hansı hissəsi ilə razı deyilsinizsə, Platformadan istifadə etməməlisiniz.</p>
-    </div>
-
-    <h2>1. Ümumi müddəalar</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">1.1.</span>Platformadan istifadə etməklə, Siz ən azı 13 yaşa çatdığınızı təsdiq edirsiniz. Bundan əlavə, əgər Siz yetkinlik yaşına çatmamısınızsa, Platformadan istifadə etmək üçün valideyninizin və ya qanuni nümayəndənizin razılığını aldığınızı təsdiq edirsiniz.</p>
-        <p class="clause"><span class="clause-num">1.2.</span>Siz təqdim etdiyiniz məlumatların doğru, aktual və tam olduğunu təsdiq edirsiniz. Təqdim etdiyiniz yanlış və ya qeyri-dəqiq məlumatların emalına görə biz məsuliyyət daşımırıq.</p>
-    </div>
-
-    <h2>2. Hesablar və Doğrulama</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">2.1.</span>Platformanın bəzi funksiyalarından istifadə etmək üçün İstifadəçi hesabının yaradılması tələb oluna bilər.</p>
-        <p class="clause"><span class="clause-num">2.2.</span>Siz hesabınıza aid giriş məlumatlarının məxfiliyinin qorunmasına və hesabınız vasitəsilə həyata keçirilən bütün fəaliyyətlərə görə məsuliyyət daşıyırsınız.</p>
-        <p class="clause"><span class="clause-num">2.3.</span>Siz hesabınızı üçüncü şəxslərlə paylaşmamağa və başqa istifadəçilərin hesablarından icazəsiz istifadə etməməyə razılaşırsınız.</p>
-        <p class="clause"><span class="clause-num">2.4.</span>Biz bu Şərtləri pozan İstifadəçi hesablarını dayandırmaq və ya ləğv etmək hüququnu özümüzdə saxlayırıq.</p>
-    </div>
-
-    <h2>3. İstifadəçi məzmunu</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">3.1.</span><strong>İstifadəçi tərəfindən təqdim olunan məzmun</strong></p>
-        <p class="clause"><span class="clause-num">3.1.1.</span>Platforma Sizə mətn, şəkillər, fayllar və ya mesajlar (bundan sonra "İstifadəçi Məzmunu") kimi məzmunu təqdim etməyə, yükləməyə, saxlamağa və ya paylaşmağa icazə verə bilər.</p>
-        <p class="clause"><span class="clause-num">3.1.2.</span>İstifadəçi təqdim etdiyi İstifadəçi Məzmunu üzərində mülkiyyət hüququnu saxlayır. Bununla belə, məzmunu təqdim etməklə siz LMS-ya həmin məzmunu yalnız Platformanın fəaliyyətinin təmin edilməsi, idarə olunması və təkmilləşdirilməsi məqsədilə yerləşdirmək, saxlamaq, emal etmək və göstərmək üçün qeyri-eksklüziv, dünya miqyasında və royaltisiz lisenziya verirsiniz.</p>
-        <p class="clause"><span class="clause-num">3.2.</span><strong>İstifadəçi Məzmununa görə məsuliyyət</strong></p>
-        <p class="clause"><span class="clause-num">3.2.1.</span>İstifadəçi Məzmununa görə tam məsuliyyət İstifadəçinin öz üzərinə düşür. İstifadəçi aşağıdakı məzmunu yükləməməyə və ya paylaşmamağa razılaşır:</p>
-        <ul class="policy-list">
-            <li>qanunsuz, saxtakarlıq və ya aldadıcı xarakter daşıyan məzmun;</li>
-            <li>üçüncü şəxslərin əqli mülkiyyət və ya məxfilik hüquqlarını pozan məzmun;</li>
-            <li>zərərli proqram təminatı, virus və ya digər zərərli kod ehtiva edən məzmun;</li>
-            <li>təhqiredici, nifrət dolu və ya aqressiv xarakterli məzmun.</li>
-        </ul>
-        <p class="clause"><span class="clause-num">3.2.2.</span>Bu Şərtləri və ya tətbiq olunan qanunvericiliyi pozan məzmunu silmək və ya ona çıxışı məhdudlaşdırmaq hüququnu özümüzdə saxlayırıq.</p>
-    </div>
-
-    <h2>4. Fayl Saxlama və Üçüncü Tərəf Xidmətləri</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">4.1.</span>LMS faylların yüklənməsi, ehtiyat nüsxələrinin yaradılması və ya məzmunun emalı kimi funksiyaların təmin edilməsi üçün üçüncü tərəf xidmətlərindən (məsələn, bulud yaddaşı, API xidmətləri və ya tərcümə xidmətləri) istifadə edə bilər.</p>
-        <p class="clause"><span class="clause-num">4.2.</span>İstifadəçi Məzmunu yalnız Platformanın funksionallığını təmin etmək üçün bu xidmətlər vasitəsilə emal oluna və saxlanıla bilər.</p>
-        <p class="clause"><span class="clause-num">4.3.</span>LMS, qanunla nəzərdə tutulan hallar istisna olmaqla, üçüncü tərəf xidmət təminatçılarının fəaliyyəti nəticəsində yaranan kəsintilər, məlumat itkisi və ya məlumatların dəyişdirilməsi üçün məsuliyyət daşımır.</p>
-        <p class="clause"><span class="clause-num">4.4.</span><strong>Google Drive İnteqrasiyası:</strong></p>
-        <p class="clause"><span class="clause-num">4.4.1.</span>LMS İstifadəçilərə faylları yükləmək, saxlamaq, əldə etmək və ya idarə etmək məqsədilə öz Google Drive hesablarını tətbiqə qoşmaq imkanı verə bilər. Bu inteqrasiya Google OAuth 2.0 avtorizasiya mexanizmi vasitəsilə həyata keçirilir.</p>
-        <p class="clause"><span class="clause-num">4.4.2.</span>Google Drive hesabını qoşduğunuz zaman LMS yalnız <code>drive.file</code> icazə sahəsini tələb edir ki, bu da girişi yalnız Tətbiq vasitəsilə yaradılmış və ya açılmış fayllarla məhdudlaşdırır. Bu icazələr Google avtorizasiya prosesi zamanı İstifadəçiyə göstərilir.</p>
-        <p class="clause"><span class="clause-num">4.4.3.</span>LMS İstifadəçinin açıq şəkildə icazə verdiyi çərçivədən kənar fayllara daxil olmur, onları oxumur və dəyişdirmir.</p>
-        <p class="clause"><span class="clause-num">4.4.4.</span>Google Drive vasitəsilə yüklənmiş və ya idarə olunan fayllar İstifadəçinin nəzarəti altında qalır və Google-un müvafiq İstifadə Şərtlərinə və Məxfilik Siyasətinə tabedir.</p>
-        <p class="clause"><span class="clause-num">4.4.5.</span>İstifadəçi istənilən vaxt öz Google Hesabının təhlükəsizlik parametrləri vasitəsilə LMS-nın Google Drive hesabına girişini ləğv edə bilər.</p>
-    </div>
-
-    <h2>5. Tərcümələr və Avtomatlaşdırılmış Funksiyalar</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">5.1.</span>LMS maşın tərcüməsi və ya süni intellekt texnologiyalarına əsaslanan digər avtomatlaşdırılmış funksiyalar (məsələn, avtomatik tərcümə) təqdim edə bilər.</p>
-        <p class="clause"><span class="clause-num">5.2.</span>Bu funksiyalar olduğu kimi təqdim olunur və onların nəticələrində səhvlər və ya qeyri-dəqiqliklər ola bilər.</p>
-        <p class="clause"><span class="clause-num">5.3.</span>LMS avtomatik yaradılmış nəticələrin düzgünlüyünə, tamlığına və ya konkret məqsəd üçün uyğunluğuna zəmanət vermir.</p>
-    </div>
-
-    <h2>6. Məqbul istifadə</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">6.1.</span>İstifadəçi Platformadan istifadə edərkən aşağıdakılarla razılaşır:</p>
-        <ul class="policy-list">
-            <li><strong>6.1.1.</strong> Platformanın və ya onun infrastrukturunun sui-istifadəsinə, həddindən artıq yüklənməsinə və ya pozulmasına cəhd etməmək;</li>
-            <li><strong>6.1.2.</strong> Sistemlərə, istifadəçi hesablarına və ya məlumatlara icazəsiz daxil olmağa çalışmamaq;</li>
-            <li><strong>6.1.3.</strong> Spam göndərmək, məlumatların avtomatik toplanması (scraping) və ya avtomatlaşdırılmış sui-istifadə məqsədləri üçün Platformadan istifadə etməmək;</li>
-            <li><strong>6.1.4.</strong> Təhlükəsizlik və giriş nəzarətini aşmaq cəhdləri etməmək.</li>
-        </ul>
-    </div>
-
-    <h2>7. Əqli Mülkiyyət Hüquqları</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">7.1.</span>LMS adı, loqosu, dizaynı və platforma ilə əlaqəli bütün məzmun (İstifadəçi Məzmunu istisna olmaqla) LMS və ya onun lisenziyalaşdırıcılarına məxsusdur.</p>
-        <p class="clause"><span class="clause-num">7.2.</span>Siz yazılı icazə olmadan Platformanın hər hansı hissəsini köçürə, dəyişdirə, paylaya və ya tərsinə çevirə bilməzsiniz.</p>
-    </div>
-
-    <h2>8. Məxfilik</h2>
-    <div class="section-body">
-        <p>Sizin LMS istifadəniz Məxfilik Siyasəti ilə tənzimlənir, burada məlumatlarınızın necə toplandığı, istifadə edildiyi və qorunduğu izah edilir.</p>
-    </div>
-
-    <h2>9. Xitam</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">9.1.</span>İstənilən vaxt Platformadan istifadəni dayandıra bilərsiniz.</p>
-        <p class="clause"><span class="clause-num">9.2.</span>Bu Şərtləri pozduğunuz halda və ya qanunla tələb olunduğu halda, biz hesabınıza girişinizi dərhal dayandıra və ya ləğv edə bilərik.</p>
-        <p class="clause"><span class="clause-num">9.3.</span>Ləğv edildikdən sonra hesabınıza və saxlanılmış məzmuna çıxışınız silinə bilər.</p>
-    </div>
-
-    <h2>10. Zəmanətlərdən imtina</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">10.1.</span>Platforma olduğu kimi təqdim olunur. Qanunla icazə verilən həddə:</p>
-        <ul class="policy-list">
-            <li>Biz Platformanın fasiləsiz, səhvsiz və ya hər zaman əlçatan olacağına zəmanət vermirik;</li>
-            <li>Biz Platforma vasitəsilə əldə edilən məlumatların və ya nəticələrin dəqiqliyi və etibarlılığı barədə heç bir zəmanət vermirik.</li>
-        </ul>
-    </div>
-
-    <h2>11. Məsuliyyətin məhdudlaşdırılması</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">11.1.</span>Qanunla nəzərdə tutulan hallar istisna olmaqla, LMS aşağıdakılara görə məsuliyyət daşımır:</p>
-        <ul class="policy-list">
-            <li>dolayı, təsadüfi və ya nəticə etibarilə yaranan zərərlərə görə;</li>
-            <li>məlumatların, mənfəətin və ya biznes imkanlarının itirilməsinə görə;</li>
-            <li>üçüncü tərəf xidmətləri və ya İstifadəçilərin hərəkətləri nəticəsində yaranan problemlərə görə.</li>
-        </ul>
-    </div>
-
-    <h2>12. Dəyişikliklərin edilməsi</h2>
-    <div class="section-body">
-        <p>Biz bu Şərtləri vaxtaşırı yeniləyə bilərik. Dəyişikliklər qüvvəyə mindikdən sonra, Platformadan davamlı istifadə yenilənmiş Şərtlərin qəbul edilməsi kimi qiymətləndirilir.</p>
-    </div>
-
-    <h2>13. Tətbiq olunan hüquq</h2>
-    <div class="section-body">
-        <p>Bu Şərtlər Azərbaycan Respublikasının qanunvericiliyinə uyğun olaraq tənzimlənir və şərh edilir.</p>
-    </div>
-
-    <h2>14. Əlaqə</h2>
-    <div class="section-body">
-        <p>Bu Şərtlər haqqında suallarınız varsa, zəhmət olmasa LMS vebsaytı vasitəsilə bizimlə əlaqə saxlayın.</p>
-    </div>
-
-    <p class="closing-statement">LMS-dan istifadə etməklə siz bu İstifadə Şərtlərini tanış olduğunuzu və onlara əməl etməyə razı olduğunuzu təsdiq edirsiniz.</p>
-
     {% endif %}
 
-    <a href="/" class="back-link">&#8592; {% if current_locale == 'az' %}Ana səhifəyə qayıt{% elif current_locale == 'ru' %}Вернуться на главную{% else %}Back to Home{% endif %}</a>
+    <a href="/" class="back-link">&#8592; {% if current_locale == 'ru' %}Вернуться на главную{% else %}Back to Home{% endif %}</a>
 
 </div>
 </body>

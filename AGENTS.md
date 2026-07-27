@@ -6,7 +6,7 @@ Context for LLM assistants working on this codebase.
 
 ## Project
 
-LMS is a Flask-based Learning Management System. Multi-language (az/en/ru), Google OAuth + Drive integration, admin panel, forum, course management, resource library.
+LMS is a Flask-based Learning Management System. Multi-language (en/ru), Google OAuth + Drive integration, admin panel, forum, course management, resource library.
 
 **Stack:** Python 3.13, Flask, SQLAlchemy, Alembic, PostgreSQL 17, Caddy, Gunicorn, Docker Compose, uv, just.
 
@@ -25,18 +25,21 @@ Dockerfile              Multi-stage, uv-based
 lms/
   __init__.py           create_app() factory
   config.py             Config classes — reads from os.environ only
-  models/__init__.py    All SQLAlchemy models (19 models)
+  models/__init__.py    All SQLAlchemy models (26 models)
   routes/
     __init__.py         main_bp — homepage, courses, forum, resources
     auth.py             auth_bp — login, Google OAuth
     api.py              api_bp  — REST API (/api/*)
   admin/__init__.py     Flask-Admin interface + Google OAuth for Drive
   templates/            Jinja2 templates
-  translations/         Babel .po/.mo (az, en, ru)
-  job_manager.py        Background job worker (translation jobs)
+  translations/         Babel .po/.mo (en, ru only — az was removed)
+  queue.py              RQ Queue + Redis connection
+  worker.py             RQ worker entrypoint (separate process — see below)
+  job_manager.py        Job definitions/dispatch (translation jobs), enqueues onto queue.py
   content_translator.py Auto-translation of dynamic content
-  google_drive_service.py Google Drive API integration
-  translation_service.py  Translation service abstraction
+  core_translator.py    Engine-agnostic translate_text/translate_batch (DeepL), no Flask/DB dep
+  google_drive_service.py Google Drive API integration (worker-account or per-user OAuth)
+  translation_service.py  Runtime translation service — DB-cached, requires app context
 
 Caddyfile               Local dev reverse proxy config (mkcert TLS)
 deploy/
@@ -64,10 +67,10 @@ scripts/
 **Never set `DATABASE_URL` or `GOOGLE_REDIRECT_URI` in `.env`.** They are assembled by Docker Compose:
 
 ```yaml
-DATABASE_URL:        postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback     # prod
-                     https://${LOCAL_DOMAIN}/auth/google/callback # prod-dev
-                     http://localhost:5000/auth/google/callback   # dev
+DATABASE_URL:        postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-<profile>:5432/${POSTGRES_DB}
+GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback           # production
+                     https://${DOMAIN}/auth/google/callback           # staging
+                     http://localhost:5000/auth/google/callback       # dev
 ```
 
 For local runs outside Docker (`just dev`), the Justfile prepends these derived vars inline.
@@ -78,8 +81,16 @@ SECRET_KEY, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD,
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DOMAIN
 ```
 
+**Also used (optional/feature-gated):**
+```
+REDIS_PORT (dev only — default 6379), DEEPL_API_KEY (translation pipeline),
+GOOGLE_API_KEY (Drive Picker)
+```
+
 **GitHub Actions secrets (same names, plus):**
-`SSH_HOST, SSH_USER, SSH_PRIVATE_KEY, STAGING_DOMAIN`
+`SSH_HOST, SSH_USER, SSH_PRIVATE_KEY, STAGING_DOMAIN` — currently unused; the SSH deploy
+step in `deploy.yml` is commented out (no prod/staging server yet). Only image build+push
+to GHCR actually runs.
 
 ---
 
@@ -87,14 +98,16 @@ GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DOMAIN
 
 | Profile | Services | Use for |
 |---|---|---|
-| `dev` | db → migrate → app-dev | Daily development |
-| `prod-dev` | db → migrate → app-prod-dev + caddy-local | End-to-end local testing |
-| `prod` | db → migrate-prod → app + caddy | Production |
+| `dev` | db-dev, redis-dev → migrate-dev → app-dev, worker-dev, caddy-dev | Daily development |
+| `staging` | db-staging, redis-staging → migrate-staging → app-staging, worker-staging | Staging deploy |
+| `production` | db-production, redis-production → migrate-production → app-production, worker-production | Production deploy |
 
-`migrate` / `migrate-prod` run `flask db upgrade` and exit before the app starts (`service_completed_successfully`).
+`migrate-*` run `flask db upgrade` and exit before the app starts (`service_completed_successfully`).
+`worker-*` runs `python -m lms.worker` — a separate process from the Flask app, required for
+any queued job (translation, etc.) to actually get processed.
 
-`prod` uses image from GHCR: `ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG}`.
-`dev` and `prod-dev` build locally.
+`staging`/`production` use the image from GHCR: `ghcr.io/${GHCR_OWNER}/lms:${IMAGE_TAG}`.
+`dev` builds locally.
 
 ---
 
@@ -108,7 +121,12 @@ GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DOMAIN
 
 **Proxy trust.** Gunicorn has `forwarded_allow_ips = "*"` — required for correct `request.remote_addr` and `request.is_secure` behind Caddy.
 
-**Background worker.** `job_manager.start_worker(app)` is called in `create_app()` but skipped during CLI commands (`flask db`, `flask shell`, etc.). The worker reuses the passed `app` instance — it does not call `create_app()` itself.
+**Background jobs.** RQ + Redis (`lms/queue.py`), not an in-process thread. `lms/worker.py` is
+its own process/container (`worker-dev`/`worker-staging`/`worker-production`, or `just worker`
+locally) — it calls `create_app()` itself and pushes an app context for its whole lifetime.
+Job status/progress is tracked in the `BackgroundJob` DB table regardless of which worker
+picks a job up. The recurring translation sweep uses RQ's built-in scheduler
+(`Worker.work(with_scheduler=True)`) — no separate scheduler process.
 
 **Static files.** Served by Flask/Gunicorn from `/app/static/` inside the container. Caddy does not serve static directly (removed — was causing doubled-path 404s). `static/permanent/` contains design assets committed to git.
 
@@ -117,13 +135,13 @@ GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DOMAIN
 ## Common tasks
 
 ```bash
-just up                          # start dev environment
+just up                          # start dev environment (Docker)
+just dev                         # run Flask locally (no Docker), needs `just redis` too
+just worker                      # run the RQ worker locally (no Docker) — needed for queued jobs
 just migrate                     # apply migrations (Docker)
 just makemigrations message="x"  # generate migration (Docker)
 just db-stamp                    # stamp alembic head (after restore)
-just dev                         # run Flask locally (no Docker)
-just prod-dev-up                 # full stack local test
-just prod-dev-trust              # trust Caddy CA (once per machine)
+just translate-all                # full .po translation pipeline (needs DEEPL_API_KEY)
 ```
 
 ---
@@ -133,10 +151,9 @@ just prod-dev-trust              # trust Caddy CA (once per machine)
 `.github/workflows/deploy.yml` — triggers on push to `main` or `staging`.
 
 1. Builds image, pushes to GHCR with tags: `<branch>`, `<sha>`, `latest` (main only)
-2. SCP: copies `docker-compose.yml`, `Caddyfile`, `backup.sh`, `restore.sh` to server
-3. SSH: writes `.env` from secrets, pulls image, restarts containers
-
-Deploy path: `/home/${SSH_USER}/deploy/${branch}/lms/`
+2. SSH deploy steps (SCP config, write `.env` from secrets, pull image, restart containers)
+   are currently **commented out** — no prod/staging server provisioned yet. Deploying today
+   means pulling the pushed image manually.
 
 ---
 
@@ -158,7 +175,7 @@ just db-stamp
 
 **`static/permanent/`** — design assets that must be committed to git. If they're missing from the image it means the build cache was stale. Run `docker compose build --no-cache`.
 
-**Translation service.** `translation_service.py` has hardcoded `127.0.0.1` URLs for LibreTranslate — that service is not part of this Docker setup and those code paths are unused. The active translation path uses `deep-translator` (Google Translate API).
+**Translation service.** `core_translator.py`/`translation_service.py` use DeepL (`DEEPL_API_KEY` in `.env`) — a cloud API, no local service to run.
 
 ---
 

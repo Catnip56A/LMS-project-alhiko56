@@ -3,7 +3,7 @@
 Translate .po files using the core translation engine.
 
 Dev-time tool — no Flask app context, no database required.
-Reads LIBRETRANSLATE_URL from the environment (set via .env / just).
+Reads DEEPL_API_KEY from the environment (set via .env / just).
 """
 import os
 import sys
@@ -41,7 +41,7 @@ LANGUAGE_NAMES = _constants.LANGUAGE_NAMES
 
 LANGUAGES = {lang: LANGUAGE_NAMES.get(lang, lang) for lang in SUPPORTED_LANGUAGES}
 TRANSLATIONS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'lms', 'translations')
-LIBRE_URL = os.environ.get('LIBRETRANSLATE_URL') or None
+DEEPL_API_KEY = os.environ.get('DEEPL_API_KEY') or None
 CHUNK_SIZE = 50
 SOURCE_LANG = 'en'
 
@@ -100,7 +100,7 @@ def translate_po_file(po_file_path: str, lang_code: str) -> None:
     translated_texts = _core_translator.translate_batch(
         texts,
         lang_code,
-        libretranslate_url=LIBRE_URL,
+        deepl_api_key=DEEPL_API_KEY,
         chunk_size=CHUNK_SIZE,
     )
 
@@ -117,10 +117,10 @@ def translate_po_file(po_file_path: str, lang_code: str) -> None:
 
 def main() -> None:
     print("Translating .po files...")
-    if LIBRE_URL:
-        print(f"  LibreTranslate: {LIBRE_URL}")
+    if DEEPL_API_KEY:
+        print("  DeepL: configured")
     else:
-        print("  WARNING: LIBRETRANSLATE_URL not set — translations will be skipped")
+        print("  WARNING: DEEPL_API_KEY not set — translations will be skipped")
     print()
 
     for lang_code, lang_name in LANGUAGES.items():

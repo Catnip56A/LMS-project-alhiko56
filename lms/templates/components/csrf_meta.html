@@ -5,8 +5,7 @@
 
         // Auto-inject csrf_token into any <form method="post"> on submit, including
         // forms built dynamically via JS template strings (e.g. innerHTML).
-        document.addEventListener('submit', function(e) {
-            var form = e.target;
+        function injectToken(form) {
             if (form.tagName === 'FORM' && form.method.toLowerCase() === 'post' &&
                 !form.querySelector('input[name="csrf_token"]')) {
                 var input = document.createElement('input');
@@ -15,7 +14,17 @@
                 input.value = token;
                 form.appendChild(input);
             }
-        }, true);
+        }
+        document.addEventListener('submit', function(e) { injectToken(e.target); }, true);
+
+        // form.submit() (unlike a real user submit or form.requestSubmit()) does NOT fire
+        // the 'submit' event per spec, so the listener above never runs for it — patch the
+        // method itself to catch that case too (e.g. onchange="this.form.submit()").
+        var originalFormSubmit = HTMLFormElement.prototype.submit;
+        HTMLFormElement.prototype.submit = function() {
+            injectToken(this);
+            return originalFormSubmit.call(this);
+        };
 
         // Attach the token header to same-origin fetch() calls that change state.
         var originalFetch = window.fetch;

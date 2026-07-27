@@ -3,6 +3,7 @@ Content translation helper for automatic translation of dynamic content
 """
 import re
 import logging
+from lms.constants import SUPPORTED_LANGUAGES
 from lms.models import ContentTranslation, db
 from lms.translation_service import translation_service
 
@@ -15,15 +16,14 @@ except ImportError:
     LANGDETECT_AVAILABLE = False
     logger.warning("langdetect not available. Install with: pip install langdetect")
 
-# Import centralized language constants
-
-# Languages to automatically translate to
-TARGET_LANGUAGES = ['az', 'ru']
+# Non-English languages to automatically translate to — derived from the app-wide
+# SUPPORTED_LANGUAGES list (constants.py) rather than hardcoded, so a disabled language
+# (e.g. 'az') can't silently keep being translated here after being turned off elsewhere.
+TARGET_LANGUAGES = [lang for lang in SUPPORTED_LANGUAGES if lang != 'en']
 
 # Fields to translate for each content type
 TRANSLATABLE_FIELDS = {
     'course': ['title', 'description', 'tags'],
-    'resource': ['title', 'description'],
 }
 
 
@@ -96,7 +96,7 @@ def translate_content(content_type, content_id, field_name, text, source_languag
             else:
                 translated = translation_service.get_translation(text, target_lang, source_language)
 
-            # Skip if translation is empty or unchanged (LibreTranslate unavailable)
+            # Skip if translation is empty or unchanged (DeepL unavailable/failed)
             if not translated or translated == text:
                 logger.warning(f"Translation unchanged/failed for {content_type}:{content_id}.{field_name} -> {target_lang}")
                 continue
@@ -277,17 +277,6 @@ def auto_translate_course_content_folder(folder, session=None):
         text = getattr(folder, field, None)
         if text:
             translate_content('course_content_folder', folder.id, field, text, session=session)
-
-
-def auto_translate_resource(resource, session=None):
-    """Automatically translate all translatable fields of a resource."""
-    fields = TRANSLATABLE_FIELDS.get('resource', [])
-    
-    for field in fields:
-        text = getattr(resource, field, None)
-        if text:
-            translate_content('resource', resource.id, field, text, session=session)
-
 
 
 def get_translated_content(content_type, content_id, field_name, original_text, target_language):
@@ -475,4 +464,54 @@ def get_translated_string_array(content_type, content_id, field_name, string_arr
             translated_array.append(translated_item)
         else:
             translated_array.append(item)
-    
+
+    return translated_array
+
+
+_LEAKED_PLACEHOLDER = re.compile(r'\{LMS\}|\{MOXO\}')
+
+
+def spot_check_translations(sample_size=10):
+    """Lightweight automated sanity check on a random sample of ContentTranslation rows.
+
+    Not a quality judge (no reference translation to compare against) — just catches the
+    failure modes an API error or a term-protection bug actually produces: an empty result,
+    or a {LMS}/{MOXO} placeholder that restore_terms() should have already replaced but
+    leaked through untranslated. Returns a dict suitable for merging into a job's result.
+    """
+    import random
+
+    total = ContentTranslation.query.count()
+    if total == 0:
+        return {'checked': 0, 'flagged': 0, 'details': []}
+
+    sample_size = min(sample_size, total)
+    sample_ids = random.sample(range(total), sample_size)
+
+    flagged = []
+    for offset in sample_ids:
+        row = ContentTranslation.query.offset(offset).limit(1).first()
+        if not row:
+            continue
+
+        issues = []
+        if not row.translated_text or not row.translated_text.strip():
+            issues.append('empty')
+        if row.translated_text and _LEAKED_PLACEHOLDER.search(row.translated_text):
+            issues.append('leaked protected-term placeholder')
+
+        if issues:
+            flagged.append({
+                'id': row.id,
+                'content_type': row.content_type,
+                'content_id': row.content_id,
+                'field_name': row.field_name,
+                'target_language': row.target_language,
+                'issues': issues,
+            })
+
+    if flagged:
+        logger.warning(f"Translation spot-check flagged {len(flagged)}/{sample_size} sampled rows: {flagged}")
+
+    return {'checked': sample_size, 'flagged': len(flagged), 'details': flagged}
+

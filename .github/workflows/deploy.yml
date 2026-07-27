@@ -85,7 +85,7 @@ jobs:
       #       EOF
       #       echo "APP_HOSTNAME=$(grep '^DOMAIN=' .env | cut -d= -f2 | tr '.' '-')" >> .env
       #
-      #       mkdir -p data/libretranslate && chmod a+w data/libretranslate
+      #       mkdir -p data/redis && chmod a+w data/redis
       #       chmod +x deploy/backup.sh deploy/restore.sh
       #       envir=${{ github.ref_name == 'main' && 'production' || 'staging' }}
       #       ./deploy/backup.sh $envir /home/${{ secrets.SSH_USER }}/backup/lms/$envir

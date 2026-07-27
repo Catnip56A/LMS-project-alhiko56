@@ -23,15 +23,15 @@ def _folder_is_ancestor_of(folder_id, target_id):
 
 @main_bp.route('/', methods=['GET', 'POST'])
 def index():
-    """Serve main index page"""
-    from lms.models import SiteSettings, Resource, PDFDocument, db
+    """Serve the Home page: enrolled courses, recent activity, recommendations, promo-code join."""
+    from lms.models import SiteSettings, PDFDocument, Course, ContentView, CourseContent, db
 
     # Handle POST requests for deletions and actions
     if request.method == 'POST':
         action = request.form.get('action')
 
         # Reorder root folders
-        if action == 'reorder_root_folders' and (current_user.is_teacher or current_user.is_admin):
+        if action == 'reorder_root_folders':
             from lms.models import CourseContentFolder
             folder_order = request.form.get('folder_order', '')
             course_id_raw = request.form.get('course_id')
@@ -39,8 +39,9 @@ def index():
                 course_id_int = int(course_id_raw) if course_id_raw and str(course_id_raw).isdigit() else None
             except Exception:
                 course_id_int = None
+            reorder_course = Course.query.get(course_id_int) if course_id_int else None
 
-            if folder_order:
+            if reorder_course and reorder_course.is_managed_by(current_user) and folder_order:
                 folder_ids = [int(fid) for fid in folder_order.split(',') if fid.isdigit()]
                 for idx, folder_id in enumerate(folder_ids):
                     folder = CourseContentFolder.query.get(folder_id)
@@ -50,32 +51,6 @@ def index():
                 db.session.commit()
                 flash('Root folder order updated!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course_id_int or 0))
-
-        # Delete resource
-        if action == 'delete_resource' and current_user.is_authenticated:
-            from lms.google_drive_service import authenticate, delete_file
-            resource_id = request.form.get('resource_id')
-            resource = Resource.query.get(resource_id)
-            if not resource:
-                flash('Resource not found.', 'error')
-                return redirect(url_for('main.index'))
-            # Check permission: must be the uploader or an admin
-            if resource.uploaded_by != current_user.id and not current_user.is_admin:
-                flash('You do not have permission to delete this resource.', 'error')
-                return redirect(url_for('main.index'))
-            # Delete from Google Drive only if the app uploaded it (not imported from user's Drive)
-            if resource.drive_file_id and not resource.is_imported:
-                service = authenticate()
-                if service:
-                    try:
-                        delete_file(service, resource.drive_file_id)
-                    except Exception as e:
-                        current_app.logger.error(f"Error deleting resource from Google Drive: {e}")
-            # Delete from database
-            db.session.delete(resource)
-            db.session.commit()
-            flash('Resource deleted successfully!', 'success')
-            return redirect(url_for('main.index'))
 
         # Delete PDF
         if action == 'delete_pdf' and current_user.is_authenticated:
@@ -111,7 +86,91 @@ def index():
         current_app.logger.error(f"Database error in index route: {e}")
         site_settings = SiteSettings()
 
-    return render_template('index.html', is_authenticated=current_user.is_authenticated, site_settings=site_settings)
+    my_courses = []
+    recent_activity = []
+    enrolled_course_ids = set()
+
+    if current_user.is_authenticated:
+        my_courses = list(current_user.courses)
+        enrolled_course_ids = {c.id for c in my_courses}
+
+        # Recent activity: most recent distinct course-content items this user has viewed
+        views = (ContentView.query
+                 .filter_by(user_id=current_user.id, content_type='course_content')
+                 .order_by(ContentView.viewed_at.desc())
+                 .limit(20)
+                 .all())
+        seen_content_ids = set()
+        for v in views:
+            if len(recent_activity) >= 5:
+                break
+            try:
+                content_id = int(v.content_id)
+            except (TypeError, ValueError):
+                continue
+            if content_id in seen_content_ids:
+                continue
+            seen_content_ids.add(content_id)
+            content = CourseContent.query.get(content_id)
+            if content:
+                recent_activity.append({'content': content, 'viewed_at': v.viewed_at})
+
+    # Recommendations: public courses the user hasn't joined yet (or all public courses, for guests)
+    recs_query = Course.query.filter(Course.is_public.is_(True))
+    if enrolled_course_ids:
+        recs_query = recs_query.filter(~Course.id.in_(enrolled_course_ids))
+    recommended_courses = recs_query.order_by(Course.title).limit(6).all()
+
+    return render_template('home.html',
+        is_authenticated=current_user.is_authenticated,
+        site_settings=site_settings,
+        current_locale=str(get_locale()),
+        my_courses=my_courses,
+        recent_activity=recent_activity,
+        recommended_courses=recommended_courses,
+    )
+
+
+@main_bp.route('/course/create', methods=['GET', 'POST'])
+@login_required
+def create_course():
+    """Self-service course creation — any authenticated user can create a course they'll
+    manage (course.is_managed_by() grants them the same in-page management actions as a
+    teacher/admin, scoped to just this course). They're auto-enrolled as the first member.
+    """
+    from lms.models import Course, Enrollment, JOIN_VIA_CREATOR, SiteSettings, db
+
+    try:
+        site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
+    except Exception as e:
+        current_app.logger.error(f"Database error in create_course route: {e}")
+        site_settings = SiteSettings()
+
+    if request.method == 'POST':
+        title = (request.form.get('title') or '').strip()
+        description = (request.form.get('description') or '').strip()
+        if not title:
+            flash(_('Course title is required.'), 'error')
+            return render_template('course_create.html', title=title, description=description,
+                                    site_settings=site_settings, current_locale=str(get_locale()))
+
+        course = Course(title=title, description=description, created_by=current_user.id)
+        db.session.add(course)
+        db.session.flush()  # assign course.id before creating the enrollment
+        db.session.add(Enrollment(user=current_user, course=course, joined_via=JOIN_VIA_CREATOR))
+        db.session.commit()
+
+        try:
+            from lms.job_manager import job_manager
+            job_manager.queue_job('translate_course', {'course_id': course.id})
+        except Exception as e:
+            current_app.logger.warning(f"Failed to queue translation for new course {course.id}: {e}")
+
+        flash(_('Course created! You can now add content, assignments, and more.'), 'success')
+        return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+    return render_template('course_create.html', title='', description='',
+                            site_settings=site_settings, current_locale=str(get_locale()))
 
 
 @main_bp.route('/course/<int:course_id>/join', methods=['POST'])
@@ -207,7 +266,7 @@ def quiz_overview(course_id, quiz_id):
 
     course = Course.query.get_or_404(course_id)
     quiz = Quiz.query.filter_by(id=quiz_id, course_id=course_id).first_or_404()
-    is_staff = current_user.is_teacher or current_user.is_admin
+    is_staff = course.is_managed_by(current_user)
     if not is_staff and current_user not in course.users:
         flash(_('You must be enrolled in this course to take this quiz.'), 'error')
         return redirect(url_for('main.course_page_enrolled', course_id=course_id))
@@ -305,7 +364,7 @@ def course_page_enrolled(course_id):
 
 
     # Check enrollment status
-    enrolled = current_user.is_authenticated and (current_user in course.users or current_user.is_teacher or current_user.is_admin)
+    enrolled = current_user.is_authenticated and (current_user in course.users or course.is_managed_by(current_user))
 
     # Handle POST requests only if enrolled
     if request.method == 'POST':
@@ -316,7 +375,7 @@ def course_page_enrolled(course_id):
         action = request.form.get('action')
         
         # Add announcement
-        if action == 'add_announcement' and (current_user.is_teacher or current_user.is_admin):
+        if action == 'add_announcement' and (course.is_managed_by(current_user)):
             title = request.form.get('announcement_title')
             message = request.form.get('announcement_message')
             is_published = request.form.get('announcement_published') == 'on'
@@ -334,7 +393,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Add assignment
-        elif action == 'add_assignment' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'add_assignment' and (course.is_managed_by(current_user)):
             title = request.form.get('assignment_title')
             description = request.form.get('assignment_description')
             due_date_str = request.form.get('assignment_due_date')
@@ -363,7 +422,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Edit assignment
-        elif action == 'edit_assignment' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'edit_assignment' and (course.is_managed_by(current_user)):
             from lms.models import CourseAssignment
             assignment_id = request.form.get('assignment_id')
             if not assignment_id:
@@ -405,7 +464,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Grade and comment on submission
-        elif action == 'grade_submission' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'grade_submission' and (course.is_managed_by(current_user)):
             from lms.models import CourseAssignmentSubmission
             submission_id = request.form.get('submission_id')
             grade = request.form.get('grade')
@@ -435,7 +494,7 @@ def course_page_enrolled(course_id):
             
             assignment = submission.assignment
             # Check permissions: teacher/admin of the course OR the student who submitted
-            if not ((current_user.is_teacher or current_user.is_admin) or current_user.id == submission.user_id):
+            if not ((course.is_managed_by(current_user)) or current_user.id == submission.user_id):
                 flash('You do not have permission to decline this submission.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
@@ -581,7 +640,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Create folder
-        elif action == 'create_folder' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'create_folder' and (course.is_managed_by(current_user)):
             from lms.models import CourseContentFolder
             parent_folder_id = request.form.get('parent_folder_id')
             folder_title = request.form.get('folder_title')
@@ -603,7 +662,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Upload file to folder
-        elif action == 'upload_file' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'upload_file' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent
             file_folder_id = request.form.get('file_folder_id')
             file_title = request.form.get('file_title')
@@ -710,7 +769,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Delete course content
-        elif action == 'delete_content' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'delete_content' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent
             from lms.google_drive_service import authenticate, delete_file
             
@@ -769,7 +828,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Toggle content visibility
-        elif action == 'toggle_content_visibility' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'toggle_content_visibility' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent
             from lms.google_drive_service import authenticate, set_file_permissions
             
@@ -796,7 +855,7 @@ def course_page_enrolled(course_id):
             flash(f"File visibility updated: {'Visible to students' if content.allow_others_to_view else 'Private'}", 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
-        elif action == 'toggle_content_downloadable' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'toggle_content_downloadable' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent
             content_id = request.form.get('content_id')
             content = CourseContent.query.get(content_id)
@@ -845,7 +904,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Delete folder
-        elif action == 'delete_folder' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'delete_folder' and (course.is_managed_by(current_user)):
             from lms.models import CourseContentFolder, CourseContent
             folder_id = request.form.get('folder_id')
             delete_with_contents = request.form.get('delete_with_contents') == '1'
@@ -885,7 +944,7 @@ def course_page_enrolled(course_id):
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Edit folder
-        elif action == 'edit_folder' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'edit_folder' and (course.is_managed_by(current_user)):
             from lms.models import CourseContentFolder
             folder_id = request.form.get('folder_id')
             folder_name = request.form.get('folder_name')
@@ -910,7 +969,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Edit file
-        elif action == 'edit_file' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'edit_file' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent
             file_id = request.form.get('file_id')
             file_name = request.form.get('file_name')
@@ -935,7 +994,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Delete assignment
-        elif action == 'delete_assignment' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'delete_assignment' and (course.is_managed_by(current_user)):
             from lms.models import CourseAssignment
             from lms.google_drive_service import authenticate, delete_file
             assignment_id = request.form.get('assignment_id')
@@ -978,7 +1037,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Delete announcement
-        elif action == 'delete_announcement' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'delete_announcement' and (course.is_managed_by(current_user)):
             from lms.models import CourseAnnouncement
             announcement_id = request.form.get('announcement_id')
             announcement = CourseAnnouncement.query.get(announcement_id)
@@ -1043,7 +1102,7 @@ def course_page_enrolled(course_id):
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
             # Check permission: must be the owner or an admin/teacher
-            if review.user_id != current_user.id and not (current_user.is_teacher or current_user.is_admin):
+            if review.user_id != current_user.id and not (course.is_managed_by(current_user)):
                 flash('You do not have permission to edit this review.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
@@ -1067,7 +1126,7 @@ def course_page_enrolled(course_id):
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
             # Check permission: must be the owner or an admin/teacher
-            if review.user_id != current_user.id and not (current_user.is_teacher or current_user.is_admin):
+            if review.user_id != current_user.id and not (course.is_managed_by(current_user)):
                 flash('You do not have permission to delete this review.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
@@ -1077,7 +1136,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Import single file from Google Drive
-        elif action == 'import_drive_file' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'import_drive_file' and (course.is_managed_by(current_user)):
             drive_url = request.form.get('drive_url', '').strip()
             current_app.logger.debug(f"import_drive_file action called with drive_url: {drive_url}")
             if not drive_url:
@@ -1131,7 +1190,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Import entire folder from Google Drive
-        elif action == 'import_drive_folder' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'import_drive_folder' and (course.is_managed_by(current_user)):
             folder_url = request.form.get('drive_url', '').strip()
             current_app.logger.debug(f"import_drive_folder action called with folder_url: {folder_url}")
             if not folder_url:
@@ -1322,7 +1381,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Bulk delete content
-        elif action == 'bulk_delete_content' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'bulk_delete_content' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent, CourseContentFolder
             from lms.google_drive_service import authenticate, delete_file
 
@@ -1367,7 +1426,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Reorder files in a folder
-        elif action == 'reorder_files' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'reorder_files' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent
             folder_id = request.form.get('folder_id')
             file_order = request.form.get('file_order', '')
@@ -1382,7 +1441,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
         # Reorder root-level folders (drag-and-drop from course page)
-        elif action == 'reorder_root_folders' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'reorder_root_folders' and (course.is_managed_by(current_user)):
             folder_order = request.form.get('folder_order', '')
             if folder_order:
                 folder_ids = [int(fid) for fid in folder_order.split(',') if fid.isdigit()]
@@ -1395,7 +1454,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
         # Reorder subfolders in a folder
-        elif action == 'reorder_folders' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'reorder_folders' and (course.is_managed_by(current_user)):
             from lms.models import CourseContentFolder
             parent_folder_id = request.form.get('parent_folder_id')
             folder_order = request.form.get('folder_order', '')
@@ -1410,7 +1469,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Bulk move content
-        elif action == 'bulk_move_content' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'bulk_move_content' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent, CourseContentFolder
 
             content_ids_raw = request.form.get('selected_ids', '')
@@ -1445,7 +1504,7 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Import assignment into folder as content
-        elif action == 'import_assignment' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'import_assignment' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent, CourseAssignment
             assignment_id = request.form.get('assignment_id')
             folder_id = request.form.get('import_assignment_folder_id')
@@ -1505,7 +1564,7 @@ def course_page_enrolled(course_id):
                 flash('Assignment not found or does not belong to this course.', 'danger')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         # Bulk toggle visibility
-        elif action == 'bulk_toggle_visibility' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'bulk_toggle_visibility' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent
             
             content_ids = request.form.getlist('content_ids')
@@ -1522,7 +1581,7 @@ def course_page_enrolled(course_id):
             flash(f'Visibility toggled for {toggled_count} items!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
-        elif action == 'give_certificate' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'give_certificate' and (course.is_managed_by(current_user)):
             from lms.models import Certificate, User
             from datetime import datetime as _dt
             student_id = request.form.get('student_id', type=int)
@@ -1570,6 +1629,46 @@ def course_page_enrolled(course_id):
                 flash(_('Certificate revoked.'), 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
+        elif action == 'assign_teacher' and course.is_owned_by(current_user):
+            from lms.models import Enrollment
+            target_id = request.form.get('user_id', type=int)
+            enrollment = Enrollment.query.filter_by(course_id=course.id, user_id=target_id).first()
+            if not enrollment:
+                flash(_('That user must be enrolled in the course first.'), 'error')
+            else:
+                enrollment.is_teacher = True
+                db.session.commit()
+                flash(_('%(name)s is now a teacher for this course.', name=enrollment.user.username), 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+        elif action == 'unassign_teacher' and course.is_owned_by(current_user):
+            from lms.models import Enrollment
+            target_id = request.form.get('user_id', type=int)
+            enrollment = Enrollment.query.filter_by(course_id=course.id, user_id=target_id).first()
+            if enrollment and enrollment.is_teacher:
+                enrollment.is_teacher = False
+                db.session.commit()
+                flash(_('%(name)s is no longer a teacher for this course.', name=enrollment.user.username), 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+        elif action == 'transfer_ownership' and course.is_owned_by(current_user):
+            from lms.models import Enrollment, User
+            target_id = request.form.get('user_id', type=int)
+            new_owner = User.query.get(target_id)
+            new_owner_enrollment = Enrollment.query.filter_by(course_id=course.id, user_id=target_id).first() if new_owner else None
+            if not new_owner or not new_owner_enrollment:
+                flash(_('The new owner must already be enrolled in the course.'), 'error')
+            else:
+                old_owner_id = course.created_by
+                course.created_by = new_owner.id
+                if old_owner_id:
+                    old_enrollment = Enrollment.query.filter_by(course_id=course.id, user_id=old_owner_id).first()
+                    if old_enrollment:
+                        old_enrollment.is_teacher = True
+                db.session.commit()
+                flash(_('%(name)s is now the owner of this course.', name=new_owner.username), 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
     # GET request - render the page
     from flask_babel import get_locale
     current_locale = str(get_locale())
@@ -1591,7 +1690,7 @@ def course_page_enrolled(course_id):
     per_page = 10  # Can be adjusted or made configurable
 
     # Check if user is teacher or admin (needed for content filtering below)
-    is_teacher_or_admin = current_user.is_authenticated and (current_user.is_teacher or current_user.is_admin)
+    is_teacher_or_admin = course.is_managed_by(current_user)
 
     # Load all course content with folders using eager loading (no pagination)
     # Non-teacher/admin students only see files that the teacher has made visible (allow_others_to_view=True)
@@ -1691,6 +1790,9 @@ def course_page_enrolled(course_id):
         if c.student_name
     ]
 
+    is_course_owner = course.is_owned_by(current_user)
+    enrollment_by_user = {e.user_id: e for e in course.enrollments} if is_course_owner else {}
+
     return render_template('course_page_enrolled.html',
         course=course,
         site_settings=site_settings,
@@ -1718,26 +1820,20 @@ def course_page_enrolled(course_id):
         my_certificate=my_certificate,
         cert_students=cert_students,
         cert_graduates=cert_graduates,
+        is_course_owner=is_course_owner,
+        enrollment_by_user=enrollment_by_user,
     )
 
 
 @main_bp.route('/site')
 def serve_site():
-    """Serve site page"""
-    return render_template('index.html')
+    """Legacy alias — superseded by the Home page."""
+    return redirect(url_for('main.index'))
 
 @main_bp.route('/courses')
 def courses():
-    """Serve courses page"""
-    from lms.models import SiteSettings
-    try:
-        site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
-    except Exception as e:
-        current_app.logger.error(f"Database error in courses route: {e}")
-        site_settings = SiteSettings()
-    return render_template('index.html', 
-                         is_authenticated=current_user.is_authenticated, 
-                         site_settings=site_settings, initial_page='courses')
+    """Legacy course-catalog page — course discovery now lives on the Home page."""
+    return redirect(url_for('main.index'))
 
 @main_bp.route('/forum')
 def forum():
@@ -1748,22 +1844,66 @@ def forum():
     except Exception as e:
         current_app.logger.error(f"Database error in forum route: {e}")
         site_settings = SiteSettings()
-    return render_template('index.html', 
-                         is_authenticated=current_user.is_authenticated, 
-                         site_settings=site_settings, initial_page='forum')
+    return render_template('forum.html',
+                         is_authenticated=current_user.is_authenticated,
+                         site_settings=site_settings, current_locale=str(get_locale()))
 
 @main_bp.route('/resources')
 def resources():
-    """Serve resources page"""
-    from lms.models import SiteSettings
+    """Serve the Resources page.
+
+    Two sections: actual course-content items from the user's enrolled courses
+    (ranked by view popularity across all users — 'what other students found
+    useful'), and teaser cards for content in public courses the user hasn't
+    joined yet (title only, links to the course rather than the file — no
+    access to the content itself until they enroll).
+    """
+    from lms.models import SiteSettings, Course, CourseContent, ContentView, db
+    from sqlalchemy import func, cast, Integer
+
     try:
         site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
     except Exception as e:
         current_app.logger.error(f"Database error in resources route: {e}")
         site_settings = SiteSettings()
-    return render_template('index.html', 
-                         is_authenticated=current_user.is_authenticated, 
-                         site_settings=site_settings, initial_page='resources')
+
+    enrolled_course_ids = {c.id for c in current_user.courses} if current_user.is_authenticated else set()
+
+    popularity = (db.session.query(
+            cast(ContentView.content_id, Integer).label('content_id'),
+            func.count(ContentView.id).label('view_count'))
+        .filter(ContentView.content_type == 'course_content')
+        .group_by('content_id')
+        .subquery())
+
+    def ranked_content(course_ids, limit):
+        if not course_ids:
+            return []
+        rows = (db.session.query(CourseContent, func.coalesce(popularity.c.view_count, 0).label('view_count'))
+                .outerjoin(popularity, popularity.c.content_id == CourseContent.id)
+                .filter(CourseContent.course_id.in_(course_ids),
+                        CourseContent.is_published.is_(True),
+                        CourseContent.allow_others_to_view.is_(True))
+                .order_by(db.desc('view_count'))
+                .limit(limit)
+                .all())
+        return [{'content': c, 'view_count': vc} for c, vc in rows]
+
+    my_resources = ranked_content(enrolled_course_ids, 20)
+
+    public_not_enrolled_ids = [
+        c.id for c in Course.query.filter(Course.is_public.is_(True)).all()
+        if c.id not in enrolled_course_ids
+    ]
+    teaser_resources = ranked_content(public_not_enrolled_ids, 12)
+
+    return render_template('resources.html',
+        is_authenticated=current_user.is_authenticated,
+        site_settings=site_settings,
+        current_locale=str(get_locale()),
+        my_resources=my_resources,
+        teaser_resources=teaser_resources,
+    )
 
 @main_bp.route('/moxo-test')
 def moxo_test():
@@ -1777,19 +1917,6 @@ def moxo_test():
     return render_template('index.html', 
                          is_authenticated=current_user.is_authenticated, 
                          site_settings=site_settings, initial_page='moxo-test')
-
-@main_bp.route('/about')
-def about():
-    """Serve about page"""
-    from lms.models import SiteSettings
-    try:
-        site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
-    except Exception as e:
-        current_app.logger.error(f"Database error in about route: {e}")
-        site_settings = SiteSettings()
-    return render_template('index.html', 
-                         is_authenticated=current_user.is_authenticated, 
-                         site_settings=site_settings, initial_page='about')
 
 @main_bp.route('/terms')
 def terms():
@@ -2240,7 +2367,7 @@ def edit_course_page(slug):
             else:
                 flash('Content not found or permission denied.', 'error')
         
-        elif action == 'bulk_delete_content' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'bulk_delete_content' and (current_user.is_admin):
             from lms.models import CourseContent
             from lms.google_drive_service import authenticate, delete_file
             
@@ -2266,7 +2393,7 @@ def edit_course_page(slug):
             db.session.commit()
             flash(f'{deleted_count} items deleted successfully!', 'success')
         
-        elif action == 'bulk_move_content' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'bulk_move_content' and (current_user.is_admin):
             from lms.models import CourseContent
             
             selected_ids = request.form.get('selected_ids', '')
@@ -2290,7 +2417,7 @@ def edit_course_page(slug):
             db.session.commit()
             flash(f'{moved_count} items moved successfully!', 'success')
         
-        elif action == 'bulk_toggle_visibility' and (current_user.is_teacher or current_user.is_admin):
+        elif action == 'bulk_toggle_visibility' and (current_user.is_admin):
             from lms.models import CourseContent
             
             content_ids = request.form.getlist('content_ids')
@@ -2428,11 +2555,12 @@ def move_folder():
 def set_language(lang):
     """Set the language for the current session"""
     from flask import session, redirect, request
+    from lms.constants import SUPPORTED_LANGUAGES
 
     current_app.logger.debug(f"Attempting to set language to: {lang}")
     current_app.logger.debug(f"Session before: {dict(session)}")
-    
-    if lang in ['en', 'ru', 'az']:
+
+    if lang in SUPPORTED_LANGUAGES:
         session['language'] = lang
         session.modified = True
         session.permanent = True
@@ -2498,7 +2626,7 @@ def download_certificate_image(cert_id):
     from lms.models import Certificate
     from lms.certificate_generator import get_cached_png_bytes
     cert = Certificate.query.get_or_404(cert_id)
-    if cert.user_id != current_user.id and not (current_user.is_admin or current_user.is_teacher):
+    if cert.user_id != current_user.id and not cert.course.is_managed_by(current_user):
         abort(403)
     if cert.revoked:
         abort(410)
@@ -2515,7 +2643,7 @@ def download_certificate_pdf(cert_id):
     from lms.models import Certificate
     from lms.certificate_generator import get_cached_pdf_bytes
     cert = Certificate.query.get_or_404(cert_id)
-    if cert.user_id != current_user.id and not (current_user.is_admin or current_user.is_teacher):
+    if cert.user_id != current_user.id and not cert.course.is_managed_by(current_user):
         abort(403)
     if cert.revoked:
         abort(410)

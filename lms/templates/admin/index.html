@@ -140,7 +140,7 @@ document.getElementById('translate-all').addEventListener('click', async functio
     const button = this;
     const originalHtml = button.innerHTML;
 
-    if (!confirm('This will translate all courses and resources to Russian. The system will automatically detect the source language of each content piece and create translations. This process runs in the background and may take several minutes. Continue?')) {
+    if (!confirm('This will translate all courses to Russian. The system will automatically detect the source language of each content piece and create translations. This process runs in the background and may take several minutes. Continue?')) {
         return;
     }
 
@@ -183,7 +183,7 @@ async function pollJobStatus(jobId, button, originalHtml) {
             if (job.status === 'completed') {
                 const stats = job.result || {};
                 const escapedMessage = (job.message || '').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
-                alert(`✓ Translation completed successfully!\n\n${escapedMessage}\n\nProcessed: ${stats.total_processed || 0} items\n- ${stats.courses || 0} courses\n- ${stats.resources || 0} resources\n\nRefresh the page to see translated content when changing languages.`);
+                alert(`✓ Translation completed successfully!\n\n${escapedMessage}\n\nProcessed: ${stats.total_processed || 0} items\n- ${stats.courses || 0} courses\n\nRefresh the page to see translated content when changing languages.`);
                 button.disabled = false;
                 button.innerHTML = originalHtml;
             } else if (job.status === 'failed') {

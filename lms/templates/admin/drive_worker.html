@@ -1,0 +1,55 @@
+{% extends 'admin/base.html' %}
+
+{% block body %}
+<div class="container-fluid" style="padding: 2rem; max-width: 700px;">
+  <h2 style="color:#337a2c; margin-bottom:0.25rem;">Drive Worker</h2>
+  <p class="text-muted" style="margin-bottom:1.5rem;">
+    The real Phase 4 mechanism: a single dedicated Google account that owns all course
+    files, with its own OAuth tokens stored here directly (not on any user's account).
+    Once connected, this takes priority over the <a href="{{ url_for('drive_writer.index') }}">Drive Writer</a>
+    stopgap for every upload/delete/permission change.
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ 'success' if cat == 'success' else 'warning' if cat == 'warning' else 'info' }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card" style="border:1px solid #e5e7eb; border-radius:8px;">
+    <div class="card-body">
+      {% if connected %}
+        {% if account_info and not account_info.get('error') %}
+          <p>
+            Connected as: <strong>{{ account_info.email }}</strong>
+            {% if account_info.name %}<span class="text-muted">({{ account_info.name }})</span>{% endif %}
+          </p>
+          <p class="text-muted" style="font-size:0.85rem;">
+            {% if account_info.has_refresh_token %}Refresh token present — should keep working indefinitely.
+            {% else %}<span class="text-danger">No refresh token — this connection will stop working when the access token expires.</span>{% endif %}
+          </p>
+        {% else %}
+          <p class="text-danger">Worker credentials are stored but invalid{% if account_info %} ({{ account_info.get('error') }}){% endif %} — reconnect below.</p>
+        {% endif %}
+        <form method="POST" action="{{ url_for('drive_worker.disconnect') }}" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm">Disconnect worker account</button>
+        </form>
+      {% else %}
+        <p class="text-muted">No worker account connected yet.</p>
+      {% endif %}
+
+      <hr>
+
+      <ol style="font-size:0.9rem; color:#555;">
+        <li>Create the dedicated Google account (see <code>setup_checklist.md</code> Phase 4) if you haven't yet.</li>
+        <li>In <strong>this browser</strong>, sign into Google as that worker account (not your own).</li>
+        <li>Click the button below — it'll prompt for Drive access under whichever Google account is signed in.</li>
+      </ol>
+      <a href="{{ url_for('google_login.connect_worker') }}" class="btn btn-success" style="background:#337a2c; border-color:#337a2c;">
+        {% if connected %}Reconnect{% else %}Connect{% endif %} Worker Account
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

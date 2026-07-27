@@ -9,7 +9,7 @@ See `docs/PROJECT.md` for full context.
 just up                    # Docker dev stack (recommended)
 just dev                   # Local Flask dev server on :5000
 just migrate               # Run DB migrations
-just translate-all         # Full translation pipeline (needs LibreTranslate)
+just translate-all         # Full translation pipeline (needs DEEPL_API_KEY in .env)
 just make-admin <username> # Promote an existing user to full admin (Docker dev)
 ```
 
@@ -40,11 +40,22 @@ Three tiers: **Full admin** (`is_admin=True`, `admin_permissions=NULL`) → **Su
 ## Translation pipeline
 Order matters: **clear → extract → update → translate → fix-placeholders → compile**
 
-Protected brand term: `{LMS}` placeholder in `core_translator.py`. LibreTranslate must be running (`just libre-ready`) before translating.
+Backend: DeepL (`DEEPL_API_KEY` in `.env`) — no local service to run, just needs the key set.
+Protected brand term: `{LMS}` placeholder in `core_translator.py`.
 
 Two translation caches in DB: `translation` table (gettext strings) and `content_translation` table (page builder content). If placeholders appear in the UI, check both tables.
 
-Azerbaijani (`az`) is disabled — translation quality insufficient. To re-enable: uncomment in `constants.py` and `Justfile`.
+Course content translation is queued through the RQ job system (`lms/job_manager.py`), not
+synchronous: a `translate_course` job fires right after a course create/edit (the
+"threshold" trigger), and a `translate_content` full-catalog sweep re-schedules itself every
+24h (the "interval" trigger, bootstrapped by `lms/worker.py` via `ensure_translation_sweep_scheduled()`
+using RQ's built-in scheduler — no extra process). The admin panel's "Translate" button still
+queues an on-demand `translate_content` job too.
+
+Azerbaijani (`az`) has been removed entirely — DeepL doesn't support it, and the prior
+engine's translation quality for it was insufficient anyway. It's gone from
+`constants.py`, the locale selector, `.po` files, and the legal pages — re-adding it would
+mean a different translation engine plus UI/legal-page work, not just a flag flip.
 
 ## CSS conventions
 - `transform: translateY()` to shift elements without affecting layout height (not `margin-top`)

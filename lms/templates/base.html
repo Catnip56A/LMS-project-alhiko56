@@ -266,79 +266,20 @@
             });
         });
 
-        // Navigation state preservation
+        // Highlight the nav link matching the current page (real routes now, not SPA hash sections)
         document.addEventListener('DOMContentLoaded', function() {
             const navLinks = document.querySelectorAll('.navbar-nav .nav-link[data-nav]');
-            
-            // Function to set active navigation item
-            function setActiveNav(navKey) {
-                // Remove active class from all nav items
-                navLinks.forEach(link => {
-                    link.classList.remove('active');
-                });
-                
-                // Add active class to the specified nav item
-                const activeLink = document.querySelector(`.navbar-nav .nav-link[data-nav="${navKey}"]`);
-                if (activeLink) {
-                    activeLink.classList.add('active');
+            const path = window.location.pathname;
+            navLinks.forEach(function(link) {
+                let linkPath;
+                try {
+                    linkPath = new URL(link.href, window.location.origin).pathname;
+                } catch (e) {
+                    return;
                 }
-            }
-            
-            // Store navigation state when clicking nav links
-            navLinks.forEach(link => {
-                link.addEventListener('click', function() {
-                    const navKey = this.getAttribute('data-nav');
-                    sessionStorage.setItem('activeNav', navKey);
-                });
+                const isActive = (linkPath === '/') ? (path === '/') : path.startsWith(linkPath);
+                link.classList.toggle('active', isActive);
             });
-            
-            // Restore navigation state on page load
-            const savedActiveNav = sessionStorage.getItem('activeNav');
-            if (savedActiveNav) {
-                setActiveNav(savedActiveNav);
-            } else {
-                // Default to home if no saved state
-                setActiveNav('home');
-            }
-            
-            // Also handle URL-based navigation (hash changes)
-            function updateNavFromHash() {
-                const hash = window.location.hash.substring(1); // Remove the #
-                let navKey = 'home'; // Default
-
-                // Map hash to nav key
-                switch(hash) {
-                    case 'courses':
-                        navKey = 'courses';
-                        break;
-                    case 'forum':
-                        navKey = 'forum';
-                        break;
-                    case 'resources':
-                        navKey = 'resources';
-                        break;
-                    case 'moxo-test':
-                        navKey = 'moxo-test';
-                        break;
-                    case 'contact':
-                        navKey = 'contact';
-                        break;
-                    case 'about':
-                        navKey = 'about';
-                        break;
-                    default:
-                        navKey = 'home';
-                }
-
-                setActiveNav(navKey);
-                sessionStorage.setItem('activeNav', navKey);
-            }
-            
-            // Listen for hash changes
-            window.addEventListener('hashchange', updateNavFromHash);
-            
-            // Set initial state based on current URL
-            updateNavFromHash();
         });
     </script>
     {% endblock %}

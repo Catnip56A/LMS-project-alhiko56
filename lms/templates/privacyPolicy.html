@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if current_locale == 'az' %}Məxfilik siyasəti{% elif current_locale == 'ru' %}Политика конфиденциальности{% else %}Privacy Policy{% endif %} — LMS</title>
+    <title>{% if current_locale == 'ru' %}Политика конфиденциальности{% else %}Privacy Policy{% endif %} — LMS</title>
     <style>
         * {
             margin: 0;
@@ -172,20 +172,18 @@
 <div class="container">
 
     <h1>
-        {% if current_locale == 'az' %}Məxfilik siyasəti
-        {% elif current_locale == 'ru' %}Политика конфиденциальности
+        {% if current_locale == 'ru' %}Политика конфиденциальности
         {% else %}Privacy Policy
         {% endif %}
     </h1>
 
     <div class="language-buttons">
-        <a href="{{ url_for('main.set_language', lang='az') }}" class="{% if current_locale == 'az' %}active{% endif %}">Azərbaycan</a>
         <a href="{{ url_for('main.set_language', lang='en') }}" class="{% if current_locale == 'en' %}active{% endif %}">English</a>
         <a href="{{ url_for('main.set_language', lang='ru') }}" class="{% if current_locale == 'ru' %}active{% endif %}">Русский</a>
     </div>
 
     {# ─── ENGLISH ─────────────────────────────────────────────────────────── #}
-    {% if current_locale != 'az' and current_locale != 'ru' %}
+    {% if current_locale != 'ru' %}
 
     <p class="last-updated">Last Updated: 26.06.2026</p>
 
@@ -442,138 +440,9 @@
     </div>
     <p class="closing-statement">Используя LMS Web, Вы подтверждаете, что ознакомились с настоящей Политикой конфиденциальности, понимаете ее и соглашаетесь с ней.</p>
 
-    {# ─── AZERBAIJANI ─────────────────────────────────────────────────────── #}
-    {% else %}
-
-    <p class="last-updated">Son yenilənmə tarixi: 26.06.2026</p>
-
-    <div class="company-intro">
-        <p>"LMS" (bundan sonra "biz", "bizim") bu təhsil platformasının operatorudur.</p>
-        <ul>
-            <li>Ünvan: [Şirkət ünvanı]</li>
-            <li>Elektron poçt ünvanı: <a href="mailto:info@example.com">info@example.com</a></li>
-            <li>Telefon nömrəsi: [Telefon nömrəsi]</li>
-        </ul>
-    </div>
-
-    <h2>1. Bu Məxfilik Siyasətində istifadə olunan əsas anlayışlar</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">1.1.</span>"LMS" MMC Web — İstifadəçi məlumatlarının bu Məxfilik Siyasətinə uyğun olaraq emalını həyata keçirən Tətbiq.</p>
-        <p class="clause"><span class="clause-num">1.2.</span>İstifadəçi — Tətbiqdən istifadə edən və avtorizasiya və Tətbiq funksiyalarının işləməsi üçün öz məlumatlarını təqdim edən hər hansı fiziki şəxs.</p>
-        <p class="clause"><span class="clause-num">1.3.</span>Hesab — İstifadəçini müəyyənləşdirmək və tətbiqin funksionallığına giriş təmin etmək üçün yaradılan tətbiqdaxili istifadəçi hesabı.</p>
-        <p class="clause"><span class="clause-num">1.4.</span>Müvəqqəti məlumatlar — Tətbiq tərəfindən funksiyaların icrası zamanı müvəqqəti olaraq emal edilən və daimi saxlanmayan məlumatlar.</p>
-        <p class="clause"><span class="clause-num">1.5.</span>OAuth giriş tokenləri — OAuth protokolu çərçivəsində İstifadəçiyə verilən və tətbiqin Google xidmətlərində müəyyən istifadəçi məlumatlarına daxil olmaq hüququnu təsdiqləmək üçün istifadə olunan rəqəmsal icazə açarları.</p>
-        <p class="clause"><span class="clause-num">1.6.</span>Yeniləmə tokenləri — İstifadəçinin yenidən avtorizasiya olunmasına ehtiyac olmadan yeni OAuth giriş tokenlərini əldə etmək üçün istifadə olunan xüsusi tokenlər.</p>
-        <p class="clause"><span class="clause-num">1.7.</span>Google API tələbləri — Google tərəfindən Google xidmətlərindən və məlumatlarından istifadə edən proqramçıların riayət etməli olduğu tətbiq proqramlaşdırma interfeyslərinin qaydaları və şərtləri.</p>
-        <p class="clause"><span class="clause-num">1.8.</span>HTTPS bağlantıları — İnternet üzərindən ötürülən məlumatların şifrələnməsi və təhlükəsizliyinin təmin olunması üçün HTTPS protokolundan istifadə edən qorunan şəbəkə bağlantıları.</p>
-        <p class="clause"><span class="clause-num">1.9.</span>Limited Use tələbləri — Google API vasitəsilə əldə edilmiş məlumatların işlənməsi və istifadəsi yollarını yalnız tətbiqin işləməsi üçün lazım olan məqsədlərlə məhdudlaşdıran Google İstifadəçi məlumat istifadəsi siyasətinin müddəaları.</p>
-        <p class="clause"><span class="clause-num">1.10.</span>Əsas təhlükəsizlik tədbirləri — İstifadəçinin Tətbiqdən və internetdən istifadə zamanı öz hesab məlumatlarını, şəxsi məlumatlarını və cihazını qorumaq üçün riayət etməli olduğu minimum ehtiyat tədbirləri. Bu tədbirlər, xüsusən mürəkkəb parollardan istifadə, iki faktorlu autentifikasiya tətbiqi, şübhəli keçidlərə ehtiyatla yanaşma, proqram təminatı və əməliyyat sisteminin müntəzəm yenilənməsi, antivirusdan istifadə, cihazın icazəsiz girişdən qorunması və hesab məlumatları və digər məxfi məlumatların üçüncü şəxslərlə paylaşılmamasını əhatə edir.</p>
-    </div>
-
-    <h2>2. Ümumi müddəalar</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">2.1.</span>Bu Məxfilik Siyasəti (bundan sonra "Siyasət") "LMS" MMC Web (bundan sonra "Tətbiq", "biz", "bizim") tərəfindən Google OAuth vasitəsilə autentifikasiya edərkən və Tətbiqin funksiyalarından istifadə edərkən istifadəçi məlumatlarını (bundan sonra "İstifadəçi", "Siz") necə əldə etdiyini, istifadə etdiyini və qoruduğunu təsvir edir.</p>
-        <p class="clause"><span class="clause-num">2.2.</span>Tətbiqdən istifadə etməklə, Siz bu Məxfilik Siyasətində göstərilən məlumat emal qaydaları ilə razılaşırsınız.</p>
-    </div>
-
-    <h2>3. Google vasitəsilə əldə etdiyimiz məlumatlar</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">3.1.</span><strong>Hesabın əsas məlumatları.</strong> OpenID, email və profile giriş sahələrindən (scopes) istifadə etməklə, Tətbiq aşağıdakı məlumatlara çıxış əldə edə bilər:</p>
-        <ul class="policy-list">
-            <li>İstifadəçinin Google hesabının elektron poçt ünvanı;</li>
-            <li>Profilin əsas məlumatları (məsələn, göstərilən ad).</li>
-        </ul>
-        <p>Bu məlumat yalnız İstifadəçinin Tətbiq daxilində autentifikasiyası və identifikasiyası üçün istifadə olunur.</p>
-        <p class="clause" style="margin-top:0.9rem"><span class="clause-num">3.2.</span><strong>Google Drive məlumatları.</strong> <code>https://www.googleapis.com/auth/drive.file</code> icazə sahəsindən istifadə etməklə, Tətbiq İstifadəçi tərəfindən Tətbiq vasitəsilə yaradılmış və ya seçilmiş fayllara yalnız Tətbiq çərçivəsində faylların yüklənməsi, saxlanılması və idarə olunması funksiyalarının təmin edilməsi məqsədilə çıxış əldə edə bilər, o cümlədən, lakin bununla məhdudlaşmayaraq:</p>
-        <ul class="policy-list">
-            <li>faylların Google Drive-a yüklənməsi;</li>
-            <li>Tətbiqin interfeysi vasitəsilə müəllim tərəfindən seçilmiş fayllara baxılması və idxal edilməsi;</li>
-            <li>Tətbiq vasitəsilə yaradılmış və ya əldə edilmiş faylların metadata məlumatlarının (adı, növü, ölçüsü və baxış linki daxil olmaqla) əldə edilməsi;</li>
-            <li>İstifadəçi adından faylların Google Drive-a yüklənməsi və İstifadəçinin sorğusu əsasında Tətbiq tərəfindən yüklənmiş faylların silinməsi;</li>
-            <li>qeydiyyatlı tələbələrin tədris materiallarına çıxışını təmin etmək üçün Tətbiq vasitəsilə yüklənmiş və ya əldə edilmiş fayllar üçün link əsaslı giriş icazələrinin (ictimai paylaşım) yaradılması;</li>
-            <li>müəllimlərə tədris materiallarını və faylları Tətbiqin interfeysi vasitəsilə idarə etmək imkanının verilməsi.</li>
-        </ul>
-        <p>Google Drive məlumatlarına çıxış yalnız İstifadəçi tərəfindən Tətbiqin interfeysi vasitəsilə açıq şəkildə başladılmış əməliyyatların icrası məqsədilə həyata keçirilir. Tətbiq İstifadəçinin fayllarına onun birbaşa razılığı olmadan çıxış etmir, onlardan istifadə etmir və onları dəyişdirmir. Tətbiq Google Drive məlumatlarından reklam, analitika, profilləşdirmə və ya yuxarıda göstərilən funksionallığın təmin edilməsi ilə əlaqəli olmayan digər məqsədlər üçün istifadə etmir.</p>
-        <p style="margin-top:0.75rem">İstifadəçi istənilən vaxt Google hesabının ayarlarında «Your connections to third-party apps and services» bölməsi və ya icazələrin idarə olunmasına dair həmin vaxt qüvvədə olan digər analoji bölmə vasitəsilə Tətbiqin Google Drive-a çıxışını ləğv edə bilər.</p>
-    </div>
-
-    <h2>4. Məlumatların istifadəsinin məqsədi</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">4.1.</span>Google İstifadəçi məlumatları yalnız Tətbiqin əsas funksiyalarının yerinə yetirilməsi üçün istifadə olunur, yəni İstifadəçinin tələb etdiyi faylların idarə olunması üçün.</p>
-        <p class="clause"><span class="clause-num">4.2.</span>Biz Google İstifadəçi məlumatlarını aşağıdakı məqsədlər üçün istifadə etmirik:</p>
-        <ul class="policy-list">
-            <li>Reklam;</li>
-            <li>Davranış izləmə;</li>
-            <li>Profil yaratma;</li>
-            <li>Məlumatların üçüncü şəxslərə satışı və ya ötürülməsi.</li>
-        </ul>
-    </div>
-
-    <h2>5. Məlumatların emalı və saxlanması</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">5.1.</span>İstifadəçi məlumatları yalnız Tətbiq funksiyalarının yerinə yetirilməsi və qanunvericilik tələblərinə əməl olunması üçün lazım olan müddət ərzində saxlanılır. Məlumatlar artıq lazım olmadıqda silinir və ya anonimləşdirilir.</p>
-        <p class="clause"><span class="clause-num">5.2.</span>Google Drive fayllarının məzmunu daimi saxlanılmır, yalnız İstifadəçi tərəfindən başlanmış konkret funksiyanın icrası üçün tələb olunarsa saxlanılır.</p>
-        <p class="clause"><span class="clause-num">5.3.</span>Müvəqqəti məlumatlar müvafiq əməliyyat başa çatdıqdan dərhal sonra silinir.</p>
-        <p class="clause"><span class="clause-num">5.4.</span>OAuth giriş tokenləri və yeniləmə tokenləri qorunan formada saxlanılır və yalnız avtorizə edilmiş sessiyaların davam etdirilməsi üçün istifadə olunur.</p>
-        <p class="clause"><span class="clause-num">5.5.</span>Tətbiqdə İstifadəçi məlumatlarının ehtiyat nüsxəsinin yaradılması üçün Cloud Save funksiyası istifadə olunur. Bu funksiya çərçivəsində İstifadəçi bazasında saxlanılan məlumatlar (müştəri məlumatları daxil olmaqla) avtomatik olaraq gündə bir dəfə saxlanılır və məlumatların qorunması və bərpa imkanının təmin olunması üçün bulud yaddaşına göndərilir. Sistem Tətbiq və bulud yaddaşı arasında məlumatların ötürülməsi üçün qorunan autentifikasiyadan istifadə edir.</p>
-    </div>
-
-    <h2>6. Məlumatların ötürülməsi və açıqlanması</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">6.1.</span>Biz Google İstifadəçi məlumatlarını üçüncü şəxslərə ötürmürük.</p>
-        <p class="clause"><span class="clause-num">6.2.</span>Məlumat yalnız aşağıdakı hallarda açıla bilər:</p>
-        <ul class="policy-list">
-            <li><strong>6.2.1.</strong> Google API xidmətlərinə — avtorizə edilmiş əməliyyatların icrası üçün lazım olan həcmdə;</li>
-            <li><strong>6.2.2.</strong> Qanunla nəzərdə tutulmuş hallarda.</li>
-        </ul>
-    </div>
-
-    <h2>7. Məlumatların təhlükəsizliyi</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">7.1.</span>Biz İstifadəçi məlumatlarının qorunması üçün məntiqli texniki və təşkilati tədbirlər tətbiq edirik, o cümlədən:</p>
-        <ul class="policy-list">
-            <li><strong>7.1.1.</strong> qorunan HTTPS bağlantısından istifadə;</li>
-            <li><strong>7.1.2.</strong> hesab məlumatlarına və tokenlərə məhdud çıxış;</li>
-            <li><strong>7.1.3.</strong> OAuth tokenlərinin təhlükəsiz emalı.</li>
-        </ul>
-        <p class="clause"><span class="clause-num">7.2.</span>Lakin məlumatların ötürülməsi və saxlanmasının heç bir üsulu tam təhlükəsizliyi təmin edə bilməz.</p>
-    </div>
-
-    <h2>8. Google API tələblərinə uyğunluq</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">8.1.</span>Tətbiqin Google API vasitəsilə əldə olunan məlumatlardan istifadəsi Google API xidmətlərinin məlumatlardan istifadə siyasətinə, o cümlədən Limited Use tələblərinə uyğundur.</p>
-        <p class="clause"><span class="clause-num">8.2.</span>Google İstifadəçi məlumatları yalnız istifadəçi funksiyalarının təmin edilməsi üçün istifadə olunur, saxlanılır və emal edilir və qadağan olunmuş məqsədlər üçün tətbiq edilmir.</p>
-    </div>
-
-    <h2>9. İstifadəçi nəzarəti və çıxışın ləğvi</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">9.1.</span>Siz istənilən vaxt Tətbiqin Google hesabınıza çıxışını ləğv edə bilərsiniz, bunun üçün aşağıdakı səhifəni ziyarət edin: <a href="https://myaccount.google.com/permissions">https://myaccount.google.com/permissions</a></p>
-        <p class="clause"><span class="clause-num">9.2.</span>Çıxış ləğv edildikdən sonra Tətbiq Google hesabınıza və Google Drive məlumatlarına çıxış əldə edə bilməyəcək.</p>
-    </div>
-
-    <h2>10. Məhdudiyyətlər və məsuliyyət</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">10.1.</span>Tətbiq 13 yaşdan kiçik şəxslər üçün nəzərdə tutulmayıb. Biz bilərəkdən 13 yaşdan kiçik uşaqların şəxsi məlumatlarını toplamırıq.</p>
-        <p class="clause"><span class="clause-num">10.2.</span>Tətbiqdən istifadə etməklə, Siz 13 yaşınızı tamamladığınızı təsdiqləyirsiniz. Bundan əlavə, əgər Siz yetkin deyilsinizsə, Tətbiqimizdən istifadə üçün valideyninizin və ya qanuni nümayəndənizin razılığını aldığınızı təsdiqləyirsiniz.</p>
-        <p class="clause"><span class="clause-num">10.3.</span>Siz təqdim etdiyiniz məlumatların doğru, aktuallığı və tam olduğunu təsdiqləyirsiniz. Biz Siz tərəfindən təqdim olunan yanlış məlumatların emalına görə məsuliyyət daşımırıq.</p>
-    </div>
-
-    <h2>11. Yekun müddəalar</h2>
-    <div class="section-body">
-        <p class="clause"><span class="clause-num">11.1.</span>Siz hesab məlumatlarınızı üçüncü şəxslərlə paylaşmamağa və digər İstifadəçinin hesabından icazəsiz istifadə etməməyə razılıq verirsiniz.</p>
-        <p class="clause"><span class="clause-num">11.2.</span>Biz İstifadəçinin məlumatlarını üçüncü şəxslərə açıqlaması və ya İstifadəçinin əsas təhlükəsizlik tədbirlərinə riayət etməməsi ilə bağlı risklərə görə məsuliyyət daşımırıq.</p>
-        <p class="clause"><span class="clause-num">11.3.</span>Biz bu Məxfilik Siyasətinin şərtlərini pozan hesabların fəaliyyətini dayandırmaq və ya ləğv etmək hüququnu özümüzdə saxlayırıq.</p>
-        <p class="clause"><span class="clause-num">11.4.</span>Biz bu Məxfilik Siyasətini zaman-zaman yeniləyə bilərik. Bütün dəyişikliklər bu səhifədə yenilənmiş tarix ilə dərc olunacaq.</p>
-    </div>
-
-    <div class="contact-block">
-        <p>Bu Məxfilik Siyasəti ilə bağlı bütün təklif və suallar üçün: <a href="mailto:info@example.com">info@example.com</a></p>
-    </div>
-    <p class="closing-statement">LMS Web-dən istifadə etməklə, Siz bu Məxfilik Siyasəti ilə tanış olduğunuzu, onu başa düşdüyünüzü və razılaşdığınızı təsdiqləyirsiniz.</p>
-
     {% endif %}
 
-    <a href="/" class="back-link">&#8592; {% if current_locale == 'az' %}Ana səhifəyə qayıt{% elif current_locale == 'ru' %}Вернуться на главную{% else %}Back to Home{% endif %}</a>
+    <a href="/" class="back-link">&#8592; {% if current_locale == 'ru' %}Вернуться на главную{% else %}Back to Home{% endif %}</a>
 
 </div>
 </body>

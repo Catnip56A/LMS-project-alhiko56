@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('Resources') }} - {{ site_settings.site_name or 'LMS' }}{% endblock %}
+
+{% block content %}
+{% include 'components/navbar.html' %}
+
+<div class="container" style="max-width: 960px; padding: 2rem 1rem;">
+    <h2 style="color: #337a2c;">{{ _('Resources') }}</h2>
+
+    {% if is_authenticated %}
+        {% if my_resources %}
+        <div style="margin-bottom: 2rem;">
+            <h5>{{ _('From Your Courses') }}</h5>
+            <p class="text-muted" style="font-size: 0.85rem;">{{ _('Ranked by what other students found useful.') }}</p>
+            <div class="row">
+                {% for item in my_resources %}
+                <div class="col-sm-6 col-lg-4" style="margin-bottom: 1rem;">
+                    <a href="{{ url_for('api.serve_content_by_db_id', content_id=item.content.id) }}" class="text-decoration-none">
+                        <div class="card h-100" style="border-radius: 10px;">
+                            <div class="card-body">
+                                <h6 class="card-title" style="color: #337a2c;">{{ item.content.title }}</h6>
+                                <small class="text-muted">{{ item.view_count }} {{ _('view') if item.view_count == 1 else _('views') }}</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted">{{ _('No course materials to show yet — join a course to see its resources here.') }}</p>
+        {% endif %}
+    {% else %}
+    <p class="text-muted">{{ _('Login to see resources from your courses.') }}</p>
+    {% endif %}
+
+    {% if teaser_resources %}
+    <div>
+        <h5>{{ _('Discover More') }}</h5>
+        <p class="text-muted" style="font-size: 0.85rem;">{{ _('From open courses — join to unlock the full content.') }}</p>
+        <div class="row">
+            {% for item in teaser_resources %}
+            <div class="col-sm-6 col-lg-4" style="margin-bottom: 1rem;">
+                <a href="{{ url_for('main.course_page_enrolled', course_id=item.content.course_id) }}" class="text-decoration-none">
+                    <div class="card h-100" style="border-radius: 10px; border: 1px dashed #c3d9c2; opacity: 0.85;">
+                        <div class="card-body">
+                            <h6 class="card-title" style="color: #337a2c;">🔒 {{ item.content.title }}</h6>
+                            <small class="text-muted">{{ item.content.course.title }}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% include 'components/footer.html' %}
+{% endblock %}

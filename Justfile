@@ -1,7 +1,6 @@
 set dotenv-load
 
 _ssh_host  := env('SSH_HOST', 'yourdomain.example.com')
-_libre_url := env('LIBRETRANSLATE_URL', 'http://localhost:5050')
 
 default:
    just --list
@@ -98,34 +97,44 @@ db-pull-backup:
     echo "Done!"
 
 # Derived vars for local (non-Docker) execution — mirrors docker-compose behaviour
-_db_url  := "postgresql://" + env('POSTGRES_USER', 'lms_user') + ":" + env('POSTGRES_PASSWORD', 'changeme') + "@127.0.0.1:5432/" + env('POSTGRES_DB', 'lms_db')
-_redir   := "http://localhost:5000/auth/google/callback"
+_db_url    := "postgresql://" + env('POSTGRES_USER', 'lms_user') + ":" + env('POSTGRES_PASSWORD', 'changeme') + "@127.0.0.1:5432/" + env('POSTGRES_DB', 'lms_db')
+_redir     := "http://localhost:5000/auth/google/callback"
+_redis_url := "redis://127.0.0.1:" + env('REDIS_PORT', '6379') + "/0"
 
 # Install dependencies
 install:
     uv sync
 
 ensure-dirs:
-    mkdir -p ./data/libretranslate ./data/caddy-local ./data/logs ./data/flask_session
-    chmod a+rwx ./data/libretranslate ./data/caddy-local ./data/logs ./data/flask_session
+    mkdir -p ./data/caddy-local ./data/logs ./data/flask_session ./data/redis
+    chmod a+rwx ./data/caddy-local ./data/logs ./data/flask_session ./data/redis
 
 db:
     docker compose --profile dev up db-dev migrate-dev -d
+
+redis:
+    docker compose --profile dev up redis-dev -d
+
 # Run dev server (local, no Docker)
-dev: db
-    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run flask run --debug --host=0.0.0.0 --port=5000
+dev: db redis
+    DATABASE_URL={{_db_url}} REDIS_URL={{_redis_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run flask run --debug --host=0.0.0.0 --port=5000
+
+# Run the background job worker (local, no Docker) — needed alongside `just dev` for
+# translation jobs (or anything else queued) to actually get processed
+worker: db redis
+    DATABASE_URL={{_db_url}} REDIS_URL={{_redis_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run python -m lms.worker
 
 # Run with gunicorn (local, no Docker)
 serve:
-    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run gunicorn --config deploy/gunicorn_config.py app:app
+    DATABASE_URL={{_db_url}} REDIS_URL={{_redis_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run gunicorn --config deploy/gunicorn_config.py app:app
 
 # Run app.py directly (local, no Docker)
 app: db
-    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run python app.py
+    DATABASE_URL={{_db_url}} REDIS_URL={{_redis_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run python app.py
 
 # Run wsgi.py with gunicorn (local, no Docker)
 wsgi: db
-    DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run gunicorn --config deploy/gunicorn_config.py wsgi:app
+    DATABASE_URL={{_db_url}} REDIS_URL={{_redis_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run gunicorn --config deploy/gunicorn_config.py wsgi:app
 
 # Flask shell (local)
 shell:
@@ -158,41 +167,6 @@ makemigrations message="auto":
 db-stamp:
     docker compose --profile dev run --rm migrate-dev flask db stamp head
 
-# Run LibreTranslate locally for dev-time translation (PO files, testing)
-# Binds to localhost:5050. Stop with: docker stop lms-libretranslate
-libre:
-    #!/usr/bin/env bash
-    mkdir -p ./data/libretranslate
-    chmod a+rwx ./data/libretranslate
-    if docker inspect lms-libretranslate > /dev/null 2>&1; then
-      echo "LibreTranslate already running."
-    else
-      docker run -d --rm \
-        --name lms-libretranslate \
-        -p 127.0.0.1:5050:5000 \
-        -v "$(pwd)/data/libretranslate:/home/libretranslate/.local/share" \
-        libretranslate/libretranslate \
-        --load-only en,ru  # az disabled — translation quality insufficient
-      echo "LibreTranslate starting at http://localhost:5050 (may take a minute to load models)"
-      echo "Stop with: docker stop lms-libretranslate"
-    fi
-
-# Poll LibreTranslate until it responds (max 2 min). Depends on libre so it
-# can be used as a dependency instead of libre directly.
-libre-ready: libre
-    #!/usr/bin/env bash
-    echo "Waiting for LibreTranslate to be ready..."
-    for i in $(seq 1 40); do
-        if curl -sf "{{_libre_url}}/languages" > /dev/null 2>&1; then
-            echo "LibreTranslate is ready."
-            exit 0
-        fi
-        echo "  ($i/40) not ready yet, retrying in 3s..."
-        sleep 3
-    done
-    echo "ERROR: LibreTranslate did not become ready within 2 minutes."
-    exit 1
-
 # Compile translations
 translate-compile:
     uv run pybabel compile -d lms/translations
@@ -200,25 +174,23 @@ translate-compile:
 extract-messages:
     uv run pybabel extract -F lms/babel.cfg -o lms/translations/messages.pot lms
 
-translate-all: libre-ready
+translate-all:
     uv run pybabel extract -F lms/babel.cfg -o lms/translations/messages.pot lms
     uv run pybabel update -i lms/translations/messages.pot -d lms/translations
     uv run python scripts/translations/auto_translate_po.py
     uv run python scripts/translations/fix_placeholders_v2.py
     uv run pybabel compile -f -d lms/translations
-    docker stop lms-libretranslate
 
 # Nuclear reset: clears ALL translations then re-translates everything from scratch
-translate-reset: libre-ready
+translate-reset:
     uv run python scripts/translations/clear_all_po_translations.py
     uv run pybabel extract -F lms/babel.cfg -o lms/translations/messages.pot lms
     uv run pybabel update -i lms/translations/messages.pot -d lms/translations
     uv run python scripts/translations/auto_translate_po.py
     uv run python scripts/translations/fix_placeholders_v2.py
     uv run pybabel compile -f -d lms/translations
-    docker stop lms-libretranslate
 
-translate-fix-placeholders: libre-ready
+translate-fix-placeholders:
     uv run python scripts/translations/fix_placeholders_v2.py
 
 

@@ -15,7 +15,6 @@ from lms.models import (
     Course as Course,
     ForumMessage as ForumMessage,
     ForumChannel as ForumChannel,
-    Resource as Resource,
     PDFDocument as PDFDocument,
     MoxoTest as MoxoTest,
     Translation as Translation,
@@ -103,17 +102,18 @@ def create_app(config_name='development'):
     def get_locale():
         """Select the language for the current request"""
         from flask import request, session
-        
+        from lms.constants import SUPPORTED_LANGUAGES
+
         # Check URL parameter first
         lang = request.args.get('lang')
-        if lang and lang in ['en', 'ru', 'az']:
+        if lang and lang in SUPPORTED_LANGUAGES:
             return lang
-        
+
         # Check if language is set in session
         lang = session.get('language')
-        if lang and lang in ['en', 'ru', 'az']:
+        if lang and lang in SUPPORTED_LANGUAGES:
             return lang
-        
+
         # Default to English
         return 'en'
     
@@ -361,12 +361,5 @@ def create_app(config_name='development'):
             'add_file_emoji': add_file_emoji,
         }
 
-    # Start background job worker — skip during Flask CLI commands (migrations, shell, etc.)
-    import sys
-    is_cli = any(cmd in sys.argv for cmd in ('db', 'shell', 'routes', 'translate'))
-    if not is_cli:
-        from lms.job_manager import job_manager
-        job_manager.start_worker(app)
-    
     return app
 

@@ -383,7 +383,7 @@
                                             <small class="text-muted">
                                                 {% if item.due_date %}Due: {{ item.due_date.strftime('%b %d, %Y %I:%M %p') }}{% endif %}
                                                 • Points: {{ item.points }}
-                                                {% if current_user.is_teacher %}
+                                                {% if current_user.is_admin %}
                                                     {% set submissions_count = item.submissions.count() %}
                                                     • {{ submissions_count }} submission{{ 's' if submissions_count != 1 else '' }}
                                                 {% else %}
@@ -420,7 +420,7 @@
                                     
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <div>
-                                            {% if current_user.is_teacher %}
+                                            {% if current_user.is_admin %}
                                                 <a href="#" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#editAssignmentModal{{ item.id }}">
                                                     <i class="fas fa-edit"></i> Edit
                                                 </a>
@@ -435,7 +435,7 @@
                                         </form>
                                     </div>
 
-                                    {% if current_user.is_teacher %}
+                                    {% if current_user.is_admin %}
                                         {% set submissions = item.submissions.order_by(CourseAssignmentSubmission.submitted_at.desc()).all() %}
                                         {% if submissions %}
                                             <div class="assignment-submissions">
@@ -551,7 +551,7 @@
                                 </form>
                             </div>
                             <p class="text-muted mb-0">{{ item.message }}</p>
-                            {% if current_user.is_teacher %}
+                            {% if current_user.is_admin %}
                                 {% set replies = CourseAnnouncementReply.query.filter_by(announcement_id=item.id).order_by(CourseAnnouncementReply.created_at.asc()).all() %}
                                 {% if replies %}
                                     <div class="announcement-replies" style="margin-top: 1rem; margin-left: 2rem;">

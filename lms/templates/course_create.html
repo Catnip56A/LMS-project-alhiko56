@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('Create a Course') }} - {{ site_settings.site_name or 'LMS' }}{% endblock %}
+
+{% block content %}
+{% include 'components/navbar.html' %}
+
+<div class="container" style="max-width: 600px; padding: 2rem 1rem;">
+    <h2 style="color: #337a2c;">{{ _('Create a Course') }}</h2>
+    <p class="text-muted">{{ _("You'll be able to add content, assignments, and quizzes once it's created.") }}</p>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-warning">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="title">{{ _('Title') }}</label>
+            <input type="text" id="title" name="title" class="form-control" value="{{ title }}" required autofocus>
+        </div>
+        <div class="form-group">
+            <label for="description">{{ _('Description') }}</label>
+            <textarea id="description" name="description" class="form-control" rows="4">{{ description }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-success">{{ _('Create Course') }}</button>
+    </form>
+</div>
+
+{% include 'components/footer.html' %}
+{% endblock %}

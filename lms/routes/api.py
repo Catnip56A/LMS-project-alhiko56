@@ -7,12 +7,11 @@ import requests
 from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify, current_app, redirect, url_for, Response
 from flask_login import current_user, login_required
-from flask_babel import _
 from lms.extensions import limiter
-from lms.models import Course, ForumMessage, ForumChannel, Resource, PDFDocument, Translation, db
+from lms.models import Course, ForumMessage, ForumChannel, PDFDocument, Translation, db
 from lms.translation_service import translation_service
-from lms.google_drive_service import authenticate, upload_file, create_view_only_link, set_file_permissions, import_drive_file, import_drive_folder
-from lms.upload_validation import validate_upload, UploadValidationError, IMAGE_MIME_TYPES, PDF_MIME_TYPES
+from lms.google_drive_service import authenticate, create_view_only_link, set_file_permissions, import_drive_file, import_drive_folder
+from lms.upload_validation import validate_upload, UploadValidationError, PDF_MIME_TYPES
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -175,16 +174,25 @@ def get_current_user():
 
 @api_bp.route('/forum/channels')
 def get_forum_channels():
-    """Get all active forum channels"""
-    channels = ForumChannel.query.filter_by(is_active=True).order_by(ForumChannel.sort_order).all()
-    
+    """Get all active forum channels.
+
+    Guests (not authenticated) only see channels marked is_public — a discoverability
+    filter layered on top of requires_login/admin_only, which still gate actual message
+    access below. Authenticated users see every active channel, same as before.
+    """
+    query = ForumChannel.query.filter_by(is_active=True)
+    if not current_user.is_authenticated:
+        query = query.filter_by(is_public=True)
+    channels = query.order_by(ForumChannel.sort_order).all()
+
     return jsonify([{
         'id': c.id,
         'name': c.name,
         'slug': c.slug,
         'description': c.description,
         'requires_login': c.requires_login,
-        'admin_only': c.admin_only
+        'admin_only': c.admin_only,
+        'is_public': c.is_public
     } for c in channels])
 
 @api_bp.route('/forum/messages')
@@ -340,299 +348,6 @@ def delete_forum_message(message_id):
     
     return jsonify({'success': True}), 200
 
-@api_bp.route('/resources', methods=['POST'])
-@login_required
-def upload_resource():
-    """Upload a new learning resource"""
-    from flask import request
-    import random
-    from flask_login import current_user
-    
-    # Check if user is authenticated and is admin
-    if not current_user.is_authenticated or not current_user.is_admin:
-        return jsonify({'error': 'Admin access required'}), 403
-    
-    # Check if user has Google OAuth tokens
-    if not current_user.google_access_token:
-        return jsonify({
-            'error': 'Google Drive access required. Please connect your Google account in the admin panel first.',
-            'login_required': True,
-            'login_url': url_for('google_login.index', _external=True)
-        }), 403
-    
-    # Check if file is present
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
-    
-    file = request.files['file']
-    if not file or file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    # Get form data
-    title = request.form.get('title', '').strip()
-    description = request.form.get('description', '').strip()
-    tags = request.form.get('tags', '').strip()
-    pin_enabled = 'pin_enabled' in request.form  # Checkbox is checked if present in form data
-    
-    if not title:
-        return jsonify({'error': 'Title is required'}), 400
-    
-    # Create temporary directory if it doesn't exist
-    temp_dir = os.path.join(current_app.static_folder, 'temp')
-    os.makedirs(temp_dir, exist_ok=True)
-    
-    # Authenticate with Google Drive
-    service = authenticate()
-    if not service:
-        return jsonify({'error': 'Failed to authenticate with Google Drive'}), 500
-    
-    # Handle preview image upload
-    preview_image_url = None
-    if 'preview_image' in request.files:
-        preview_file = request.files['preview_image']
-        if preview_file and preview_file.filename != '':
-            try:
-                validate_upload(preview_file, max_bytes=10 * 1024 * 1024, expected_mimes=IMAGE_MIME_TYPES)
-            except UploadValidationError as e:
-                return jsonify({'error': str(e)}), 400
-
-            # Generate secure filename for preview image
-            preview_filename = secure_filename(preview_file.filename)
-            preview_unique_filename = f"preview_{random.randint(1000, 9999)}_{preview_filename}"
-            preview_temp_path = os.path.join(temp_dir, preview_unique_filename)
-            
-            # Save preview image temporarily
-            preview_file.save(preview_temp_path)
-            
-            # Upload preview image to Google Drive
-            try:
-                preview_drive_file_id = upload_file(service, preview_temp_path, preview_filename)
-                if preview_drive_file_id:
-                    # Set permissions for preview image
-                    try:
-                        set_file_permissions(service, preview_drive_file_id, make_public=True)
-                    except Exception as e:
-                        current_app.logger.error(f"Error setting preview permissions: {e}")
-                    # Create view-only link for preview image
-                    preview_image_url = create_view_only_link(service, preview_drive_file_id, is_image=True)
-                    preview_drive_view_link = preview_image_url  # Store the view link
-            except Exception as e:
-                current_app.logger.error(f"Error uploading preview to Drive: {e}")
-                if "insufficientPermissions" in str(e) or "403" in str(e):
-                    return jsonify({'error': 'Your Google account does not have sufficient permissions. Please re-link your Google account with full Drive access.'}), 403
-            
-            # Clean up temporary preview file
-            try:
-                os.remove(preview_temp_path)
-            except Exception:
-                pass
-    
-    # PIN is now always auto-generated (no user input allowed)
-    
-    try:
-        validate_upload(file, max_bytes=current_app.config['MAX_CONTENT_LENGTH'])
-    except UploadValidationError as e:
-        return jsonify({'error': str(e)}), 400
-
-    try:
-
-        # Generate secure filename
-        filename = secure_filename(file.filename)
-        unique_filename = f"{random.randint(1000, 9999)}_{filename}"
-        temp_file_path = os.path.join(temp_dir, unique_filename)
-
-        # Save file temporarily
-        file.save(temp_file_path)
-
-        # Upload to Google Drive
-        try:
-            drive_file_id = upload_file(service, temp_file_path, filename)
-        except Exception as e:
-            current_app.logger.error(f"Error uploading to Drive: {e}")
-            if "insufficientPermissions" in str(e) or "403" in str(e):
-                return jsonify({'error': 'Your Google account does not have sufficient permissions. Please re-link your Google account with full Drive access.'}), 403
-            return jsonify({'error': 'Failed to upload file to Google Drive'}), 500
-        
-        if not drive_file_id:
-            return jsonify({'error': 'Failed to upload file to Google Drive'}), 500
-        
-        # Set file permissions to make it publicly accessible
-        try:
-            success = set_file_permissions(service, drive_file_id, make_public=True)
-            current_app.logger.debug(f"set_file_permissions for resource {drive_file_id} returned: {success}")
-        except Exception as e:
-            current_app.logger.error(f"Error setting file permissions: {e}")
-            # Continue anyway - view link creation might still work
-        
-        # Create view-only link - check if file is an image
-        is_image = is_image_file(file.filename)
-        current_app.logger.debug(f"File {file.filename} detected as image: {is_image}")
-        view_link = create_view_only_link(service, drive_file_id, is_image=is_image)
-        if not view_link:
-            return jsonify({'error': 'Failed to create view link'}), 500
-        
-        # Create database record
-        new_resource = Resource(
-            title=title,
-            description=description,
-            tags=tags,
-            preview_image=preview_image_url,
-            preview_drive_file_id=preview_drive_file_id if 'preview_drive_file_id' in locals() and preview_drive_file_id else None,
-            preview_drive_view_link=preview_drive_view_link if 'preview_drive_view_link' in locals() and preview_drive_view_link else None,
-            drive_file_id=drive_file_id,
-            drive_view_link=view_link,
-            is_image_file=is_image,
-            uploaded_by=current_user.id
-        )
-        
-        # Conditionally set PIN based on user choice
-        if not pin_enabled:
-            new_resource.access_pin = None
-            new_resource.pin_expires_at = None
-        
-        db.session.add(new_resource)
-        db.session.commit()
-        
-        # Clean up temporary file
-        try:
-            os.remove(temp_file_path)
-        except Exception:
-            pass
-        
-        return jsonify({
-            'success': True,
-            'id': new_resource.id,
-            'title': new_resource.title,
-            'drive_view_link': new_resource.drive_view_link,
-            'pin': new_resource.access_pin,
-            'expires_at': new_resource.pin_expires_at.isoformat() if new_resource.pin_expires_at else None,
-            'pin_enabled': pin_enabled,
-            'message': 'Resource uploaded successfully'
-        }), 201
-        
-    except Exception as e:
-        db.session.rollback()
-        # Clean up temporary file if it was saved
-        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
-            try:
-                os.remove(temp_file_path)
-            except Exception:
-                pass
-        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
-
-@api_bp.route('/resources')
-def get_resources():
-    """Get all learning resources"""
-    from flask_login import current_user
-    from flask import session
-    from lms.content_translator import get_translated_content
-
-    # Get user's current locale from session
-    user_locale = session.get('language', 'en')
-
-    resources = Resource.query.filter_by(is_active=True).all()
-    result = []
-
-    for r in resources:
-        # Check if PIN has expired and regenerate if needed
-        if r.is_pin_expired():
-            r.reset_pin()
-            db.session.commit()
-
-        # Get translated title and description
-        translated_title = get_translated_content('resource', r.id, 'title', r.title, user_locale)
-        translated_description = get_translated_content('resource', r.id, 'description', r.description, user_locale)
-
-        resource_data = {
-            'id': r.id,
-            'title': translated_title,
-            'description': translated_description,
-            'tags': ' '.join([_(tag.strip()) for tag in (r.tags or '').split() if tag.strip()]),
-            'preview_image': r.preview_image,
-            'preview_drive_file_id': r.preview_drive_file_id,
-            'preview_drive_view_link': r.preview_drive_view_link,
-            'drive_view_link': r.drive_view_link,
-            'upload_date': r.upload_date.isoformat() if r.upload_date else None,
-            'pin_expires_at': r.pin_expires_at.isoformat() if r.pin_expires_at else None,
-            'pin_last_reset': r.pin_last_reset.isoformat() if r.pin_last_reset else None,
-            'has_pin': bool(r.access_pin),
-            'uploaded_by': r.uploaded_by
-        }
-
-        # Check if user has permanent access to this resource
-        has_permanent_access = current_user.is_authenticated and r in current_user.accessed_resources
-        
-        if has_permanent_access:
-            # User has already accessed this resource, show view link directly
-            resource_data['permanent_access'] = True
-            resource_data['access_granted'] = True
-        elif not current_user.is_authenticated:
-            # Non-authenticated users need to log in
-            resource_data['permanent_access'] = False
-            resource_data['requires_login'] = True
-        else:
-            # Authenticated users who don't have permanent access need PIN
-            resource_data['permanent_access'] = False
-            resource_data['requires_pin'] = True
-            if current_user.is_admin or r.uploaded_by == current_user.id:
-                resource_data['access_pin'] = r.access_pin
-
-        result.append(resource_data)
-
-    return jsonify(result)
-
-@api_bp.route('/resources/<int:resource_id>', methods=['PUT'])
-@login_required
-def update_resource(resource_id):
-    """Update title, description, and tags for a resource (uploader or admin only)"""
-    resource = Resource.query.filter_by(id=resource_id, is_active=True).first_or_404()
-
-    if not (current_user.is_admin or resource.uploaded_by == current_user.id):
-        return jsonify({'error': 'Permission denied'}), 403
-
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
-    if 'title' in data:
-        title = data['title'].strip()
-        if not title:
-            return jsonify({'error': 'Title cannot be empty'}), 400
-        resource.title = title
-
-    if 'description' in data:
-        resource.description = data['description'].strip()
-
-    if 'tags' in data:
-        resource.tags = data['tags'].strip()
-
-    db.session.commit()
-    return jsonify({'success': True})
-
-
-@api_bp.route('/resources/<int:resource_id>/reset-pin', methods=['POST'])
-@login_required
-def reset_resource_pin(resource_id):
-    """Reset the PIN for a specific resource (admin only)"""
-    # Check if user is admin
-    if not current_user.is_admin:
-        return jsonify({'error': 'Admin access required'}), 403
-
-    resource = Resource.query.get_or_404(resource_id)
-
-    # Reset the PIN
-    old_pin = resource.access_pin
-    resource.reset_pin()
-    db.session.commit()
-
-    return jsonify({
-        'success': True,
-        'message': 'PIN reset successfully',
-        'new_pin': resource.access_pin,
-        'expires_at': resource.pin_expires_at.isoformat(),
-        'old_pin': old_pin
-    }), 200
-
 @api_bp.route('/pdfs')
 def get_pdfs():
     """Get all active PDF documents (without sensitive info)"""
@@ -648,58 +363,6 @@ def get_pdfs():
         # Only show PIN to the uploader
         'access_pin': p.access_pin if (current_user.is_authenticated and p.uploaded_by == current_user.id) else None
     } for p in pdfs])
-
-@api_bp.route('/resources/<int:resource_id>/access', methods=['POST'])
-@login_required
-def access_resource(resource_id):
-    """Verify PIN and provide access to resource, recording user access for permanent viewing"""
-    data = request.get_json()
-    
-    if not data or 'pin' not in data:
-        return jsonify({'error': 'PIN required'}), 400
-    
-    resource = Resource.query.filter_by(id=resource_id, is_active=True).first()
-    if not resource:
-        return jsonify({'error': 'Resource not found'}), 404
-    
-    if not resource.access_pin or resource.access_pin != data['pin']:
-        return jsonify({'error': 'Invalid PIN'}), 403
-    
-    # Record that this user has accessed this resource
-    from flask_login import current_user
-    if resource not in current_user.accessed_resources:
-        current_user.accessed_resources.append(resource)
-        db.session.commit()
-    
-    return jsonify({
-        'success': True,
-        'title': resource.title,
-        'drive_view_link': resource.drive_view_link,
-        'permanent_access': True
-    })
-
-@api_bp.route('/resources/<int:resource_id>/download/<pin>')
-@login_required
-def download_resource(resource_id, pin):
-    """Get resource view link with PIN verification and expiration check"""
-    resource = Resource.query.filter_by(id=resource_id, is_active=True).first()
-    if not resource:
-        return jsonify({'error': 'Resource not found'}), 404
-
-    # Check PIN
-    if resource.access_pin != pin:
-        return jsonify({'error': 'Invalid PIN'}), 403
-
-    # Check if PIN has expired
-    if resource.is_pin_expired():
-        return jsonify({'error': 'PIN has expired. Please request a new PIN from the resource owner.'}), 403
-
-    # Return the view link
-    return jsonify({
-        'success': True,
-        'title': resource.title,
-        'drive_view_link': resource.drive_view_link
-    })
 
 @api_bp.route('/pdfs/upload', methods=['POST'])
 @limiter.limit("5 per 30 seconds")
@@ -913,7 +576,7 @@ def translate_content_field():
         from lms.models import db
         saved = translate_content(content_type, int(content_id), field_name, text)
         if not saved:
-            return jsonify({'error': 'Translation service unavailable. Start LibreTranslate with: just libre'}), 503
+            return jsonify({'error': 'Translation service unavailable. Check DEEPL_API_KEY is set in .env'}), 503
         db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
@@ -1041,56 +704,54 @@ def set_user_language():
 @login_required
 def serve_file(file_id):
     """Serve a Google Drive file after authentication"""
-    from lms.models import CourseAssignmentSubmission, CourseContent, Resource, PDFDocument
+    from lms.models import CourseAssignmentSubmission, CourseContent, PDFDocument, Course
     from flask_login import current_user
     from flask import redirect, render_template, url_for
-    
+
     # Find the file in any of the models that store files
     submission = CourseAssignmentSubmission.query.filter_by(drive_file_id=file_id).first()
     course_content = CourseContent.query.filter_by(drive_file_id=file_id).first()
-    resource = Resource.query.filter_by(drive_file_id=file_id).first()
-    resource_preview = Resource.query.filter_by(preview_drive_file_id=file_id).first()
     pdf_doc = PDFDocument.query.filter_by(drive_file_id=file_id).first()
-    
-    file_record = submission or course_content or resource or resource_preview or pdf_doc
-    
+
+    file_record = submission or course_content or pdf_doc
+
     if not file_record:
         return redirect(url_for('main.index', error='file_not_found'))
-    
+
+    # Resolve the course this file belongs to, if any, for course-scoped manager rights
+    resolved_course = None
+    if course_content:
+        resolved_course = Course.query.get(course_content.course_id)
+    elif submission and submission.assignment:
+        resolved_course = submission.assignment.course
+
     # Determine ownership and permissions
     is_owner = False
     is_admin = current_user.is_authenticated and current_user.is_admin
-    is_teacher = current_user.is_authenticated and current_user.is_teacher
-    is_preview = resource_preview is not None  # Preview images are always public
+    is_manager = resolved_course.is_managed_by(current_user) if resolved_course else False
     is_public = getattr(file_record, 'allow_others_to_view', True)  # Default to True if field doesn't exist
-    
+
     # Check ownership based on file type
     if hasattr(file_record, 'user_id'):
         is_owner = current_user.is_authenticated and file_record.user_id == current_user.id
     elif hasattr(file_record, 'uploaded_by'):
         is_owner = current_user.is_authenticated and file_record.uploaded_by == current_user.id
-    
+
     # Permission logic:
-    # 1. Preview images are always public
-    # 2. Owner, admin, and teacher always have access
-    # 3. For private files (allow_others_to_view=False), only owner/admin/teacher can access
-    # 4. For public files, enrolled students (for course content) or anyone can access
-    
-    if is_preview:
-        # Preview images are always accessible
-        pass
-    elif not is_public:
-        if not (is_owner or is_admin or is_teacher):
+    # 1. Owner, admin, and the course's manager (teacher/creator) always have access
+    # 2. For private files (allow_others_to_view=False), only owner/admin/manager can access
+    # 3. For public files, enrolled students (for course content) or anyone can access
+
+    if not is_public:
+        if not (is_owner or is_admin or is_manager):
             return redirect(url_for('main.index', error='auth_required'))
     else:
         # For public course content, check enrollment
         if course_content:
             if current_user.is_authenticated:
-                from lms.models import Course
-                course = Course.query.get(course_content.course_id)
-                is_enrolled = course and current_user in course.users
-                
-                if not (is_owner or is_admin or is_teacher or is_enrolled):
+                is_enrolled = resolved_course and current_user in resolved_course.users
+
+                if not (is_owner or is_admin or is_manager or is_enrolled):
                     return redirect(url_for('main.index', error='auth_required'))
             else:
                 return redirect(url_for('main.index', error='auth_required'))
@@ -1121,7 +782,7 @@ def serve_file(file_id):
                               current_user=current_user)
 
     
-    # For other files (submissions, resources, etc.), redirect to the drive_view_link
+    # For other files (submissions, PDFs, etc.), redirect to the drive_view_link
     if hasattr(file_record, 'drive_view_link') and file_record.drive_view_link:
         return redirect(file_record.drive_view_link)
     
@@ -1140,13 +801,12 @@ def serve_content_by_db_id(content_id):
     if not content:
         return redirect(url_for('main.index', error='file_not_found'))
 
-    is_admin = current_user.is_admin
-    is_teacher = current_user.is_teacher
     course = Course.query.get(content.course_id)
+    is_manager = course.is_managed_by(current_user) if course else False
     is_enrolled = course and current_user in course.users
-    if not (is_admin or is_teacher or is_enrolled):
+    if not (is_manager or is_enrolled):
         return redirect(url_for('main.index', error='auth_required'))
-    if not content.is_published and not (is_admin or is_teacher):
+    if not content.is_published and not is_manager:
         return redirect(url_for('main.index', error='auth_required'))
 
     if content.content_type == 'file' and content.drive_file_id:
@@ -1187,13 +847,12 @@ def serve_content_embed(content_id):
     if not content or not content.drive_file_id:
         abort(404)
 
-    is_admin = current_user.is_admin
-    is_teacher = current_user.is_teacher
     course = Course.query.get(content.course_id)
+    is_manager = course.is_managed_by(current_user) if course else False
     is_enrolled = course and current_user in course.users
-    if not (is_admin or is_teacher or is_enrolled):
+    if not (is_manager or is_enrolled):
         abort(403)
-    if not content.is_published and not (is_admin or is_teacher):
+    if not content.is_published and not is_manager:
         abort(403)
 
     file_id = content.drive_file_id
@@ -1218,13 +877,12 @@ def download_content_by_db_id(content_id):
     if not content.is_downloadable:
         return redirect(url_for('main.index', error='download_not_allowed'))
 
-    is_admin = current_user.is_admin
-    is_teacher = current_user.is_teacher
     course = Course.query.get(content.course_id)
+    is_manager = course.is_managed_by(current_user) if course else False
     is_enrolled = course and current_user in course.users
-    if not (is_admin or is_teacher or is_enrolled):
+    if not (is_manager or is_enrolled):
         return redirect(url_for('main.index', error='auth_required'))
-    if not content.is_published and not (is_admin or is_teacher):
+    if not content.is_published and not is_manager:
         return redirect(url_for('main.index', error='auth_required'))
 
     if content.drive_file_id:
@@ -1240,9 +898,10 @@ def get_drive_picker_token():
     from datetime import datetime
     from lms.google_drive_service import refresh_credentials
 
-    if not (current_user.is_teacher or current_user.is_admin):
-        return jsonify({'error': 'forbidden'}), 403
-
+    # No course-scoped gate here — this just vends the caller's own Drive OAuth token
+    # (drive.file scope, so it only ever grants access to files they create/pick
+    # themselves). The actual privileged action (writing into a specific course) is
+    # gated separately at picker_import() below.
     if not current_user.google_access_token:
         return jsonify({'error': 'no_token', 'message': 'Google account not linked'}), 401
 
@@ -1315,11 +974,8 @@ def picker_import():
     """
     from lms.models import CourseContent, CourseContentFolder, Course
     from lms.google_drive_service import (
-        authenticate, get_file_metadata, set_file_permissions, create_view_only_link,
+        get_file_metadata,
     )
-
-    if not (current_user.is_teacher or current_user.is_admin):
-        return jsonify({'error': 'forbidden'}), 403
 
     data = request.get_json()
     if not data:
@@ -1340,6 +996,8 @@ def picker_import():
     course = Course.query.get(int(course_id))
     if not course:
         return jsonify({'error': 'Course not found'}), 404
+    if not course.is_managed_by(current_user):
+        return jsonify({'error': 'forbidden'}), 403
 
     service = authenticate(current_user)
     if not service:
@@ -1422,9 +1080,6 @@ def import_drive_file_endpoint():
     Import a file or folder from Google Drive using full drive scope.
     The file must have been selected via Google Picker for access.
     """
-    from lms.google_drive_service import (
-        authenticate
-    )
     
     data = request.get_json()
     if not data:
@@ -1469,93 +1124,6 @@ def import_drive_file_endpoint():
             'message': str(e)
         }), 500
 
-@api_bp.route('/import-drive-file-to-resource', methods=['POST'])
-@limiter.limit("5 per 30 seconds")
-@login_required
-def import_drive_file_to_resource():
-    """
-    Import a Google Drive file to create or update a Resource.
-    Used when adding files to course resources.
-    """
-    from lms.google_drive_service import authenticate
-    
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'Request body must be JSON'}), 400
-    
-    file_id = data.get('file_id')
-    resource_id = data.get('resource_id')  # Optional: if updating existing resource
-    
-    if not file_id:
-        return jsonify({'error': 'No file ID provided'}), 400
-    
-    # Authenticate with Google Drive
-    service = authenticate(current_user)
-    if not service:
-        return jsonify({
-            'error': 'Google Drive not authenticated',
-            'message': 'Please link your Google account first'
-        }), 401
-    
-    try:
-        # Import the file from Google Drive
-        file_data = import_drive_file(service, file_id)
-        
-        if isinstance(file_data, dict) and 'error' in file_data:
-            return jsonify(file_data), 400
-        
-        # If updating existing resource
-        if resource_id:
-            resource = Resource.query.get(resource_id)
-            if not resource:
-                return jsonify({'error': 'Resource not found'}), 404
-            
-            # Update resource with imported file data
-            resource.name = file_data.get('name')
-            resource.drive_file_id = file_data.get('file_id')
-            resource.drive_view_link = file_data.get('view_link')
-            resource.mime_type = file_data.get('mime_type')
-            resource.is_imported = True
-            
-            db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Resource updated with Google Drive file',
-                'resource_id': resource.id,
-                'file_data': file_data
-            }), 200
-        else:
-            # Create new resource with imported file data
-            resource = Resource(
-                name=file_data.get('name'),
-                drive_file_id=file_data.get('file_id'),
-                drive_view_link=file_data.get('view_link'),
-                mime_type=file_data.get('mime_type'),
-                created_by=current_user.id,
-                is_imported=True
-            )
-            
-            db.session.add(resource)
-            db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'message': 'New resource created with Google Drive file',
-                'resource_id': resource.id,
-                'file_data': file_data
-            }), 201
-        
-    except Exception as e:
-        import traceback
-        current_app.logger.error(f'Error importing file {file_id} to resource: {str(e)}')
-        current_app.logger.error(traceback.format_exc())
-        return jsonify({
-            'error': 'Failed to import file to resource',
-            'message': str(e)
-        }), 500
-
-
 @api_bp.route('/folder/<int:folder_id>/contents', methods=['GET'])
 def get_folder_contents(folder_id):
     """
@@ -1589,14 +1157,14 @@ def get_folder_contents(folder_id):
         if not course:
             return jsonify({'error': 'Course not found'}), 404
             
-        enrolled = current_user.is_authenticated and (current_user in course.users or current_user.is_teacher or current_user.is_admin)
+        is_manager = course.is_managed_by(current_user)
+        enrolled = current_user.is_authenticated and (current_user in course.users or is_manager)
         if not enrolled:
             return jsonify({'error': 'You must be enrolled in this course to view its contents'}), 403
-        
+
         # Fetch published contents for this folder; students only see files the teacher made visible
-        is_teacher_or_admin = current_user.is_teacher or current_user.is_admin
         _q = CourseContent.query.filter_by(folder_id=folder_id, is_published=True)
-        if not is_teacher_or_admin:
+        if not is_manager:
             _q = _q.filter_by(allow_others_to_view=True)
         contents = _q.options(
             subqueryload(CourseContent.folder)

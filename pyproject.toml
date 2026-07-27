@@ -30,6 +30,8 @@ dependencies = [
     "qrcode>=8.2",
     "img2pdf>=0.6.3",
     "filetype>=1.2.0",
+    "rq>=1.16.0",
+    "redis>=5.0.0",
 ]
 
 [tool.uv]

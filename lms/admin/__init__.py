@@ -9,13 +9,12 @@ from datetime import datetime, timedelta
 from flask import flash, redirect, url_for, request, current_app, session
 from flask_admin import Admin, AdminIndexView, expose, BaseView
 from flask_admin.contrib.sqla import ModelView
-from markupsafe import Markup
-from wtforms import Form, FileField, StringField, TextAreaField, BooleanField, SelectField
+from wtforms import StringField, TextAreaField, SelectField
 from wtforms.validators import Optional, DataRequired, ValidationError, NumberRange
 from flask_admin.model.form import InlineFormAdmin
 from flask_login import current_user
 from flask_wtf import FlaskForm
-from lms.models import User, Course, ForumMessage, ForumChannel, MoxoTest, Resource, db, SiteSettings, CourseContent, ContentView, AppSetting, Enrollment, Quiz, QuizQuestion, QUIZ_QUESTION_TYPES
+from lms.models import User, Course, ForumMessage, ForumChannel, MoxoTest, db, SiteSettings, CourseContent, ContentView, AppSetting, Enrollment, Quiz, QuizQuestion, QUIZ_QUESTION_TYPES
 from flask_admin.contrib.sqla.fields import QuerySelectMultipleField
 from lms.password_policy import validate_password_strength, PasswordPolicyError
 
@@ -58,7 +57,6 @@ ADMIN_PERMISSIONS = [
     ('forum_management',       'Forum Management'),
     ('builder_management',     'Builder Management'),
     ('moxo_test_management',   'Moxo Test Management'),
-    ('resource_management',    'Resource Management'),
 ]
 
 class AdminIndexView(AdminIndexView):
@@ -173,21 +171,22 @@ class GoogleLoginView(BaseView):
         
         if code or error:
             stored_state = session.pop('oauth_state', None)
-            
+            for_worker = session.pop('oauth_for_worker', False)
+
             if error:
                 flash(f'OAuth error: {error}')
                 return redirect(url_for('google_login.index'))
-            
+
             if not code or state != stored_state:
                 flash('Invalid OAuth callback')
                 return redirect(url_for('google_login.index'))
-            
+
             client_id = current_app.config.get('GOOGLE_CLIENT_ID')
             client_secret = current_app.config.get('GOOGLE_CLIENT_SECRET')
-            
+
             # Use the same redirect URI as used in connect (stored in session)
             redirect_uri = session.pop('oauth_redirect_uri', get_google_redirect_uri())
-            
+
             # Exchange code for access token
             token_url = 'https://oauth2.googleapis.com/token'
             token_data = {
@@ -197,7 +196,7 @@ class GoogleLoginView(BaseView):
                 'redirect_uri': redirect_uri,
                 'grant_type': 'authorization_code'
             }
-            
+
             try:
                 token_response = requests.post(token_url, data=token_data)
                 token_response.raise_for_status()
@@ -205,20 +204,35 @@ class GoogleLoginView(BaseView):
                 access_token = token_json.get('access_token')
                 refresh_token = token_json.get('refresh_token')
                 expires_in = token_json.get('expires_in', 3600)
-                
+
                 if not access_token:
                     flash('Failed to obtain access token')
                     return redirect(url_for('google_login.index'))
-                
+
+                if for_worker:
+                    if not refresh_token:
+                        flash('Google did not return a refresh token — the worker account may have '
+                              'already granted access before. Revoke access for this app at '
+                              'myaccount.google.com/permissions (from the worker account) and try again.', 'error')
+                        return redirect(url_for('drive_worker.index'))
+                    from lms.google_drive_service import WorkerCredentials
+                    worker = WorkerCredentials()
+                    worker.google_access_token = access_token
+                    worker.google_refresh_token = refresh_token
+                    worker.google_token_expiry = datetime.utcnow() + timedelta(seconds=expires_in)
+                    db.session.commit()
+                    flash('Worker Google account connected successfully!', 'success')
+                    return redirect(url_for('drive_worker.index'))
+
                 # Store Google tokens for the current user
                 current_user.google_access_token = access_token
                 current_user.google_refresh_token = refresh_token
                 current_user.google_token_expiry = datetime.utcnow() + timedelta(seconds=expires_in)
                 db.session.commit()
-                
+
                 flash('Google Drive connected successfully!', 'success')
                 return redirect(url_for('admin.index'))
-            
+
             except requests.RequestException as e:
                 logger.error(f'OAuth token exchange failed: {e}')
                 flash('OAuth authentication failed')
@@ -265,7 +279,9 @@ class GoogleLoginView(BaseView):
                 flash('Google OAuth not configured')
                 return redirect(url_for('admin.index'))
                 
-            scope = 'openid email profile https://www.googleapis.com/auth/drive'
+            # drive.file (not full drive) — matches SCOPES in google_drive_service.py and
+            # what the app actually needs: creating files itself + Picker-selected files.
+            scope = 'openid email profile https://www.googleapis.com/auth/drive.file'
             state = secrets.token_urlsafe(32)
             session['oauth_state'] = state
             session['oauth_redirect_uri'] = redirect_uri  # Store redirect URI for callback
@@ -288,7 +304,42 @@ class GoogleLoginView(BaseView):
             logger.error(f"Error in admin Google connect: {e}")
             flash(f'Error connecting to Google: {str(e)}')
             return redirect(url_for('google_login.index'))
-    
+
+    @expose('/connect_worker')
+    def connect_worker(self):
+        """Same OAuth flow as /connect, but for the Phase 4 worker account — sign into
+        Google as the dedicated worker account in this browser, then click this. Full
+        admins only, since this replaces a system-wide credential."""
+        if not current_user.is_authenticated or not current_user.is_full_admin:
+            return redirect(url_for('auth.login'))
+
+        client_id = current_app.config.get('GOOGLE_CLIENT_ID')
+        if not client_id:
+            flash('Google OAuth not configured')
+            return redirect(url_for('drive_worker.index'))
+
+        redirect_uri = get_google_redirect_uri()
+        # Needs openid/email/profile too, not just drive — get_linked_google_account() calls
+        # Google's userinfo endpoint to show which account is connected, which 401s without it.
+        # drive.file (not full drive) — matches SCOPES in google_drive_service.py and what
+        # the app actually needs: creating files itself + Picker-selected files.
+        scope = 'openid email profile https://www.googleapis.com/auth/drive.file'
+        state = secrets.token_urlsafe(32)
+        session['oauth_state'] = state
+        session['oauth_redirect_uri'] = redirect_uri
+        session['oauth_for_worker'] = True
+
+        auth_url = (
+            f"https://accounts.google.com/o/oauth2/auth?"
+            f"response_type=code&"
+            f"client_id={client_id}&"
+            f"redirect_uri={redirect_uri}&"
+            f"scope={scope}&"
+            f"state={state}&"
+            f"access_type=offline&prompt=consent"
+        )
+        return redirect(auth_url)
+
     def is_accessible(self):
         return current_user.is_authenticated and current_user.is_admin
 
@@ -405,11 +456,45 @@ class CourseManagementView(BaseView):
                       .filter(~User.id.in_(enrolled_ids) if enrolled_ids else True)
                       .order_by(User.username)
                       .all())
+        enrollment_by_user = {e.user_id: e for e in course.enrollments}
         return self.render('admin/course_access.html',
                             course=course,
                             enrolled=enrolled,
                             candidates=candidates,
-                            promo_codes=course.promo_codes)
+                            promo_codes=course.promo_codes,
+                            enrollment_by_user=enrollment_by_user)
+
+    @expose('/course/<int:course_id>/toggle_teacher/<int:user_id>', methods=['POST'])
+    def toggle_teacher(self, course_id, user_id):
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
+            return redirect(url_for('auth.login'))
+        enrollment = Enrollment.query.filter_by(course_id=course_id, user_id=user_id).first()
+        if enrollment:
+            enrollment.is_teacher = not enrollment.is_teacher
+            db.session.commit()
+            flash(f'{enrollment.user.username} is {"now" if enrollment.is_teacher else "no longer"} a teacher for this course.', 'success')
+        return redirect(url_for('course_management.manage_access', course_id=course_id))
+
+    @expose('/course/<int:course_id>/transfer_owner/<int:user_id>', methods=['POST'])
+    def transfer_owner(self, course_id, user_id):
+        if not current_user.is_authenticated or not current_user.has_perm('course_management'):
+            return redirect(url_for('auth.login'))
+        course = Course.query.get_or_404(course_id)
+        new_owner = User.query.get_or_404(user_id)
+        if new_owner not in course.users:
+            flash('The new owner must already be enrolled in the course.', 'warning')
+            return redirect(url_for('course_management.manage_access', course_id=course_id))
+
+        old_owner_id = course.created_by
+        course.created_by = new_owner.id
+        # Keep the outgoing owner's management access so they aren't abruptly locked out
+        if old_owner_id:
+            old_enrollment = Enrollment.query.filter_by(course_id=course_id, user_id=old_owner_id).first()
+            if old_enrollment:
+                old_enrollment.is_teacher = True
+        db.session.commit()
+        flash(f'{new_owner.username} is now the owner of {course.title}.', 'success')
+        return redirect(url_for('course_management.manage_access', course_id=course_id))
 
     @expose('/course/<int:course_id>/toggle_public', methods=['POST'])
     def toggle_public(self, course_id):
@@ -496,7 +581,7 @@ class UserView(SecureModelView):
     permission = 'user_management'
     column_list = ('id', 'username', 'email', 'first_name', 'last_name', 'city', 'is_admin', 'courses')
     column_searchable_list = ['username', 'email', 'first_name', 'last_name', 'city']
-    form_columns = ('username', 'email', 'first_name', 'last_name', 'city', 'is_admin', 'is_teacher', 'course_ids', 'new_password')
+    form_columns = ('username', 'email', 'first_name', 'last_name', 'city', 'is_admin', 'course_ids', 'new_password')
     form_excluded_columns = ('_password', 'password')
     column_formatters = {
         'courses': lambda v, c, m, p: ', '.join([course.title for course in m.courses]) if m.courses else 'None'
@@ -660,14 +745,14 @@ class CourseView(SecureModelView):
 
             db.session.commit()
 
-            # Automatically translate the course content
+            # Queue translation instead of blocking this request on an external API call
+            # (the "threshold" trigger — see job_manager.py's translate_course job type)
             try:
-                from lms.content_translator import auto_translate_course
-                auto_translate_course(course)
-                db.session.commit()
-                logger.info(f"Auto-translated course: {course.title}")
+                from lms.job_manager import job_manager
+                job_manager.queue_job('translate_course', {'course_id': course.id})
+                logger.info(f"Queued translation for course: {course.title}")
             except Exception as e:
-                logger.warning(f"Failed to auto-translate course {course.id}: {str(e)}")
+                logger.warning(f"Failed to queue translation for course {course.id}: {str(e)}")
 
             flash('Course updated successfully!', 'success')
             return redirect(url_for('admin.index'))
@@ -705,185 +790,18 @@ class CourseView(SecureModelView):
             db.session.add(course)
             db.session.commit()
 
-            # Automatically translate the new course content
+            # Queue translation instead of blocking this request on an external API call
             try:
-                from lms.content_translator import auto_translate_course
-                auto_translate_course(course)
-                db.session.commit()
-                logger.info(f"Auto-translated new course: {course.title}")
+                from lms.job_manager import job_manager
+                job_manager.queue_job('translate_course', {'course_id': course.id})
+                logger.info(f"Queued translation for new course: {course.title}")
             except Exception as e:
-                logger.warning(f"Failed to auto-translate new course {course.id}: {str(e)}")
+                logger.warning(f"Failed to queue translation for new course {course.id}: {str(e)}")
 
             flash('Course created successfully!', 'success')
             return redirect(url_for('admin.index'))
 
         return self.render('admin/course_edit.html', course=None)
-
-class ResourceForm(Form):
-    """Custom form for resource creation with file upload"""
-    title = StringField('Title', [DataRequired()])
-    description = TextAreaField('Description')
-    tags = StringField('Tags')  # Space-separated tags
-    preview_image = FileField('Preview Image')  # Optional preview image upload
-    file = FileField('File')  # Optional file upload
-    access_pin = StringField('Access PIN', render_kw={'readonly': True, 'style': 'background-color: #f8f9fa;'})
-    is_active = BooleanField('Active', default=True)
-
-class ResourceView(SecureModelView):
-    """Admin view for Resource model with file upload"""
-    permission = 'resource_management'
-    column_list = ('id', 'title', 'description', 'tags', 'drive_view_link', 'access_pin', 'pin_expires_at', 'pin_last_reset', 'uploaded_by', 'upload_date', 'is_active', 'reset_pin_button')
-    column_searchable_list = ['title', 'description', 'tags']
-    form = ResourceForm
-    form_excluded_columns = ('uploaded_by', 'upload_date', 'drive_file_id', 'drive_view_link', 'pin_expires_at', 'pin_last_reset', 'preview_image')
-    
-    # Enable file uploads
-    form_enctype = 'multipart/form-data'
-    
-    column_formatters = dict(
-        reset_pin_button=lambda v, c, m, p: Markup(f'<a href="/admin/resource/reset_pin/{m.id}" class="btn btn-sm btn-warning"><i class="fa fa-refresh"></i> Reset PIN</a>'),
-        access_pin=lambda v, c, m, p: Markup(f'<code style="font-size: 14px; background: #f8f9fa; padding: 2px 6px; border-radius: 3px;">{m.access_pin}</code>') if m.access_pin else 'Not generated',
-        pin_expires_at=lambda v, c, m, p: m.pin_expires_at.strftime('%Y-%m-%d %H:%M:%S') if m.pin_expires_at else 'N/A',
-        pin_last_reset=lambda v, c, m, p: m.pin_last_reset.strftime('%Y-%m-%d %H:%M:%S') if m.pin_last_reset else 'N/A'
-    )
-    
-    @expose('/reset_pin/<int:resource_id>')
-    def reset_pin(self, resource_id):
-        """Reset the PIN for a specific resource"""
-        from flask import flash, redirect, url_for
-        
-        resource = self.model.query.get_or_404(resource_id)
-        old_pin = resource.access_pin
-        resource.reset_pin()
-        self.session.commit()
-        
-        flash(f'PIN reset successfully. New PIN: {resource.access_pin} (was: {old_pin})', 'success')
-        return redirect(url_for('resource.index_view'))
-    
-    def on_model_change(self, form, model, is_created):
-        """Handle file upload when model is created or changed"""
-        if is_created:
-            # Ensure PIN is generated for new resources
-            if not model.access_pin:
-                model.generate_new_pin()
-            
-            # Handle preview image upload
-            preview_file = form.preview_image.data
-            if preview_file:
-                from werkzeug.utils import secure_filename
-                import os
-                import random
-                from flask import flash
-                from lms.google_drive_service import authenticate, upload_file, create_view_only_link
-                from lms.upload_validation import validate_upload, IMAGE_MIME_TYPES
-
-                try:
-                    validate_upload(preview_file, max_bytes=10 * 1024 * 1024, expected_mimes=IMAGE_MIME_TYPES)
-
-                    # Create temporary directory
-                    temp_dir = os.path.join(current_app.static_folder, 'temp')
-                    os.makedirs(temp_dir, exist_ok=True)
-
-                    # Generate secure filename
-                    filename = secure_filename(preview_file.filename)
-                    unique_filename = f"preview_{random.randint(1000, 9999)}_{filename}"
-                    temp_file_path = os.path.join(temp_dir, unique_filename)
-
-                    # Save file temporarily
-                    preview_file.save(temp_file_path)
-                    
-                    # Upload to Google Drive
-                    service = authenticate()
-                    if not service:
-                        flash('Failed to authenticate with Google Drive. Preview image not uploaded.', 'error')
-                    else:
-                        drive_file_id = upload_file(service, temp_file_path, filename)
-                        if drive_file_id:
-                            # Create view-only link for image
-                            view_link = create_view_only_link(service, drive_file_id, is_image=True)
-                            if view_link:
-                                model.preview_image = view_link
-                            else:
-                                flash('Failed to create preview image view link.', 'error')
-                        else:
-                            flash('Failed to upload preview image to Google Drive.', 'error')
-                    
-                    # Clean up temporary file
-                    try:
-                        os.remove(temp_file_path)
-                    except Exception:
-                        pass
-                        
-                except Exception as e:
-                    flash(f'Error uploading preview image: {str(e)}', 'error')
-            
-            # Handle file upload for new models
-            file = form.file.data
-            if file:
-                from werkzeug.utils import secure_filename
-                import os
-                import random
-                from flask import flash
-                from lms.google_drive_service import authenticate, upload_file, create_view_only_link
-                from lms.upload_validation import validate_upload
-
-                try:
-                    validate_upload(file, max_bytes=current_app.config['MAX_CONTENT_LENGTH'])
-
-                    # Create temporary directory
-                    temp_dir = os.path.join(current_app.static_folder, 'temp')
-                    os.makedirs(temp_dir, exist_ok=True)
-
-                    # Generate secure filename
-                    filename = secure_filename(file.filename)
-                    unique_filename = f"{random.randint(1000, 9999)}_{filename}"
-                    temp_file_path = os.path.join(temp_dir, unique_filename)
-
-                    # Save file temporarily
-                    file.save(temp_file_path)
-                    
-                    # Upload to Google Drive
-                    service = authenticate()
-                    if not service:
-                        flash('Failed to authenticate with Google Drive. File not uploaded.', 'error')
-                    else:
-                        drive_file_id = upload_file(service, temp_file_path, filename)
-                        if drive_file_id:
-                            # Create view-only link
-                            view_link = create_view_only_link(service, drive_file_id, is_image=False)
-                            if view_link:
-                                model.drive_file_id = drive_file_id
-                                model.drive_view_link = view_link
-                            else:
-                                flash('Failed to create view link.', 'error')
-                        else:
-                            flash('Failed to upload file to Google Drive.', 'error')
-                    
-                    # Clean up temporary file
-                    try:
-                        os.remove(temp_file_path)
-                    except Exception:
-                        pass
-                        
-                except Exception as e:
-                    flash(f'Error uploading file: {str(e)}', 'error')
-        
-        return super().on_model_change(form, model, is_created)
-    
-    def create_form(self):
-        """Override form creation to ensure no extra fields"""
-        form = super(ResourceView, self).create_form()
-        return form
-    
-    def edit_form(self, obj):
-        """Override edit form - no file upload for editing"""
-        form = super(ResourceView, self).edit_form(obj)
-        # Remove file field from edit form since we don't support re-uploading
-        if hasattr(form, 'file'):
-            delattr(form, 'file')
-        if hasattr(form, 'preview_image'):
-            delattr(form, 'preview_image')
-        return form
 
 class MoxoTestView(SecureModelView):
     """Admin view for MoxoTest model"""
@@ -895,10 +813,10 @@ class MoxoTestView(SecureModelView):
 class ForumChannelView(SecureModelView):
     """Admin view for ForumChannel model"""
     permission = 'forum_management'
-    column_list = ('name', 'slug', 'description', 'requires_login', 'admin_only', 'is_active', 'sort_order', 'created_at')
+    column_list = ('name', 'slug', 'description', 'requires_login', 'admin_only', 'is_public', 'is_active', 'sort_order', 'created_at')
     column_searchable_list = ['name', 'slug', 'description']
-    column_filters = ['requires_login', 'admin_only', 'is_active']
-    form_columns = ('name', 'slug', 'description', 'requires_login', 'admin_only', 'is_active', 'sort_order')
+    column_filters = ['requires_login', 'admin_only', 'is_public', 'is_active']
+    form_columns = ('name', 'slug', 'description', 'requires_login', 'admin_only', 'is_public', 'is_active', 'sort_order')
     form_excluded_columns = ('created_at', 'updated_at')
 
     def on_model_change(self, form, model, is_created):
@@ -999,10 +917,10 @@ class TranslateContentView(BaseView):
             total_before = ru_content_count + ru_cache_count
             
             # Delete from ContentTranslation table
-            ContentTranslation.query.filter(ContentTranslation.target_language.in_(['az', 'ru'])).delete()
-            
+            ContentTranslation.query.filter(ContentTranslation.target_language == 'ru').delete()
+
             # Delete from Translation cache table
-            Translation.query.filter(Translation.target_language.in_(['az', 'ru'])).delete()
+            Translation.query.filter(Translation.target_language == 'ru').delete()
             
             db.session.commit()
             
@@ -1235,6 +1153,38 @@ class DriveWriterView(BaseView):
         return redirect(url_for('drive_writer.index'))
 
 
+class DriveWorkerView(BaseView):
+    """The real Phase 4 worker-account credential — a single dedicated Google account's
+    OAuth tokens, stored server-side (not on any User row). Takes priority over the interim
+    Drive Writer stopgap once connected. Full admins only.
+    """
+
+    def is_accessible(self):
+        return current_user.is_authenticated and current_user.is_full_admin
+
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect(url_for('auth.login'))
+
+    @expose('/')
+    def index(self):
+        from lms.google_drive_service import get_worker_credentials, get_linked_google_account
+
+        creds = get_worker_credentials()
+        account_info = get_linked_google_account(creds) if creds else None
+        return self.render(
+            'admin/drive_worker.html',
+            connected=bool(creds),
+            account_info=account_info,
+        )
+
+    @expose('/disconnect', methods=['POST'])
+    def disconnect(self):
+        from lms.google_drive_service import clear_worker_credentials
+        clear_worker_credentials()
+        flash('Worker account disconnected. Uploads will fall back to the Drive Writer setting or each user\'s own account.', 'info')
+        return redirect(url_for('drive_worker.index'))
+
+
 def init_admin(app):
     """Initialize admin interface with all views"""
     admin = Admin(app, name='LMS Admin', index_view=AdminIndexView())
@@ -1244,9 +1194,9 @@ def init_admin(app):
     admin.add_view(CourseManagementView(name='Course Management', endpoint='course_management'))
     admin.add_view(UserPermissionsView(name='Permissions', endpoint='user_permissions'))
     admin.add_view(DriveWriterView(name='Drive Writer', endpoint='drive_writer'))
+    admin.add_view(DriveWorkerView(name='Drive Worker', endpoint='drive_worker'))
     admin.add_view(ForumChannelView(ForumChannel, db.session))
     admin.add_view(ForumMessageView(ForumMessage, db.session))
-    admin.add_view(ResourceView(Resource, db.session))
     admin.add_view(MoxoTestView(MoxoTest, db.session))
     admin.add_view(GoogleLoginView(name='Google Login', endpoint='google_login'))
     admin.add_view(CertificateTuningView(name='Certificate Tuning', endpoint='certificate_tuning'))

@@ -10,19 +10,13 @@
                     <a class="nav-link" href="/" data-nav="home">{{ _('Home') }}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/#courses" data-nav="courses">{{ _('Courses') }}</a>
+                    <a class="nav-link" href="/forum" data-nav="forum">{{ _('Forum') }}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/#forum" data-nav="forum">{{ _('Forum') }}</a>
+                    <a class="nav-link" href="/resources" data-nav="resources">{{ _('Resources') }}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/#resources" data-nav="resources">{{ _('Resources') }}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/#moxo-test" data-nav="moxo-test">{{ _('MOXO Test') }}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/#about" data-nav="about">{{ _('About') }}</a>
+                    <a class="nav-link" href="/moxo-test" data-nav="moxo-test">{{ _('MOXO Test') }}</a>
                 </li>
             </ul>
 
@@ -92,12 +86,10 @@
             <i class="fas fa-times"></i>
         </button>
 
-        <a href="javascript:void(0)" class="nav-link active" id="mobile-home-link">{{ _('Home') }}</a>
-        <a href="javascript:void(0)" class="nav-link" id="mobile-courses-link">{{ _('Courses') }}</a>
-        <a href="javascript:void(0)" class="nav-link" id="mobile-forum-link">{{ _('Forum') }}</a>
-        <a href="javascript:void(0)" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
-        <a href="javascript:void(0)" class="nav-link" id="mobile-moxo-link">{{ _('MOXO Test') }}</a>
-        <a href="javascript:void(0)" class="nav-link" id="mobile-about-link">{{ _('About Company') }}</a>
+        <a href="/" class="nav-link" id="mobile-home-link">{{ _('Home') }}</a>
+        <a href="/forum" class="nav-link" id="mobile-forum-link">{{ _('Forum') }}</a>
+        <a href="/resources" class="nav-link" id="mobile-resources-link">{{ _('Resources') }}</a>
+        <a href="/moxo-test" class="nav-link" id="mobile-moxo-link">{{ _('MOXO Test') }}</a>
 
         {# Language picker #}
         {% set lang_names = {'en': 'English', 'ru': 'Русский'} %}
@@ -513,23 +505,9 @@
             if (e.target === mobileNavOverlay) closeMobileMenu();
         });
 
-        const destinations = {
-            'mobile-home-link':      '/',
-            'mobile-courses-link':   '/#courses',
-            'mobile-forum-link':     '/#forum',
-            'mobile-resources-link': '/#resources',
-            'mobile-moxo-link':      '/#moxo-test',
-            'mobile-about-link':     '/#about',
-        };
-
-        document.querySelectorAll('#mobile-nav-menu .nav-link').forEach(link => {
-            link.addEventListener('click', e => {
-                const dest = destinations[link.id];
-                if (!dest) return;
-                e.preventDefault();
-                closeMobileMenu();
-                window.location.href = dest;
-            });
+        // Mobile nav links now have real hrefs — just close the menu before navigating away
+        document.querySelectorAll('#mobile-nav-menu .nav-link[href]').forEach(link => {
+            link.addEventListener('click', closeMobileMenu);
         });
 
         rebalanceNavMain();

@@ -6,7 +6,6 @@ For the underlying translation logic (no Flask/DB), see core_translator.py.
 """
 import os
 import re
-from functools import lru_cache
 
 from flask import current_app
 
@@ -79,8 +78,6 @@ class TranslationService:
 
     def _translate_and_cache_all(self, text: str, detected_source: str) -> None:
         """Translate text to every supported language and persist to DB."""
-        libre_url = os.environ.get('LIBRETRANSLATE_URL') or None
-
         for target_lang in self.SUPPORTED_LANGUAGES:
             if target_lang == detected_source:
                 continue
@@ -94,11 +91,7 @@ class TranslationService:
                     self._add_to_cache(text, target_lang, already_cached.translated_text)
                 continue
 
-            translated = core_translator.translate_text(
-                text,
-                target_lang,
-                libretranslate_url=libre_url,
-            )
+            translated = core_translator.translate_text(text, target_lang)
 
             if translated == text:
                 # Both backends failed — do not cache the untranslated original
@@ -113,7 +106,7 @@ class TranslationService:
                     source_language=detected_source,
                     target_language=target_lang,
                     translated_text=translated,
-                    translation_service='libretranslate',
+                    translation_service='deepl',
                 ))
                 db.session.commit()
                 
@@ -150,20 +143,14 @@ class TranslationService:
         # Translate the protected content (text + placeholders)
         if protected.strip():
             from lms import core_translator
-            import os
-            
+
             # Use core_translator directly to avoid caching the placeholder version
-            libre_url = os.environ.get('LIBRETRANSLATE_URL')
             detected_source = core_translator.detect_language(protected)
-            
+
             if detected_source == target_language:
                 translated_protected = protected
             else:
-                translated_protected = core_translator.translate_text(
-                    protected, 
-                    target_language,
-                    libretranslate_url=libre_url
-                )
+                translated_protected = core_translator.translate_text(protected, target_language)
         else:
             translated_protected = protected
 
