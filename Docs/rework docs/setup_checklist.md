@@ -115,6 +115,20 @@ existing database, which I'll enable via a migration.
 
 ---
 
+## Phase 10 — Real email delivery
+
+Signup currently works but email verification is a dev-mode placeholder — the link is
+logged, not actually sent (`lms/email_service.py`). Lowest priority, scheduled after
+Phases 6-9.
+
+1. [ ] **Pick a provider**: Gmail SMTP (simplest, fine for low volume), SendGrid, Mailgun,
+  or Postmark (all have free tiers suitable for this scale).
+2. [ ] Set whatever credentials that provider needs in `.env` (e.g. `SMTP_HOST`,
+  `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, or an API key — exact vars depend on the
+  provider chosen above).
+
+---
+
 ## Optional / not required for v1
 
 - **Sentry** (error tracking) — free tier (5,000 errors/month) if you want it; not required

@@ -317,6 +317,21 @@ disconnect), priority resolution over the Drive Writer stopgap holds.
 - [ ] Translation review UI reflecting DeepL engine
 - [ ] Update `ADMIN_PERMISSIONS` (drop `moxo_test_management`, add quiz/promo-code keys)
 
+## Phase 10 — Real email delivery
+
+Currently a placeholder: `lms/email_service.py`'s `send_verification_email()` just logs the
+verification link (`[dev-mode email] ...`) instead of sending it — a signup gets told
+"check your email" but nothing arrives. Fine for local dev/testing, but blocks real users
+from ever completing signup once this is live, and needs a provider decision from
+`setup_checklist.md` (SMTP, SendGrid, Mailgun, Postmark, etc.) first.
+
+- [ ] Pick and configure an outbound email provider
+- [ ] Swap `send_verification_email()`'s body for the real provider call — call sites
+  (`routes/auth.py`) don't need to change, by design
+- [ ] Verify a real signup end-to-end: account created → real email received → link works
+
+*(Scheduled after Phases 6-9 per explicit instruction — lowest priority in the roadmap.)*
+
 ---
 
 ## Backlog — noted for later (not scheduled to a specific phase yet)
