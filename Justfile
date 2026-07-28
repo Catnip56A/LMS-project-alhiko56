@@ -106,8 +106,8 @@ install:
     uv sync
 
 ensure-dirs:
-    mkdir -p ./data/caddy-local ./data/logs ./data/flask_session ./data/redis
-    chmod a+rwx ./data/caddy-local ./data/logs ./data/flask_session ./data/redis
+    mkdir -p ./data/caddy-local ./data/logs ./data/flask_session
+    chmod a+rwx ./data/caddy-local ./data/logs ./data/flask_session
 
 db:
     docker compose --profile dev up db-dev migrate-dev -d
@@ -196,7 +196,7 @@ translate-fix-placeholders:
 
 # Docker — dev
 up: ensure-dirs certs
-    docker compose --profile dev up -d
+    docker compose --profile dev up -d --build
 
 down:
     docker compose --profile dev down
@@ -206,6 +206,12 @@ build:
 
 rebuild: ensure-dirs certs
     docker compose --profile dev up -d --build
+
+# Remove dangling images left behind by rebuilds (old lms-app-dev/lms-worker-dev layers
+# that got orphaned when their tag moved to a newer build) — safe, only touches untagged
+# images with no container referencing them.
+prune-images:
+    docker image prune -f
 
 logs:
     docker compose --profile dev logs -f app-dev

@@ -26,7 +26,11 @@ services:
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
-      - ./data/redis:/data
+      # Named volume, not a ./data bind mount — Redis's default uid (999) collided with an
+      # unrelated system account on some dev machines when the data dir was host-visible,
+      # breaking `just up`'s ensure-dirs chmod. A named volume lives inside Docker's own
+      # storage, so the container's internal uid never has to match anything on the host.
+      - redis-dev-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -124,7 +128,7 @@ services:
     profiles: [production]
     restart: unless-stopped
     volumes:
-      - ./data/redis:/data
+      - redis-production-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -210,7 +214,7 @@ services:
     profiles: [staging]
     restart: unless-stopped
     volumes:
-      - ./data/redis:/data
+      - redis-staging-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -275,3 +279,7 @@ networks:
   lms-proxy:
     external: true
     name: lms-proxy
+volumes:
+  redis-dev-data:
+  redis-staging-data:
+  redis-production-data:
