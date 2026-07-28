@@ -105,33 +105,40 @@ passer vs. still-locked for a non-passer).
   alternative, but this plan's own "Out of scope for this pass" section explicitly excludes
   AI grading — scoping this to manual review only unless you want to revisit that exclusion.
 
-- [ ] Teacher-facing promo codes & student enrollment — gap found post-hoc: both features
+- [x] Teacher-facing promo codes & student enrollment — gap found post-hoc: both features
   exist and work, but only inside `CourseManagementView` (`lms/admin/__init__.py`), gated by
   `has_perm('course_management')`. A course-level teacher (`Enrollment.is_teacher=True`,
-  `is_admin=False`) has no way to generate a promo code or add a student — hits a permissions
-  wall. Fix is to expose equivalent actions on the course page itself, reusing the existing
-  model/logic rather than rebuilding it:
-  - Promo codes: two new routes near the existing `is_managed_by`-gated actions in
-    `lms/routes/__init__.py` (same file/pattern as `assign_teacher`/`unassign_teacher`,
-    ~1631-1670) — `POST /course/<slug>/promo_code` (create), `POST
-    /course/<slug>/promo_code/<id>/delete` (revoke). Reuse the generation logic from
-    `create_promo_code` in `lms/admin/__init__.py:538-551` (`secrets.token_hex(4)`,
-    `PromoCode` fields already exist — `max_uses`, `expires_at`). Gate with
-    `course.is_managed_by(current_user)` instead of `has_perm('course_management')` — the
-    per-course check already used for content-management actions on this page. UI: small
-    block on `course_page_enrolled.html` (generate button + active-code list with revoke
-    link), trimmed from `lms/templates/admin/course_access.html:104-137`.
-  - Adding students: `POST /course/<slug>/add_student` in `lms/routes/__init__.py`, reusing
-    `add_student` from `lms/admin/__init__.py:510-524` (look up by email/username, create
-    `Enrollment` with `joined_via='direct_add'`). Same gate, same UI block, small
-    email/username form.
-  - Open scope question before implementing: gate at `is_managed_by` (any assigned teacher) or
-    `is_owned_by` (owner/admin only — the tier that already gets assign-teacher/
-    transfer-ownership)? These actions affect course membership, not just content, so may
-    belong at the stricter owner tier rather than the broader managed-by tier regular
-    teachers get.
+  `is_admin=False`) had no way to generate a promo code or add a student — hit a permissions
+  wall. Fixed by exposing equivalent actions on the course page itself, gated at
+  `course.is_managed_by(current_user)` (any assigned teacher, not just the owner — deliberate
+  choice, since the alternative would restrict this to `is_owned_by` like assign-teacher/
+  transfer-ownership; picked the broader tier since the whole point was making it
+  teacher-facing). Implementation reused the existing model/logic rather than rebuilding it:
+  - Promo codes: two new `elif action == ...` branches in the existing single-route POST
+    dispatcher in `lms/routes/__init__.py` (same pattern as `assign_teacher`/
+    `unassign_teacher`) — `create_promo_code` and `delete_promo_code`, reusing the generation
+    logic from `create_promo_code` in `lms/admin/__init__.py` (`secrets.token_hex(4)`,
+    existing `PromoCode.max_uses`). `delete_promo_code` scopes the lookup to
+    `course_id=course.id` so a teacher can't revoke another course's code by guessing an id.
+  - Adding students: `add_student` action, reusing the lookup/create logic from
+    `add_student` in `lms/admin/__init__.py` but looking the target up by a single
+    username-or-email text field (`User.query.filter(or_(User.username == identifier,
+    User.email == identifier))`) rather than the admin panel's dropdown of pre-fetched
+    candidates, since the course page doesn't have that full user list. Creates an
+    `Enrollment` with `joined_via='direct_add'`.
+  - UI: new "Access" section inside the existing "Manage" tab on `course_page_enrolled.html`.
+    The tab's visibility moved from `is_course_owner` to `is_teacher_or_admin` so any managing
+    teacher sees it; the pre-existing "Manage Teachers" block (assign/unassign teacher,
+    transfer ownership) stays nested inside its own `is_course_owner` check within that tab, so
+    non-owner teachers see Access but not teacher/ownership controls.
+  - Verified live end-to-end as a non-owner teacher (`Enrollment.is_teacher=True`,
+    `is_admin=False`): Manage tab appears without the owner-only section; generated a promo
+    code (correctly attributed to that teacher via `issued_by`); added a student by username
+    (created the `Enrollment` row with `joined_via='direct_add'`); re-adding the same student
+    correctly no-ops with a flash warning instead of a duplicate row; revoking the promo code
+    deletes it scoped to the right course.
 
-**Phase 1 is otherwise complete**, pending the three items just filed above.
+**Phase 1 is now fully complete.**
 
 ## Phase 2 — Home, Resources, Forum
 

@@ -600,7 +600,7 @@
         <li class="nav-item">
             <a class="nav-link" id="ask-ai-tab" data-toggle="tab" href="#ask-ai" role="tab">{{ _('Ask AI') }}</a>
         </li>
-        {% if is_course_owner %}
+        {% if is_teacher_or_admin %}
         <li class="nav-item">
             <a class="nav-link" id="manage-tab" data-toggle="tab" href="#manage" role="tab">{{ _('Manage') }}</a>
         </li>
@@ -1878,9 +1878,57 @@
         </div>
     </div>
 
-    {% if is_course_owner %}
-    <!-- Manage Tab: owner-only teacher assignment + ownership transfer -->
+    {% if is_teacher_or_admin %}
+    <!-- Manage Tab: promo codes + direct-add for any managing teacher; teacher
+         assignment + ownership transfer stays owner-only within this tab. -->
     <div class="tab-pane fade" id="manage" role="tabpanel">
+        <div class="mt-4">
+            <h4>{{ _('Access') }}</h4>
+            <p class="text-muted">{{ _('Add a student directly, or generate a promo code they can redeem to join.') }}</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>{{ _('Add Student') }}</h6>
+                    <form method="POST" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" class="form-inline mb-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="text" name="identifier" class="form-control mr-2 mb-2" placeholder="{{ _('Username or email') }}" style="min-width:220px;">
+                        <button type="submit" name="action" value="add_student" class="btn btn-sm btn-primary mb-2">{{ _('Add') }}</button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <h6>{{ _('Promo Codes') }}</h6>
+                    {% if promo_codes %}
+                    <table class="table table-sm">
+                        <thead><tr><th>{{ _('Code') }}</th><th>{{ _('Uses') }}</th><th>{{ _('Status') }}</th><th></th></tr></thead>
+                        <tbody>
+                        {% for p in promo_codes %}
+                            <tr>
+                                <td><code>{{ p.code }}</code></td>
+                                <td>{{ p.uses_count }}{% if p.max_uses %} / {{ p.max_uses }}{% else %} / &infin;{% endif %}</td>
+                                <td>{% if p.is_valid %}<span class="badge badge-success">{{ _('Active') }}</span>{% else %}<span class="badge badge-secondary">{{ _('Expired') }}</span>{% endif %}</td>
+                                <td style="text-align:right;">
+                                    <a href="{{ url_for('main.join_via_link', code=p.code) }}" target="_blank" class="btn btn-sm btn-outline-secondary">{{ _('Link') }}</a>
+                                    <form method="POST" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="promo_id" value="{{ p.id }}">
+                                        <button type="submit" name="action" value="delete_promo_code" class="btn btn-sm btn-outline-danger">{{ _('Delete') }}</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-muted">{{ _('No promo codes yet.') }}</p>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" class="form-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="number" name="max_uses" class="form-control mr-2 mb-2" placeholder="{{ _('Max uses (blank = unlimited)') }}" style="width:220px;">
+                        <button type="submit" name="action" value="create_promo_code" class="btn btn-sm btn-primary mb-2">{{ _('Generate') }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% if is_course_owner %}
         <div class="mt-4">
             <h4>{{ _('Manage Teachers') }}</h4>
             <p class="text-muted">{{ _('Assign enrolled students as teachers of this course, or transfer ownership to someone else.') }}</p>
@@ -1926,6 +1974,7 @@
             </div>
             {% endif %}
         </div>
+        {% endif %}
     </div>
     {% endif %}
 

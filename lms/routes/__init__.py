@@ -1669,6 +1669,42 @@ def course_page_enrolled(course_id):
                 flash(_('%(name)s is now the owner of this course.', name=new_owner.username), 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
+        elif action == 'create_promo_code' and course.is_managed_by(current_user):
+            import secrets
+            from lms.models import PromoCode
+            max_uses = request.form.get('max_uses', type=int)
+            code = secrets.token_hex(4).upper()
+            promo = PromoCode(course=course, code=code, max_uses=max_uses, issued_by=current_user)
+            db.session.add(promo)
+            db.session.commit()
+            flash(_('Promo code %(code)s created.', code=code), 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+        elif action == 'delete_promo_code' and course.is_managed_by(current_user):
+            from lms.models import PromoCode
+            promo_id = request.form.get('promo_id', type=int)
+            promo = PromoCode.query.filter_by(id=promo_id, course_id=course.id).first()
+            if promo:
+                db.session.delete(promo)
+                db.session.commit()
+                flash(_('Promo code deleted.'), 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+        elif action == 'add_student' and course.is_managed_by(current_user):
+            from sqlalchemy import or_
+            from lms.models import Enrollment, User
+            identifier = request.form.get('identifier', '').strip()
+            user = User.query.filter(or_(User.username == identifier, User.email == identifier)).first() if identifier else None
+            if not user:
+                flash(_('No user found with that username or email.'), 'error')
+            elif user in course.users:
+                flash(_('%(name)s is already enrolled.', name=user.username), 'warning')
+            else:
+                db.session.add(Enrollment(user=user, course=course, joined_via='direct_add'))
+                db.session.commit()
+                flash(_('%(name)s added to the course.', name=user.username), 'success')
+            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
     # GET request - render the page
     from flask_babel import get_locale
     current_locale = str(get_locale())
@@ -1792,6 +1828,7 @@ def course_page_enrolled(course_id):
 
     is_course_owner = course.is_owned_by(current_user)
     enrollment_by_user = {e.user_id: e for e in course.enrollments} if is_course_owner else {}
+    promo_codes = course.promo_codes if is_teacher_or_admin else []
 
     return render_template('course_page_enrolled.html',
         course=course,
@@ -1822,6 +1859,7 @@ def course_page_enrolled(course_id):
         cert_graduates=cert_graduates,
         is_course_owner=is_course_owner,
         enrollment_by_user=enrollment_by_user,
+        promo_codes=promo_codes,
     )
 
 
