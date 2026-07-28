@@ -87,20 +87,20 @@ explicitly deferred until we're past the local-only build.)*
 
 ## Phase 6 — AI personal guide + subtitles (Gemini)
 
-1. [ ] **Get a free Gemini API key** at [Google AI Studio](https://aistudio.google.com/) —
+1. [x] **Get a free Gemini API key** at [Google AI Studio](https://aistudio.google.com/) —
   no card required, ongoing free tier (not a trial). Covers both the RAG chat and audio
-  transcription for subtitles from one key.
-2. [ ] Set:
-  ```
-  GEMINI_API_KEY=
-  ```
+  transcription for subtitles from one key. (Hit a Google account age-verification snag
+  during signup unrelated to this project — resolved on Google's side.)
+2. [x] `GEMINI_API_KEY` set in `.env`. Verified live end-to-end — a real question through
+  the course page's "Ask AI" tab returned a correctly-cited answer.
 3. [ ] If you expect to later enable billing on this Google Cloud project for anything else
   (e.g. Gemini TTS in Phase 7), use a **separate project/API key** for that — enabling
   billing on a project removes its free tier entirely, and you don't want that to take out
   the free chat/transcription key by accident.
 
-No vector DB account needed — the plan uses the `pgvector` Postgres extension on the
-existing database, which I'll enable via a migration.
+No vector DB account needed — used the `pgvector` Postgres extension on the existing
+database. One thing this did require: plain `postgres:17-alpine` doesn't ship the
+extension, so the DB image is now `pgvector/pgvector:pg17` across dev/staging/production.
 
 ---
 

@@ -18,8 +18,14 @@ logger = logging.getLogger(__name__)
 def main():
     app = create_app()
     with app.app_context():
-        from lms.job_manager import ensure_translation_sweep_scheduled
+        from lms.job_manager import (
+            ensure_translation_sweep_scheduled,
+            ensure_embedding_sweep_scheduled,
+            ensure_conversation_purge_scheduled,
+        )
         ensure_translation_sweep_scheduled()
+        ensure_embedding_sweep_scheduled()
+        ensure_conversation_purge_scheduled()
 
         logger.info("RQ worker starting, listening on queue '%s'", QUEUE_NAME)
         worker = Worker([QUEUE_NAME], connection=get_redis_connection())

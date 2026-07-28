@@ -1204,3 +1204,91 @@ def get_folder_contents(folder_id):
             'error': 'Failed to fetch folder contents',
             'message': str(e)
         }), 500
+
+
+@api_bp.route('/course/<int:course_id>/ask', methods=['POST'])
+@login_required
+@limiter.limit("10 per minute")
+def ask_course_assistant(course_id):
+    """AI study assistant (Phase 6) — answers a question grounded in this course's indexed
+    content only, with citations. Retrieval excludes unpublished content and anything behind
+    a folder lock the asking user hasn't cleared yet (see rag_service.get_locked_content_ids)."""
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'error': 'Course not found'}), 404
+
+    is_manager = course.is_managed_by(current_user)
+    enrolled = current_user in course.users or is_manager
+    if not enrolled:
+        return jsonify({'error': 'You must be enrolled in this course to use its study assistant'}), 403
+
+    data = request.get_json(silent=True) or {}
+    question = (data.get('question') or '').strip()
+    if not question:
+        return jsonify({'error': 'question is required'}), 400
+    if len(question) > 1000:
+        return jsonify({'error': 'question is too long (max 1000 characters)'}), 400
+
+    from lms.rag_service import answer_question
+    result = answer_question(course, question, current_user)
+    if result is None:
+        return jsonify({'error': 'AI assistant is temporarily unavailable. Please try again shortly.'}), 503
+
+    return jsonify({'success': True, **result}), 200
+
+
+@api_bp.route('/course/<int:course_id>/reindex', methods=['POST'])
+@login_required
+@limiter.limit("5 per hour")
+def reindex_course_content(course_id):
+    """Manually (re)queue RAG indexing for every content item in a course — owners/admins
+    only. The recurring embedding sweep (job_manager.py) would eventually pick up anything
+    new on its own; this just makes that happen immediately, and re-indexes existing items
+    too (e.g. after fixing a broken upload)."""
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'error': 'Course not found'}), 404
+
+    if not course.is_owned_by(current_user):
+        return jsonify({'error': 'Only the course owner or an admin can trigger reindexing'}), 403
+
+    from lms.job_manager import job_manager
+    job_id = job_manager.queue_job('embed_course', {'course_id': course.id})
+    return jsonify({'success': True, 'job_id': job_id}), 200
+
+
+@api_bp.route('/course/<int:course_id>/conversation', methods=['GET'])
+@login_required
+def get_course_conversation(course_id):
+    """Ask-AI conversation history for the current user + course, on page load. Always
+    returns the user's consent status (True/False/None) so the frontend knows whether to
+    show the opt-in prompt; `messages` is only populated if consent is True — a
+    not-yet-answered or declined user's conversation still exists server-side (needed for
+    in-session multi-turn memory) but is never displayed back on a fresh page load."""
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'error': 'Course not found'}), 404
+
+    is_manager = course.is_managed_by(current_user)
+    if not (current_user in course.users or is_manager):
+        return jsonify({'error': 'You must be enrolled in this course to use its study assistant'}), 403
+
+    from lms.rag_service import get_conversation_history
+    return jsonify({'success': True, **get_conversation_history(current_user, course)}), 200
+
+
+@api_bp.route('/user/ai-history-consent', methods=['POST'])
+@login_required
+def set_ai_history_consent():
+    """Standing per-user choice of whether Ask-AI conversation history is shown back to
+    them on future visits. Declining doesn't stop the conversation from being tracked
+    server-side (needed for multi-turn memory within a session) — it just means it won't be
+    reloaded later, and it's hard-deleted 30 days after last activity either way."""
+    data = request.get_json(silent=True) or {}
+    consent = data.get('consent')
+    if not isinstance(consent, bool):
+        return jsonify({'error': 'consent (boolean) is required'}), 400
+
+    current_user.ai_history_consent = consent
+    db.session.commit()
+    return jsonify({'success': True, 'consent': consent}), 200

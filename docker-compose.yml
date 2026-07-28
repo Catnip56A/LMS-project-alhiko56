@@ -2,7 +2,7 @@ services:
 
   # ── Development ───────────────────────────────────────────────────────────────
   db-dev:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17  # postgres:17 + pgvector extension (Phase 6 RAG embeddings)
     profiles: [dev]
     restart: unless-stopped
     environment:
@@ -106,7 +106,7 @@ services:
 
   # ── Production ────────────────────────────────────────────────────────────────
   db-production:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17  # postgres:17 + pgvector extension (Phase 6 RAG embeddings)
     profiles: [production]
     restart: unless-stopped
     environment:
@@ -192,7 +192,7 @@ services:
 
   # ── Staging ────────────────────────────────────────────────────────────────
   db-staging:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17  # postgres:17 + pgvector extension (Phase 6 RAG embeddings)
     profiles: [staging]
     restart: unless-stopped
     environment:

@@ -597,6 +597,9 @@
         <li class="nav-item">
             <a class="nav-link" id="certificate-tab" data-toggle="tab" href="#certificate" role="tab">{{ _('Certificate') }}</a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" id="ask-ai-tab" data-toggle="tab" href="#ask-ai" role="tab">{{ _('Ask AI') }}</a>
+        </li>
         {% if is_course_owner %}
         <li class="nav-item">
             <a class="nav-link" id="manage-tab" data-toggle="tab" href="#manage" role="tab">{{ _('Manage') }}</a>
@@ -1842,6 +1845,36 @@
             </div>
             {% endif %}
         {% endif %}
+        </div>
+    </div>
+
+    <!-- Ask AI Tab: RAG study assistant grounded in this course's indexed content -->
+    <div class="tab-pane fade" id="ask-ai" role="tabpanel">
+        <div class="mt-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap:8px;">
+                <h4 class="mb-0">{{ _('Ask AI') }}</h4>
+                {% if is_course_owner %}
+                <button type="button" id="reindex-course-btn" class="btn btn-sm btn-outline-secondary" data-course-id="{{ course.id }}">{{ _('Reindex course content') }}</button>
+                {% endif %}
+            </div>
+            <p class="text-muted mt-2">{{ _('Ask a question about this course. Answers are grounded only in this course\'s materials, with sources cited below each answer.') }}</p>
+
+            <div id="ask-ai-consent-banner" style="display:none; border:1px solid #337a2c; background:#f1f8f0; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                <span>{{ _('Save your conversation history so it\'s here next time you return?') }}</span>
+                <span style="white-space:nowrap;">
+                    <button type="button" id="ask-ai-consent-yes" class="btn btn-sm btn-success" style="background:#337a2c; border-color:#337a2c;">{{ _('Yes, save') }}</button>
+                    <button type="button" id="ask-ai-consent-no" class="btn btn-sm btn-outline-secondary">{{ _('No') }}</button>
+                </span>
+            </div>
+
+            <div id="ask-ai-messages" style="max-height:420px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; background:#fafafa; margin-bottom:1rem;">
+                <p class="text-muted" id="ask-ai-empty-state">{{ _('No questions yet — ask something below.') }}</p>
+            </div>
+
+            <form id="ask-ai-form" class="d-flex" style="gap:8px;">
+                <input type="text" id="ask-ai-input" class="form-control" maxlength="1000" placeholder="{{ _('Ask a question about this course…') }}" required>
+                <button type="submit" id="ask-ai-submit" class="btn btn-success" style="background:#337a2c; border-color:#337a2c; white-space:nowrap;">{{ _('Ask') }}</button>
+            </form>
         </div>
     </div>
 
@@ -3389,4 +3422,171 @@ async function handleFolderExpand(folderId, courseId) {
 })();
 </script>
 {% endif %}
+
+<script>
+(function() {
+    var form = document.getElementById('ask-ai-form');
+    if (!form) return;
+
+    var input = document.getElementById('ask-ai-input');
+    var submitBtn = document.getElementById('ask-ai-submit');
+    var messages = document.getElementById('ask-ai-messages');
+    var emptyState = document.getElementById('ask-ai-empty-state');
+    var courseId = {{ course.id | tojson }};
+
+    // Minimal, whitelist-only markdown renderer for assistant answers (bold/italic/bullet
+    // lists/paragraphs — all Gemini's answers actually use). Escapes HTML entities first via
+    // a textContent round-trip, then only ever introduces the handful of tags below, so
+    // nothing from the source text (which could in principle contain injected markup via
+    // course content) can produce a real tag.
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function inlineFormat(str) {
+        str = str.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        str = str.replace(/(^|[^*])\*([^*]+?)\*(?!\*)/g, '$1<em>$2</em>');
+        return str;
+    }
+
+    function renderMarkdown(text) {
+        var lines = escapeHtml(text).split('\n');
+        var html = [];
+        var inList = false;
+        lines.forEach(function(line) {
+            var trimmed = line.trim();
+            var isListItem = /^[-*]\s+/.test(trimmed);
+            if (isListItem) {
+                if (!inList) { html.push('<ul style="margin-bottom:0.5rem;">'); inList = true; }
+                html.push('<li>' + inlineFormat(trimmed.replace(/^[-*]\s+/, '')) + '</li>');
+                return;
+            }
+            if (inList) { html.push('</ul>'); inList = false; }
+            html.push(trimmed === '' ? '<br>' : '<p style="margin-bottom:0.5rem;">' + inlineFormat(trimmed) + '</p>');
+        });
+        if (inList) html.push('</ul>');
+        return html.join('');
+    }
+
+    function addMessage(role, text, sources) {
+        if (emptyState) { emptyState.remove(); emptyState = null; }
+        var wrap = document.createElement('div');
+        wrap.style.marginBottom = '1rem';
+
+        var label = document.createElement('div');
+        label.style.fontWeight = '600';
+        label.style.fontSize = '0.8rem';
+        label.style.color = role === 'user' ? '#337a2c' : '#555';
+        label.textContent = role === 'user' ? '{{ _("You") }}' : '{{ _("Assistant") }}';
+        wrap.appendChild(label);
+
+        var body = document.createElement('div');
+        if (role === 'assistant') {
+            body.innerHTML = renderMarkdown(text);
+        } else {
+            body.style.whiteSpace = 'pre-wrap';
+            body.textContent = text;
+        }
+        wrap.appendChild(body);
+
+        if (sources && sources.length) {
+            var srcWrap = document.createElement('div');
+            srcWrap.style.marginTop = '0.4rem';
+            sources.forEach(function(src) {
+                var chip = document.createElement('a');
+                chip.href = '/api/file/c/' + src.content_id;
+                chip.target = '_blank';
+                chip.className = 'badge badge-light';
+                chip.style.marginRight = '6px';
+                chip.style.border = '1px solid #ddd';
+                chip.textContent = '📄 ' + src.title;
+                srcWrap.appendChild(chip);
+            });
+            wrap.appendChild(srcWrap);
+        }
+
+        messages.appendChild(wrap);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var question = input.value.trim();
+        if (!question) return;
+
+        addMessage('user', question, null);
+        input.value = '';
+        submitBtn.disabled = true;
+
+        try {
+            var resp = await fetch('/api/course/' + courseId + '/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: question }),
+            });
+            var result = await resp.json();
+            if (resp.ok && result.success) {
+                addMessage('assistant', result.answer, result.sources);
+            } else {
+                addMessage('assistant', result.error || '{{ _("Something went wrong.") }}', null);
+            }
+        } catch (err) {
+            addMessage('assistant', '{{ _("Request failed:") }} ' + err.message, null);
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+
+    var reindexBtn = document.getElementById('reindex-course-btn');
+    if (reindexBtn) {
+        reindexBtn.addEventListener('click', async function() {
+            reindexBtn.disabled = true;
+            var originalText = reindexBtn.textContent;
+            reindexBtn.textContent = '{{ _("Queuing…") }}';
+            try {
+                var resp = await fetch('/api/course/' + reindexBtn.dataset.courseId + '/reindex', { method: 'POST' });
+                var result = await resp.json();
+                reindexBtn.textContent = (resp.ok && result.success) ? '{{ _("Reindex queued ✓") }}' : (result.error || '{{ _("Failed") }}');
+            } catch (err) {
+                reindexBtn.textContent = '{{ _("Failed") }}';
+            } finally {
+                setTimeout(function() { reindexBtn.textContent = originalText; reindexBtn.disabled = false; }, 3000);
+            }
+        });
+    }
+
+    var consentBanner = document.getElementById('ask-ai-consent-banner');
+
+    async function setConsent(consent) {
+        try {
+            await fetch('/api/user/ai-history-consent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ consent: consent }),
+            });
+        } catch (err) { /* non-fatal — worst case we ask again next visit */ }
+        consentBanner.style.display = 'none';
+    }
+
+    document.getElementById('ask-ai-consent-yes').addEventListener('click', function() { setConsent(true); });
+    document.getElementById('ask-ai-consent-no').addEventListener('click', function() { setConsent(false); });
+
+    (async function loadConversationHistory() {
+        try {
+            var resp = await fetch('/api/course/' + courseId + '/conversation');
+            var result = await resp.json();
+            if (!resp.ok || !result.success) return;
+
+            if (result.consent === null) {
+                consentBanner.style.display = 'flex';
+            }
+            (result.messages || []).forEach(function(m) {
+                addMessage(m.role, m.content, m.sources);
+            });
+        } catch (err) { /* non-fatal — chat just starts empty */ }
+    })();
+})();
+</script>
 {% endblock %}

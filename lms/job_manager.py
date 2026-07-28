@@ -19,6 +19,22 @@ logger = logging.getLogger(__name__)
 TRANSLATION_SWEEP_JOB_ID = 'translation-sweep-recurring'
 TRANSLATION_SWEEP_INTERVAL_HOURS = 24
 
+# Recurring RAG-embedding sweep (Phase 6) — catches CourseContent items that were created
+# through any of the app's many content-creation paths (uploads, Drive imports, picker
+# import, etc.) without needing a job-queue hook at every one of those call sites. Runs far
+# more often than the translation sweep since new material should become askable quickly,
+# but processes in small batches so one run can't monopolize the worker or blow through the
+# Gemini free-tier rate limit.
+EMBEDDING_SWEEP_JOB_ID = 'embedding-sweep-recurring'
+EMBEDDING_SWEEP_INTERVAL_MINUTES = 10
+EMBEDDING_SWEEP_BATCH_SIZE = 20
+
+# Recurring purge of "Ask AI" conversations the user hasn't consented to keep (see
+# rag_service.purge_stale_conversations) — daily is plenty since the retention window is 30
+# days; nothing time-sensitive about exactly when within a day it runs.
+CONVERSATION_PURGE_JOB_ID = 'conversation-purge-recurring'
+CONVERSATION_PURGE_INTERVAL_HOURS = 24
+
 
 class JobStatus:
     """Job status constants"""
@@ -127,6 +143,10 @@ def _execute_job(job: 'BackgroundJob'):
             result = _execute_translate_content_job(job)
         elif job.type == 'translate_course':
             result = _execute_translate_course_job(job)
+        elif job.type == 'embed_course_content':
+            result = _execute_embed_course_content_job(job)
+        elif job.type == 'embed_course':
+            result = _execute_embed_course_job(job)
         else:
             raise ValueError(f"Unknown job type: {job.type}")
 
@@ -227,6 +247,188 @@ def _execute_translate_course_job(job):
     job.save()
 
     return {'course_id': course.id}
+
+
+def _execute_embed_course_content_job(job):
+    """Embed a single CourseContent item — used both by the manual per-item path and as the
+    unit of work inside the recurring sweep below."""
+    from lms.models import CourseContent
+    from lms.rag_service import embed_content_item
+
+    content_id = (job.data or {}).get('content_id')
+    content = CourseContent.query.get(content_id) if content_id else None
+    if not content:
+        raise ValueError(f"embed_course_content job {job.id}: content {content_id!r} not found")
+
+    job.message = f"Indexing {content.title!r}..."
+    job.save()
+
+    chunks = embed_content_item(content)
+
+    job.progress = 100
+    job.message = f"Indexed {content.title!r} ({chunks} chunk(s))."
+    job.save()
+
+    return {'content_id': content.id, 'chunks': chunks}
+
+
+def _execute_embed_course_job(job):
+    """Re-index every content item in one course — the manual "Reindex course" trigger."""
+    from lms.models import Course
+    from lms.rag_service import embed_content_item
+
+    course_id = (job.data or {}).get('course_id')
+    course = Course.query.get(course_id) if course_id else None
+    if not course:
+        raise ValueError(f"embed_course job {job.id}: course {course_id!r} not found")
+
+    contents = course.contents.all()
+    stats = {'items': 0, 'chunks': 0}
+
+    for i, content in enumerate(contents):
+        try:
+            stats['chunks'] += embed_content_item(content)
+            stats['items'] += 1
+        except Exception as e:
+            logger.error(f"Failed to embed content {content.id}: {e}")
+            continue
+        job.progress = int(((i + 1) / len(contents)) * 100) if contents else 100
+        job.message = f"Indexed {stats['items']}/{len(contents)} items..."
+        job.save()
+
+    job.progress = 100
+    job.message = f"Reindexed {course.title!r}: {stats['items']} item(s), {stats['chunks']} chunk(s)."
+    job.save()
+
+    return stats
+
+
+def run_scheduled_embedding_sweep():
+    """RQ scheduler entrypoint for the recurring embedding sweep (the "interval" trigger —
+    see the module-level comment above EMBEDDING_SWEEP_JOB_ID for why this exists instead of
+    a per-creation-site hook). Re-enqueues itself under the same job_id when done."""
+    import uuid
+    from lms.models import CourseContent
+    from lms.queue import job_queue
+    from lms.rag_service import embed_content_item
+
+    job_id = str(uuid.uuid4())
+    job_model = BackgroundJobModel(id=job_id, type='embed_course', status=JobStatus.RUNNING, message='', error='')
+    job_model.started_at = datetime.now()
+    db.session.add(job_model)
+    db.session.commit()
+    job = BackgroundJob(job_model)
+
+    stats = {'items': 0, 'chunks': 0}
+    try:
+        pending = (
+            CourseContent.query
+            .filter(CourseContent.embedded_at.is_(None))
+            .order_by(CourseContent.created_at)
+            .limit(EMBEDDING_SWEEP_BATCH_SIZE)
+            .all()
+        )
+        for content in pending:
+            try:
+                stats['chunks'] += embed_content_item(content)
+                stats['items'] += 1
+            except Exception as e:
+                logger.error(f"Embedding sweep: failed to embed content {content.id}: {e}")
+                continue
+
+        job.status = JobStatus.COMPLETED
+        job.result = stats
+        job.progress = 100
+        job.message = f"Sweep indexed {stats['items']} item(s), {stats['chunks']} chunk(s)."
+        job.completed_at = datetime.now()
+        job.save()
+    except Exception as e:
+        logger.error(f"Embedding sweep failed: {e}")
+        job.status = JobStatus.FAILED
+        job.error = str(e)
+        job.completed_at = datetime.now()
+        job.save()
+    finally:
+        job_queue.enqueue_in(
+            timedelta(minutes=EMBEDDING_SWEEP_INTERVAL_MINUTES),
+            run_scheduled_embedding_sweep,
+            job_id=EMBEDDING_SWEEP_JOB_ID,
+        )
+
+
+def ensure_embedding_sweep_scheduled():
+    """Bootstrap the recurring embedding sweep. Idempotent — safe to call on every worker
+    startup, same pattern as ensure_translation_sweep_scheduled."""
+    from rq.registry import ScheduledJobRegistry
+    from lms.queue import job_queue
+
+    registry = ScheduledJobRegistry(queue=job_queue)
+    if EMBEDDING_SWEEP_JOB_ID in registry.get_job_ids():
+        logger.info("Embedding sweep already scheduled, skipping bootstrap")
+        return
+
+    job_queue.enqueue_in(
+        timedelta(minutes=1),
+        run_scheduled_embedding_sweep,
+        job_id=EMBEDDING_SWEEP_JOB_ID,
+    )
+    logger.info(f"Bootstrapped recurring embedding sweep (every {EMBEDDING_SWEEP_INTERVAL_MINUTES}m)")
+
+
+def run_scheduled_conversation_purge():
+    """RQ scheduler entrypoint for the recurring Ask-AI conversation purge — deletes
+    conversations the user hasn't consented to keep once inactive for 30 days (see
+    rag_service.purge_stale_conversations). Re-enqueues itself under the same job_id."""
+    import uuid
+    from lms.queue import job_queue
+    from lms.rag_service import purge_stale_conversations
+
+    job_id = str(uuid.uuid4())
+    job_model = BackgroundJobModel(id=job_id, type='conversation_purge', status=JobStatus.RUNNING, message='', error='')
+    job_model.started_at = datetime.now()
+    db.session.add(job_model)
+    db.session.commit()
+    job = BackgroundJob(job_model)
+
+    try:
+        count = purge_stale_conversations()
+        job.status = JobStatus.COMPLETED
+        job.result = {'purged': count}
+        job.progress = 100
+        job.message = f"Purged {count} stale conversation(s)."
+        job.completed_at = datetime.now()
+        job.save()
+    except Exception as e:
+        logger.error(f"Conversation purge failed: {e}")
+        job.status = JobStatus.FAILED
+        job.error = str(e)
+        job.completed_at = datetime.now()
+        job.save()
+    finally:
+        job_queue.enqueue_in(
+            timedelta(hours=CONVERSATION_PURGE_INTERVAL_HOURS),
+            run_scheduled_conversation_purge,
+            job_id=CONVERSATION_PURGE_JOB_ID,
+        )
+
+
+def ensure_conversation_purge_scheduled():
+    """Bootstrap the recurring conversation purge. Idempotent, same pattern as the other
+    sweeps' bootstrap functions."""
+    from rq.registry import ScheduledJobRegistry
+    from lms.queue import job_queue
+
+    registry = ScheduledJobRegistry(queue=job_queue)
+    if CONVERSATION_PURGE_JOB_ID in registry.get_job_ids():
+        logger.info("Conversation purge already scheduled, skipping bootstrap")
+        return
+
+    job_queue.enqueue_in(
+        timedelta(minutes=1),
+        run_scheduled_conversation_purge,
+        job_id=CONVERSATION_PURGE_JOB_ID,
+    )
+    logger.info(f"Bootstrapped recurring conversation purge (every {CONVERSATION_PURGE_INTERVAL_HOURS}h)")
 
 
 def run_queued_job(job_id: str):

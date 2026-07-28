@@ -3,10 +3,17 @@ Database models for LMS application
 """
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.ext.associationproxy import association_proxy
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from datetime import datetime, timedelta
+
+# Dimensionality requested from Gemini's embedding model (embed_content, outputDimensionality)
+# — the model's native output is 3072-dim; truncating to 768 keeps storage/search cheap for
+# this project's scale and stays under pgvector's 2000-dim HNSW index ceiling if one is added
+# later. Values are re-normalized after truncation (Google's own requirement at this size).
+EMBEDDING_DIMENSIONS = 768
 
 db = SQLAlchemy()
 
@@ -41,6 +48,9 @@ class User(db.Model, UserMixin):
     created_at = db.Column(db.DateTime, nullable=True, server_default=db.func.now())
     login_attempts = db.Column(db.Integer, default=0)  # Track failed login attempts
     last_attempt_time = db.Column(db.DateTime)  # Track time of last login attempt
+    # AI "Ask AI" conversation history consent — NULL means not asked yet (prompt shown on
+    # next use), True/False is a standing per-user choice. See AiConversation.
+    ai_history_consent = db.Column(db.Boolean, nullable=True)
     enrollments = db.relationship('Enrollment', back_populates='user', cascade='all, delete-orphan')
     courses = association_proxy('enrollments', 'course', creator=lambda course: Enrollment(course=course))
 
@@ -342,13 +352,81 @@ class CourseContent(db.Model):
     allow_others_to_view = db.Column(db.Boolean, default=True)  # Allow other users to view this file
     is_imported = db.Column(db.Boolean, default=False)
     is_downloadable = db.Column(db.Boolean, default=False)
+    embedded_at = db.Column(db.DateTime, nullable=True)  # Set once the RAG embedding sweep has indexed this item
 
     course = db.relationship('Course', backref=db.backref('contents', lazy='dynamic'))
     folder_id = db.Column(db.Integer, db.ForeignKey('course_content_folder.id'), nullable=True)
     folder = db.relationship('CourseContentFolder', backref=db.backref('items', lazy='select'))
-    
+
     def __repr__(self):
         return f'<CourseContent {self.title}>'
+
+
+class ContentEmbedding(db.Model):
+    """One chunk of a CourseContent item's text, embedded for RAG retrieval (Phase 6)."""
+    id = db.Column(db.Integer, primary_key=True)
+    course_content_id = db.Column(db.Integer, db.ForeignKey('course_content.id'), nullable=False)
+    chunk_index = db.Column(db.Integer, nullable=False)
+    chunk_text = db.Column(db.Text, nullable=False)
+    embedding = db.Column(Vector(EMBEDDING_DIMENSIONS), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    course_content = db.relationship(
+        'CourseContent',
+        backref=db.backref('embeddings', lazy='dynamic', cascade='all, delete-orphan'),
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint('course_content_id', 'chunk_index', name='uq_content_embedding_chunk'),
+    )
+
+    def __repr__(self):
+        return f'<ContentEmbedding content={self.course_content_id} chunk={self.chunk_index}>'
+
+
+class AiConversation(db.Model):
+    """One "Ask AI" conversation thread per (user, course). Always created/updated while a
+    chat is active — needed for multi-turn memory within a session regardless of consent —
+    but only ever displayed back to the user on a later visit if User.ai_history_consent is
+    True. Not-consented (False or still-unanswered) conversations are purged 30 days after
+    last_activity_at by a recurring job (see job_manager.py)."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    summary = db.Column(db.Text, nullable=True)  # rolling compacted summary of older turns
+    last_activity_at = db.Column(db.DateTime, server_default=db.func.now())
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    user = db.relationship('User', backref=db.backref('ai_conversations', lazy='dynamic', cascade='all, delete-orphan'))
+    course = db.relationship('Course')
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'course_id', name='uq_ai_conversation_user_course'),
+    )
+
+    def __repr__(self):
+        return f'<AiConversation user={self.user_id} course={self.course_id}>'
+
+
+class AiConversationMessage(db.Model):
+    """One turn in an AiConversation. Older turns get folded into the conversation's rolling
+    summary and deleted once the raw count exceeds a threshold (see rag_service.py) —
+    recent turns stay verbatim so citations can still be shown when history is reloaded."""
+    id = db.Column(db.Integer, primary_key=True)
+    conversation_id = db.Column(db.Integer, db.ForeignKey('ai_conversation.id'), nullable=False)
+    role = db.Column(db.String(20), nullable=False)  # 'user' or 'assistant'
+    content = db.Column(db.Text, nullable=False)
+    sources = db.Column(db.JSON, nullable=True)  # assistant messages only: [{'content_id', 'title'}]
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    conversation = db.relationship(
+        'AiConversation',
+        backref=db.backref('messages', lazy='dynamic', order_by='AiConversationMessage.created_at', cascade='all, delete-orphan'),
+    )
+
+    def __repr__(self):
+        return f'<AiConversationMessage conversation={self.conversation_id} role={self.role}>'
+
 
 class CourseContentFolder(db.Model):
     """Folders for organizing course content"""

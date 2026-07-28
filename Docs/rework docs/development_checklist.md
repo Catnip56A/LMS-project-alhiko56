@@ -105,7 +105,33 @@ passer vs. still-locked for a non-passer).
   alternative, but this plan's own "Out of scope for this pass" section explicitly excludes
   AI grading — scoping this to manual review only unless you want to revisit that exclusion.
 
-**Phase 1 is otherwise complete**, pending the two items just filed above.
+- [ ] Teacher-facing promo codes & student enrollment — gap found post-hoc: both features
+  exist and work, but only inside `CourseManagementView` (`lms/admin/__init__.py`), gated by
+  `has_perm('course_management')`. A course-level teacher (`Enrollment.is_teacher=True`,
+  `is_admin=False`) has no way to generate a promo code or add a student — hits a permissions
+  wall. Fix is to expose equivalent actions on the course page itself, reusing the existing
+  model/logic rather than rebuilding it:
+  - Promo codes: two new routes near the existing `is_managed_by`-gated actions in
+    `lms/routes/__init__.py` (same file/pattern as `assign_teacher`/`unassign_teacher`,
+    ~1631-1670) — `POST /course/<slug>/promo_code` (create), `POST
+    /course/<slug>/promo_code/<id>/delete` (revoke). Reuse the generation logic from
+    `create_promo_code` in `lms/admin/__init__.py:538-551` (`secrets.token_hex(4)`,
+    `PromoCode` fields already exist — `max_uses`, `expires_at`). Gate with
+    `course.is_managed_by(current_user)` instead of `has_perm('course_management')` — the
+    per-course check already used for content-management actions on this page. UI: small
+    block on `course_page_enrolled.html` (generate button + active-code list with revoke
+    link), trimmed from `lms/templates/admin/course_access.html:104-137`.
+  - Adding students: `POST /course/<slug>/add_student` in `lms/routes/__init__.py`, reusing
+    `add_student` from `lms/admin/__init__.py:510-524` (look up by email/username, create
+    `Enrollment` with `joined_via='direct_add'`). Same gate, same UI block, small
+    email/username form.
+  - Open scope question before implementing: gate at `is_managed_by` (any assigned teacher) or
+    `is_owned_by` (owner/admin only — the tier that already gets assign-teacher/
+    transfer-ownership)? These actions affect course membership, not just content, so may
+    belong at the stricter owner tier rather than the broader managed-by tier regular
+    teachers get.
+
+**Phase 1 is otherwise complete**, pending the three items just filed above.
 
 ## Phase 2 — Home, Resources, Forum
 
@@ -290,12 +316,115 @@ disconnect), priority resolution over the Drive Writer stopgap holds.
 
 ## Phase 6 — AI personal guide + subtitles
 
-- [ ] Enable `pgvector` extension (migration) + embedding-storage model
-- [ ] Chunk + embed course documents/transcripts
-- [ ] RAG answer pipeline with citations back to source file
-- [ ] Auto-transcribe uploaded lecture videos (Gemini audio input) → feeds RAG index too
+- [x] Enabled the `pgvector` Postgres extension via migration. Discovered along the way that
+  plain `postgres:17-alpine` doesn't ship the extension at all — switched `db-dev`/
+  `db-staging`/`db-production` to `pgvector/pgvector:pg17` (same Postgres 17, extension
+  pre-installed) across all three Compose profiles.
+- [x] `ContentEmbedding` model (`course_content_id`, `chunk_index`, `chunk_text`,
+  `embedding` — `vector(768)`) + `CourseContent.embedded_at`. Requested a reduced 768-dim
+  embedding from Gemini (native output is 3072-dim) for cheaper storage/search and to stay
+  under pgvector's HNSW index size ceiling if one gets added later; re-normalized the
+  truncated vector per Google's own documented requirement.
+- [x] `lms/gemini_client.py` (no Flask/DB dependency, mirrors `core_translator.py`'s role) —
+  plain `requests`-based REST client for `embedContent`/`batchEmbedContents`,
+  `generateContent` (text and file-grounded), and the File API upload/poll/delete flow used
+  for video transcription. Built against the classic `generateContent` surface rather than
+  a newer "Interactions API" mentioned in Google's docs — confirmed live that
+  `generateContent` is still fully supported, and it's far better documented. Also
+  discovered `gemini-2.5-flash` (the model version most recently documented) is no longer
+  available to new API keys — using `gemini-flash-latest` instead, an alias Google
+  maintains to always point at the current recommended model.
+- [x] `lms/rag_service.py` (runtime layer, DB/Flask-aware, mirrors `translation_service.py`):
+  word-boundary-aware chunking, `extract_text_for_content()` (plain text directly; PDF via
+  `pypdf`; video/audio via Gemini File API transcription — Office docs are out of scope,
+  that's Phase 8), `embed_content_item()`, and `answer_question()` (embeds the question,
+  pgvector cosine-similarity retrieval scoped to the course, grounds a `generateContent`
+  call in the retrieved chunks with a system instruction to answer only from that context).
+- [x] `get_locked_content_ids()` mirrors `course_page_enrolled.html`'s folder-lock check
+  (assignment/quiz gates, cascading to subfolders) so the assistant can't answer from
+  content a student hasn't unlocked yet.
+- [x] Indexing trigger: given how many separate places create `CourseContent` (13+ call
+  sites — uploads, Drive folder imports, picker import, manual text entry, etc.), hooking a
+  job into each individually was rejected as fragile. Instead: a recurring embedding sweep
+  (`run_scheduled_embedding_sweep`, every 10 minutes, batched, RQ's built-in scheduler —
+  same pattern as the Phase 5 translation sweep) picks up anything with `embedded_at IS
+  NULL` regardless of how it was created, plus a manual "Reindex course content" button
+  (owner/admin only) for immediate (re)indexing.
+- [x] `POST /api/course/<id>/ask` — enrolled-user-only, rate-limited (10/min), returns an
+  answer plus cited source titles linking back to `/api/file/c/<content_id>`.
+  `POST /api/course/<id>/reindex` — owner/admin-only, rate-limited (5/hour).
+- [x] "Ask AI" tab on the course page — question input, answer thread with source citation
+  chips, reindex button for owners.
 
-*(Requires the Gemini API key in `setup_checklist.md` Phase 6 first.)*
+Verified live end-to-end through the actual running app (real session + CSRF, not a
+bypass script): indexed a test text content item, asked a question through the real HTTP
+endpoint, got a correct answer citing the right source; separately triggered the manual
+reindex endpoint and confirmed the worker picked it up and completed it. The recurring
+sweep bootstraps correctly on worker startup (`just up` logs confirm it alongside the
+translation sweep).
+
+- [x] Found and fixed a real bug during that verification, on the very first real document
+  tried (`Yonca_Rework_Planning_Document.docx`): text extraction was calling the
+  OAuth-scoped Drive API (`files.get`/`get_media` via `authenticate()`), which only succeeds
+  for files the currently-resolved identity (the worker account) itself created or opened —
+  the `drive.file` scope's restriction. Anything created under a different identity (e.g.
+  uploaded before the Phase 4 worker account existed) 404s, even though the file is
+  perfectly viewable — the existing file-viewer feature works precisely because it relies on
+  the file's separately-configured public share link, not the OAuth-scoped API. Fixed by
+  downloading via that same public link (bypasses `authenticate()`/OAuth entirely for
+  extraction — handles Google's large-file "can't scan for viruses" interstitial too) and
+  determining mime type from the file's extension instead of a metadata API call. While in
+  there, added real `.docx`/`.pptx` text extraction (`python-docx`/`python-pptx`) — this is
+  extracting raw text, unrelated to Phase 8's *visual preview rendering* scope, so pulling it
+  forward wasn't scope creep, and it's exactly what the first real test needed.
+- [x] Re-confirmed the "always `--build`" lesson from earlier this session applies to the
+  worker too, not just the app: after fixing the extraction bug on the host filesystem, the
+  still-running (pre-fix) `worker-dev` container processed a reindex request with its old
+  baked-in code, silently deleting freshly-created good embeddings and replacing them with
+  zero — a confusing "I reindexed and it still doesn't work" symptom that was actually just
+  a stale container. `just up` (which now always rebuilds) resolved it immediately.
+
+**Phase 6 is complete and verified live**, including the manual `GEMINI_API_KEY` setup.
+
+### Phase 6 addendum — conversation history + markdown rendering
+
+- [x] Markdown rendering in the Ask AI chat — answers were showing literal `**bold**`/`*
+  italic*` characters, since the original renderer used `textContent` (safe against XSS,
+  but doesn't render formatting). Added a minimal hand-written markdown renderer (bold,
+  italic, bullet lists, paragraphs — the only formatting Gemini's answers actually use) that
+  escapes HTML entities first and only ever introduces a fixed whitelist of tags afterward,
+  so nothing from the (LLM-generated, ultimately content-derived) source text can smuggle in
+  a real tag.
+- [x] Smarter retrieval — `answer_question()` now does two-stage retrieval: pull a wider
+  candidate pool (30 chunks), rank whole *files* by their single best-matching chunk, keep
+  only the top 3 files, then take each file's best few chunks (4) from just those. Keeps
+  answers coherent as a course accumulates more material instead of mixing fragments from
+  every vaguely-related file into one prompt — no extra Gemini call needed, just a
+  restructured query over the existing embedding-similarity results.
+- [x] Persistent, consent-gated, multi-turn conversation memory. New `AiConversation` /
+  `AiConversationMessage` models (one conversation per user+course) and
+  `User.ai_history_consent` (nullable — `NULL` = not asked yet, `True`/`False` = a standing
+  per-user choice, prompted via an inline banner the first time they use Ask AI).
+  - **Multi-turn memory**: recent turns are fed back as context on every new question, and
+    since a bare follow-up ("which of those has auto-grading?") often doesn't embed anywhere
+    near the chunks it actually needs, an extra lightweight Gemini call rewrites it into a
+    standalone question (using conversation context) before retrieval runs. Verified live: a
+    real follow-up question correctly resolved "those" to the quiz types from the previous
+    answer.
+  - **Compaction**: once a conversation exceeds 6 raw messages, the oldest ones get folded
+    into a rolling summary (another Gemini call) and deleted, so a long-running
+    conversation's prompt size stays bounded rather than growing forever.
+  - **Consent semantics**: the conversation is always tracked server-side while active —
+    that's a technical requirement for multi-turn memory to work at all within a session,
+    regardless of consent — but it's only ever displayed back to the user on a later visit
+    if they've consented. Not-consented (declined or never-answered) conversations are
+    hard-deleted 30 days after their last activity by a new recurring job
+    (`run_scheduled_conversation_purge`, daily, same RQ-scheduler pattern as the translation/
+    embedding sweeps); consented conversations are never auto-purged. Verified the purge
+    logic directly (a manufactured 31-day-stale non-consented conversation was deleted, a
+    consented one was left untouched).
+  - New endpoints: `GET /api/course/<id>/conversation` (history, consent-gated),
+    `POST /api/user/ai-history-consent`.
 
 ## Phase 7 — AI audio overview
 
@@ -306,7 +435,8 @@ disconnect), priority resolution over the Drive Writer stopgap holds.
 
 ## Phase 8 — Office file preview
 
-- [ ] Word/Excel → PDF conversion on upload for view-only preview
+- [ ] Excel -> SheetJS (xlsx) + Univer
+- [ ] Word/PDF/Powerpoint -> Libreoffice conversion to PDF(if not pdf already) and iframe later
 
 ## Phase 9 — Admin panel rework
 
