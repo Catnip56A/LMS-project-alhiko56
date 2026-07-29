@@ -883,7 +883,12 @@
                     if (navLink) {
                         navLink.classList.add('active');
                     }
-                    
+
+                    // Remember this tab so a reload lands back here instead of resetting to Content
+                    try {
+                        sessionStorage.setItem('courseActiveTab:{{ course.id }}', targetId);
+                    } catch (e) { /* sessionStorage unavailable (private mode etc.) - not critical */ }
+
                     // Scroll to tab content
                     var tabContent = document.getElementById('courseTabsContent');
                     if (tabContent) {
@@ -893,7 +898,19 @@
                     }
                 });
             });
-            
+
+            // Restore the last active tab from this session (before computing initial state),
+            // so a page reload/redirect doesn't always dump the user back on Content.
+            try {
+                var savedTabId = sessionStorage.getItem('courseActiveTab:{{ course.id }}');
+                if (savedTabId && document.querySelector(savedTabId) && document.querySelector('.nav-tabs a[href="' + savedTabId + '"]')) {
+                    document.querySelectorAll('.nav-tabs .nav-link').forEach(function(navLink) {
+                        navLink.classList.remove('active');
+                    });
+                    document.querySelector('.nav-tabs a[href="' + savedTabId + '"]').classList.add('active');
+                }
+            } catch (e) { /* sessionStorage unavailable - fall back to server-rendered default tab */ }
+
             // Initial state: hide all except active
             hideAllTabs();
             var activeLink = document.querySelector('.nav-tabs .nav-link.active');
@@ -907,7 +924,91 @@
             logActiveTab();
         }
         </script>
-        
+
+        <script>
+        // Draft autosave: preserves in-progress typing (announcement/assignment/review text,
+        // etc.) across an accidental reload, and warns before leaving the page if anything
+        // typed hasn't been submitted yet. Only tracks fields with a page-unique id, since a
+        // few fields on this page (e.g. forum reply boxes) repeat the same name/no id across
+        // multiple loop iterations and can't be safely keyed individually.
+        (function() {
+            var DRAFT_PREFIX = 'courseDraft:{{ course.id }}:';
+            var dirtyKeys = {};
+
+            function isTrackable(el) {
+                if (!el.id) return false;
+                if (document.querySelectorAll('#' + CSS.escape(el.id)).length !== 1) return false;
+                var tag = el.tagName.toLowerCase();
+                if (tag === 'textarea') return true;
+                if (tag === 'input' && (el.type === 'text' || el.type === 'email')) return true;
+                return false;
+            }
+
+            function trackedFields() {
+                return Array.prototype.filter.call(document.querySelectorAll('textarea, input'), isTrackable);
+            }
+
+            function draftKey(el) {
+                return DRAFT_PREFIX + el.id;
+            }
+
+            function restoreDrafts() {
+                trackedFields().forEach(function(el) {
+                    var saved = sessionStorage.getItem(draftKey(el));
+                    if (saved && el.value.trim() === '') {
+                        el.value = saved;
+                    }
+                });
+            }
+
+            var saveTimers = {};
+            function scheduleSave(el) {
+                var key = draftKey(el);
+                clearTimeout(saveTimers[key]);
+                saveTimers[key] = setTimeout(function() {
+                    if (el.value.trim() === '') {
+                        sessionStorage.removeItem(key);
+                        delete dirtyKeys[key];
+                    } else {
+                        sessionStorage.setItem(key, el.value);
+                        if (el.value !== el.defaultValue) {
+                            dirtyKeys[key] = true;
+                        } else {
+                            delete dirtyKeys[key];
+                        }
+                    }
+                }, 400);
+            }
+
+            function clearFormDrafts(form) {
+                Array.prototype.filter.call(form.querySelectorAll('textarea, input'), isTrackable).forEach(function(el) {
+                    var key = draftKey(el);
+                    sessionStorage.removeItem(key);
+                    delete dirtyKeys[key];
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                try {
+                    restoreDrafts();
+                    trackedFields().forEach(function(el) {
+                        el.addEventListener('input', function() { scheduleSave(el); });
+                    });
+                    document.querySelectorAll('form').forEach(function(form) {
+                        form.addEventListener('submit', function() { clearFormDrafts(form); });
+                    });
+                } catch (e) { /* sessionStorage unavailable - autosave simply won't run */ }
+            });
+
+            window.addEventListener('beforeunload', function(e) {
+                if (Object.keys(dirtyKeys).length > 0) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+        })();
+        </script>
+
         <div class="tab-content" id="courseTabsContent">
 
         <div class="tab-pane fade show active" id="content" role="tabpanel">
@@ -1890,7 +1991,7 @@
                     <h6>{{ _('Add Student') }}</h6>
                     <form method="POST" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" class="form-inline mb-3">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="text" name="identifier" class="form-control mr-2 mb-2" placeholder="{{ _('Username or email') }}" style="min-width:220px;">
+                        <input type="text" id="add_student_identifier" name="identifier" class="form-control mr-2 mb-2" placeholder="{{ _('Username or email') }}" style="min-width:220px;">
                         <button type="submit" name="action" value="add_student" class="btn btn-sm btn-primary mb-2">{{ _('Add') }}</button>
                     </form>
                 </div>
