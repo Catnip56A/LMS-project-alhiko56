@@ -350,6 +350,44 @@ def quiz_result(attempt_id):
                             site_settings=site_settings, current_locale=str(get_locale()))
 
 
+@main_bp.route('/course/<int:course_id>/quiz/<int:quiz_id>/review', methods=['GET', 'POST'])
+@login_required
+def quiz_review(course_id, quiz_id):
+    """Teacher-facing manual grading queue for short-answer questions — see
+    QuizAttempt.grade()/grade_short_answer for why these aren't auto-graded."""
+    from lms.models import Course, Quiz, QuizAttempt, SiteSettings, db
+
+    course = Course.query.get_or_404(course_id)
+    quiz = Quiz.query.filter_by(id=quiz_id, course_id=course_id).first_or_404()
+    if not course.is_managed_by(current_user):
+        abort(403)
+
+    if request.method == 'POST':
+        attempt_id = request.form.get('attempt_id', type=int)
+        question_id = request.form.get('question_id', type=int)
+        is_correct = request.form.get('is_correct') == 'true'
+        attempt = QuizAttempt.query.filter_by(id=attempt_id, quiz_id=quiz.id).first()
+        if attempt:
+            attempt.grade_short_answer(question_id, is_correct)
+            db.session.commit()
+            flash(_('Answer graded.'), 'success')
+        return redirect(url_for('main.quiz_review', course_id=course_id, quiz_id=quiz_id))
+
+    attempts = (
+        QuizAttempt.query
+        .filter(QuizAttempt.quiz_id == quiz.id, QuizAttempt.submitted_at.isnot(None))
+        .order_by(QuizAttempt.submitted_at.desc())
+        .all()
+    )
+    pending_attempts = [a for a in attempts if a.needs_manual_review]
+    reviewed_attempts = [a for a in attempts if not a.needs_manual_review]
+
+    site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
+    return render_template('quiz_review.html', course=course, quiz=quiz,
+                            pending_attempts=pending_attempts, reviewed_attempts=reviewed_attempts,
+                            site_settings=site_settings, current_locale=str(get_locale()))
+
+
 # Enrolled-only course page
 @main_bp.route('/course/<int:course_id>', methods=['GET', 'POST'])
 def course_page_enrolled(course_id):

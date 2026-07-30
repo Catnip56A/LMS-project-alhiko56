@@ -1,3 +1,5 @@
+local test user passwords: TestPass123!
+
 # LMS Rework — Development Checklist
 
 Tracks implementation progress phase by phase, per the approved local-first roadmap. I'll
@@ -11,8 +13,8 @@ provide alongside this.
 
 - [x] Global CSRF protection (`CSRFProtect`), all forms + `fetch()` calls covered
 - [x] Upload limits (`MAX_CONTENT_LENGTH`) + real content/MIME sniffing (not just extension)
-- [ ] Rate limiting moved from in-memory to Redis (depends on Phase 3's Redis service —
-  tracked here, executed there)
+- [x] Rate limiting moved from in-memory to Redis — done as part of Phase 3 (see that
+  section's `storage_uri` entry); this checkbox was just never synced back afterward
 - [x] Structured logging — replaced all 164 `print()` calls with leveled, JSON-formatted
   rotating file logging (`lms/logging_config.py`) + console output
 - [x] Password hashing confirmed strong (Werkzeug's default `scrypt`, no change needed) +
@@ -25,12 +27,17 @@ provide alongside this.
   deletion (`/profile/delete`, password-confirmed). Deletion anonymizes rather than hard-
   deletes the row, since several tables have NOT NULL foreign keys to the user (forum
   messages, submissions, certificates, etc.) — this avoids orphaning that content.
-- [ ] Show/hide password toggle (eye icon) on password input fields (login, signup, change
-  password, admin user creation, etc.) — filed here from backlog, adjacent to the existing
-  password-policy/strength-rules work above
+- [x] Show/hide password toggle (eye icon) on password input fields — new reusable
+  `components/password_toggle.html` (self-contained inline SVG icons, no Font Awesome
+  dependency, since `login.html`/`signup.html` are standalone pages that don't load it),
+  included on login, signup, change-password, and the profile page's delete-account password
+  confirm. Each field gets its own independent wrapper/button (verified via a jsdom
+  simulation — clicking one field's toggle doesn't affect any other field on the same page).
+  Admin user creation's password field (Flask-Admin, `lms/admin/__init__.py`) turned out to
+  already be a plain `StringField`, not a masked `PasswordField` — it's already fully visible
+  as text with nothing to toggle, so left as-is rather than a false "already handled" claim.
 
-**Phase 0 is complete** except the show/hide toggle just filed above. Rate limiting → Redis migration is the only other item still pending,
-and it's blocked on Phase 3's Redis service by design.
+**Phase 0 is now fully complete.**
 
 ## Interim — Drive writer stopgap (pulled forward from Phase 4)
 
@@ -96,14 +103,38 @@ All verified live end-to-end via `just dev`: admin-created quiz with an MCQ + tr
 question, enrolled student taking it (correct-answer scoring, pass/fail, folder unlock for a
 passer vs. still-locked for a non-passer).
 
-- [ ] Merge the "Quizzes" tab on the course page into the "Assignments" tab instead of a
-  separate tab (`lms/templates/course_page_enrolled.html`) — filed here from backlog
-- [ ] Short-answer quiz questions: replace the current case-insensitive exact-string
-  auto-grading (`_check_quiz_answer` in `lms/models/__init__.py`) with **manual teacher
-  review**, so answers that are correct but not a literal string match aren't marked wrong —
-  filed here from backlog. Note: the backlog item also suggested AI-assisted grading as an
-  alternative, but this plan's own "Out of scope for this pass" section explicitly excludes
-  AI grading — scoping this to manual review only unless you want to revisit that exclusion.
+- [x] Merged the "Quizzes" tab into the "Assignments" tab (`lms/templates/course_page_enrolled.html`)
+  — removed the separate nav-tab link and tab-pane; the quiz list (same cards as before) now
+  renders inside the Assignments tab-pane, gated by the same `enrolled` check, right after the
+  assignments list/pagination. Verified live: no more `#quizzes` tab or nav link in the
+  rendered page, quiz cards appear correctly under Assignments.
+- [x] Short-answer quiz questions now go to **manual teacher review** instead of
+  case-insensitive exact-string auto-grading. `QuizAttempt.grade()` (`lms/models/__init__.py`)
+  auto-grades mcq/true_false immediately as before, but leaves short_answer answers'
+  `is_correct=None` (pending) and, if any answer is still pending, leaves the attempt's
+  `score`/`passed` as `None` too rather than a premature auto-graded number — a correct
+  free-text answer that doesn't literally string-match shouldn't fail someone. New
+  `QuizAttempt.needs_manual_review` property and `grade_short_answer(question_id, is_correct)`
+  method (recomputes score/passed once every answer is reviewed). No migration needed —
+  `score`/`passed` were already nullable columns.
+  - New teacher-only route `GET/POST /course/<id>/quiz/<id>/review`
+    (`main.quiz_review`, gated by `course.is_managed_by`) — a queue of pending short-answer
+    attempts with the student's answer, the question's reference answer, and Correct/Incorrect
+    buttons per question, plus an "already graded" list below. Linked from a "Review Answers"
+    button on each quiz card in the merged Assignments tab (teacher/admin only).
+  - `quiz_result.html` (student-facing) now shows "Pending teacher review" instead of a score
+    when `attempt.needs_manual_review`, and marks individual still-pending answers with an
+    ellipsis instead of a check/cross.
+  - Verified live end-to-end: submitted a short-answer attempt as a student (score/passed
+    correctly landed `NULL`, answer's `is_correct` `NULL`) → result page showed "Pending
+    teacher review" → teacher's review queue showed the pending answer with the student's
+    text and a reference answer → graded it Correct → attempt's score/passed correctly
+    finalized to 100%/passed → review queue moved it to "Already graded" → student's result
+    page then showed the real 100% score. Note: the AI-grading alternative the backlog item
+    floated is still out of scope per this plan's own exclusions — this is manual review only.
+  - The original explicit-string auto-grader's short_answer branch in `_check_quiz_answer` was
+    removed as dead code (never reached anymore, since `grade()` special-cases short_answer
+    before calling it).
 
 - [x] Teacher-facing promo codes & student enrollment — gap found post-hoc: both features
   exist and work, but only inside `CourseManagementView` (`lms/admin/__init__.py`), gated by
@@ -432,6 +463,106 @@ translation sweep).
     consented one was left untouched).
   - New endpoints: `GET /api/course/<id>/conversation` (history, consent-gated),
     `POST /api/user/ai-history-consent`.
+- [x] Thorough explanations + follow-up questions, and an effort-mode toggle. Updated
+  `SYSTEM_INSTRUCTION` (`lms/rag_service.py`) to explain answers in depth rather than a bare
+  one-liner, and to ask a clarifying follow-up question instead of guessing when a question is
+  ambiguous/underspecified — applies at both effort levels. Added `EFFORT_LEVELS`
+  ('quick'/'thorough', `DEFAULT_EFFORT='thorough'`): thorough pulls more source material (5
+  files × 6 chunks vs. 3×4), gets a larger output budget, and an extra "go deep, use examples"
+  instruction; quick stays closer to the original retrieval depth. Exposed as a Quick/Thorough
+  button toggle on the Ask AI tab, remembered per-course via `localStorage` (a lasting
+  preference, unlike the tab-position/draft state which is session-scoped).
+  `POST /api/course/<id>/ask` accepts `effort` in the JSON body, validated against
+  `EFFORT_LEVELS` server-side (invalid/missing falls back to the default) so a tampered
+  client value can't do anything worse than picking a valid preset.
+  - **Real bug caught during live testing**: the model behind `gemini-flash-latest` is a
+    "thinking" model — its internal reasoning tokens count against the same
+    `maxOutputTokens` budget as the visible answer, silently. A first attempt at
+    quick=800/thorough=2048 token budgets caused answers to get cut off mid-sentence (even
+    thorough's 2048-token answer ended mid-word) because thinking alone consumed 400+ tokens
+    on a trivial question before any visible text was written, confirmed via a raw API probe
+    showing `thoughtsTokenCount: 415` for a one-line question. Fixed by adding a
+    `thinking_budget` param to `gemini_client.generate_content` (`generationConfig.
+    thinkingConfig.thinkingBudget`): quick sets it to `0` (thinking off entirely, so all of
+    its 1024-token budget goes to visible text — also makes quick mode cheaper and faster,
+    fitting its name), thorough leaves it unset (thinking stays on for better reasoning
+    quality) with a 4096-token budget sized to comfortably cover both thinking and a long
+    answer.
+  - **Also discovered while testing**: Gemini's free tier caps whatever model
+    `gemini-flash-latest` currently resolves to at **20 requests/day** — hit it mid-session
+    from ordinary manual testing. The 429's error body named the underlying model as
+    `gemini-3.6-flash`, confirming the `-latest` alias has already rolled forward past the
+    "gemini-2.5-flash" generation this was originally built against — a live consequence of
+    deliberately pinning to `-latest` instead of a dated model name (to avoid the alias going
+    stale), which also means Google can silently move us onto a new model generation with its
+    own separate — and possibly tighter or laxer — free-tier quota bucket, with zero code
+    change on our end. Worth checking AI Studio's usage dashboard by the *current* model name
+    (not just "Gemini Flash" generically) when diagnosing quota issues going forward, since a
+    dashboard panel for an older generation (e.g. "Gemini 2.5 Flash") can look nearly idle
+    while the generation actually being called is the one that's exhausted. This makes the
+    limits item below more concrete/urgent than originally filed, not just a "nice to have
+    eventually."
+- [x] Cross-model fallback so hitting one model's quota doesn't stop testing (or real usage)
+  dead — `gemini_client.py` now tries `GENERATION_MODEL_FALLBACKS` in order whenever the
+  primary model fails for any reason (quota, model unavailable, etc.), stopping at the first
+  one that actually returns text. Candidates were verified live one by one rather than
+  guessed — several plausible names turned out dead ends: `gemini-2.5-flash` and
+  `gemini-2.5-flash-lite` both 404 with "no longer available to new users" (this API key is
+  new enough to be locked out of the 2.5 generation entirely, despite both still appearing in
+  `ListModels`), and `gemini-2.0-flash-001`/`gemini-2.0-flash-lite-001` were already
+  quota-exhausted. Landed on `gemini-3.5-flash`, `gemini-flash-lite-latest`,
+  `gemini-3.1-flash-lite`, `gemini-3-flash-preview` — confirmed reachable and on separate
+  quota buckets from the primary `gemini-flash-latest` (→ `gemini-3.6-flash`).
+  - Fallback attempts strip `thinkingConfig`/`maxOutputTokens` from the request rather than
+    reusing the primary payload verbatim: confirmed live that `gemini-flash-lite-latest` 400s
+    outright on `thinkingConfig` (no thinking support at all), and blindly reusing a small
+    `maxOutputTokens` on a model with unknown thinking behavior would risk reintroducing the
+    exact silent-truncation bug just fixed above. A fallback answer without the fine-tuned
+    length/thinking budget beats a broken one.
+  - Verified live end-to-end through the real `/api/course/<id>/ask` route (not just the raw
+    client): with the primary model's daily quota exhausted, both Quick and Thorough effort
+    modes correctly fell through to `gemini-3.5-flash` and returned complete, non-truncated,
+    properly-terminated answers (1633 and 3839 chars respectively) with correct sources.
+- [x] Usage limits now differentiate the two effort levels. Added `daily_cost` to each
+  `EFFORT_LEVELS` preset (`lms/rag_service.py`: quick=1, thorough=3) and a second, cost-weighted
+  limit on `/api/course/<id>/ask` (`lms/routes/api.py`) — `@limiter.limit("30 per day",
+  cost=_ask_effort_cost)`, stacked alongside the existing flat `10 per minute` burst guard
+  rather than replacing it. `_ask_effort_cost()` reads `effort` from the request body (falling
+  back to the default if missing/invalid, same as the view itself does) so a tampered value
+  can't dodge the higher cost. 30/day with thorough at 3x means up to 30 quick questions/day
+  *or* ~10 thorough ones *or* any mix — sized a bit above the real 20/day ceiling observed on
+  the primary model (to account for the fallback chain's extra real headroom) while still
+  rationing thorough meaningfully harder than quick, per your framing. Keyed by IP
+  (`get_remote_address`), matching every other rate limit in this app — not per-user.
+  Verified live against the real Redis-backed counter (not mocked): one thorough call moved
+  the day-bucket to `3`, a following quick call moved it to `4`, confirming the cost-weighting
+  actually lands in storage the way the config says it should.
+- [x] Site admins exempted from both `/ask` rate limits (`exempt_when=_is_site_admin`,
+  checking `current_user.is_admin` specifically — deliberately *not*
+  `course.is_managed_by()`, so a course owner or assigned teacher who isn't a site admin still
+  gets rate-limited normally, per your explicit ask). Verified live: an admin's request left
+  no Redis counter behind at all (exempt requests skip the check *and* the deduction), while
+  the same request from `testuser` (a non-admin) created and incremented the usual counter.
+- [x] **Real bug found via user report** ("it does not see 2 more files, even after I
+  reindexed them"): `_extract_drive_file_text` (`lms/rag_service.py`) determined file type
+  from `os.path.splitext(content.title)[1]` — but titles are freeform display names, not
+  filenames, and two real course files were titled "Increment Privacy policy" and "terms of
+  use" with no extension at all. The check silently returned `None` before even attempting a
+  download, so those two files got `embedded_at` set (job "succeeded") but 0 chunks stored,
+  forever, no matter how many times they were reindexed — a silent failure with no error
+  surfaced anywhere. Fixed by downloading first and sniffing the actual file type from its
+  bytes via the already-installed `filetype` library (`_DOCUMENT_MIMES`, keyed by MIME instead
+  of extension) rather than trusting the title. Verified live: both files went from 0 chunks
+  to 14 and 10 chunks respectively after reindexing with the fix, and a follow-up Ask AI
+  question ("how many source documents...") correctly listed and cited all three files by
+  name, where it previously only ever saw the one file whose title happened to end in
+  `.docx`.
+  - **Same root-cause risk not yet checked**: `_transcribe_video` uses the identical
+    `os.path.splitext(content.title)` / `mimetypes.guess_type(content.title)` pattern to
+    decide if a content item is a video/audio file worth transcribing. Any video/audio
+    content titled without its extension would silently fail to transcribe for the exact same
+    reason — not fixed here since no report of it happening yet, but worth a look if lecture
+    videos ever seem to not be searchable via Ask AI.
 
 ## Phase 7 — AI audio overview
 

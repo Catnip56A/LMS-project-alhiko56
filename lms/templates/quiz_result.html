@@ -11,19 +11,27 @@
     <div class="card" style="border-radius: 12px;">
         <div class="card-body text-center">
             <h1 style="color: #337a2c; font-size: 1.75rem;">{{ quiz.title }}</h1>
+            {% if attempt.needs_manual_review %}
+            <p class="badge badge-warning" style="font-size: 1.1rem; padding: 0.5rem 1rem;">{{ _('Pending teacher review') }}</p>
+            <p class="text-muted mt-2">{{ _('One or more short-answer questions need your teacher to grade them before your final score is available.') }}</p>
+            {% else %}
             <p style="font-size: 3rem; font-weight: 700; margin: 1rem 0;">{{ attempt.score }}%</p>
             {% if attempt.passed %}
             <p class="badge badge-success" style="font-size: 1.1rem; padding: 0.5rem 1rem;">{{ _('Passed') }}</p>
             {% else %}
             <p class="badge badge-danger" style="font-size: 1.1rem; padding: 0.5rem 1rem;">{{ _('Not yet — passing score is %(score)s%%', score=quiz.passing_score) }}</p>
             {% endif %}
+            {% endif %}
 
             <hr>
             <div class="text-left">
                 {% for answer in attempt.answers %}
                 <p>
-                    {% if answer.is_correct %}<span class="text-success">&#10003;</span>{% else %}<span class="text-danger">&#10007;</span>{% endif %}
+                    {% if answer.is_correct is none %}<span class="text-warning">&#8230;</span>
+                    {% elif answer.is_correct %}<span class="text-success">&#10003;</span>
+                    {% else %}<span class="text-danger">&#10007;</span>{% endif %}
                     {{ answer.question.question_text }}
+                    {% if answer.is_correct is none %}<span class="text-muted" style="font-size:0.85rem;">({{ _('pending review') }})</span>{% endif %}
                 </p>
                 {% endfor %}
             </div>

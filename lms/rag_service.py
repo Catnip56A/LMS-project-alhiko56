@@ -17,6 +17,7 @@ import re
 import tempfile
 from datetime import datetime, timedelta
 
+import filetype
 import requests
 from docx import Document as DocxDocument
 from pptx import Presentation
@@ -50,9 +51,44 @@ SYSTEM_INSTRUCTION = (
     "course material excerpts provided as context (plus prior conversation context, if any, "
     "purely to understand what the student is referring to). If the answer isn't contained "
     "in the provided excerpts, say you don't have that information in the course materials — "
-    "do not use outside knowledge to fill gaps. Keep answers concise and mention which "
-    "material(s) you drew from by name."
+    "do not use outside knowledge to fill gaps. Explain your answer thoroughly rather than "
+    "giving a bare one-line response — walk through the relevant concepts, not just the "
+    "conclusion. If the student's question is ambiguous, underspecified, or you'd need more "
+    "detail from them to give a good answer, ask a concise clarifying follow-up question "
+    "instead of guessing. Mention which material(s) you drew from by name."
 )
+
+# Effort modes: a student-facing toggle trading retrieval depth/answer length for speed. The
+# instruction above (thorough explanations, follow-up questions) applies at both levels —
+# this only controls how much source material gets pulled in and how much room the model has
+# to write. `daily_cost` feeds a cost-weighted daily rate limit on /api/course/<id>/ask (see
+# routes/api.py) — thorough genuinely costs more per call (more retrieval, thinking left on,
+# 4x the output budget), and Gemini's actual free-tier daily cap on the underlying model was
+# observed at 20 requests/day, so the shared daily budget is sized with that in mind rather
+# than picked arbitrarily.
+EFFORT_LEVELS = {
+    'quick': {
+        'max_files': MAX_SOURCE_FILES,
+        'chunks_per_file': CHUNKS_PER_FILE,
+        'max_output_tokens': 1024,
+        'thinking_budget': 0,  # disabled - all of max_output_tokens goes to the visible answer
+        'daily_cost': 1,
+        'style_instruction': "Keep this particular answer relatively brief — a focused, direct explanation is enough here.",
+    },
+    'thorough': {
+        'max_files': 5,
+        'chunks_per_file': 6,
+        'max_output_tokens': 4096,
+        'thinking_budget': None,  # let the model think freely; budget above leaves it room to
+        'daily_cost': 3,
+        'style_instruction': (
+            "Go deep on this one: cover the underlying concepts in detail, connect related "
+            "points across the retrieved material, and use examples from the source content "
+            "where they'd help understanding."
+        ),
+    },
+}
+DEFAULT_EFFORT = 'thorough'
 
 
 # ── Chunking ────────────────────────────────────────────────────────────────────
@@ -83,7 +119,16 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 
 # ── Text extraction ──────────────────────────────────────────────────────────────
 
-_DOCUMENT_EXTENSIONS = {'.pdf', '.docx', '.pptx'}
+# Keyed by MIME, not extension — content titles are freeform display names (e.g. "Privacy
+# policy" has no extension at all), so the actual file type has to come from sniffing the
+# downloaded bytes (via `filetype`) rather than trusting the title. Found live: two real
+# course files with extension-less titles were silently skipped entirely before any download
+# was even attempted, because the old check looked at os.path.splitext(content.title).
+_DOCUMENT_MIMES = {
+    'application/pdf': '.pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+}
 
 
 def extract_text_for_content(content: CourseContent) -> str | None:
@@ -140,15 +185,16 @@ def _download_public_drive_file(file_id: str, dest_path: str) -> bool:
 
 
 def _extract_drive_file_text(content: CourseContent) -> str | None:
-    extension = os.path.splitext(content.title)[1].lower()
-    if extension not in _DOCUMENT_EXTENSIONS:
-        return None
-
     tmp_path = None
     try:
-        with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp_path = tmp.name
         if not _download_public_drive_file(content.drive_file_id, tmp_path):
+            return None
+
+        kind = filetype.guess(tmp_path)
+        extension = _DOCUMENT_MIMES.get(kind.mime) if kind else None
+        if not extension:
             return None
 
         if extension == '.pdf':
@@ -167,7 +213,7 @@ def _extract_drive_file_text(content: CourseContent) -> str | None:
             return '\n'.join(lines)
         return None
     except Exception as e:
-        logger.error(f"Text extraction failed for content {content.id} ({extension}): {e}")
+        logger.error(f"Text extraction failed for content {content.id}: {e}")
         return None
     finally:
         if tmp_path:
@@ -422,12 +468,22 @@ def purge_stale_conversations() -> int:
 
 def answer_question(
     course, question: str, user,
-    max_files: int = MAX_SOURCE_FILES, chunks_per_file: int = CHUNKS_PER_FILE,
+    max_files: int | None = None, chunks_per_file: int | None = None,
+    effort: str = DEFAULT_EFFORT,
 ) -> dict | None:
     """Returns {'answer': str, 'sources': [{'content_id', 'title'}]}, or None if the
     question couldn't be processed (e.g. GEMINI_API_KEY missing/unreachable). Tracks
     multi-turn conversation memory per (user, course) when user is a real authenticated
-    User — see _get_or_create_conversation / _persist_turn."""
+    User — see _get_or_create_conversation / _persist_turn.
+
+    `effort` ('quick'/'thorough', see EFFORT_LEVELS) sets retrieval depth and answer length
+    defaults; explicit max_files/chunks_per_file, if passed, override the preset."""
+    preset = EFFORT_LEVELS.get(effort, EFFORT_LEVELS[DEFAULT_EFFORT])
+    if max_files is None:
+        max_files = preset['max_files']
+    if chunks_per_file is None:
+        chunks_per_file = preset['chunks_per_file']
+
     conversation = None
     history_context = ''
     if user is not None and getattr(user, 'is_authenticated', False):
@@ -499,7 +555,14 @@ def answer_question(
         prompt_parts.append(f"Student question: {question}")
         prompt = '\n\n---\n\n'.join(prompt_parts)
 
-        answer = gemini_client.generate_content(prompt, system_instruction=SYSTEM_INSTRUCTION, temperature=0.2)
+        system_instruction = f"{SYSTEM_INSTRUCTION}\n\n{preset['style_instruction']}"
+        answer = gemini_client.generate_content(
+            prompt,
+            system_instruction=system_instruction,
+            temperature=0.2,
+            max_output_tokens=preset['max_output_tokens'],
+            thinking_budget=preset['thinking_budget'],
+        )
         if not answer:
             return None
 

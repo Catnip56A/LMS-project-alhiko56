@@ -1206,9 +1206,26 @@ def get_folder_contents(folder_id):
         }), 500
 
 
+def _ask_effort_cost():
+    """Rate-limit cost for /ask, weighted by requested effort level (thorough costs more —
+    see EFFORT_LEVELS['daily_cost'] in rag_service.py for why)."""
+    from lms.rag_service import EFFORT_LEVELS, DEFAULT_EFFORT
+    data = request.get_json(silent=True) or {}
+    effort = data.get('effort') or DEFAULT_EFFORT
+    return EFFORT_LEVELS.get(effort, EFFORT_LEVELS[DEFAULT_EFFORT])['daily_cost']
+
+
+def _is_site_admin():
+    """Exemption check for /ask's rate limits — site admins only (current_user.is_admin,
+    full or sub-admin), deliberately not course.is_managed_by() which also covers course
+    owners/teachers. Those still get rate-limited like any other user."""
+    return current_user.is_authenticated and current_user.is_admin
+
+
 @api_bp.route('/course/<int:course_id>/ask', methods=['POST'])
 @login_required
-@limiter.limit("10 per minute")
+@limiter.limit("10 per minute", exempt_when=_is_site_admin)
+@limiter.limit("30 per day", cost=_ask_effort_cost, exempt_when=_is_site_admin)
 def ask_course_assistant(course_id):
     """AI study assistant (Phase 6) — answers a question grounded in this course's indexed
     content only, with citations. Retrieval excludes unpublished content and anything behind
@@ -1229,10 +1246,13 @@ def ask_course_assistant(course_id):
     if len(question) > 1000:
         return jsonify({'error': 'question is too long (max 1000 characters)'}), 400
 
-    from lms.rag_service import answer_question
-    result = answer_question(course, question, current_user)
+    from lms.rag_service import answer_question, EFFORT_LEVELS, DEFAULT_EFFORT
+    effort = data.get('effort') or DEFAULT_EFFORT
+    if effort not in EFFORT_LEVELS:
+        effort = DEFAULT_EFFORT
+    result = answer_question(course, question, current_user, effort=effort)
     if result is None:
-        return jsonify({'error': 'AI assistant is temporarily unavailable. Please try again shortly.'}), 503
+        return jsonify({'error': 'AI assistant is rate-limited right now (every available model is at capacity). Please try again in a few minutes.'}), 503
 
     return jsonify({'success': True, **result}), 200
 

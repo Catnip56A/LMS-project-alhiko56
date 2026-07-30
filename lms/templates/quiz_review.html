@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ quiz.title }} - {{ _('Review Answers') }} - {{ site_settings.site_name or 'LMS' }}{% endblock %}
+
+{% block content %}
+{% include 'components/navbar.html' %}
+
+<div class="container" style="max-width: 860px; padding: 2rem 1rem;">
+    <p><a href="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">&laquo; {{ _('Back to course') }}</a></p>
+
+    <h1 style="color: #337a2c; font-size: 1.6rem;">{{ quiz.title }} — {{ _('Review Short-Answer Responses') }}</h1>
+    <p class="text-muted">{{ _('Multiple-choice and true/false questions are graded automatically. Short-answer questions need your judgment call — mark each one correct or incorrect below.') }}</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ 'success' if cat == 'success' else 'info' }}">{{ msg }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <h4 class="mt-4">{{ _('Pending review') }} ({{ pending_attempts|length }})</h4>
+    {% if not pending_attempts %}
+    <p class="text-muted">{{ _('Nothing waiting on you right now.') }}</p>
+    {% else %}
+    {% for attempt in pending_attempts %}
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>{{ attempt.user.username }}</strong>
+            <span class="text-muted" style="font-size:0.85rem;">{{ attempt.submitted_at.strftime('%b %d, %Y %I:%M %p') }}</span>
+        </div>
+        <div class="card-body">
+            {% for answer in attempt.answers %}
+                {% if answer.question.question_type == 'short_answer' %}
+                <div class="mb-3 pb-3" style="border-bottom: 1px solid #eee;">
+                    <p class="mb-1"><strong>{{ answer.question.question_text }}</strong></p>
+                    <p class="mb-1">{{ _('Student answer:') }} <span style="white-space:pre-wrap;">{{ answer.answer or _('(blank)') }}</span></p>
+                    <p class="text-muted mb-2" style="font-size:0.85rem;">{{ _('Reference answer:') }} {{ answer.question.correct_answer }}</p>
+                    {% if answer.is_correct is none %}
+                    <form method="POST" action="{{ url_for('main.quiz_review', course_id=course.id, quiz_id=quiz.id) }}" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="attempt_id" value="{{ attempt.id }}">
+                        <input type="hidden" name="question_id" value="{{ answer.question.id }}">
+                        <input type="hidden" name="is_correct" value="true">
+                        <button type="submit" class="btn btn-sm btn-success">{{ _('Correct') }}</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('main.quiz_review', course_id=course.id, quiz_id=quiz.id) }}" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="attempt_id" value="{{ attempt.id }}">
+                        <input type="hidden" name="question_id" value="{{ answer.question.id }}">
+                        <input type="hidden" name="is_correct" value="false">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ _('Incorrect') }}</button>
+                    </form>
+                    {% else %}
+                    <span class="badge badge-{{ 'success' if answer.is_correct else 'danger' }}">{{ _('Graded') }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <h4 class="mt-4">{{ _('Already graded') }} ({{ reviewed_attempts|length }})</h4>
+    {% if not reviewed_attempts %}
+    <p class="text-muted">{{ _('None yet.') }}</p>
+    {% else %}
+    <ul class="list-group mb-4">
+        {% for attempt in reviewed_attempts %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ attempt.user.username }} <span class="text-muted" style="font-size:0.85rem;">— {{ attempt.submitted_at.strftime('%b %d, %Y %I:%M %p') }}</span></span>
+            <span>
+                <strong>{{ attempt.score }}%</strong>
+                {% if attempt.passed %}<span class="badge badge-success ml-1">{{ _('Passed') }}</span>{% else %}<span class="badge badge-danger ml-1">{{ _('Failed') }}</span>{% endif %}
+            </span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+
+{% include 'components/footer.html' %}
+{% endblock %}

@@ -21,6 +21,17 @@ _API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 GENERATION_MODEL = 'gemini-flash-latest'
 EMBEDDING_MODEL = 'gemini-embedding-001'
 
+# Free-tier quota is per-model, not shared — if GENERATION_MODEL's daily/per-minute limit is
+# hit, these get tried in order before giving up. Discovered the hard way: `-latest` aliases
+# can roll onto a new model generation with its own separate (and possibly much tighter)
+# quota bucket with zero code change on our end, so a fallback chain matters more here than
+# it would for a pinned model name. Candidates below were confirmed live to actually be
+# reachable on this API key — several plausible-looking names (gemini-2.5-flash,
+# gemini-2.5-flash-lite, gemini-pro-latest at the time) turned out 404 ("no longer available
+# to new users") or already quota-exhausted themselves; don't add a model back to this list
+# without confirming it responds first.
+GENERATION_MODEL_FALLBACKS = ['gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite', 'gemini-3-flash-preview']
+
 
 def _api_key() -> str:
     return os.environ.get('GEMINI_API_KEY') or ''
@@ -112,21 +123,37 @@ def generate_content(
     system_instruction: str | None = None,
     model: str = GENERATION_MODEL,
     temperature: float = 0.3,
+    max_output_tokens: int | None = None,
+    thinking_budget: int | None = None,
     timeout: int = 60,
 ) -> str | None:
-    """Plain text generation. Returns the model's text response, or None on failure."""
+    """Plain text generation. Returns the model's text response, or None on failure.
+
+    `thinking_budget`: this model is a "thinking" model — its reasoning tokens count against
+    the same maxOutputTokens budget as the visible answer, silently, and a simple question
+    was observed burning 400+ thinking tokens before writing anything. Pass 0 to disable
+    thinking entirely (all of max_output_tokens then goes to visible text — use this whenever
+    max_output_tokens is set to something modest); leave None to let the model think freely,
+    but then max_output_tokens needs to be generous enough to leave room for both.
+    """
     if not _api_key():
         logger.warning("GEMINI_API_KEY not configured")
         return None
 
+    generation_config: dict = {'temperature': temperature}
+    if max_output_tokens:
+        generation_config['maxOutputTokens'] = max_output_tokens
+    if thinking_budget is not None:
+        generation_config['thinkingConfig'] = {'thinkingBudget': thinking_budget}
+
     payload: dict = {
         'contents': [{'parts': [{'text': prompt}]}],
-        'generationConfig': {'temperature': temperature},
+        'generationConfig': generation_config,
     }
     if system_instruction:
         payload['systemInstruction'] = {'parts': [{'text': system_instruction}]}
 
-    return _call_generate(model, payload, timeout)
+    return _call_generate_with_fallback(model, payload, timeout)
 
 
 def generate_content_with_file(
@@ -150,7 +177,37 @@ def generate_content_with_file(
             ]
         }],
     }
-    return _call_generate(model, payload, timeout)
+    return _call_generate_with_fallback(model, payload, timeout)
+
+
+def _call_generate_with_fallback(model: str, payload: dict, timeout: int) -> str | None:
+    """Tries `model` first, then GENERATION_MODEL_FALLBACKS in order, stopping at the first
+    one that returns text. Falls through on *any* failure (quota, model unavailable, etc.) —
+    the goal is "something answers", not distinguishing failure modes, so a bad model name in
+    the fallback list just gets skipped rather than aborting the chain.
+
+    Fallback attempts strip thinkingConfig/maxOutputTokens from the payload rather than
+    reusing it verbatim — confirmed live that gemini-flash-lite-latest 400s on thinkingConfig
+    (it doesn't support thinking at all), and reusing a small maxOutputTokens on a model whose
+    thinking behavior we don't know risks the exact silent-truncation bug this budget was
+    added to prevent in the first place. A fallback answer without the length/thinking tuning
+    is far better than a broken one."""
+    candidates = [model] + [m for m in GENERATION_MODEL_FALLBACKS if m != model]
+    for i, candidate_model in enumerate(candidates):
+        candidate_payload = payload
+        if i > 0:
+            candidate_payload = dict(payload)
+            generation_config = dict(payload.get('generationConfig') or {})
+            generation_config.pop('thinkingConfig', None)
+            generation_config.pop('maxOutputTokens', None)
+            candidate_payload['generationConfig'] = generation_config
+
+        text = _call_generate(candidate_model, candidate_payload, timeout)
+        if text is not None:
+            if i > 0:
+                logger.warning(f"Gemini fallback: {model} unavailable, served by {candidate_model} instead")
+            return text
+    return None
 
 
 def _call_generate(model: str, payload: dict, timeout: int) -> str | None:
@@ -169,7 +226,7 @@ def _call_generate(model: str, payload: dict, timeout: int) -> str | None:
         text = ''.join(p.get('text', '') for p in parts if 'text' in p)
         return text or None
     except Exception as e:
-        logger.error(f"Gemini generateContent error: {e}")
+        logger.warning(f"Gemini generateContent error on {model}: {e}")
         return None
 
 

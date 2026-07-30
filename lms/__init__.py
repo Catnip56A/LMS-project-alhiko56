@@ -160,6 +160,15 @@ def create_app(config_name='development'):
     # Initialize rate limiter
     limiter.init_app(app)
 
+    @app.errorhandler(429)
+    def rate_limit_exceeded(e):
+        """Flask-Limiter's default 429 is an HTML error page, which breaks any JSON-expecting
+        fetch() caller (e.g. Ask AI) — response.json() throws, surfacing as a confusing
+        generic "Request failed" message instead of a clear rate-limit notice."""
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'Too many requests — please slow down and try again shortly.'}), 429
+        return e
+
     # Initialize CSRF protection globally (all POST/PUT/PATCH/DELETE routes and forms)
     csrf = CSRFProtect(app)
     app.extensions['csrf'] = csrf

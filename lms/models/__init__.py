@@ -466,13 +466,12 @@ class CourseAssignment(db.Model):
 
 
 def _check_quiz_answer(question, submitted):
-    """Auto-grade a single answer against its question's correct_answer."""
+    """Auto-grade a single mcq/true_false answer against its question's correct_answer.
+    short_answer is graded manually by a teacher instead — see QuizAttempt.grade()."""
     if question.question_type == 'mcq':
         return submitted == question.correct_answer
     if question.question_type == 'true_false':
         return bool(submitted) == bool(question.correct_answer)
-    if question.question_type == 'short_answer':
-        return isinstance(submitted, str) and submitted.strip().lower() == str(question.correct_answer).strip().lower()
     return False
 
 
@@ -547,21 +546,55 @@ class QuizAttempt(db.Model):
         return deadline is not None and datetime.utcnow() > deadline
 
     def grade(self):
-        """Auto-grade all answers and set score/passed/submitted_at. Caller commits."""
+        """Auto-grade mcq/true_false answers immediately. Short-answer questions are left
+        pending (is_correct=None) for manual teacher review instead — free-text answers can
+        be correct without matching the stored string exactly, so auto-grading them as wrong
+        would unfairly fail students. score/passed stay None while any answer is still
+        pending; see needs_manual_review / grade_short_answer. Caller commits."""
         questions = {q.id: q for q in self.quiz.questions}
-        total_points = sum(q.points for q in questions.values()) or 1
-        earned = 0
         for answer in self.answers:
             question = questions.get(answer.question_id)
             if question is None:
                 continue
-            correct = _check_quiz_answer(question, answer.answer)
-            answer.is_correct = correct
-            answer.points_awarded = question.points if correct else 0
-            earned += answer.points_awarded
+            if question.question_type == 'short_answer':
+                answer.is_correct = None
+                answer.points_awarded = 0
+            else:
+                correct = _check_quiz_answer(question, answer.answer)
+                answer.is_correct = correct
+                answer.points_awarded = question.points if correct else 0
+        self.submitted_at = datetime.utcnow()
+        self._finalize_score_if_ready()
+
+    @property
+    def needs_manual_review(self):
+        """True if any answer (necessarily short_answer — see grade()) is still awaiting a
+        teacher's Correct/Incorrect call."""
+        return any(a.is_correct is None for a in self.answers)
+
+    def grade_short_answer(self, question_id, is_correct):
+        """Teacher manually grades one short-answer question on this attempt, then
+        recomputes score/passed if every answer is now reviewed. Caller commits."""
+        answer = next((a for a in self.answers if a.question_id == question_id), None)
+        if not answer:
+            return
+        answer.is_correct = is_correct
+        answer.points_awarded = answer.question.points if is_correct else 0
+        self._finalize_score_if_ready()
+
+    def _finalize_score_if_ready(self):
+        """Sets score/passed once no answer is still pending manual review; leaves them None
+        (pending) otherwise. Called from grade() at submission and again after each manual
+        short-answer grade."""
+        if self.needs_manual_review:
+            self.score = None
+            self.passed = None
+            return
+        questions = {q.id: q for q in self.quiz.questions}
+        total_points = sum(q.points for q in questions.values()) or 1
+        earned = sum(a.points_awarded for a in self.answers)
         self.score = round((earned / total_points) * 100)
         self.passed = self.score >= self.quiz.passing_score
-        self.submitted_at = datetime.utcnow()
 
     def __repr__(self):
         return f'<QuizAttempt quiz={self.quiz_id} user={self.user_id}>'

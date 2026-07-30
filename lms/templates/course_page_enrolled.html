@@ -583,11 +583,6 @@
         <li class="nav-item">
             <a class="nav-link" id="assignments-tab" data-toggle="tab" href="#assignments" role="tab">{{ _('Assignments') }}</a>
         </li>
-        {% if quizzes %}
-        <li class="nav-item">
-            <a class="nav-link" id="quizzes-tab" data-toggle="tab" href="#quizzes" role="tab">{{ _('Quizzes') }}</a>
-        </li>
-        {% endif %}
         <li class="nav-item">
             <a class="nav-link" id="announcements-tab" data-toggle="tab" href="#announcements" role="tab">{{ _('Announcements') }}<span id="announcements-badge" style="display:none; background:#e53e3e; color:#fff; border-radius:10px; padding:1px 7px; font-size:0.72rem; font-weight:700; margin-left:5px; vertical-align:middle;"></span></a>
         </li>
@@ -1461,6 +1456,34 @@
             {% else %}
             <p>{{ _('No assignments available.') }}</p>
             {% endif %}
+
+            {% if quizzes %}
+            <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+                <h4>{{ _('Quizzes') }}</h4>
+            </div>
+            <div class="mb-3">
+                {% for quiz in quizzes %}
+                <div class="card mb-2">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ quiz.title }}</strong>
+                            <div class="text-muted" style="font-size: 0.85rem;">
+                                {{ quiz.questions|length }} {{ _('questions') }}
+                                {% if quiz.time_limit_minutes %} &middot; {{ quiz.time_limit_minutes }} {{ _('min') }}{% endif %}
+                                &middot; {{ _('Passing score:') }} {{ quiz.passing_score }}%
+                            </div>
+                        </div>
+                        <div>
+                            {% if is_teacher_or_admin %}
+                            <a href="{{ url_for('main.quiz_review', course_id=course.id, quiz_id=quiz.id) }}" class="btn btn-outline-secondary btn-sm mr-1">{{ _('Review Answers') }}</a>
+                            {% endif %}
+                            <a href="{{ url_for('main.quiz_overview', course_id=course.id, quiz_id=quiz.id) }}" class="btn btn-success btn-sm">{{ _('Open') }}</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
             {% else %}
             <div class="mt-4">
                 <div class="alert alert-warning">
@@ -1509,34 +1532,6 @@
             </div>
         </div>
         {% endmacro %}
-
-        {% if quizzes %}
-        <div class="tab-pane fade" id="quizzes" role="tabpanel">
-            {% if enrolled %}
-            <div class="mt-4">
-                {% for quiz in quizzes %}
-                <div class="card mb-2">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ quiz.title }}</strong>
-                            <div class="text-muted" style="font-size: 0.85rem;">
-                                {{ quiz.questions|length }} {{ _('questions') }}
-                                {% if quiz.time_limit_minutes %} &middot; {{ quiz.time_limit_minutes }} {{ _('min') }}{% endif %}
-                                &middot; {{ _('Passing score:') }} {{ quiz.passing_score }}%
-                            </div>
-                        </div>
-                        <a href="{{ url_for('main.quiz_overview', course_id=course.id, quiz_id=quiz.id) }}" class="btn btn-success btn-sm">{{ _('Open') }}</a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="mt-4">
-                <div class="alert alert-warning">{{ _('Enroll in this course to take quizzes.') }}</div>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
 
         <div class="tab-pane fade" id="announcements" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
@@ -1972,6 +1967,14 @@
                 <p class="text-muted" id="ask-ai-empty-state">{{ _('No questions yet — ask something below.') }}</p>
             </div>
 
+            <div class="d-flex align-items-center flex-wrap mb-2" style="gap:8px;">
+                <span class="text-muted" style="font-size:0.85rem;">{{ _('Effort:') }}</span>
+                <div class="btn-group btn-group-sm" role="group" id="ask-ai-effort-toggle">
+                    <button type="button" class="btn btn-outline-secondary" data-effort="quick">{{ _('Quick') }}</button>
+                    <button type="button" class="btn btn-outline-secondary" data-effort="thorough">{{ _('Thorough') }}</button>
+                </div>
+                <span class="text-muted" style="font-size:0.78rem;">{{ _('Thorough digs into more course material and gives a deeper explanation; Quick answers faster.') }}</span>
+            </div>
             <form id="ask-ai-form" class="d-flex" style="gap:8px;">
                 <input type="text" id="ask-ai-input" class="form-control" maxlength="1000" placeholder="{{ _('Ask a question about this course…') }}" required>
                 <button type="submit" id="ask-ai-submit" class="btn btn-success" style="background:#337a2c; border-color:#337a2c; white-space:nowrap;">{{ _('Ask') }}</button>
@@ -3584,6 +3587,34 @@ async function handleFolderExpand(folderId, courseId) {
     var emptyState = document.getElementById('ask-ai-empty-state');
     var courseId = {{ course.id | tojson }};
 
+    // Effort mode: remembered per-course across visits (not just this tab/session), since
+    // it's a lasting preference rather than in-progress state.
+    var effortStorageKey = 'askAiEffort:' + courseId;
+    var effortButtons = document.querySelectorAll('#ask-ai-effort-toggle button');
+    var currentEffort = 'thorough';
+    try {
+        var savedEffort = localStorage.getItem(effortStorageKey);
+        if (savedEffort === 'quick' || savedEffort === 'thorough') currentEffort = savedEffort;
+    } catch (e) { /* localStorage unavailable - fall back to default */ }
+
+    function renderEffortButtons() {
+        effortButtons.forEach(function(btn) {
+            var active = btn.dataset.effort === currentEffort;
+            btn.classList.toggle('btn-secondary', active);
+            btn.classList.toggle('text-white', active);
+            btn.classList.toggle('btn-outline-secondary', !active);
+        });
+    }
+    renderEffortButtons();
+
+    effortButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            currentEffort = btn.dataset.effort;
+            renderEffortButtons();
+            try { localStorage.setItem(effortStorageKey, currentEffort); } catch (e) { /* ignore */ }
+        });
+    });
+
     // Minimal, whitelist-only markdown renderer for assistant answers (bold/italic/bullet
     // lists/paragraphs — all Gemini's answers actually use). Escapes HTML entities first via
     // a textContent round-trip, then only ever introduces the handful of tags below, so
@@ -3624,6 +3655,33 @@ async function handleFolderExpand(folderId, courseId) {
         if (emptyState) { emptyState.remove(); emptyState = null; }
         var wrap = document.createElement('div');
         wrap.style.marginBottom = '1rem';
+
+        if (role === 'error') {
+            // Distinct from a real assistant reply — this is a system notice (rate limit,
+            // network failure, etc.), not something the AI "said", so don't attribute it to
+            // "Assistant" or run it through the answer markdown renderer.
+            wrap.style.background = '#fff8e6';
+            wrap.style.border = '1px solid #f0c36d';
+            wrap.style.borderRadius = '6px';
+            wrap.style.padding = '0.6rem 0.8rem';
+
+            var errLabel = document.createElement('div');
+            errLabel.style.fontWeight = '600';
+            errLabel.style.fontSize = '0.8rem';
+            errLabel.style.color = '#92620a';
+            errLabel.textContent = '⚠ ' + '{{ _("Notice") }}';
+            wrap.appendChild(errLabel);
+
+            var errBody = document.createElement('div');
+            errBody.style.whiteSpace = 'pre-wrap';
+            errBody.style.color = '#7a5206';
+            errBody.textContent = text;
+            wrap.appendChild(errBody);
+
+            messages.appendChild(wrap);
+            messages.scrollTop = messages.scrollHeight;
+            return;
+        }
 
         var label = document.createElement('div');
         label.style.fontWeight = '600';
@@ -3674,16 +3732,16 @@ async function handleFolderExpand(folderId, courseId) {
             var resp = await fetch('/api/course/' + courseId + '/ask', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: question }),
+                body: JSON.stringify({ question: question, effort: currentEffort }),
             });
             var result = await resp.json();
             if (resp.ok && result.success) {
                 addMessage('assistant', result.answer, result.sources);
             } else {
-                addMessage('assistant', result.error || '{{ _("Something went wrong.") }}', null);
+                addMessage('error', result.error || '{{ _("Something went wrong.") }}', null);
             }
         } catch (err) {
-            addMessage('assistant', '{{ _("Request failed:") }} ' + err.message, null);
+            addMessage('error', '{{ _("Request failed:") }} ' + err.message, null);
         } finally {
             submitBtn.disabled = false;
         }
