@@ -985,6 +985,7 @@ def picker_import():
     file_id = data.get('file_id', '').strip()
     file_name = data.get('file_name', '').strip()
     mime_type = data.get('mime_type', '')
+    resource_key = data.get('resource_key', '').strip()
     folder_id = data.get('folder_id') or None
     title = data.get('title', '').strip() or file_name
     published = bool(data.get('published', True))
@@ -1007,7 +1008,7 @@ def picker_import():
         if mime_type == 'application/vnd.google-apps.folder':
             from lms.google_drive_service import collect_folder_structure, get_file_metadata as _gmeta
 
-            folder_meta = _gmeta(service, file_id)
+            folder_meta = _gmeta(service, file_id, resource_key=resource_key)
             if isinstance(folder_meta, dict) and 'error' in folder_meta:
                 return jsonify({'error': folder_meta['error']}), 400
 
@@ -1036,12 +1037,12 @@ def picker_import():
             }), 200
 
         # Single file import
-        metadata = get_file_metadata(service, file_id)
+        metadata = get_file_metadata(service, file_id, resource_key=resource_key)
         if isinstance(metadata, dict) and 'error' in metadata:
             return jsonify({'error': metadata['error']}), 400
 
         if allow_view:
-            set_file_permissions(service, file_id, make_public=True)
+            set_file_permissions(service, file_id, make_public=True, resource_key=resource_key)
 
         is_image = mime_type.startswith('image/')
         view_link = create_view_only_link(service, file_id, is_image)

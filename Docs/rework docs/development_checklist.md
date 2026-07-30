@@ -271,6 +271,87 @@ disconnect), priority resolution over the Drive Writer stopgap holds.
 
 **Phase 4 is complete**, including the manual account setup.
 
+### Phase 4 addendum — video transcription file-type bug + Drive import ownership gap
+
+Context: same root-cause pattern as the earlier `_extract_drive_file_text` fix. Two separate
+issues surfaced while investigating:
+
+1. **`_transcribe_video` file-type bug** — [x] **fixed**. It guessed mime type from
+   `content.title` via `mimetypes.guess_type()`, same flaw as the pre-fix document extractor:
+   a freeform title with no extension (or an untrustworthy one) meant the function returned
+   `None` before ever downloading the file, silently, with `embedded_at` still getting set (0
+   chunks, indistinguishable in the DB from a legitimately empty file). Fixed the same way as
+   the document case (`lms/rag_service.py`, `_transcribe_video`): download to a generic temp
+   file first, sniff the real type from bytes via `filetype.guess()`, gate on
+   `mime.startswith('video/'|'audio/')` instead of trusting the title. Removed the
+   now-unused `import mimetypes`. No scope/cost implications — same unauthenticated public-link
+   download already used elsewhere.
+
+2. **`import_drive_file` 404s on files the worker didn't itself create — even fully public
+   ones.** Verified live: `drive.file` scope does not expand based on a file's own sharing
+   settings ("anyone with the link" is a Drive *sharing* concept, unrelated to OAuth `drive.file`
+   *API* visibility, which only ever covers files the app created or that were selected through
+   Google's Picker widget). Confirmed directly — a real, genuinely-public content row (id 15)
+   downloads fine over the unauthenticated public link but 404s via `import_drive_file()` under
+   the worker's own credentials, with a misleading "File not found... make sure it's shared or
+   public" message.
+
+   **Considered and rejected**: widening the worker's OAuth scope to `drive.readonly` (or full
+   `drive`, needed for actual server-side `files.copy()`) to fix this. Verified against Google's
+   official docs: both are classified **Restricted**, requiring brand verification, an OAuth
+   Verification Center submission, and a **mandatory third-party CASA security assessment**
+   (~$500-$1,800, redone **annually**) before the app can leave "Testing" status — and Testing
+   status caps refresh tokens at 7 days, incompatible with an unattended background worker.
+   "Internal"/Workspace "Trusted app" status would dodge the token-expiry/user-cap issue but
+   isn't available (worker is a plain personal Gmail account, no Workspace org) and doesn't
+   exempt the CASA requirement regardless. Ruled out on cost grounds.
+
+   **Correction — Google Picker import already exists.** An earlier draft of this entry
+   proposed "build a Picker-based import" as net-new work. That was wrong: the live import
+   flow is *already* Picker-based (`importDriveModal` → `openGooglePicker()` →
+   `/api/drive-picker-token` → `/api/picker-import`, all in `course_page_enrolled.html` +
+   `routes/api.py`). The `import_drive_file`/`import_drive_folder` form actions in
+   `routes/__init__.py`, plus `/api/import-drive-file` in `routes/api.py`, are **dead code** —
+   grep confirms no template references those action names or a `drive_url` field.
+   - [ ] Delete the dead import paths (`import_drive_file`/`import_drive_folder` action
+     branches in `routes/__init__.py` ×2 call sites each, `/api/import-drive-file`) and the
+     `_import_from_drive()` worker→user fallback helper added for them this session. Keep
+     `google_drive_service.import_drive_file()` itself — `_import_drive_tree()` still uses it
+     for folder imports.
+
+   **Root causes of the Picker 404s** (`files.get` returning "File not found" on a file the
+   teacher had just picked and owns), found by live debugging:
+   - [x] **`GOOGLE_APP_ID` was unset.** `config.py` reads it, `.setAppId()` consumes it, and
+     per Google's Picker docs it's *mandatory* for the per-file `drive.file` grant to register
+     — without it the picker still opens and selects fine, but the backend never gets access.
+     Value is the GCP project number (numeric prefix of `GOOGLE_CLIENT_ID`). Added to `.env`.
+   - [x] **Resource keys were never threaded through.** Since 2021 Drive requires an
+     `X-Goog-Drive-Resource-Keys: <fileId>/<resourceKey>` header for link-shared files
+     (`type=anyone`/`domain`); without it the API returns a bare 404 indistinguishable from a
+     real permissions failure. Picker surfaces it as `doc.resourceKey` but the code dropped it.
+     Added an optional `resource_key` param to `get_file_metadata()` and
+     `set_file_permissions()`, threaded from the picker callback → `submitPickerImport()` →
+     `picker_import()`.
+   - **Debugging lesson worth keeping**: several rebuild-and-retest cycles were wasted because
+     the browser was hitting `just dev` on `:5000` while the rebuilds targeted the Docker
+     `app-dev` container. Two independent servers, same codebase. `just dev` also snapshots
+     `.env` at launch, so new env vars need a full restart, not just the `--debug` autoreload.
+
+   **Import makes files world-readable — two follow-ups.** `picker_import()` calls
+   `set_file_permissions(make_public=True)` whenever `allow_view` is set, which creates a
+   Drive `{'type': 'anyone', 'role': 'reader'}` permission on a file in the *teacher's own
+   personal Drive*. The RAG pipeline depends on this (`_download_public_drive_file` fetches
+   bytes over the public link precisely to sidestep the `drive.file` scope limits), so the
+   behaviour itself is intentional — but its presentation and lifecycle are not:
+   - [ ] **Honest label.** The checkbox reads "Allow students to view" and is `checked` by
+     default, implying course-scoped access. It actually grants unauthenticated link-based
+     access to anyone holding the URL — no login, no enrollment check. Rename to something
+     truthful ("Make viewable via link (public)") and reconsider the default-on.
+   - [ ] **Revoke on delete.** The `make_public=False` branch only ever fires from the
+     content-edit and submission routes (driven by `allow_others_to_view`). Deleting course
+     content does not revoke the Drive permission, so files silently stay world-readable after
+     the course stops using them. Revoke on content deletion.
+
 ## Phase 5 — Translation pipeline rework
 
 - [x] Swapped `core_translator.py`'s engine from LibreTranslate to DeepL — same

@@ -3516,7 +3516,7 @@ async function handleFolderExpand(folderId, courseId) {
         if (pickerData.action !== google.picker.Action.PICKED) return;
         _restoreModalBackdrop();
         var doc = pickerData.docs[0];
-        _selectedFile = { id: doc.id, name: doc.name, mimeType: doc.mimeType };
+        _selectedFile = { id: doc.id, name: doc.name, mimeType: doc.mimeType, resourceKey: doc.resourceKey || '' };
         document.getElementById('pickerSelectedName').textContent = doc.name;
         document.getElementById('pickerSelectedType').textContent = doc.mimeType;
         _clearStatus();
@@ -3540,6 +3540,7 @@ async function handleFolderExpand(folderId, courseId) {
             file_id:    _selectedFile.id,
             file_name:  _selectedFile.name,
             mime_type:  _selectedFile.mimeType,
+            resource_key: _selectedFile.resourceKey,
             title:      document.getElementById('pickerTitle').value.trim(),
             published:  document.getElementById('pickerPublished').checked,
             allow_view: document.getElementById('pickerAllowView').checked,

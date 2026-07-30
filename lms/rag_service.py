@@ -11,7 +11,6 @@ See gemini_client.py for the underlying Gemini REST calls (no Flask/DB dependenc
 mirroring core_translator.py's split from translation_service.py).
 """
 import logging
-import mimetypes
 import os
 import re
 import tempfile
@@ -224,17 +223,19 @@ def _extract_drive_file_text(content: CourseContent) -> str | None:
 
 
 def _transcribe_video(content: CourseContent) -> str | None:
-    extension = os.path.splitext(content.title)[1].lower()
-    mime_type = mimetypes.guess_type(content.title)[0]
-    if not mime_type or not (mime_type.startswith('video/') or mime_type.startswith('audio/')):
-        return None
-
+    # Keyed off the downloaded bytes, not content.title (see _extract_drive_file_text) — a
+    # freeform display title ("Week 3 recording") can't be trusted to carry a real extension.
     tmp_path = None
     gemini_file_name = None
     try:
-        with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp_path = tmp.name
         if not _download_public_drive_file(content.drive_file_id, tmp_path):
+            return None
+
+        kind = filetype.guess(tmp_path)
+        mime_type = kind.mime if kind else None
+        if not mime_type or not (mime_type.startswith('video/') or mime_type.startswith('audio/')):
             return None
 
         file_uri, gemini_file_name = gemini_client.upload_file(tmp_path, mime_type, display_name=content.title)

@@ -21,6 +21,24 @@ def _folder_is_ancestor_of(folder_id, target_id):
     return False
 
 
+def _import_from_drive(import_func, url_or_id):
+    """Try the worker account first, then fall back to the importing user's own linked
+    Google account on a 404. `drive.file` scope only ever sees files an identity created
+    or was Picker-granted — never anything merely public/shared — so content a teacher
+    created themselves (e.g. before the worker account existed) is only visible under
+    their own token, not the worker's."""
+    from lms.google_drive_service import authenticate
+    service = authenticate()
+    result = import_func(service, url_or_id) if service else None
+    if not service or (isinstance(result, dict) and result.get('error_code') == 404):
+        fallback_service = authenticate(current_user)
+        if fallback_service:
+            result = import_func(fallback_service, url_or_id)
+        elif not service:
+            result = {'error': 'Failed to authenticate with Google Drive.'}
+    return result
+
+
 @main_bp.route('/', methods=['GET', 'POST'])
 def index():
     """Serve the Home page: enrolled courses, recent activity, recommendations, promo-code join."""
@@ -1181,14 +1199,8 @@ def course_page_enrolled(course_id):
                 flash('Please provide a Google Drive file URL or ID.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
-            from lms.google_drive_service import authenticate, import_drive_file
-            service = authenticate()
-            current_app.logger.debug(f"authenticate() returned: {service is not None}")
-            if not service:
-                flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            file_data = import_drive_file(service, drive_url)
+            from lms.google_drive_service import import_drive_file
+            file_data = _import_from_drive(import_drive_file, drive_url)
             current_app.logger.debug(f"import_drive_file() returned: {file_data}")
             if isinstance(file_data, dict) and 'error' in file_data:
                 error_msg = file_data["error"]
@@ -1235,14 +1247,8 @@ def course_page_enrolled(course_id):
                 flash('Please provide a Google Drive folder URL or ID.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
-            from lms.google_drive_service import authenticate, import_drive_folder
-            service = authenticate()
-            current_app.logger.debug(f"authenticate() returned: {service is not None}")
-            if not service:
-                flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            folder_data = import_drive_folder(service, folder_url)
+            from lms.google_drive_service import import_drive_folder
+            folder_data = _import_from_drive(import_drive_folder, folder_url)
             current_app.logger.debug(f"import_drive_folder() returned: {folder_data}")
             if isinstance(folder_data, dict) and 'error' in folder_data:
                 error_msg = folder_data["error"]
@@ -2130,14 +2136,8 @@ def edit_course_page(slug):
                 flash('Please provide a Google Drive file URL or ID.', 'error')
                 return redirect(request.url, code=303)
             
-            from lms.google_drive_service import authenticate, import_drive_file
-            service = authenticate()
-            current_app.logger.debug(f"authenticate() returned: {service is not None}")
-            if not service:
-                flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
-                return redirect(request.url, code=303)
-            
-            file_data = import_drive_file(service, drive_url)
+            from lms.google_drive_service import import_drive_file
+            file_data = _import_from_drive(import_drive_file, drive_url)
             current_app.logger.debug(f"import_drive_file() returned: {file_data}")
             if isinstance(file_data, dict) and 'error' in file_data:
                 error_msg = file_data["error"]
@@ -2184,14 +2184,8 @@ def edit_course_page(slug):
                 return redirect(request.url, code=303)
 
             from lms.models import CourseContentFolder
-            from lms.google_drive_service import authenticate, import_drive_folder
-            service = authenticate()
-            current_app.logger.debug(f"authenticate() returned: {service is not None}")
-            if not service:
-                flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
-                return redirect(request.url, code=303)
-            
-            folder_data = import_drive_folder(service, folder_url)
+            from lms.google_drive_service import import_drive_folder
+            folder_data = _import_from_drive(import_drive_folder, folder_url)
             current_app.logger.debug(f"import_drive_folder() returned: {folder_data}")
             if isinstance(folder_data, dict) and 'error' in folder_data:
                 error_msg = folder_data["error"]

@@ -354,8 +354,9 @@ def create_view_only_link(service, file_id, is_image=False):
         logger.debug(f"Returning file view_link: {view_link}")
         return view_link
 
-def set_file_permissions(service, file_id, make_public=False, max_retries=3):
-    """Set file permissions on Google Drive file with retry logic and timeout handling"""
+def set_file_permissions(service, file_id, make_public=False, max_retries=3, resource_key=None):
+    """Set file permissions on Google Drive file with retry logic and timeout handling.
+    `resource_key` is required for files with link-based sharing — see get_file_metadata."""
     import time
     start_time = time.time()
 
@@ -367,12 +368,15 @@ def set_file_permissions(service, file_id, make_public=False, max_retries=3):
                     'type': 'anyone',
                     'role': 'reader'
                 }
-                service.permissions().create(
+                request = service.permissions().create(
                     fileId=file_id,
                     body=permission,
                     fields='id',
                     supportsAllDrives=True
-                ).execute()
+                )
+                if resource_key:
+                    request.headers['X-Goog-Drive-Resource-Keys'] = f'{file_id}/{resource_key}'
+                request.execute()
                 elapsed = time.time() - start_time
                 logger.debug(f"File {file_id} made public (took {elapsed:.2f}s)")
                 if elapsed > 30:  # Warn if taking more than 30 seconds
@@ -475,17 +479,24 @@ def extract_file_id_from_url(drive_url):
     logger.debug(f"Failed to extract ID from: {drive_url}")
     return None
 
-def get_file_metadata(service, file_id):
-    """Get metadata for a Google Drive file"""
+def get_file_metadata(service, file_id, resource_key=None):
+    """Get metadata for a Google Drive file. `resource_key` is required for files with
+    link-based sharing (type=anyone/domain) — since 2021 Google's Drive API 404s on these
+    without it (see https://developers.google.com/workspace/drive/api/guides/resource-keys),
+    indistinguishable from a genuine access-denied 404. Picker surfaces it as
+    `doc.resourceKey` on picked files."""
     import time
     start_time = time.time()
-    
+
     try:
-        file = service.files().get(
+        request = service.files().get(
             fileId=file_id,
             fields='id, name, mimeType, size, webViewLink, iconLink',
             supportsAllDrives=True
-        ).execute()
+        )
+        if resource_key:
+            request.headers['X-Goog-Drive-Resource-Keys'] = f'{file_id}/{resource_key}'
+        file = request.execute()
         
         elapsed = time.time() - start_time
         logger.debug(f"get_file_metadata for {file_id} took {elapsed:.2f}s")
