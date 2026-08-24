@@ -62,6 +62,7 @@ services:
       REDIS_URL: redis://redis-dev:6379/0
       GOOGLE_REDIRECT_URI: https://${LOCAL_DOMAIN:-local.yourdomain.example.com}/auth/google/callback
       CERT_TEMPLATE_DIR: /app/data/cert-templates
+      WHISPER_CACHE_DIR: /app/data/whisper-models
     depends_on:
       migrate-dev:
         condition: service_completed_successfully
@@ -72,6 +73,8 @@ services:
       - ./data/logs:/app/logs
       - ./data/certificates:/app/data/certificates
       - ./data/cert-templates:/app/data/cert-templates
+      - ./data/whisper-models:/app/data/whisper-models
+      - ./data/upload-staging:/app/data/upload-staging
 
   worker-dev:
     profiles: [dev]
@@ -81,11 +84,16 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis-dev:6379/0
+      WHISPER_CACHE_DIR: /app/data/whisper-models
     depends_on:
       migrate-dev:
         condition: service_completed_successfully
       redis-dev:
         condition: service_healthy
+    volumes:
+      # Whisper model cache — downloaded at runtime, deliberately not baked into the image
+      - ./data/whisper-models:/app/data/whisper-models
+      - ./data/upload-staging:/app/data/upload-staging
     command: python -m lms.worker
 
   caddy-dev:
@@ -159,6 +167,7 @@ services:
       REDIS_URL: redis://redis-production:6379/0
       GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
       CERT_TEMPLATE_DIR: /app/data/cert-templates
+      WHISPER_CACHE_DIR: /app/data/whisper-models
     ports:
       - "127.0.0.1:${APP_PORT}:8000"
     depends_on:
@@ -174,6 +183,8 @@ services:
       - ./data/logs:/app/logs
       - ./data/certificates:/app/data/certificates
       - ./data/cert-templates:/app/data/cert-templates
+      - ./data/whisper-models:/app/data/whisper-models
+      - ./data/upload-staging:/app/data/upload-staging
 
   worker-production:
     profiles: [production]
@@ -183,11 +194,16 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-production:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis-production:6379/0
+      WHISPER_CACHE_DIR: /app/data/whisper-models
     depends_on:
       migrate-production:
         condition: service_completed_successfully
       redis-production:
         condition: service_healthy
+    volumes:
+      # Whisper model cache — downloaded at runtime, deliberately not baked into the image
+      - ./data/whisper-models:/app/data/whisper-models
+      - ./data/upload-staging:/app/data/upload-staging
     command: python -m lms.worker
 
   # ── Staging ────────────────────────────────────────────────────────────────
@@ -245,6 +261,7 @@ services:
       REDIS_URL: redis://redis-staging:6379/0
       GOOGLE_REDIRECT_URI: https://${DOMAIN}/auth/google/callback
       CERT_TEMPLATE_DIR: /app/data/cert-templates
+      WHISPER_CACHE_DIR: /app/data/whisper-models
     ports:
       - "127.0.0.1:${APP_PORT}:8000"
     depends_on:
@@ -260,6 +277,8 @@ services:
       - ./data/logs:/app/logs
       - ./data/certificates:/app/data/certificates
       - ./data/cert-templates:/app/data/cert-templates
+      - ./data/whisper-models:/app/data/whisper-models
+      - ./data/upload-staging:/app/data/upload-staging
 
   worker-staging:
     profiles: [staging]
@@ -269,11 +288,16 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis-staging:6379/0
+      WHISPER_CACHE_DIR: /app/data/whisper-models
     depends_on:
       migrate-staging:
         condition: service_completed_successfully
       redis-staging:
         condition: service_healthy
+    volumes:
+      # Whisper model cache — downloaded at runtime, deliberately not baked into the image
+      - ./data/whisper-models:/app/data/whisper-models
+      - ./data/upload-staging:/app/data/upload-staging
     command: python -m lms.worker
 networks:
   lms-proxy:

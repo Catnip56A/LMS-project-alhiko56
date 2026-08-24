@@ -43,3 +43,8 @@ Additional_scripts/
 *.db
 *.sqlite
 *.sqlite3
+
+# never bake staged uploads into the image
+static/temp/
+data/upload-staging/
+data/whisper-models/

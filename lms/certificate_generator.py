@@ -4,7 +4,7 @@ Certificate image and PDF generation using Pillow + qrcode + img2pdf.
 Templates are NOT committed to git (public repo). They live in a volume-mounted
 directory on the server and are uploaded via SCP. Three env vars control paths:
 
-  CERT_TEMPLATE_DIR – template PNG images  (default: lms/static/certificates/)
+  CERT_TEMPLATE_DIR – user-supplied template images (default: lms/static/certificates/)
   CERT_CACHE_DIR    – generated PNG/PDF    (default: <project_root>/data/certificates/)
   CERT_TUNING_PATH  – per-course JSON      (default: <CACHE_DIR>/tuning.json)
 
@@ -100,11 +100,15 @@ def list_templates() -> list[str]:
 
 
 def _find_template() -> str:
-    for ext in ('jpeg', 'jpg', 'png'):
-        p = os.path.join(TEMPLATE_DIR, f'moxo_template.{ext}')
-        if os.path.exists(p):
-            return p
-    return os.path.join(TEMPLATE_DIR, 'moxo_template.jpeg')
+    """Fallback template for when no specific one has been configured.
+
+    Certificate templates are user-supplied and chosen through Admin -> Certificate
+    Tuning; the app ships no built-in default asset. Falls back to whichever template is
+    first alphabetically so a freshly-uploaded one works without configuration. Returns
+    '' when the directory is empty — _open_template turns that into a clear error.
+    """
+    names = list_templates()
+    return os.path.join(TEMPLATE_DIR, names[0]) if names else ''
 
 
 def _resolve_template(tuning: dict) -> str:
@@ -177,7 +181,8 @@ def _open_template(t: dict) -> Image.Image:
     path = _resolve_template(t)
     if not os.path.exists(path):
         raise FileNotFoundError(
-            f"Certificate template not found. Place an image file in {STATIC_CERTS}/"
+            f"No certificate template available. Upload one to {TEMPLATE_DIR}/ "
+            f"or select one in Admin -> Certificate Tuning."
         )
     return Image.open(path).convert("RGBA")
 

@@ -1,8 +1,10 @@
 # LMS Rework — Manual Setup Checklist
 
 Things only you can do (accounts, consoles, keys) for each phase of the rework roadmap
-(`Docs/rework docs/Yonca_Rework_Planning_Document.docx`, plan tracked in-session). Grouped
-by the phase that needs them — nothing here blocks the phase before it in the list.
+(`Docs/rework docs/Increment_LMS_Rework_Planning_Document.docx` — the platform's planning
+doc; no longer affiliated with Yonca, now developed independently as **Increment LMS**, and
+the file has been renamed to match; plan tracked in-session). Grouped by the phase that needs
+them — nothing here blocks the phase before it in the list.
 
 Drop values into `.env` (see `.env.example` for the existing pattern) using the variable
 names below unless noted otherwise.
@@ -97,6 +99,14 @@ explicitly deferred until we're past the local-only build.)*
   (e.g. Gemini TTS in Phase 7), use a **separate project/API key** for that — enabling
   billing on a project removes its free tier entirely, and you don't want that to take out
   the free chat/transcription key by accident.
+4. [x] **Transcription engine decided: self-hosted Whisper** (`faster-whisper`). No account or
+  key needed — it runs locally in the worker container. DeepL was ruled out (its Voice API is
+  real-time WebSocket streaming for live meetings: no batch endpoint, no timestamps, paid tier
+  only) and Gemini was rejected for this job specifically (no timestamps, and we hit 429s across
+  every fallback model during Phase 6 testing). Verified end to end on a real 5:13 lecture:
+  113 timestamped segments, ~5x realtime on CPU. No system `ffmpeg` needed after all — PyAV
+  bundles the FFmpeg libraries. See `development_checklist.md`'s Phase 6 addendum for the full
+  comparison and the production RAM/disk sizing.
 
 No vector DB account needed — used the `pgvector` Postgres extension on the existing
 database. One thing this did require: plain `postgres:17-alpine` doesn't ship the

@@ -106,8 +106,8 @@ install:
     uv sync
 
 ensure-dirs:
-    mkdir -p ./data/caddy-local ./data/logs ./data/flask_session
-    chmod a+rwx ./data/caddy-local ./data/logs ./data/flask_session
+    mkdir -p ./data/caddy-local ./data/logs ./data/flask_session ./data/whisper-models ./data/upload-staging
+    chmod a+rwx ./data/caddy-local ./data/logs ./data/flask_session ./data/whisper-models ./data/upload-staging
 
 db:
     docker compose --profile dev up db-dev migrate-dev -d

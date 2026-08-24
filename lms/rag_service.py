@@ -22,7 +22,7 @@ from docx import Document as DocxDocument
 from pptx import Presentation
 from pypdf import PdfReader
 
-from lms import gemini_client
+from lms import gemini_client, transcription
 from lms.models import db, AiConversation, AiConversationMessage, ContentEmbedding, CourseContent
 
 logger = logging.getLogger(__name__)
@@ -192,7 +192,20 @@ def _extract_drive_file_text(content: CourseContent) -> str | None:
             return None
 
         kind = filetype.guess(tmp_path)
-        extension = _DOCUMENT_MIMES.get(kind.mime) if kind else None
+        mime = kind.mime if kind else None
+
+        # Self-healing path for legacy rows: content uploaded before content-type sniffing
+        # existed is stored as content_type='file' even when it is really a lecture recording.
+        # Rather than a backfill (which can't sniff Drive files from a migration), transcribe
+        # it here off the copy we already downloaded — no second download, no manual fixup.
+        if mime and (mime.startswith('video/') or mime.startswith('audio/')):
+            logger.info(
+                f"Content {content.id} is stored as 'file' but sniffs as {mime}; transcribing instead"
+            )
+            segments = transcription.transcribe_with_timestamps(tmp_path)
+            return transcription.segments_to_text(segments) if segments else None
+
+        extension = _DOCUMENT_MIMES.get(mime) if mime else None
         if not extension:
             return None
 
@@ -222,44 +235,75 @@ def _extract_drive_file_text(content: CourseContent) -> str | None:
                 pass
 
 
-def _transcribe_video(content: CourseContent) -> str | None:
-    # Keyed off the downloaded bytes, not content.title (see _extract_drive_file_text) — a
-    # freeform display title ("Week 3 recording") can't be trusted to carry a real extension.
+def transcribe_video_segments(content: CourseContent) -> list[dict] | None:
+    """Transcribe a video/audio CourseContent into timestamped segments.
+
+    Returns [{'start': seconds, 'end': seconds, 'text': str}, ...] or None.
+    Whisper is the primary engine (local, no quota, native timestamps); the older
+    Gemini path stays as a fallback for when the model can't be loaded or fails.
+    """
     tmp_path = None
-    gemini_file_name = None
     try:
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp_path = tmp.name
         if not _download_public_drive_file(content.drive_file_id, tmp_path):
             return None
 
+        # Keyed off the downloaded bytes, not content.title (see _extract_drive_file_text) —
+        # a freeform display title ("Week 3 recording") can't be trusted to carry an extension.
         kind = filetype.guess(tmp_path)
         mime_type = kind.mime if kind else None
         if not mime_type or not (mime_type.startswith('video/') or mime_type.startswith('audio/')):
             return None
 
-        file_uri, gemini_file_name = gemini_client.upload_file(tmp_path, mime_type, display_name=content.title)
-        if not file_uri or not gemini_client.wait_for_file_active(gemini_file_name):
-            return None
+        segments = transcription.transcribe_with_timestamps(tmp_path)
+        if segments:
+            return segments
 
-        return gemini_client.generate_content_with_file(
-            file_uri, mime_type,
-            'Transcribe this lecture recording verbatim. Output only the transcript text — '
-            'no timestamps, no speaker labels, no commentary.',
-            timeout=300,
-        )
+        logger.warning(f"Whisper returned nothing for content {content.id}; trying Gemini fallback")
+        text = _transcribe_via_gemini(tmp_path, mime_type, content.title)
+        # Gemini gives no timestamps — represent it as a single unbounded segment so
+        # callers get a consistent shape rather than a special case.
+        return [{'start': 0.0, 'end': 0.0, 'text': text}] if text else None
+
     except Exception as e:
         logger.error(f"Video transcription failed for content {content.id}: {e}")
         return None
     finally:
-        if gemini_file_name:
-            gemini_client.delete_gemini_file(gemini_file_name)
         if tmp_path:
             try:
                 os.remove(tmp_path)
             except OSError:
                 pass
 
+
+def _transcribe_via_gemini(tmp_path: str, mime_type: str, title: str) -> str | None:
+    """Fallback transcription via Gemini's File API. No timestamps."""
+    gemini_file_name = None
+    try:
+        file_uri, gemini_file_name = gemini_client.upload_file(tmp_path, mime_type, display_name=title)
+        if not file_uri or not gemini_client.wait_for_file_active(gemini_file_name):
+            return None
+        return gemini_client.generate_content_with_file(
+            file_uri, mime_type,
+            'Transcribe this lecture recording verbatim. Output only the transcript text — '
+            'no timestamps, no speaker labels, no commentary.',
+            timeout=300,
+        )
+    finally:
+        if gemini_file_name:
+            gemini_client.delete_gemini_file(gemini_file_name)
+
+
+def _transcribe_video(content: CourseContent) -> str | None:
+    """Plain-text transcript, for the existing text-only indexing path.
+
+    Timestamps are dropped here on purpose — storing them is step 2 of the video-moments
+    work (needs a migration on ContentEmbedding). Callers wanting moments should use
+    transcribe_video_segments() directly.
+    """
+    segments = transcribe_video_segments(content)
+    return transcription.segments_to_text(segments) if segments else None
 
 # ── Indexing ────────────────────────────────────────────────────────────────────
 

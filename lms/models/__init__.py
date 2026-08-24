@@ -242,17 +242,6 @@ class CourseAssignmentSubmission(db.Model):
     def __repr__(self):
         return f'<CourseAssignmentSubmission {self.id}>'
 
-class MoxoTest(db.Model):
-    """Test result model for user assessments"""
-    __tablename__ = 'tavi_test'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    result = db.Column(db.Text)
-    timestamp = db.Column(db.DateTime, server_default=db.func.now())
-
-    def __repr__(self):
-        return f'<MoxoTest {self.id}>'
-
 class PDFDocument(db.Model):
     """PDF document model for secure document management"""
     id = db.Column(db.Integer, primary_key=True)
@@ -289,7 +278,6 @@ class SiteSettings(db.Model):
         {"name": "Courses", "url": "/#courses", "active": True},
         {"name": "Forum", "url": "/#forum", "active": True},
         {"name": "Resources", "url": "/#resources", "active": True},
-        {"name": "MOXO Test", "url": "/#moxo", "active": True},
         {"name": "About", "url": "/#about", "active": True}
     ])
 

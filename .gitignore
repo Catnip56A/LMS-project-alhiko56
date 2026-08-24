@@ -147,3 +147,5 @@ lms/static/certificates/*.jpeg
 static/permanent/UI/*
 !static/permanent/UI/.gitkeep
 
+# Transient upload staging dir — files are streamed to Drive then deleted
+static/temp/

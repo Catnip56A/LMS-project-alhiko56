@@ -73,7 +73,30 @@ Always run `uv run ruff check` on edited Python files. Fix all errors before fin
 ## Deployment
 Push to `main` → production, `staging` → staging. GitHub Actions builds Docker image → GHCR → SSH deploy. `migrate-prod` service runs `flask db upgrade` before app starts.
 
+## Skills
+
+Project skills live in `.claude/skills/<name>/SKILL.md`.
+
+- **`/verify-live`** — after a code change: works out which dev server is actually serving
+  the browser (`just dev` on :5000 vs Docker `app-dev`), applies the correct reload path,
+  then proves the change works against real logs/DB/HTTP. Auto-invocable. Also triggers on
+  "verify this works", "is the fix live", "still broken".
+
+- **`/reachability <name>`** — before editing unfamiliar code: traces whether a route, form
+  action, endpoint, or function is actually reachable from a template or caller. Runs in a
+  forked Explore agent (read-only, keeps the search out of main context). Reports
+  LIVE / DEAD / NO STATIC REFERENCE with evidence.
+
+- **`/phase-wrap`** — finishing a chunk of work: `/code-review` (+ `/security-review` when the
+  diff touches auth, permissions, uploads, Drive sharing, rate limits, or OAuth), update
+  `Docs/rework docs/development_checklist.md` with verification evidence, then propose a commit
+  message. User-invoked only; never commits on its own.
+
 ## Known quirks
 - `index.html` has its own duplicate navbar — changes to `components/navbar.html` do **not** affect the home page
 - Gallery carousel: desktop uses `gallery-outer` flex layout with controls as siblings; mobile overrides to `position: absolute` inside the container
-- `just dev` uses the same Docker PostgreSQL as `just up`; both share the DB on port 5432
+- `just dev` (:5000) and `just up` (Docker, via Caddy on `LOCAL_DOMAIN`) can run **at the same
+  time**, sharing the same Postgres (5432) and Redis (6380) — only the app code differs. A fix
+  applied to one is invisible to the other, so always confirm which one the browser is on.
+  Docker `app-dev` has **no source bind-mount**: `docker compose restart` never picks up code
+  changes, it must be `up -d --build`. See `/verify-live`.

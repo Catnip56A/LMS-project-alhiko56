@@ -14,7 +14,7 @@ from wtforms.validators import Optional, DataRequired, ValidationError, NumberRa
 from flask_admin.model.form import InlineFormAdmin
 from flask_login import current_user
 from flask_wtf import FlaskForm
-from lms.models import User, Course, ForumMessage, ForumChannel, MoxoTest, db, SiteSettings, CourseContent, ContentView, AppSetting, Enrollment, Quiz, QuizQuestion, QUIZ_QUESTION_TYPES
+from lms.models import User, Course, ForumMessage, ForumChannel, db, SiteSettings, CourseContent, ContentView, AppSetting, Enrollment, Quiz, QuizQuestion, QUIZ_QUESTION_TYPES
 from flask_admin.contrib.sqla.fields import QuerySelectMultipleField
 from lms.password_policy import validate_password_strength, PasswordPolicyError
 
@@ -56,7 +56,6 @@ ADMIN_PERMISSIONS = [
     ('certificate_management', 'Certificate Management'),
     ('forum_management',       'Forum Management'),
     ('builder_management',     'Builder Management'),
-    ('moxo_test_management',   'Moxo Test Management'),
 ]
 
 class AdminIndexView(AdminIndexView):
@@ -803,13 +802,6 @@ class CourseView(SecureModelView):
 
         return self.render('admin/course_edit.html', course=None)
 
-class MoxoTestView(SecureModelView):
-    """Admin view for MoxoTest model"""
-    permission = 'moxo_test_management'
-    column_list = ('id', 'user_id', 'result', 'timestamp')
-    column_searchable_list = ['result']
-    form_excluded_columns = ('timestamp',)
-
 class ForumChannelView(SecureModelView):
     """Admin view for ForumChannel model"""
     permission = 'forum_management'
@@ -1197,7 +1189,6 @@ def init_admin(app):
     admin.add_view(DriveWorkerView(name='Drive Worker', endpoint='drive_worker'))
     admin.add_view(ForumChannelView(ForumChannel, db.session))
     admin.add_view(ForumMessageView(ForumMessage, db.session))
-    admin.add_view(MoxoTestView(MoxoTest, db.session))
     admin.add_view(GoogleLoginView(name='Google Login', endpoint='google_login'))
     admin.add_view(CertificateTuningView(name='Certificate Tuning', endpoint='certificate_tuning'))
     admin.add_view(TranslateContentView(name='Translate', endpoint='translate'))

@@ -40,6 +40,30 @@ def _detect_mime(file_storage):
     return kind.mime if kind else None
 
 
+def content_type_for_mime(mime):
+    """Map a known MIME string to a CourseContent.content_type.
+
+    Shared by the upload path (which sniffs bytes) and the Drive-import path (which gets
+    an authoritative mimeType from Drive's own metadata), so both agree on what counts as
+    a transcribable lecture.
+    """
+    if mime and (mime.startswith('video/') or mime.startswith('audio/')):
+        return 'video'
+    return 'file'
+
+
+def detect_course_content_type(file_storage):
+    """Map an upload to a CourseContent.content_type by sniffing its real bytes.
+
+    Returns 'video' for video/audio (the types the RAG pipeline transcribes), else 'file'.
+    Sniffed rather than read off the filename because content titles are freeform display
+    names — the same reason _extract_drive_file_text and _transcribe_video stopped trusting
+    them. Without this, an uploaded lecture lands as content_type='file' and is never
+    transcribed, silently indexing as 0 chunks.
+    """
+    return content_type_for_mime(_detect_mime(file_storage))
+
+
 def validate_upload(file_storage, max_bytes=None, expected_mimes=None):
     """
     Validate an uploaded werkzeug FileStorage by real content, not just its filename.

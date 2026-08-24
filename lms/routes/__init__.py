@@ -4,11 +4,21 @@ from markupsafe import Markup
 from flask_babel import get_locale, _
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
-from lms.upload_validation import validate_upload, UploadValidationError
+from lms.upload_validation import validate_upload, UploadValidationError, detect_course_content_type
 import os
 from datetime import datetime as dt
 
 main_bp = Blueprint('main', __name__)
+
+# Uploads are staged here before being streamed to Drive. Deliberately NOT under static/ —
+# Flask serves that whole tree at /static with no auth, so anything staged there (course
+# files, assignment submissions) was publicly fetchable at /static/temp/<name> for the
+# duration of the upload. Verified live before moving it.
+# __file__ is lms/routes/__init__.py, so project root is three levels up.
+UPLOAD_STAGING_DIR = os.environ.get('UPLOAD_STAGING_DIR') or os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    'data', 'upload-staging',
+)
 
 def _folder_is_ancestor_of(folder_id, target_id):
     """Return True if folder_id is an ancestor (parent/grandparent/…) of target_id."""
@@ -19,24 +29,6 @@ def _folder_is_ancestor_of(folder_id, target_id):
             return True
         cur = CourseContentFolder.query.get(cur.parent_folder_id)
     return False
-
-
-def _import_from_drive(import_func, url_or_id):
-    """Try the worker account first, then fall back to the importing user's own linked
-    Google account on a 404. `drive.file` scope only ever sees files an identity created
-    or was Picker-granted — never anything merely public/shared — so content a teacher
-    created themselves (e.g. before the worker account existed) is only visible under
-    their own token, not the worker's."""
-    from lms.google_drive_service import authenticate
-    service = authenticate()
-    result = import_func(service, url_or_id) if service else None
-    if not service or (isinstance(result, dict) and result.get('error_code') == 404):
-        fallback_service = authenticate(current_user)
-        if fallback_service:
-            result = import_func(fallback_service, url_or_id)
-        elif not service:
-            result = {'error': 'Failed to authenticate with Google Drive.'}
-    return result
 
 
 @main_bp.route('/', methods=['GET', 'POST'])
@@ -580,7 +572,7 @@ def course_page_enrolled(course_id):
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
             # Create temporary directory
-            temp_dir = os.path.join('static', 'temp')
+            temp_dir = UPLOAD_STAGING_DIR
             os.makedirs(temp_dir, exist_ok=True)
 
             # Generate unique filename
@@ -597,6 +589,10 @@ def course_page_enrolled(course_id):
             service = authenticate()
             if not service:
                 flash('Failed to authenticate with Google Drive. Please link your Google account first.', 'error')
+                try:
+                    os.remove(temp_file_path)
+                except OSError:
+                    pass
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
             try:
@@ -623,6 +619,7 @@ def course_page_enrolled(course_id):
                     pass
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
+
             # Try to set permissions, but don't fail if this doesn't work
             if allow_others_to_view:
                 try:
@@ -740,7 +737,7 @@ def course_page_enrolled(course_id):
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
 
             # Create temporary directory
-            temp_dir = os.path.join('static', 'temp')
+            temp_dir = UPLOAD_STAGING_DIR
             os.makedirs(temp_dir, exist_ok=True)
 
             # Generate unique filename
@@ -751,12 +748,20 @@ def course_page_enrolled(course_id):
 
             # Save the file temporarily
             uploaded_file.save(temp_file_path)
+            # Sniff the real bytes before Drive consumes the stream — decides whether the RAG
+            # pipeline will later transcribe this as a lecture (content_type='video').
+            uploaded_file.stream.seek(0)
+            detected_content_type = detect_course_content_type(uploaded_file)
 
             # Upload to Google Drive
             from lms.google_drive_service import authenticate, upload_file, create_view_only_link, set_file_permissions
             service = authenticate()
             if not service:
                 flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
+                try:
+                    os.remove(temp_file_path)
+                except OSError:
+                    pass
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
             try:
@@ -783,6 +788,13 @@ def course_page_enrolled(course_id):
                     pass
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
             
+            # Bytes are in Drive now; the local copy is dead weight. Previously only the error
+            # branches cleaned up, so every successful upload leaked its staged file.
+            try:
+                os.remove(temp_file_path)
+            except OSError:
+                pass
+
             # Try to set permissions, but don't fail if this doesn't work
             if allow_others_to_view:
                 try:
@@ -803,7 +815,7 @@ def course_page_enrolled(course_id):
                 folder_id=int(file_folder_id) if file_folder_id else None,
                 title=file_title,
                 description=file_description,
-                content_type='file',
+                content_type=detected_content_type,
                 content_data='',  # Not used for file content
                 allow_others_to_view=allow_others_to_view,
                 drive_file_id=drive_file_id,
@@ -1192,238 +1204,6 @@ def course_page_enrolled(course_id):
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Import single file from Google Drive
-        elif action == 'import_drive_file' and (course.is_managed_by(current_user)):
-            drive_url = request.form.get('drive_url', '').strip()
-            current_app.logger.debug(f"import_drive_file action called with drive_url: {drive_url}")
-            if not drive_url:
-                flash('Please provide a Google Drive file URL or ID.', 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            from lms.google_drive_service import import_drive_file
-            file_data = _import_from_drive(import_drive_file, drive_url)
-            current_app.logger.debug(f"import_drive_file() returned: {file_data}")
-            if isinstance(file_data, dict) and 'error' in file_data:
-                error_msg = file_data["error"]
-                if 'error_code' in file_data and file_data['error_code'] == 404:
-                    error_msg += Markup(' <a href="/auth/google-account-info" class="alert-link">Check linked account</a>')
-                elif 'error_code' in file_data and file_data['error_code'] == 403:
-                    error_msg += Markup(' <a href="/auth/google-account-info" class="alert-link">Check linked account</a>')
-                flash(f'Import failed: {error_msg}', 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            elif not file_data:
-                flash(Markup('Failed to import file from Google Drive. Please check the URL and permissions. <a href="/auth/google-account-info" class="alert-link">Check linked account</a>'), 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            # Optional folder assignment
-            folder_id = request.form.get('import_folder_id')
-            
-            content = CourseContent(
-                course_id=course.id,
-                title=request.form.get('import_title') or file_data['name'],
-                description='',
-                content_type='file',
-                content_data=file_data['view_link'],
-                drive_file_id=file_data['file_id'],
-                drive_view_link=file_data['view_link'],
-                order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
-                folder_id=int(folder_id) if folder_id else None,
-                is_published=request.form.get('import_published') == 'on',
-                allow_others_to_view=request.form.get('import_allow_view') == 'on',
-                is_imported=True
-            )
-            current_app.logger.debug(f"Created CourseContent object: {content.title}, drive_file_id: {content.drive_file_id}")
-            db.session.add(content)
-            current_app.logger.debug("Added content to session")
-            db.session.commit()
-            current_app.logger.debug("Committed to database")
-            flash(f'Successfully imported: {file_data["name"]}', 'success')
-            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-        
-        # Import entire folder from Google Drive
-        elif action == 'import_drive_folder' and (course.is_managed_by(current_user)):
-            folder_url = request.form.get('drive_url', '').strip()
-            current_app.logger.debug(f"import_drive_folder action called with folder_url: {folder_url}")
-            if not folder_url:
-                flash('Please provide a Google Drive folder URL or ID.', 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            from lms.google_drive_service import import_drive_folder
-            folder_data = _import_from_drive(import_drive_folder, folder_url)
-            current_app.logger.debug(f"import_drive_folder() returned: {folder_data}")
-            if isinstance(folder_data, dict) and 'error' in folder_data:
-                error_msg = folder_data["error"]
-                if 'error_code' in folder_data and folder_data['error_code'] == 404:
-                    error_msg += Markup(' <a href="/auth/google-account-info" class="alert-link">Check linked account</a>')
-                elif 'error_code' in folder_data and folder_data['error_code'] == 403:
-                    error_msg += Markup(' <a href="/auth/google-account-info" class="alert-link">Check linked account</a>')
-                flash(f'Import failed: {error_msg}', 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            elif not folder_data:
-                flash(Markup('Failed to import folder from Google Drive. Please check the URL and ensure it\'s a folder. <a href="/auth/google-account-info" class="alert-link">Check linked account</a>'), 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            # Create nested folder structure recursively
-            def create_course_folders_recursive(folder_structure, parent_folder_id=None, base_path=""):
-                """Recursively create course folders and add files"""
-                created_folders = {}
-                total_files = 0
-                
-                # Create subfolders first
-                for folder_info in folder_structure['folders']:
-                    folder_path = f"{base_path}/{folder_info['name']}" if base_path else folder_info['name']
-                    
-                    # Create course folder
-                    course_subfolder = CourseContentFolder(
-                        course_id=course.id,
-                        title=folder_info['name'],
-                        description=f'Imported from Google Drive: {folder_path}',
-                        order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1,
-                        parent_folder_id=parent_folder_id
-                    )
-                    db.session.add(course_subfolder)
-                    db.session.flush()
-                    
-                    created_folders[folder_path] = course_subfolder.id
-                    
-                    # Recursively process subfolder contents
-                    sub_files = create_course_folders_recursive(
-                        folder_info['structure'], 
-                        course_subfolder.id, 
-                        folder_path
-                    )
-                    total_files += sub_files
-                
-                # Add files to current folder level
-                for file_data in folder_structure['files']:
-                    content = CourseContent(
-                        course_id=course.id,
-                        title=file_data['name'],
-                        description=f'Imported from Google Drive: {file_data["full_path"]}',
-                        content_type='file',
-                        content_data=file_data['view_link'],
-                        drive_file_id=file_data['file_id'],
-                        drive_view_link=file_data['view_link'],
-                        order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
-                        folder_id=parent_folder_id,
-                        is_published=request.form.get('import_published') == 'on',
-                        allow_others_to_view=True,
-                        is_imported=True
-                    )
-                    db.session.add(content)
-                    total_files += 1
-                
-                return total_files
-            
-            # Create the root course folder
-            root_course_folder = CourseContentFolder(
-                course_id=course.id,
-                title=folder_data['folder_name'],
-                description='Imported from Google Drive folder',
-                order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1
-            )
-            db.session.add(root_course_folder)
-            db.session.flush()
-            
-            current_app.logger.debug(f"Created root course folder: {root_course_folder.title}, id: {root_course_folder.id}")
-            
-            # Reconstruct folder structure from flat file list
-            folder_structure = {'folders': [], 'files': []}
-            folder_map = {}
-            
-            # Group files by their folder paths
-            for file_data in folder_data['files']:
-                folder_path = file_data.get('folder_path', '')
-                
-                if folder_path:
-                    # This file is in a subfolder
-                    if folder_path not in folder_map:
-                        folder_map[folder_path] = {'folders': [], 'files': []}
-                    folder_map[folder_path]['files'].append(file_data)
-                else:
-                    # This file is in the root folder
-                    folder_structure['files'].append(file_data)
-            
-            # Build nested structure (simplified - assuming no deeply nested empty folders)
-            def build_nested_structure():
-                # For simplicity, we'll put all files in their respective folders
-                # This is a simplified approach - in a full implementation you'd rebuild the tree
-                pass
-            
-            # Add files to appropriate folders
-            imported_count = 0
-            current_folder_id = root_course_folder.id
-            
-            # Add root level files
-            for file_data in folder_data['files']:
-                folder_path = file_data.get('folder_path', '')
-                
-                if not folder_path:
-                    # Root level file
-                    content = CourseContent(
-                        course_id=course.id,
-                        title=file_data['name'],
-                        description=f'Imported from Google Drive: {file_data.get("full_path", file_data["name"])}',
-                        content_type='file',
-                        content_data=file_data['view_link'],
-                        drive_file_id=file_data['file_id'],
-                        drive_view_link=file_data['view_link'],
-                        order=imported_count + 1,
-                        folder_id=current_folder_id,
-                        is_published=request.form.get('import_published') == 'on',
-                        allow_others_to_view=True,
-                        is_imported=True
-                    )
-                    db.session.add(content)
-                    imported_count += 1
-            
-            # For subfolders, create them and add their files
-            subfolder_files = [f for f in folder_data['files'] if f.get('folder_path')]
-            if subfolder_files:
-                # Group by immediate parent folder
-                folder_groups = {}
-                for file_data in subfolder_files:
-                    folder_path = file_data.get('folder_path', '')
-                    if folder_path:
-                        parent_folder = folder_path.split('/')[0]  # Get immediate parent
-                        if parent_folder not in folder_groups:
-                            folder_groups[parent_folder] = []
-                        folder_groups[parent_folder].append(file_data)
-                
-                # Create subfolders and add files
-                for subfolder_name, files in folder_groups.items():
-                    subfolder = CourseContentFolder(
-                        course_id=course.id,
-                        title=subfolder_name,
-                        description='Subfolder imported from Google Drive',
-                        order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1,
-                        parent_folder_id=current_folder_id
-                    )
-                    db.session.add(subfolder)
-                    db.session.flush()
-                    
-                    for file_data in files:
-                        content = CourseContent(
-                            course_id=course.id,
-                            title=file_data['name'],
-                            description=f'Imported from Google Drive: {file_data.get("full_path", file_data["name"])}',
-                            content_type='file',
-                            content_data=file_data['view_link'],
-                            drive_file_id=file_data['file_id'],
-                            drive_view_link=file_data['view_link'],
-                            order=imported_count + 1,
-                            folder_id=subfolder.id,
-                            is_published=request.form.get('import_published') == 'on',
-                            allow_others_to_view=True
-                        )
-                        db.session.add(content)
-                        imported_count += 1
-            
-            current_app.logger.debug(f"Added {imported_count} content items to session")
-            db.session.commit()
-            current_app.logger.debug("Committed recursive folder import to database")
-            flash(f'Successfully imported folder "{folder_data["folder_name"]}" with {imported_count} files from all subfolders!', 'success')
-            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-        
         # Bulk delete content
         elif action == 'bulk_delete_content' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent, CourseContentFolder
@@ -1987,19 +1767,6 @@ def resources():
         teaser_resources=teaser_resources,
     )
 
-@main_bp.route('/moxo-test')
-def moxo_test():
-    """Serve MOXO test page"""
-    from lms.models import SiteSettings
-    try:
-        site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
-    except Exception as e:
-        current_app.logger.error(f"Database error in moxo-test route: {e}")
-        site_settings = SiteSettings()
-    return render_template('index.html', 
-                         is_authenticated=current_user.is_authenticated, 
-                         site_settings=site_settings, initial_page='moxo-test')
-
 @main_bp.route('/terms')
 def terms():
     """Serve terms of service page"""
@@ -2010,542 +1777,6 @@ def terms():
 def privacy():
     """Serve privacy policy page"""
     return render_template('privacyPolicy.html')
-
-@main_bp.route('/course/<slug>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_course_page(slug):
-    """Blackboard-style course editor for content, assignments, and announcements"""
-    from lms.models import Course, CourseContent, CourseAssignment, CourseAnnouncement, db
-    from slugify import slugify
-    from datetime import datetime
-    
-    # Check if user is admin
-    if not current_user.is_admin:
-        flash('You do not have permission to access this page.', 'error')
-        return redirect(url_for('main.index'))
-    
-    # Find course by slug
-    courses = Course.query.all()
-    course = None
-    for c in courses:
-        if slugify(c.title) == slug:
-            course = c
-            break
-    
-    if not course:
-        flash('Course not found.', 'error')
-        return redirect(url_for('main.index'))
-    
-    # Handle POST requests for adding/updating content
-    if request.method == 'POST':
-        action = request.form.get('action')
-        
-        if action == 'add_content':
-            # Handle file upload
-            uploaded_file = request.files.get('content_file')
-            if not uploaded_file:
-                flash('No file was uploaded.', 'error')
-                return redirect(request.url, code=303)
-
-            try:
-                validate_upload(uploaded_file, max_bytes=current_app.config['MAX_CONTENT_LENGTH'])
-            except UploadValidationError as e:
-                flash(str(e), 'error')
-                return redirect(request.url, code=303)
-
-            # Create temporary directory
-            temp_dir = os.path.join('static', 'temp')
-            os.makedirs(temp_dir, exist_ok=True)
-
-            # Generate unique filename
-            filename = secure_filename(uploaded_file.filename)
-            timestamp = dt.now().strftime('%Y%m%d_%H%M%S')
-            unique_filename = f"{timestamp}_{filename}"
-            temp_file_path = os.path.join(temp_dir, unique_filename)
-
-            # Save the file temporarily
-            uploaded_file.save(temp_file_path)
-            
-            # Upload to Google Drive
-            from lms.google_drive_service import authenticate, upload_file, create_view_only_link
-            service = authenticate()
-            if not service:
-                flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
-                return redirect(request.url, code=303)
-            
-            try:
-                drive_file_id = upload_file(service, temp_file_path, filename)
-            except Exception as e:
-                current_app.logger.error(f"Error uploading to Drive: {e}")
-                if "insufficientPermissions" in str(e) or "403" in str(e):
-                    flash(Markup('Your Google account does not have sufficient Drive permissions. Please <a href="/auth/link-google-account" class="alert-link">re-link your Google account</a> to grant full Drive access.'), 'error')
-                else:
-                    flash('Failed to upload file to Google Drive. Please try again.', 'error')
-                # Clean up temporary file
-                try:
-                    os.remove(temp_file_path)
-                except Exception:
-                    pass
-                return redirect(request.url, code=303)
-            
-            if not drive_file_id:
-                flash('Failed to upload file to Google Drive. Please try again.', 'error')
-                # Clean up temporary file
-                try:
-                    os.remove(temp_file_path)
-                except Exception:
-                    pass
-                return redirect(request.url, code=303)
-            
-            # Create view-only link
-            view_link = create_view_only_link(service, drive_file_id, is_image=False)
-            if not view_link:
-                flash('Failed to create view link.', 'error')
-                return redirect(request.url, code=303)
-            
-            # Clean up temporary file
-            try:
-                os.remove(temp_file_path)
-            except Exception:
-                pass
-            
-            # Optional folder assignment
-            folder_id = request.form.get('content_folder_id')
-
-            content = CourseContent(
-                course_id=course.id,
-                title=request.form.get('content_title', ''),
-                description=request.form.get('content_description', ''),
-                content_type=request.form.get('content_type', 'file'),
-                content_data=view_link,  # Store the Google Drive view link
-                drive_file_id=drive_file_id,
-                drive_view_link=view_link,
-                order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
-                folder_id=int(folder_id) if folder_id else None,
-                is_published=request.form.get('content_published') == 'on'
-            )
-            db.session.add(content)
-            db.session.commit()
-            flash('Content added successfully!', 'success')
-            
-        elif action == 'import_drive_file':
-            # Import a single file from Google Drive
-            drive_url = request.form.get('drive_url', '').strip()
-            current_app.logger.debug(f"import_drive_file action called with drive_url: {drive_url}")
-            if not drive_url:
-                flash('Please provide a Google Drive file URL or ID.', 'error')
-                return redirect(request.url, code=303)
-            
-            from lms.google_drive_service import import_drive_file
-            file_data = _import_from_drive(import_drive_file, drive_url)
-            current_app.logger.debug(f"import_drive_file() returned: {file_data}")
-            if isinstance(file_data, dict) and 'error' in file_data:
-                error_msg = file_data["error"]
-                if 'error_code' in file_data and file_data['error_code'] == 404:
-                    error_msg += Markup(' <a href="/auth/google-account-info" class="alert-link">Check linked account</a>')
-                elif 'error_code' in file_data and file_data['error_code'] == 403:
-                    error_msg += Markup(' <a href="/auth/google-account-info" class="alert-link">Check linked account</a>')
-                flash(f'Import failed: {error_msg}', 'error')
-                return redirect(request.url, code=303)
-            elif not file_data:
-                flash(Markup('Failed to import file from Google Drive. Please check the URL and permissions. <a href="/auth/google-account-info" class="alert-link">Check linked account</a>'), 'error')
-                return redirect(request.url, code=303)
-            
-            # Optional folder assignment
-            folder_id = request.form.get('import_folder_id')
-            
-            content = CourseContent(
-                course_id=course.id,
-                title=request.form.get('import_title') or file_data['name'],
-                description='',
-                content_type='file',
-                content_data=file_data['view_link'],
-                drive_file_id=file_data['file_id'],
-                drive_view_link=file_data['view_link'],
-                order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
-                folder_id=int(folder_id) if folder_id else None,
-                is_published=request.form.get('import_published') == 'on',
-                allow_others_to_view=request.form.get('import_allow_view') == 'on',
-                is_imported=True
-            )
-            current_app.logger.debug(f"Created CourseContent object: {content.title}, drive_file_id: {content.drive_file_id}")
-            db.session.add(content)
-            current_app.logger.debug("Added content to session")
-            db.session.commit()
-            current_app.logger.debug("Committed to database")
-            flash(f'Successfully imported: {file_data["name"]}', 'success')
-            
-        elif action == 'import_drive_folder':
-            # Import entire folder from Google Drive
-            folder_url = request.form.get('drive_url', '').strip()
-            current_app.logger.debug(f"import_drive_folder action called with folder_url: {folder_url}")
-            if not folder_url:
-                flash('Please provide a Google Drive folder URL or ID.', 'error')
-                return redirect(request.url, code=303)
-
-            from lms.models import CourseContentFolder
-            from lms.google_drive_service import import_drive_folder
-            folder_data = _import_from_drive(import_drive_folder, folder_url)
-            current_app.logger.debug(f"import_drive_folder() returned: {folder_data}")
-            if isinstance(folder_data, dict) and 'error' in folder_data:
-                error_msg = folder_data["error"]
-                if 'error_code' in folder_data and folder_data['error_code'] == 404:
-                    error_msg += Markup(' <a href="/auth/google-account-info" class="alert-link">Check linked account</a>')
-                elif 'error_code' in folder_data and folder_data['error_code'] == 403:
-                    error_msg += Markup(' <a href="/auth/google-account-info" class="alert-link">Check linked account</a>')
-                flash(f'Import failed: {error_msg}', 'error')
-                return redirect(request.url, code=303)
-            elif not folder_data:
-                flash(Markup('Failed to import folder from Google Drive. Please check the URL and ensure it\'s a folder. <a href="/auth/google-account-info" class="alert-link">Check linked account</a>'), 'error')
-                return redirect(request.url, code=303)
-            
-            # Create nested folder structure recursively
-            def create_course_folders_recursive_enrolled(folder_structure, parent_folder_id=None, base_path=""):
-                """Recursively create course folders and add files for enrolled users"""
-                created_folders = {}
-                total_files = 0
-                
-                # Create subfolders first
-                for folder_info in folder_structure['folders']:
-                    folder_path = f"{base_path}/{folder_info['name']}" if base_path else folder_info['name']
-                    
-                    # Create course folder
-                    course_subfolder = CourseContentFolder(
-                        course_id=course.id,
-                        title=folder_info['name'],
-                        description=f'Imported from Google Drive: {folder_path}',
-                        order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1,
-                        parent_folder_id=parent_folder_id
-                    )
-                    db.session.add(course_subfolder)
-                    db.session.flush()
-                    
-                    created_folders[folder_path] = course_subfolder.id
-                    
-                    # Recursively process subfolder contents
-                    sub_files = create_course_folders_recursive_enrolled(
-                        folder_info['structure'], 
-                        course_subfolder.id, 
-                        folder_path
-                    )
-                    total_files += sub_files
-                
-                # Add files to current folder level
-                for file_data in folder_structure['files']:
-                    content = CourseContent(
-                        course_id=course.id,
-                        title=file_data['name'],
-                        description=f'Imported from Google Drive: {file_data["full_path"]}',
-                        content_type='file',
-                        content_data=file_data['view_link'],
-                        drive_file_id=file_data['file_id'],
-                        drive_view_link=file_data['view_link'],
-                        order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
-                        folder_id=parent_folder_id,
-                        is_published=request.form.get('import_published') == 'on',
-                        allow_others_to_view=True,
-                        is_imported=True
-                    )
-                    db.session.add(content)
-                    total_files += 1
-                
-                return total_files
-            
-            # Create the root course folder
-            course_folder = CourseContentFolder(
-                course_id=course.id,
-                title=folder_data['folder_name'],
-                description='Imported from Google Drive folder',
-                order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1
-            )
-            db.session.add(course_folder)
-            db.session.flush()
-            
-            current_app.logger.debug(f"Created root course folder: {course_folder.title}, id: {course_folder.id}")
-            
-            # Reconstruct folder structure from flat file list
-            folder_structure = {'folders': [], 'files': []}
-            folder_map = {}
-            
-            # Group files by their folder paths
-            for file_data in folder_data['files']:
-                folder_path = file_data.get('folder_path', '')
-                
-                if folder_path:
-                    # This file is in a subfolder
-                    if folder_path not in folder_map:
-                        folder_map[folder_path] = {'folders': [], 'files': []}
-                    folder_map[folder_path]['files'].append(file_data)
-                else:
-                    # This file is in the root folder
-                    folder_structure['files'].append(file_data)
-            
-            # Add files to appropriate folders
-            imported_count = 0
-            
-            # Add root level files
-            for file_data in folder_data['files']:
-                folder_path = file_data.get('folder_path', '')
-                
-                if not folder_path:
-                    # Root level file
-                    content = CourseContent(
-                        course_id=course.id,
-                        title=file_data['name'],
-                        description=f'Imported from Google Drive: {file_data.get("full_path", file_data["name"])}',
-                        content_type='file',
-                        content_data=file_data['view_link'],
-                        drive_file_id=file_data['file_id'],
-                        drive_view_link=file_data['view_link'],
-                        order=imported_count + 1,
-                        folder_id=course_folder.id,
-                        is_published=request.form.get('import_published') == 'on',
-                        allow_others_to_view=True,
-                        is_imported=True
-                    )
-                    db.session.add(content)
-                    imported_count += 1
-            
-            # For subfolders, create them and add their files
-            subfolder_files = [f for f in folder_data['files'] if f.get('folder_path')]
-            if subfolder_files:
-                # Group by immediate parent folder
-                folder_groups = {}
-                for file_data in subfolder_files:
-                    folder_path = file_data.get('folder_path', '')
-                    if folder_path:
-                        parent_folder = folder_path.split('/')[0]  # Get immediate parent
-                        if parent_folder not in folder_groups:
-                            folder_groups[parent_folder] = []
-                        folder_groups[parent_folder].append(file_data)
-                
-                # Create subfolders and add files
-                for subfolder_name, files in folder_groups.items():
-                    subfolder = CourseContentFolder(
-                        course_id=course.id,
-                        title=subfolder_name,
-                        description='Subfolder imported from Google Drive',
-                        order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1,
-                        parent_folder_id=course_folder.id
-                    )
-                    db.session.add(subfolder)
-                    db.session.flush()
-                    
-                    for file_data in files:
-                        content = CourseContent(
-                            course_id=course.id,
-                            title=file_data['name'],
-                            description=f'Imported from Google Drive: {file_data.get("full_path", file_data["name"])}',
-                            content_type='file',
-                            content_data=file_data['view_link'],
-                            drive_file_id=file_data['file_id'],
-                            drive_view_link=file_data['view_link'],
-                            order=imported_count + 1,
-                            folder_id=subfolder.id,
-                            is_published=request.form.get('import_published') == 'on',
-                            allow_others_to_view=True
-                        )
-                        db.session.add(content)
-                        imported_count += 1
-            
-            current_app.logger.debug(f"Added {imported_count} content items to session")
-            db.session.commit()
-            current_app.logger.debug("Committed recursive folder import to database")
-            flash(f'Successfully imported folder "{folder_data["folder_name"]}" with {imported_count} files from all subfolders!', 'success')
-            
-        elif action == 'add_assignment':
-            due_date_str = request.form.get('assignment_due_date')
-            due_date = datetime.strptime(due_date_str, '%Y-%m-%dT%H:%M') if due_date_str else None
-            
-            assignment = CourseAssignment(
-                course_id=course.id,
-                title=request.form.get('assignment_title', ''),
-                description=request.form.get('assignment_description', ''),
-                due_date=due_date,
-                points=int(request.form.get('assignment_points', 100)),
-                is_published=request.form.get('assignment_published') == 'on'
-            )
-            db.session.add(assignment)
-            db.session.commit()
-            flash('Assignment added successfully!', 'success')
-            
-        elif action == 'add_announcement':
-            announcement = CourseAnnouncement(
-                course_id=course.id,
-                title=request.form.get('announcement_title', ''),
-                message=request.form.get('announcement_message', ''),
-                author_id=current_user.id,
-                is_published=request.form.get('announcement_published') == 'on'
-            )
-            db.session.add(announcement)
-            db.session.commit()
-            flash('Announcement added successfully!', 'success')
-
-        elif action == 'add_folder':
-            folder_title = request.form.get('folder_title')
-            folder_description = request.form.get('folder_description')
-            # Log folder creation attempt with provided values
-            try:
-                current_app.logger.info('Add folder attempt for course_id=%s by user=%s title=%s', course.id, getattr(current_user, 'id', None), folder_title)
-            except Exception:
-                current_app.logger.debug(f"Add folder attempt: course={course.id} user={getattr(current_user, 'id', None)} title={folder_title}")
-
-            if folder_title:
-                from lms.models import CourseContentFolder
-                folder = CourseContentFolder(
-                    course_id=course.id,
-                    title=folder_title,
-                    description=folder_description or '',
-                    order=course.content_folders.count() + 1
-                )
-                db.session.add(folder)
-                # Log DB URI for debugging (resolve sqlite path if used)
-                try:
-                    db_uri = current_app.config.get('SQLALCHEMY_DATABASE_URI')
-                    if db_uri and db_uri.startswith('sqlite:///'):
-                        sqlite_path = db_uri.replace('sqlite:///', '')
-                        sqlite_path = os.path.abspath(sqlite_path)
-                        current_app.logger.info('Using SQLite DB at %s', sqlite_path)
-                    else:
-                        current_app.logger.info('Using DB URI: %s', db_uri)
-                except Exception:
-                    current_app.logger.debug("DB URI debug failed")
-
-                db.session.commit()
-
-                # Verify persistence immediately after commit
-                try:
-                    from lms.models import CourseContentFolder as CCF
-                    reloaded = CCF.query.get(folder.id)
-                    count = CCF.query.filter_by(course_id=course.id).count()
-                    current_app.logger.info('Folder created id=%s title=%s reloaded=%s course_folder_count=%s', folder.id, folder.title, bool(reloaded), count)
-                except Exception as e:
-                    current_app.logger.exception('Post-commit verification failed: %s', e)
-
-                flash('Folder added successfully!', 'success')
-            else:
-                flash('Folder title is required.', 'error')
-            
-        elif action == 'move_content':
-            content_id = request.form.get('content_id')
-            target_folder_id = request.form.get('target_folder_id')
-            content = CourseContent.query.get(content_id)
-            if content and content.course_id == course.id:
-                content.folder_id = int(target_folder_id) if target_folder_id else None
-                db.session.commit()
-                flash('Content moved successfully!', 'success')
-            else:
-                flash('Content not found or permission denied.', 'error')
-        
-        elif action == 'bulk_delete_content' and (current_user.is_admin):
-            from lms.models import CourseContent
-            from lms.google_drive_service import authenticate, delete_file
-            
-            content_ids = request.form.getlist('content_ids')
-            deleted_count = 0
-            
-            for content_id in content_ids:
-                content = CourseContent.query.get(content_id)
-                if content and content.course_id == course.id:
-                    # Delete from Google Drive only if the app uploaded it
-                    if content.drive_file_id and not content.is_imported:
-                        service = authenticate()
-                        if service:
-                            try:
-                                delete_file(service, content.drive_file_id)
-                            except Exception as e:
-                                current_app.logger.error(f"Error deleting file from Google Drive: {e}")
-                    
-                    # Delete from database
-                    db.session.delete(content)
-                    deleted_count += 1
-            
-            db.session.commit()
-            flash(f'{deleted_count} items deleted successfully!', 'success')
-        
-        elif action == 'bulk_move_content' and (current_user.is_admin):
-            from lms.models import CourseContent
-            
-            selected_ids = request.form.get('selected_ids', '')
-            if not selected_ids:
-                flash('No items selected for moving.', 'warning')
-                return redirect(request.referrer or url_for('main.index'))
-            
-            content_ids = selected_ids.split(',')
-            target_folder_id = request.form.get('target_folder_id')
-            moved_count = 0
-            
-            for content_id in content_ids:
-                content_id = content_id.strip()
-                if not content_id or not content_id.isdigit():
-                    continue
-                content = CourseContent.query.get(int(content_id))
-                if content and content.course_id == course.id:
-                    content.folder_id = int(target_folder_id) if target_folder_id else None
-                    moved_count += 1
-            
-            db.session.commit()
-            flash(f'{moved_count} items moved successfully!', 'success')
-        
-        elif action == 'bulk_toggle_visibility' and (current_user.is_admin):
-            from lms.models import CourseContent
-            
-            content_ids = request.form.getlist('content_ids')
-            toggled_count = 0
-            
-            for content_id in content_ids:
-                content = CourseContent.query.get(content_id)
-                if content and content.course_id == course.id:
-                    content.is_published = not content.is_published
-                    toggled_count += 1
-            
-            db.session.commit()
-            flash(f'Visibility toggled for {toggled_count} items!', 'success')
-        
-        elif action == 'grade_submission' and (current_user.is_admin):
-            from lms.models import CourseAssignmentSubmission
-            submission_id = request.form.get('submission_id')
-            grade = request.form.get('grade')
-            comment = request.form.get('comment')
-            passed_flag = request.form.get('passed') == 'on'
-            
-            submission = CourseAssignmentSubmission.query.get(submission_id)
-            if submission:
-                if grade:
-                    submission.grade = int(grade)
-                if comment:
-                    submission.comment = comment
-                submission.passed = passed_flag
-                db.session.commit()
-                flash('Grade and comment saved successfully!', 'success')
-        
-        elif action == 'decline_submission' and (current_user.is_admin):
-            from lms.models import CourseAssignmentSubmission
-            submission_id = request.form.get('submission_id')
-
-            submission = CourseAssignmentSubmission.query.get(submission_id)
-            if submission:
-                # Toggle declined status
-                submission.declined = not submission.declined
-                db.session.commit()
-                if submission.declined:
-                    flash('Submission declined successfully!', 'success')
-                else:
-                    flash('Declined status cleared!', 'success')
-
-        return redirect(request.url, code=303)
-    
-    # Get all course data
-    contents = CourseContent.query.filter_by(course_id=course.id).order_by(CourseContent.order).all()
-    assignments = CourseAssignment.query.filter_by(course_id=course.id).order_by(CourseAssignment.due_date).all()
-    announcements = CourseAnnouncement.query.filter_by(course_id=course.id).order_by(CourseAnnouncement.created_at.desc()).all()
-    
-    return render_template('course_editor.html', 
-                         course=course, 
-                         slug=slug,
-                         contents=contents,
-                         assignments=assignments,
-                         announcements=announcements)
 
 @main_bp.route('/course/<slug>/messages')
 @login_required

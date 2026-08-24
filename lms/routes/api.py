@@ -10,8 +10,8 @@ from flask_login import current_user, login_required
 from lms.extensions import limiter
 from lms.models import Course, ForumMessage, ForumChannel, PDFDocument, Translation, db
 from lms.translation_service import translation_service
-from lms.google_drive_service import authenticate, create_view_only_link, set_file_permissions, import_drive_file, import_drive_folder
-from lms.upload_validation import validate_upload, UploadValidationError, PDF_MIME_TYPES
+from lms.google_drive_service import authenticate, create_view_only_link, set_file_permissions
+from lms.upload_validation import validate_upload, UploadValidationError, PDF_MIME_TYPES, content_type_for_mime
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -809,12 +809,17 @@ def serve_content_by_db_id(content_id):
     if not content.is_published and not is_manager:
         return redirect(url_for('main.index', error='auth_required'))
 
-    if content.content_type == 'file' and content.drive_file_id:
+    # 'video' is set by content-sniffing on upload/import (see upload_validation); it must
+    # render in the in-app viewer like 'file' does, otherwise it falls through to a raw Drive
+    # redirect that exposes the file id this route exists to hide.
+    if content.content_type in ('file', 'video') and content.drive_file_id:
         file_title = content.title
         back_url = url_for('main.course_page_enrolled', course_id=content.course_id)
-        file_type = 'document'
+        file_type = 'video' if content.content_type == 'video' else 'document'
         title_lower = file_title.lower()
-        if any(ext in title_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']):
+        if content.content_type == 'video':
+            pass  # already resolved from sniffed bytes; don't let a title guess override it
+        elif any(ext in title_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']):
             file_type = 'image'
         elif any(ext in title_lower for ext in ['.mp3', '.wav', '.ogg', '.m4a', '.aac']):
             file_type = 'audio'
@@ -945,7 +950,9 @@ def _import_drive_tree(service, structure, course_id, parent_folder_id, publishe
             course_id=course_id,
             title=file_data.get('name', file_info['name']),
             description='',
-            content_type='file',
+            # Drive's own mimeType decides this — a lecture must land as 'video' or the RAG
+            # pipeline never transcribes it (see rag_service.extract_text_for_content).
+            content_type=content_type_for_mime(file_data.get('mime_type') or file_info.get('mime_type')),
             content_data=view_link,
             drive_file_id=file_data.get('file_id'),
             drive_view_link=view_link,
@@ -1051,7 +1058,8 @@ def picker_import():
             course_id=course.id,
             title=title or metadata.get('name', file_name),
             description='',
-            content_type='file',
+            # Drive's metadata is authoritative; the client-supplied mime_type is only a fallback.
+            content_type=content_type_for_mime(metadata.get('mimeType') or mime_type),
             content_data=view_link,
             drive_file_id=file_id,
             drive_view_link=view_link,
@@ -1072,58 +1080,6 @@ def picker_import():
         db.session.rollback()
         return jsonify({'error': f'Import failed: {str(e)}'}), 500
 
-
-@api_bp.route('/import-drive-file', methods=['POST'])
-@limiter.limit("5 per 30 seconds")
-@login_required
-def import_drive_file_endpoint():
-    """
-    Import a file or folder from Google Drive using full drive scope.
-    The file must have been selected via Google Picker for access.
-    """
-    
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'Request body must be JSON'}), 400
-    
-    file_id = data.get('file_id')
-    mime_type = data.get('mime_type', '')
-    
-    if not file_id:
-        return jsonify({'error': 'No file ID provided'}), 400
-    
-    # Authenticate with Google Drive
-    service = authenticate(current_user)
-    if not service:
-        return jsonify({
-            'error': 'Google Drive not authenticated',
-            'message': 'Please link your Google account first'
-        }), 401
-    
-    try:
-        # Check if it's a folder (Google Drive folder MIME type)
-        if mime_type == 'application/vnd.google-apps.folder':
-            result = import_drive_folder(service, file_id)
-        else:
-            result = import_drive_file(service, file_id)
-        
-        if isinstance(result, dict) and 'error' in result:
-            return jsonify(result), 400
-        
-        return jsonify({
-            'success': True,
-            'message': 'File successfully imported',
-            'data': result
-        }), 200
-        
-    except Exception as e:
-        import traceback
-        current_app.logger.error(f'Error importing file {file_id}: {str(e)}')
-        current_app.logger.error(traceback.format_exc())
-        return jsonify({
-            'error': 'Failed to import file',
-            'message': str(e)
-        }), 500
 
 @api_bp.route('/folder/<int:folder_id>/contents', methods=['GET'])
 def get_folder_contents(folder_id):

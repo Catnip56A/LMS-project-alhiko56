@@ -73,19 +73,7 @@
     </div>
     {% endif %}
 
-    {% if current_user.has_perm('moxo_test_management') %}
-    <div class="col-sm-6 col-md-4 col-lg-3 mb-3">
-      <a href="{{ url_for('moxotest.index_view') }}" class="text-decoration-none">
-        <div class="card h-100" style="border:1px solid #c3d9c2; border-radius:8px;">
-          <div class="card-body text-center" style="padding:1.5rem;">
-            <div style="font-size:2rem; margin-bottom:0.5rem;">🧪</div>
-            <h5 style="color:#337a2c; margin:0;">Moxo Test Management</h5>
-          </div>
-        </div>
-      </a>
-    </div>
-    {% endif %}
-
+    
 
     {% if current_user.has_perm('limitations_management') %}
     <div class="col-sm-6 col-md-4 col-lg-3 mb-3">

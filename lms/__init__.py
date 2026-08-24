@@ -16,7 +16,6 @@ from lms.models import (
     ForumMessage as ForumMessage,
     ForumChannel as ForumChannel,
     PDFDocument as PDFDocument,
-    MoxoTest as MoxoTest,
     Translation as Translation,
 )
 from flask_migrate import Migrate

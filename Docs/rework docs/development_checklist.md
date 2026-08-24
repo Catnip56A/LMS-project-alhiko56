@@ -1,4 +1,4 @@
-local test user passwords: TestPass123!
+local test user and admin passwords: TestPass123!
 
 # LMS Rework — Development Checklist
 
@@ -644,6 +644,258 @@ translation sweep).
     content titled without its extension would silently fail to transcribe for the exact same
     reason — not fixed here since no report of it happening yet, but worth a look if lecture
     videos ever seem to not be searchable via Ask AI.
+
+### Phase 6 addendum — Video moment highlighting (planned, not started)
+
+Design worked out in discussion, not yet implemented. Extends the existing video transcription
+(`_transcribe_video`) so lecture videos surface specific *moments*, not just whole-file text.
+
+- [ ] Audio-only extraction via `ffmpeg` (skip video pixels entirely — audio is the cheap,
+  high-value part).
+- [ ] Transcription with word/segment-level timestamps — Whisper (self-hosted, free, needs
+  local compute) or Gemini (already have `GEMINI_API_KEY`, cloud, same quota caveats as the
+  rest of Phase 6). Engine choice still open — see `setup_checklist.md`.
+- [ ] Chunk by time-window or sentence boundary (~30–60s), storing start/end timestamps as
+  metadata alongside the existing `pgvector` chunk embeddings, so Ask AI citations can point
+  to the exact moment in a video, not just the file.
+- [ ] New `video_moments` table (`video_id`, `timestamp`, `source`, `added_by`, `created_at`).
+- [ ] Stage 1 (auto): keyword/regex pass over the transcript (e.g. "as you can see," "this
+  diagram") — no API call needed.
+- [ ] Stage 2 (student): a "flag this moment" button on the video player.
+- [ ] Weighting instead of manual approval: `weight = COUNT(DISTINCT added_by)` per timestamp
+  bucket — auto-detection gets a base weight, each unique student flag adds weight. A
+  scheduled job (same RQ/Redis queue as the Drive worker and translation scheduler) promotes
+  candidates crossing a threshold to vision-captioning.
+  - Open question: fixed global threshold vs. configurable per course.
+- [ ] Abuse handling: per-student rate limits + a teacher control to block a student or
+  blocklist a specific timestamp — deliberately *not* per-flag manual approval, to avoid a
+  bottleneck.
+- [ ] Perceptual-hash frame diffing before any vision-captioning call (local, no API cost):
+  near-identical frames near a promoted moment collapse to one caption call using the
+  sharpest frame; meaningfully different frames (e.g. a slide transition) are captioned as two
+  distinct citable moments; continuous change (drawing, scrolling) biases toward captioning
+  the latest/most complete frame rather than diffing further.
+- [ ] Wire moment-promotion jobs into the existing shared background job queue (Phase 3) — no
+  new infrastructure needed.
+
+**Explicitly out of scope for v1**: full frame extraction/OCR/vision-captioning of *every*
+frame — too expensive. Only moments that cross the weighting threshold get a vision-captioning
+call.
+
+
+#### Decisions taken before implementation (2026-08-24)
+
+**Transcription engine: self-hosted Whisper.** DeepL was considered and ruled out — its Voice
+API (GA Feb 2026) is real-time WebSocket streaming for live meetings, has no batch endpoint for
+pre-recorded files, documents no timestamps, and requires a paid subscription (our key is the
+`:fx` free tier). DeepL is a translation engine, not a speech-to-text one. Gemini was the other
+candidate but was rejected for this specific job: we hit 429s across every fallback model
+repeatedly during Phase 6 testing, and LLM-estimated timestamps are less reliable than Whisper's
+native word-level output — which is the whole point of the feature.
+- Model **not** baked into the Docker image (models are 75MB–3GB and the image ships through
+  GHCR on every deploy). Downloaded at runtime into a persistent volume instead. Starting with
+  `small` (~500MB); size is configurable.
+- Requires a new `apt-get install ffmpeg` layer in the Dockerfile's **final** stage — there is
+  no apt layer there today, and the builder stage's packages aren't carried over. The worker
+  runs from the same image, so the binary reaches both.
+
+**BLOCKER — no video player to attach interactive features to. Deferred, must come back to.**
+Course videos do not use an HTML5 `<video>` element; there isn't one anywhere in the app.
+`lms/templates/file_viewer.html:172-177` renders an iframe → `lms/routes/api.py:864` →
+302-redirect to `drive.google.com/file/d/{id}/preview`. That player is cross-origin with no
+postMessage API, so `currentTime` cannot be read, seeking cannot be driven, and timestamp
+deep-links (`#t=`) do not work against the preview wrapper.
+
+Consequence: **student "flag this moment" (Stage 2) and click-to-seek citations cannot be built
+until the player is replaced.** Everything else in this addendum is server-side and unblocked —
+including auto-detection, weighting, frame extraction, and vision-captioning, since ffmpeg pulls
+frames server-side without any player involvement.
+
+Two escape routes when we return to this, neither yet chosen:
+- Flask range-proxy the bytes and render a real `<video>` — works at any file size, but lecture
+  videos then flow through gunicorn (bandwidth and worker-occupancy cost).
+- Direct Drive byte URL into `<video>`, mirroring what audio already does successfully
+  (`api.py:862` + `file_viewer.html:161-171`) — least code, but Drive serves large files behind
+  a virus-scan HTML interstitial that a browser `<video src>` cannot get past. `_download_public_drive_file`
+  handles that server-side with a confirm token; a raw `<video>` tag has no such escape.
+
+Until then, timestamped citations render as text ("at 12:43 …"), which still beats pointing at a
+50-minute file, just without one-click seeking.
+
+**Three more prerequisites found during the same survey:**
+- The transcription prompt explicitly forbids timestamps (`rag_service.py:257-258`) — must change.
+- `chunk_text()` collapses all whitespace (`rag_service.py:97`), destroying any timestamp
+  structure. Time-aware chunking needs a parallel function returning `(text, start, end)` rather
+  than a change to that one.
+- `ContentEmbedding` has no metadata column (`models/__init__.py:365-384`) — a migration is needed
+  for start/end seconds. Precedent for JSON columns exists (`AiConversationMessage.sources`).
+- Sources returned by `answer_question()` are file-level only —
+  `{'content_id', 'title'}` at `rag_service.py:541-543`. The frontend ignores extra keys
+  (`course_page_enrolled.html:3703-3717`), so timestamps can be added without breaking it.
+
+**Production resource cost (measured/benchmarked before committing to the engine):**
+- **Image growth: ~198 MB** (measured): onnxruntime 61, ctranslate2 60, PyAV 31, numpy 30,
+  tokenizers 11, huggingface-hub 3.4, faster-whisper 1.4. No torch/CUDA — that's the reason
+  `faster-whisper` was picked over `openai-whisper`, which would have pulled ~800MB+.
+- **Model on disk: ~484 MB** for `small`, in the `./data/whisper-models` volume, downloaded
+  once at runtime. Kept out of the image deliberately so deploys pull ~198MB, not ~680MB.
+- **RAM: ~1.5 GB** while transcribing (`small` + int8; fp32 would be ~2.26 GB).
+- Target VPS is **4 GB**. Baseline before Whisper is roughly 1.0-1.3 GB (gunicorn at
+  `WEB_CONCURRENCY=3`, Postgres, Redis, Caddy), so a permanently-resident model would leave
+  only ~1.2 GB headroom — too thin once Postgres grows and transient spikes hit.
+  **Therefore the model is released after each job by default** (`WHISPER_KEEP_MODEL_LOADED=0`).
+  Reloading from the local volume costs ~5-15s against a job that runs for minutes, so the
+  singleton-warm optimization is a bad trade at this RAM budget. Set the env var to `1` on a
+  RAM-rich host to keep it warm.
+- Only the **worker** pays this cost — indexing runs through RQ jobs, never in a web request,
+  so `app-*` mounts the volume but never loads the model.
+- Fallback if RAM gets tight: `WHISPER_MODEL_SIZE=base` (~145 MB disk, ~600-700 MB RAM) or
+  `tiny` (~75 MB, ~400 MB). One env change, no code edit.
+
+**Implementation order (agreed: full scope, incrementally):**
+1. [x] **Step 1 done — Whisper transcription with timestamps.**
+   - `lms/transcription.py` (new): no Flask/DB dependency, mirroring `core_translator.py`'s
+     role. Lazy model load behind a lock, `transcribe_with_timestamps()` returns
+     `[{'start','end','text'}]`, `unload_model()` frees RAM, VAD filtering drops silence.
+   - `lms/rag_service.py`: new `transcribe_video_segments()` is the real entry point (Whisper
+     primary, `_transcribe_via_gemini()` retained as fallback). `_transcribe_video()` still
+     returns flat text so the existing indexing path is untouched — storing timestamps is
+     step 2 and needs the migration.
+   - **No Dockerfile `apt` layer needed after all**: PyAV bundles the FFmpeg libraries, so
+     transcription needs no system ffmpeg. That only becomes necessary at step 6 for frame
+     extraction. (The original plan item "audio-only extraction via ffmpeg" is moot — PyAV
+     decodes just the audio stream natively.)
+   - Model-cache volume + `WHISPER_CACHE_DIR` wired into all 6 app/worker services across dev,
+     staging, production. The prod/staging **workers had no `volumes:` block at all**, which
+     is exactly where transcription runs. `just ensure-dirs` creates the directory.
+   - `WHISPER_CACHE_DIR` defaults to a repo-relative path so `just dev` (outside Docker) works,
+     with compose overriding it to `/app/data/whisper-models` — same pattern as
+     `CERT_TEMPLATE_DIR`.
+   - **Verified end to end on a real uploaded lecture (content id 22, 5:13 of audio):**
+     `Detected language 'en' with probability 1.00` -> `Transcribed: 113 segments` ->
+     `Whisper model unloaded` -> `6 chunks stored`, `embedded_at` set. Transcript content is
+     coherent and correct (a lecture on Homer's Odyssey), i.e. genuine ASR, not noise.
+     **~63s of CPU for 5:13 of audio = ~5x realtime**, so a 50-minute lecture lands around
+     10 minutes — consistent with the VPS sizing estimate above. Model downloaded to the
+     volume at runtime (464 MB) and RAM was released after the job, both as designed.
+   - **Bug found and fixed during this verification**: the `content_type` sniffing call was
+     first patched into the wrong `elif action ==` branch (`submit_assignment` rather than
+     `upload_file`), leaving `detected_content_type` assigned where unused and *undefined*
+     where read — a `NameError` on every file upload. `ruff` did not catch it (both names
+     live in the same function scope) and neither did an import-level check; only tracing
+     which action branch each line sat in exposed it. Now proven by executing the real
+     handler through Flask's test client with a genuine MP4 (title deliberately carrying no
+     extension) and asserting the created row is `content_type='video'`.
+   - **Also fixed: the Picker import path had the same bug.** `_import_drive_tree`
+     (`routes/api.py`) and `picker_import` both hardcoded `content_type='file'`, so *every*
+     Drive-imported lecture would have indexed as 0 chunks. Both now derive it from Drive's
+     authoritative `mimeType` via a shared `content_type_for_mime()` helper in
+     `upload_validation.py`; the client-supplied mime is fallback only.
+   - **Confirmed by instrumentation: Ask AI never re-transcribes.** Spies on
+     `transcribe_video_segments`, `_transcribe_via_gemini`, `_download_public_drive_file`,
+     `extract_text_for_content`, `gemini_client.upload_file` and `generate_content_with_file`
+     recorded **zero calls** during a real `answer_question()` run. Corroborated by the answer
+     itself, which quoted Whisper's phonetic spellings ("Scilla"/"Cribdis") rather than the
+     correct Scylla/Charybdis — i.e. it was reading our stored transcript, not the audio.
+     Transcription lives only in `embed_content_item()` (indexing jobs); the query path just
+     embeds the question and vector-searches stored chunks.
+   - **Both content_type bugs verified fixed by execution, not inspection:** the `upload_file`
+     path via Flask test client (row created as `'video'`), and the Picker path via a real
+     `POST /api/picker-import` with Drive metadata reporting `video/mp4` (HTTP 200, row created
+     as `'video'`).
+
+   - [ ] **Open test gap — permission gating not covered.** The retrieval checks run so far
+     query `ContentEmbedding` directly, unscoped. They prove content is indexed and matchable
+     but do **not** exercise the filters the real `/api/course/<id>/ask` applies: publication
+     status (`is_published`), folder locks (`get_locked_content_ids()`, which resolves
+     assignment- and quiz-gated folders), and course enrolment. A student could in principle
+     receive AI answers drawn from material they cannot yet open. Needs a test with a
+     non-enrolled user, an unpublished item, and a locked-folder item, asserting none of them
+     appear in `sources`. Worth folding into `/security-review` at the next phase wrap.
+
+   - **Known limitation, by design — this is what step 2 fixes:** those 113 timestamped
+     segments collapse into 6 chunks with **no timestamps stored**. `chunk_text()` flattens
+     whitespace and `ContentEmbedding` has no column to hold start/end seconds, so the timing
+     is produced and then discarded. Step 1's goal was only to prove timestamps *can* be
+     produced; persisting them needs the migration in step 2.
+2. [ ] Migration for chunk start/end seconds; time-aware chunking; video chunks stored with
+   timestamps.
+3. [ ] Citations carry timestamps through `answer_question()` → API → chat UI as text.
+4. [ ] `video_moments` table + Stage 1 auto-detection (keyword/regex pass, no API cost).
+5. [ ] Weighting + promotion job on the existing RQ queue.
+6. [ ] Perceptual-hash frame diffing + vision-captioning of promoted moments only.
+7. [ ] *(blocked on player)* student flagging UI, per-student rate limits, teacher block/blocklist
+   controls, click-to-seek citations.
+### Phase 4/6 addendum — cleanup + review findings (2026-08-24)
+
+**Dead code removed** (~1,400 lines), each confirmed unreachable by a repo-wide reachability
+audit before deletion — no template posts the action, no `url_for`, no `fetch`:
+- [x] `edit_course_page` route (536 lines) + `lms/templates/course_editor.html` (848 lines).
+- [x] All four `import_drive_file`/`import_drive_folder` form-action handlers, plus
+  `/api/import-drive-file` and the `_import_from_drive()` helper. **The Drive import feature
+  itself is untouched** — the live path is the Picker flow (`/api/drive-picker-token` ->
+  `/api/picker-import`), and `google_drive_service.import_drive_file()` is still used by
+  `_import_drive_tree` for folder imports. Only unreachable duplicates went.
+- [x] MoxoTest removed entirely (model, `MoxoTestView`, `moxo_test_management` permission,
+  route, both navbar links, SPA page, nav default) + migration `a1b2c3d4e5f6` dropping the
+  (empty) `tavi_test` table and stripping the permission from `user.admin_permissions` and the
+  nav entry from `site_settings.navigation_items` — column defaults only affect new rows.
+  Verified: `/moxo-test` -> 404, nav entry gone from the live row, 143 routes still register.
+  **Correction to an earlier claim in this file:** MoxoTest was described as dead code. It was
+  not — it was linked from `components/navbar.html` via hardcoded hrefs (which a `url_for`
+  grep misses). Removing it was a product decision, taken explicitly.
+- [x] `certificate_generator._find_template()` no longer hardcodes `moxo_template.*`; it falls
+  back to the first template in `TEMPLATE_DIR`, so any user-uploaded file works with no config.
+  Admin -> Certificate Tuning selection still wins. Verified with two uploaded templates
+  (first-alphabetical fallback, explicit selection honoured, bad name falls back, empty dir
+  raises). Also fixed its error message, which named `STATIC_CERTS` while the directory is
+  env-configurable and actually `/app/data/cert-templates` in Docker.
+
+**`/code-review` findings, all fixed:**
+- [x] `serve_content_by_db_id` gated the in-app viewer on `content_type == 'file'`, so the new
+  `'video'` rows fell through to a raw Drive redirect — losing `file_viewer.html` and exposing
+  the Drive file id the route exists to hide. Now accepts both, and a title-extension guess can
+  no longer override a type resolved from sniffed bytes.
+- [x] RQ's default job timeout is 180s; Whisper needs ~10 min for a 50-minute lecture. A
+  timed-out horse is SIGKILLed, so the sweep's `finally` re-enqueue never runs and the
+  recurring embedding sweep would die until worker restart. `lms/queue.py` now sets
+  `default_timeout` (env `RQ_JOB_TIMEOUT_SECONDS`, default 3600).
+- [x] Legacy rows stored as `content_type='file'` that are really lectures would never be
+  transcribed. Fixed *without* a backfill (a migration can't sniff Drive files):
+  `_extract_drive_file_text` now transcribes off the copy it already downloaded when the bytes
+  sniff as video/audio — self-healing, no second download. Migration `b2c3d4e5f6a7` clears
+  `embedded_at` for rows that indexed to zero chunks so the sweep retries them with current
+  code (0 rows affected here; matters for existing deployments).
+
+**`/security-review`: no new vulnerabilities.** Explicitly checked and cleared: the permission
+model after removing a permission key (every full-admin check uses `admin_permissions is None`,
+never truthiness, so a sub-admin left with `[]` narrows rather than escalates), authorization on
+the changed viewer path, path traversal in the new temp-file/transcription/template code, and
+SSRF in the Drive download (hardcoded host, `file_id` passed as a query param).
+
+- [x] **Real exposure found and fixed (pre-existing, not introduced here).** Uploads were staged
+  in `static/temp/`, which sits inside Flask's static root — so course files *and assignment
+  submissions* were fetchable unauthenticated at `/static/temp/<timestamp>_<filename>` while
+  staged, and before this session's cleanup fix they were left there permanently. **Confirmed
+  live**: a probe file written inside the container was served over plain HTTP with no auth.
+  Fixed at the root by moving staging to `data/upload-staging/` (outside the static root,
+  env-overridable via `UPLOAD_STAGING_DIR`), adding the volume to all 6 app/worker services,
+  creating it in `just ensure-dirs`, and excluding it plus `static/temp/` from git and Docker
+  build context. Verified: staging dir is outside `app.static_folder`, and a real upload leaves
+  no leftover file.
+  - Note: an earlier probe of this wrongly returned 404 and nearly led to dismissing it — the
+    test wrote to the *host* path, but `app-dev` has no `./static` bind mount, so the container
+    never saw the file. Test inside the container when checking container-served paths.
+
+- [x] Temp-file leak on the upload success path (only error branches cleaned up). Fixed —
+  **twice**, because the first fix landed in the wrong `elif action ==` branch. This is the
+  same failure mode as the `detected_content_type` bug earlier in this session: this file has
+  several near-identical upload blocks, so a `str.replace(..., 1)` silently targets the first
+  one, which is `submit_assignment`, not `upload_file`. Verified by locating the branch bounds
+  explicitly and asserting every `os.remove` sits in the intended branch.
+
+- [ ] **Still open** — the permission-gating test gap logged above (unpublished content and
+  locked folders in Ask AI `sources`). Not addressed in this pass.
 
 ## Phase 7 — AI audio overview
 
