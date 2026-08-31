@@ -236,9 +236,12 @@ def create_app(config_name='development'):
 
             # Import URL parsing functions
 
+            # R2-backed items already have a sniffed, authoritative MIME stored on the row —
+            # prefer it and skip the per-item Drive API round trip entirely.
+            mime_type = getattr(item, 'file_mime_type', '') or ''
+
             # Try to get MIME type from Google Drive API first (most reliable)
-            mime_type = ''
-            if drive_file_id:
+            if not mime_type and drive_file_id:
                 try:
                     from lms.google_drive_service import authenticate, get_file_metadata
                     from flask_login import current_user

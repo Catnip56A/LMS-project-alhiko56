@@ -8,6 +8,7 @@ Interactions API) — generateContent is still fully supported and far better do
 Model names use Google's "-latest" aliases where available so this doesn't go stale as
 new model generations ship.
 """
+import base64
 import logging
 import os
 import time
@@ -177,6 +178,54 @@ def generate_content_with_file(
             ]
         }],
     }
+    return _call_generate_with_fallback(model, payload, timeout)
+
+
+def generate_content_with_image(
+    image_bytes: bytes,
+    mime_type: str,
+    prompt: str,
+    *,
+    system_instruction: str | None = None,
+    model: str = GENERATION_MODEL,
+    temperature: float = 0.2,
+    max_output_tokens: int | None = None,
+    thinking_budget: int | None = None,
+    timeout: int = 60,
+) -> str | None:
+    """Generation grounded in a single still image, sent inline as base64.
+
+    Deliberately not routed through the File API (upload_file / wait_for_file_active /
+    generate_content_with_file): that path exists for large async media and costs three HTTP
+    round-trips plus a polling loop with a ~3s floor per file, all to hand over a ~60KB JPEG.
+    Inline bytes make it one request — Gemini's inline limit is on total request size
+    (~20MB), which a downscaled video frame is nowhere near.
+
+    Note: not every model in GENERATION_MODEL_FALLBACKS is guaranteed multimodal — a
+    text-only fallback will 400 on inlineData and _call_generate_with_fallback will log and
+    move to the next candidate, which is correct but can be noisy in logs for this call
+    specifically.
+    """
+    if not _api_key():
+        logger.warning("GEMINI_API_KEY not configured")
+        return None
+
+    generation_config: dict = {'temperature': temperature}
+    if max_output_tokens:
+        generation_config['maxOutputTokens'] = max_output_tokens
+    if thinking_budget is not None:
+        generation_config['thinkingConfig'] = {'thinkingBudget': thinking_budget}
+
+    payload: dict = {
+        'contents': [{'parts': [
+            {'inlineData': {'mimeType': mime_type, 'data': base64.b64encode(image_bytes).decode('ascii')}},
+            {'text': prompt},
+        ]}],
+        'generationConfig': generation_config,
+    }
+    if system_instruction:
+        payload['systemInstruction'] = {'parts': [{'text': system_instruction}]}
+
     return _call_generate_with_fallback(model, payload, timeout)
 
 

@@ -152,6 +152,22 @@ make-admin username:
       -e GOOGLE_REDIRECT_URI=https://localhost/unused \
       app-dev python scripts/admin/make_full_admin.py {{username}}
 
+# One-time backfill: copy CourseContent bytes from Google Drive into Cloudflare R2 (Docker dev)
+backfill-r2 *args:
+    docker compose --profile dev run --rm \
+      -v {{justfile_directory()}}/scripts:/app/scripts \
+      -e DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB} \
+      -e GOOGLE_REDIRECT_URI=https://localhost/unused \
+      app-dev python scripts/migration/backfill_drive_to_r2.py {{args}}
+
+# One-time backfill: populate subtitle data for video/audio transcribed before that feature existed
+backfill-subtitles *args:
+    docker compose --profile dev run --rm \
+      -v {{justfile_directory()}}/scripts:/app/scripts \
+      -e DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-dev:5432/${POSTGRES_DB} \
+      -e GOOGLE_REDIRECT_URI=https://localhost/unused \
+      app-dev python scripts/migration/backfill_transcript_segments.py {{args}}
+
 # Analytics scripts (local)
 analytics-views:
     DATABASE_URL={{_db_url}} GOOGLE_REDIRECT_URI={{_redir}} uv run python scripts/analytics/view_times.py

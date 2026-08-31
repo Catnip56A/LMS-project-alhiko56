@@ -30,6 +30,7 @@
         border-top: none;
         border-radius: 0 0 8px 8px;
         background: #f8f9fa;
+        overflow: auto; /* lets zoomed-in content (iframe/img scaled beyond the frame) be scrolled into view */
     }
     .back-button {
         background: rgba(255, 255, 255, 0.2);
@@ -45,6 +46,50 @@
         background: rgba(255, 255, 255, 0.3);
         color: white;
         text-decoration: none;
+    }
+    .file-viewer-header .controls-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .zoom-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        padding: 2px;
+    }
+    .zoom-btn {
+        background: transparent;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+        transition: background 0.2s;
+    }
+    .zoom-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+    .zoom-level {
+        color: white;
+        font-size: 0.85rem;
+        min-width: 42px;
+        text-align: center;
+        user-select: none;
+    }
+    /* Fullscreen target is the whole container (not just the frame) so the header — and its
+       exit-fullscreen button — stays reachable while fullscreen, instead of only Esc working. */
+    .file-viewer-container:fullscreen,
+    .file-viewer-container:-webkit-full-screen {
+        height: 100vh;
+        background: #fff;
     }
     .viewer-notice {
         background: #fff3cd;
@@ -107,6 +152,72 @@
         margin-bottom: 20px;
         color: #dee2e6;
     }
+    .moments-panel {
+        margin-top: 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+    }
+    .moments-panel-header {
+        padding: 12px 16px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        color: #337a2c;
+    }
+    .moments-panel-body {
+        padding: 0 16px;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.2s ease-out;
+    }
+    .moments-panel-body.open {
+        padding: 12px 16px;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .moment-row {
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .moment-row:last-child { border-bottom: none; }
+    .moment-row-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .moment-meta { font-size: 0.85rem; color: #6c757d; }
+    .moment-caption { font-size: 0.85rem; color: #333; margin-top: 4px; }
+    .moment-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .moment-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .moment-badge.status-candidate { background: #fff3cd; color: #856404; }
+    .moment-badge.status-pending { background: #d1ecf1; color: #0c5460; }
+    .moment-badge.status-captioned { background: #d4edda; color: #155724; }
+    .moment-badge.status-failed { background: #f8d7da; color: #721c24; }
+    .moment-badge.status-blocked { background: #e2e3e5; color: #383d41; }
+    .moment-small-btn {
+        background: transparent;
+        border: 1px solid #ccc;
+        color: #555;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 0.75rem;
+        cursor: pointer;
+    }
+    .moment-small-btn:hover { background: #f0f0f0; }
 </style>
 
 {% if not (current_user and current_user.is_admin) %}
@@ -122,8 +233,9 @@
         -webkit-touch-callout: none !important;
         -webkit-user-drag: none !important;
     }
-    .file-viewer-frame iframe {
-        pointer-events: auto; /* allow interaction inside viewer but selection blocked by google */
+    .file-viewer-frame iframe,
+    .file-viewer-frame video {
+        pointer-events: auto; /* allow interaction (scrubbing, playback controls) despite the user-select block above */
     }
     @media print {
         body * { display: none !important; }
@@ -150,9 +262,35 @@
         </div>
         <div class="file-viewer-header">
             <h3><i class="fa fa-file"></i> {{ file_title }}</h3>
-            <a href="{{ back_url }}" class="back-button">
-                <i class="fa fa-arrow-left"></i> Back to Course
-            </a>
+            <div class="controls-row">
+                {% if file_type == 'video' %}
+                <button type="button" id="flag-moment-btn" class="back-button" style="cursor:pointer;"
+                        data-content-id="{{ content_id }}" title="Mark this moment as worth highlighting">
+                    <i class="fa fa-bookmark"></i> Flag this moment
+                </button>
+                {% endif %}
+                {% if has_subtitles and file_type in ('video', 'audio') %}
+                <button type="button" id="subtitles-toggle-btn" class="back-button" style="cursor:pointer;" title="Toggle subtitles">
+                    <i class="fa fa-closed-captioning"></i> Subtitles: On
+                </button>
+                {% endif %}
+                {% if file_type in ('document', 'image') %}
+                <div class="zoom-controls">
+                    <button type="button" id="zoom-out-btn" class="zoom-btn" title="Zoom out"><i class="fa fa-search-minus"></i></button>
+                    <span id="zoom-level" class="zoom-level">100%</span>
+                    <button type="button" id="zoom-in-btn" class="zoom-btn" title="Zoom in"><i class="fa fa-search-plus"></i></button>
+                    <button type="button" id="zoom-reset-btn" class="zoom-btn" title="Reset zoom"><i class="fa fa-undo"></i></button>
+                </div>
+                {% endif %}
+                {% if file_type in ('video', 'document') %}
+                <button type="button" id="fullview-btn" class="back-button" style="cursor:pointer;">
+                    <i class="fa fa-expand"></i> Full view
+                </button>
+                {% endif %}
+                <a href="{{ back_url }}" class="back-button">
+                    <i class="fa fa-arrow-left"></i> Back to Course
+                </a>
+            </div>
         </div>
         <div class="file-viewer-frame">
             {% if file_type == 'image' %}
@@ -165,16 +303,28 @@
                         <i class="fa fa-music"></i>
                     </div>
                     <h4 style="margin-bottom: 20px; color: #337a2c;">{{ file_title }}</h4>
-                    <audio controls controlsList="nodownload">
-                        <source src="/api/file/c/{{ content_id }}/embed" type="audio/mpeg">
+                    <audio id="content-media" controls controlsList="nodownload">
+                        <source src="/api/file/c/{{ content_id }}/embed">
+                        {% if has_subtitles %}
+                        <track kind="subtitles" src="/api/file/c/{{ content_id }}/subtitles.vtt"
+                               srclang="{{ subtitle_language or 'en' }}"
+                               label="{{ 'Russian' if subtitle_language == 'ru' else 'English' }}" default>
+                        {% endif %}
                         Your browser does not support the audio element.
                     </audio>
                 </div>
             {% elif file_type == 'video' %}
-                <iframe src="/api/file/c/{{ content_id }}/embed"
-                        style="width: 100%; height: 100%; border: none;"
-                        allow="autoplay"
-                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+                <video id="content-video" controls controlsList="nodownload noplaybackrate"
+                       preload="metadata" playsinline
+                       style="width:100%;height:100%;background:#000">
+                    <source src="/api/file/c/{{ content_id }}/embed">
+                    {% if has_subtitles %}
+                    <track kind="subtitles" src="/api/file/c/{{ content_id }}/subtitles.vtt"
+                           srclang="{{ subtitle_language or 'en' }}"
+                           label="{{ 'Russian' if subtitle_language == 'ru' else 'English' }}" default>
+                    {% endif %}
+                    Your browser does not support the video element.
+                </video>
             {% elif file_type == 'unsupported' %}
                 <div class="unsupported-viewer">
                     <i class="fa fa-file-archive"></i>
@@ -183,15 +333,334 @@
                     <p class="text-muted">Contact your instructor if you need access to this file.</p>
                 </div>
             {% else %}
-                {# Default: PDF, documents, presentations, spreadsheets #}
-                <iframe src="/api/file/c/{{ content_id }}/embed"
+                {# Default: PDF, documents, presentations, spreadsheets. No `sandbox` attribute
+                   here deliberately: this used to embed Google Drive's own interactive HTML
+                   viewer page, where `sandbox` was reasonable defense-in-depth against a
+                   third-party page's scripts. It now points at a raw PDF served straight from
+                   R2 (the original file, or our own LibreOffice-converted preview) — Chrome's
+                   built-in native PDF viewer doesn't render correctly inside a sandboxed
+                   iframe (its internal script execution gets blocked, surfacing as a
+                   confusing "Content Security Policy blocks eval" error and the page failing
+                   to load at all). There's no third-party page here anymore to sandbox against.
+
+                   `#toolbar=0&navpanes=0` is a PDF open-parameter Chrome/Edge/Firefox's built-in
+                   viewers all honor to hide their own toolbar (which has the download/print/
+                   "more options" icons our page-level right-click and keyboard blockers can't
+                   reach, since that toolbar is the browser's own UI, not part of our DOM). The
+                   fragment survives the /embed route's redirect to R2 since R2's presigned URL
+                   has no fragment of its own for the browser to prefer instead. Best-effort only
+                   — it hides the button, it doesn't block a determined user going around it
+                   (e.g. via devtools), same limitation as the existing right-click/keyboard
+                   protections below. #}
+                <iframe src="/api/file/c/{{ content_id }}/embed#toolbar=0&navpanes=0"
                         style="width: 100%; height: 100%; border: none;"
-                        allow="autoplay"
-                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+                        allow="autoplay"></iframe>
             {% endif %}
         </div>
     </div>
+
+    {% if file_type == 'video' and is_manager %}
+    <div class="moments-panel">
+        <div class="moments-panel-header" id="moments-panel-toggle">
+            <span><i class="fa fa-bookmark"></i> Flagged moments (teacher view)</span>
+            <i class="fa fa-chevron-down" id="moments-panel-chevron"></i>
+        </div>
+        <div class="moments-panel-body" id="moments-panel-body">
+            <p class="text-muted" id="moments-panel-status">Click to load flagged moments…</p>
+            <div id="moments-panel-list"></div>
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+{% if file_type == 'video' %}
+<script>
+// Click-to-seek: a citation chip in Ask AI links here with ?t=<seconds> for the moment it
+// referenced. Read server-side (see serve_content_by_db_id) rather than parsed from
+// location.search here, keeping the validation in one place.
+(function() {
+    var seekTo = {{ start_seconds if start_seconds is not none else 'null' }};
+    if (seekTo === null || seekTo <= 0) return;
+    var video = document.getElementById('content-video');
+    if (!video) return;
+
+    function seekOnce() {
+        if (!isFinite(video.duration)) return;
+        video.currentTime = Math.min(seekTo, Math.max(video.duration - 1, 0));
+    }
+    // Metadata can already be cached/loaded before the listener attaches (a warm reload) —
+    // covering both cases avoids a race where the seek silently never happens.
+    if (video.readyState >= 1) {
+        seekOnce();
+    } else {
+        video.addEventListener('loadedmetadata', seekOnce, {once: true});
+    }
+
+    video.addEventListener('error', function() {
+        var box = document.createElement('div');
+        box.style.cssText = 'padding:12px;text-align:center;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;margin-top:8px;';
+        box.textContent = 'This video link expired — reload the page to keep watching.';
+        video.parentNode.insertBefore(box, video.nextSibling);
+    });
+})();
+</script>
+{% endif %}
+
+{% if file_type == 'video' %}
+<script>
+// Flag this moment: records the video's current playback position as a candidate for
+// AI vision-captioning (video moment highlighting). Uses fetch (not sendBeacon) because
+// the CSRF meta/fetch-patch in base.html only covers fetch, and because the interaction
+// needs to distinguish "recorded" / "already flagged" / "blocked" in the response — a
+// fire-and-forget beacon can't report any of that back.
+// Confirmed non-interfering with the anti-copy protection script below: it registers no
+// `click` handler and no stopImmediatePropagation on any path a click or Enter/Space
+// keypress takes, and user-select:none on the container doesn't block clicks (proven by
+// the full-view/zoom buttons already working in the same subtree).
+(function() {
+    var btn = document.getElementById('flag-moment-btn');
+    var video = document.getElementById('content-video');
+    if (!btn || !video) return;
+
+    btn.addEventListener('click', async function() {
+        var t = Math.max(0, video.currentTime);
+        btn.disabled = true;
+        var original = btn.innerHTML;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Flagging…';
+        try {
+            var resp = await fetch('/api/content/' + btn.dataset.contentId + '/moment-flag', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({timestamp_seconds: t})
+            });
+            var result = await resp.json();
+            btn.innerHTML = resp.ok
+                ? (result.already_flagged ? '<i class="fa fa-check"></i> Already flagged'
+                                          : '<i class="fa fa-check"></i> Flagged ✓')
+                : '<i class="fa fa-times"></i> ' + (result.error || 'Failed');
+        } catch (e) {
+            btn.innerHTML = '<i class="fa fa-times"></i> Failed';
+        } finally {
+            setTimeout(function() { btn.innerHTML = original; btn.disabled = false; }, 3000);
+        }
+    });
+})();
+</script>
+{% endif %}
+
+{% if has_subtitles and file_type in ('video', 'audio') %}
+<script>
+// Subtitle toggle: flips the <track>'s TextTrack.mode between 'showing' and 'hidden'.
+// Native players already offer a CC button of their own, but it's often tucked inside a
+// settings menu — this gives it a directly visible, app-styled control matching the rest of
+// the header's buttons.
+(function() {
+    var btn = document.getElementById('subtitles-toggle-btn');
+    var media = document.getElementById('content-video') || document.getElementById('content-media');
+    if (!btn || !media) return;
+
+    function track() {
+        return media.textTracks && media.textTracks.length ? media.textTracks[0] : null;
+    }
+
+    function updateLabel() {
+        var t = track();
+        var on = !t || t.mode !== 'hidden';
+        btn.innerHTML = '<i class="fa fa-closed-captioning"></i> Subtitles: ' + (on ? 'On' : 'Off');
+    }
+
+    btn.addEventListener('click', function() {
+        var t = track();
+        if (!t) return;
+        t.mode = (t.mode === 'hidden') ? 'showing' : 'hidden';
+        updateLabel();
+    });
+
+    // The <track>'s default mode isn't guaranteed to be settled the instant the element
+    // exists (browsers resolve it once the track data starts loading), so sync the label
+    // once metadata is available in addition to on page load.
+    media.addEventListener('loadedmetadata', updateLabel);
+    updateLabel();
+})();
+</script>
+{% endif %}
+
+{% if file_type == 'video' and is_manager %}
+<script>
+// Teacher-only moments panel: lists flagged/promoted/captioned moments for this video and
+// lets a teacher block a specific moment or a specific flagging student. Loaded lazily on
+// first expand, not on page load, since it's an admin-facing panel most viewers never open.
+(function() {
+    var toggle = document.getElementById('moments-panel-toggle');
+    var body = document.getElementById('moments-panel-body');
+    var chevron = document.getElementById('moments-panel-chevron');
+    var status = document.getElementById('moments-panel-status');
+    var list = document.getElementById('moments-panel-list');
+    var contentId = {{ content_id }};
+    var loaded = false;
+
+    function escapeHtml(s) {
+        var div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+
+    function renderRow(m) {
+        var flaggerLinks = (m.flaggers || []).map(function(f) {
+            var action = f.blocked ? 'unblock' : 'block';
+            var label = (f.blocked ? 'Unblock ' : 'Block ') + escapeHtml(f.username);
+            return '<button type="button" class="moment-small-btn block-student-btn" ' +
+                   'data-user-id="' + f.user_id + '" data-action="' + action + '">' + label + '</button>';
+        }).join(' ');
+        var captionHtml = m.caption ? '<div class="moment-caption">' + escapeHtml(m.caption) + '</div>' : '';
+        var blockBtn = '<button type="button" class="moment-small-btn block-moment-btn" ' +
+            'data-bucket="' + m.bucket_index + '" data-action="' + (m.status === 'blocked' ? 'unblock' : 'block') + '">' +
+            (m.status === 'blocked' ? 'Unblock moment' : 'Block moment') + '</button>';
+        return '<div class="moment-row">' +
+            '<div class="moment-row-top">' +
+                '<div>' +
+                    '<a href="/api/file/c/' + contentId + '?t=' + Math.floor(m.timestamp_seconds) + '" target="_blank">' +
+                        escapeHtml(m.formatted_timestamp) +
+                    '</a> ' +
+                    '<span class="moment-badge status-' + m.status + '">' + m.status + '</span> ' +
+                    '<span class="moment-meta">weight ' + m.weight + '</span>' +
+                '</div>' +
+                '<div class="moment-actions">' + blockBtn + flaggerLinks + '</div>' +
+            '</div>' +
+            captionHtml +
+        '</div>';
+    }
+
+    function load() {
+        status.textContent = 'Loading…';
+        list.innerHTML = '';
+        fetch('/api/content/' + contentId + '/moments')
+            .then(function(r) { return r.json(); })
+            .then(function(result) {
+                if (!result.success) { status.textContent = result.error || 'Failed to load.'; return; }
+                if (!result.moments.length) { status.textContent = 'No flagged moments yet.'; return; }
+                status.textContent = '';
+                list.innerHTML = result.moments.map(renderRow).join('');
+            })
+            .catch(function() { status.textContent = 'Failed to load.'; });
+    }
+
+    list.addEventListener('click', function(e) {
+        var blockBtn = e.target.closest('.block-moment-btn');
+        var studentBtn = e.target.closest('.block-student-btn');
+        if (blockBtn) {
+            blockBtn.disabled = true;
+            fetch('/api/content/' + contentId + '/moments/block', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    bucket_index: parseInt(blockBtn.dataset.bucket, 10),
+                    blocked: blockBtn.dataset.action === 'block',
+                }),
+            }).then(load);
+        } else if (studentBtn) {
+            studentBtn.disabled = true;
+            fetch('/api/course/{{ course_id }}/moment-flags/block-user', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    user_id: parseInt(studentBtn.dataset.userId, 10),
+                    blocked: studentBtn.dataset.action === 'block',
+                }),
+            }).then(load);
+        }
+    });
+
+    toggle.addEventListener('click', function() {
+        var open = body.classList.toggle('open');
+        chevron.className = open ? 'fa fa-chevron-up' : 'fa fa-chevron-down';
+        if (open && !loaded) { loaded = true; load(); }
+    });
+})();
+</script>
+{% endif %}
+
+{% if file_type in ('video', 'document') %}
+<script>
+// Full view: expands the whole viewer container — header included, not just the frame — to
+// fill the screen via the standard Fullscreen API, with a vendor-prefixed fallback for older
+// Safari. Fullscreening the container rather than just the frame matters: fullscreen hides
+// everything outside the fullscreened element, so if only the frame went fullscreen, the
+// header (and this button's own "Exit full view" state) would vanish along with it, leaving
+// Esc as the only way out.
+(function() {
+    var btn = document.getElementById('fullview-btn');
+    var frame = document.querySelector('.file-viewer-container');
+    if (!btn || !frame) return;
+
+    function isFullscreen() {
+        return document.fullscreenElement || document.webkitFullscreenElement;
+    }
+
+    btn.addEventListener('click', function() {
+        if (isFullscreen()) {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        } else if (frame.requestFullscreen) {
+            frame.requestFullscreen();
+        } else if (frame.webkitRequestFullscreen) {
+            frame.webkitRequestFullscreen();
+        }
+    });
+
+    function updateLabel() {
+        btn.innerHTML = isFullscreen()
+            ? '<i class="fa fa-compress"></i> Exit full view'
+            : '<i class="fa fa-expand"></i> Full view';
+    }
+    document.addEventListener('fullscreenchange', updateLabel);
+    document.addEventListener('webkitfullscreenchange', updateLabel);
+})();
+</script>
+{% endif %}
+
+{% if file_type in ('document', 'image') %}
+<script>
+// Zoom controls: since the document/image is either a cross-origin iframe (PDF viewer with
+// its own toolbar hidden) or a plain <img>, there's no viewer-internal zoom API to call —
+// this scales the element itself via a CSS transform and relies on .file-viewer-frame's
+// `overflow: auto` (see the stylesheet above) to let the user scroll to the parts that then
+// overflow the frame.
+(function() {
+    var target = document.querySelector('.file-viewer-frame iframe, .file-viewer-frame img');
+    var zoomIn = document.getElementById('zoom-in-btn');
+    var zoomOut = document.getElementById('zoom-out-btn');
+    var zoomReset = document.getElementById('zoom-reset-btn');
+    var label = document.getElementById('zoom-level');
+    if (!target || !zoomIn || !zoomOut || !zoomReset || !label) return;
+
+    var MIN_ZOOM = 0.5, MAX_ZOOM = 2.5, STEP = 0.1;
+    var zoom = 1.0;
+
+    target.style.transformOrigin = 'top left';
+    target.style.transition = 'transform 0.1s ease-out';
+
+    function apply() {
+        // A plain CSS transform: modern browsers include the transformed visual bounds when
+        // computing scrollable overflow, so scaling past 100% here is enough on its own for
+        // .file-viewer-frame's `overflow: auto` to produce scrollbars reaching the rest of it.
+        target.style.transform = 'scale(' + zoom.toFixed(2) + ')';
+        label.textContent = Math.round(zoom * 100) + '%';
+    }
+
+    zoomIn.addEventListener('click', function() {
+        zoom = Math.min(MAX_ZOOM, zoom + STEP);
+        apply();
+    });
+    zoomOut.addEventListener('click', function() {
+        zoom = Math.max(MIN_ZOOM, zoom - STEP);
+        apply();
+    });
+    zoomReset.addEventListener('click', function() {
+        zoom = 1.0;
+        apply();
+    });
+})();
+</script>
+{% endif %}
 
 <script>
 // View tracking

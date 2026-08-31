@@ -1949,8 +1949,11 @@
         <div class="mt-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap" style="gap:8px;">
                 <h4 class="mb-0">{{ _('Ask AI') }}</h4>
-                {% if is_course_owner %}
-                <button type="button" id="reindex-course-btn" class="btn btn-sm btn-outline-secondary" data-course-id="{{ course.id }}">{{ _('Reindex course content') }}</button>
+                {% if current_user.is_admin %}
+                <div class="d-flex flex-wrap" style="gap:8px;">
+                    <button type="button" id="reindex-course-btn" class="btn btn-sm btn-outline-secondary" data-course-id="{{ course.id }}">{{ _('Reindex course content') }}</button>
+                    <button type="button" id="promote-moments-btn" class="btn btn-sm btn-outline-secondary" data-course-id="{{ course.id }}">{{ _('Promote flagged moments') }}</button>
+                </div>
                 {% endif %}
             </div>
             <p class="text-muted mt-2">{{ _('Ask a question about this course. Answers are grounded only in this course\'s materials, with sources cited below each answer.') }}</p>
@@ -3705,12 +3708,18 @@ async function handleFolderExpand(folderId, courseId) {
             srcWrap.style.marginTop = '0.4rem';
             sources.forEach(function(src) {
                 var chip = document.createElement('a');
-                chip.href = '/api/file/c/' + src.content_id;
+                // A timestamp means this citation points at a moment inside a video —
+                // opening it seeks the player straight to that moment (see file_viewer.html's
+                // seek script). src.start_seconds may legitimately be 0, so compare to null
+                // rather than relying on truthiness.
+                chip.href = '/api/file/c/' + src.content_id
+                    + (src.start_seconds != null ? '?t=' + Math.floor(src.start_seconds) : '');
                 chip.target = '_blank';
                 chip.className = 'badge badge-light';
                 chip.style.marginRight = '6px';
                 chip.style.border = '1px solid #ddd';
-                chip.textContent = '📄 ' + src.title;
+                chip.textContent = (src.timestamp ? '🎥 ' : '📄 ') + src.title
+                    + (src.timestamp ? ' (' + src.timestamp + ')' : '');
                 srcWrap.appendChild(chip);
             });
             wrap.appendChild(srcWrap);
@@ -3762,6 +3771,24 @@ async function handleFolderExpand(folderId, courseId) {
                 reindexBtn.textContent = '{{ _("Failed") }}';
             } finally {
                 setTimeout(function() { reindexBtn.textContent = originalText; reindexBtn.disabled = false; }, 3000);
+            }
+        });
+    }
+
+    var promoteMomentsBtn = document.getElementById('promote-moments-btn');
+    if (promoteMomentsBtn) {
+        promoteMomentsBtn.addEventListener('click', async function() {
+            promoteMomentsBtn.disabled = true;
+            var originalText = promoteMomentsBtn.textContent;
+            promoteMomentsBtn.textContent = '{{ _("Queuing…") }}';
+            try {
+                var resp = await fetch('/api/course/' + promoteMomentsBtn.dataset.courseId + '/promote-moments', { method: 'POST' });
+                var result = await resp.json();
+                promoteMomentsBtn.textContent = (resp.ok && result.success) ? '{{ _("Promotion queued ✓") }}' : (result.error || '{{ _("Failed") }}');
+            } catch (err) {
+                promoteMomentsBtn.textContent = '{{ _("Failed") }}';
+            } finally {
+                setTimeout(function() { promoteMomentsBtn.textContent = originalText; promoteMomentsBtn.disabled = false; }, 3000);
             }
         });
     }

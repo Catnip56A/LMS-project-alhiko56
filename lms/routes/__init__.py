@@ -4,7 +4,7 @@ from markupsafe import Markup
 from flask_babel import get_locale, _
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
-from lms.upload_validation import validate_upload, UploadValidationError, detect_course_content_type
+from lms.upload_validation import validate_upload, UploadValidationError, detect_mime_and_content_type
 import os
 from datetime import datetime as dt
 
@@ -746,93 +746,54 @@ def course_page_enrolled(course_id):
             unique_filename = f"{timestamp}_{filename}"
             temp_file_path = os.path.join(temp_dir, unique_filename)
 
-            # Save the file temporarily
-            uploaded_file.save(temp_file_path)
-            # Sniff the real bytes before Drive consumes the stream — decides whether the RAG
-            # pipeline will later transcribe this as a lecture (content_type='video').
-            uploaded_file.stream.seek(0)
-            detected_content_type = detect_course_content_type(uploaded_file)
+            try:
+                # Save the file temporarily
+                uploaded_file.save(temp_file_path)
+                # Sniff the real bytes — decides whether the RAG pipeline will later
+                # transcribe this as a lecture (content_type='video') and what Content-Type
+                # R2 stores it under.
+                uploaded_file.stream.seek(0)
+                detected_mime, detected_content_type = detect_mime_and_content_type(uploaded_file)
 
-            # Upload to Google Drive
-            from lms.google_drive_service import authenticate, upload_file, create_view_only_link, set_file_permissions
-            service = authenticate()
-            if not service:
-                flash(Markup('Failed to authenticate with Google Drive. Please <a href="/auth/link-google-account" class="alert-link">link your Google account</a> first.'), 'error')
+                from lms import r2_client
+                if not r2_client.is_configured():
+                    flash('File storage is not configured. Please contact an administrator.', 'error')
+                    return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+                r2_key = r2_client.build_content_key(course.id, filename)
+                if not r2_client.upload_file(temp_file_path, r2_key, content_type=detected_mime, filename=filename):
+                    flash('Failed to upload file. Please try again.', 'error')
+                    return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+                from lms import office_preview
+                r2_preview_key = office_preview.generate_and_upload_preview(temp_file_path, detected_mime, r2_key)
+
+                # Create content record
+                new_content = CourseContent(
+                    course_id=course.id,
+                    folder_id=int(file_folder_id) if file_folder_id else None,
+                    title=file_title,
+                    description=file_description,
+                    content_type=detected_content_type,
+                    content_data='',  # Not used for file content
+                    allow_others_to_view=allow_others_to_view,
+                    r2_key=r2_key,
+                    r2_preview_key=r2_preview_key,
+                    file_mime_type=detected_mime,
+                    is_published=is_published,
+                    order=0,
+                    created_at=datetime.now()
+                )
+                db.session.add(new_content)
+                db.session.commit()
+                from lms.job_manager import record_content_update
+                record_content_update()
+            finally:
                 try:
                     os.remove(temp_file_path)
                 except OSError:
                     pass
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            try:
-                drive_file_id = upload_file(service, temp_file_path, filename)
-            except Exception as e:
-                current_app.logger.error(f"Error uploading to Drive: {e}")
-                if "insufficientPermissions" in str(e) or "403" in str(e):
-                    flash(Markup('Your Google account does not have sufficient Drive permissions. Please <a href="/auth/link-google-account" class="alert-link">re-link your Google account</a> to grant full Drive access.'), 'error')
-                else:
-                    flash('Failed to upload file to Google Drive. Please try again.', 'error')
-                # Clean up temporary file
-                try:
-                    os.remove(temp_file_path)
-                except Exception:
-                    pass
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            if not drive_file_id:
-                flash('Failed to upload file to Google Drive. Please try again.', 'error')
-                # Clean up temporary file
-                try:
-                    os.remove(temp_file_path)
-                except Exception:
-                    pass
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            # Bytes are in Drive now; the local copy is dead weight. Previously only the error
-            # branches cleaned up, so every successful upload leaked its staged file.
-            try:
-                os.remove(temp_file_path)
-            except OSError:
-                pass
 
-            # Try to set permissions, but don't fail if this doesn't work
-            if allow_others_to_view:
-                try:
-                    set_file_permissions(service, drive_file_id, make_public=True)
-                except Exception as e:
-                    current_app.logger.warning(f"Warning: Could not set file permissions: {e}")
-                    # Continue anyway - file is uploaded, just might have restricted permissions
-            
-            # Create view-only link
-            view_link = create_view_only_link(service, drive_file_id, is_image=False)
-            if not view_link:
-                flash('Failed to create view link.', 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            # Create content record
-            new_content = CourseContent(
-                course_id=course.id,
-                folder_id=int(file_folder_id) if file_folder_id else None,
-                title=file_title,
-                description=file_description,
-                content_type=detected_content_type,
-                content_data='',  # Not used for file content
-                allow_others_to_view=allow_others_to_view,
-                drive_file_id=drive_file_id,
-                drive_view_link=view_link,
-                is_published=is_published,
-                order=0,
-                created_at=datetime.now()
-            )
-            db.session.add(new_content)
-            db.session.commit()
-            
-            # Clean up temporary file
-            try:
-                os.remove(temp_file_path)
-            except Exception:
-                pass
-            
             flash('File uploaded successfully!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
@@ -847,7 +808,17 @@ def course_page_enrolled(course_id):
             if not content:
                 flash('Content not found.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
+
+            # An R2 object is always our own copy (direct upload or a Picker-imported copy),
+            # so its deletion is unconditional — unlike the Drive case below, which only
+            # deletes files the app itself uploaded, not ones just referenced from the
+            # teacher's own Drive.
+            if content.r2_key:
+                from lms import r2_client
+                r2_client.delete_object(content.r2_key)
+                if content.r2_preview_key:
+                    r2_client.delete_object(content.r2_preview_key)
+
             # Delete from Google Drive only if the app uploaded it (not imported from user's Drive)
             if content.drive_file_id and not content.is_imported:
                 service = authenticate()

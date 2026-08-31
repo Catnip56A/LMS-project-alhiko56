@@ -148,6 +148,9 @@ class Enrollment(db.Model):
     # Per-course teacher role — assigned by the course's creator or an admin (see
     # Course.is_managed_by). Replaces the old global User.is_teacher flag.
     is_teacher = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))
+    # Blocks this student from flagging video moments in this course (see VideoMomentFlag) —
+    # a teacher-set moderation flag, per-course like is_teacher, not a global ban.
+    moment_flags_blocked = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))
 
     __table_args__ = (db.UniqueConstraint('user_id', 'course_id', name='uq_enrollment_user_course'),)
 
@@ -332,8 +335,11 @@ class CourseContent(db.Model):
     description = db.Column(db.Text)
     content_type = db.Column(db.String(50), default='text')  # text, video, file, link
     content_data = db.Column(db.Text)  # URL, file path, or text content for non-file types
-    drive_file_id = db.Column(db.String(100))  # Google Drive file ID for file content
+    drive_file_id = db.Column(db.String(100))  # Google Drive file ID; provenance only once r2_key is set, never cleared
     drive_view_link = db.Column(db.String(300))  # Google Drive view link for file content
+    r2_key = db.Column(db.String(512))  # Object key in the R2 bucket; NULL = bytes not migrated to R2 yet
+    r2_preview_key = db.Column(db.String(512))  # Converted-to-PDF preview for Office docs the browser can't render raw (see lms/office_preview.py); NULL if the original is natively viewable
+    file_mime_type = db.Column(db.String(150))  # Sniffed/authoritative MIME type; NULL for legacy rows
     order = db.Column(db.Integer, default=0)
     is_published = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
@@ -341,6 +347,7 @@ class CourseContent(db.Model):
     is_imported = db.Column(db.Boolean, default=False)
     is_downloadable = db.Column(db.Boolean, default=False)
     embedded_at = db.Column(db.DateTime, nullable=True)  # Set once the RAG embedding sweep has indexed this item
+    transcript_language = db.Column(db.String(10), nullable=True)  # Whisper's detected language (e.g. 'en'/'ru'); NULL until transcribed, or for non-video/audio content
 
     course = db.relationship('Course', backref=db.backref('contents', lazy='dynamic'))
     folder_id = db.Column(db.Integer, db.ForeignKey('course_content_folder.id'), nullable=True)
@@ -348,6 +355,21 @@ class CourseContent(db.Model):
 
     def __repr__(self):
         return f'<CourseContent {self.title}>'
+
+    @property
+    def has_bytes(self):
+        """True if this row's file bytes are retrievable from some backend (R2 or Drive)."""
+        return bool(self.r2_key or self.drive_file_id)
+
+    @property
+    def storage_backend(self):
+        """'r2' | 'drive' | None. R2 wins when both are set — drive_file_id is retained as
+        provenance only once a row has been migrated, never cleared."""
+        if self.r2_key:
+            return 'r2'
+        if self.drive_file_id:
+            return 'drive'
+        return None
 
 
 class ContentEmbedding(db.Model):
@@ -357,6 +379,11 @@ class ContentEmbedding(db.Model):
     chunk_index = db.Column(db.Integer, nullable=False)
     chunk_text = db.Column(db.Text, nullable=False)
     embedding = db.Column(Vector(EMBEDDING_DIMENSIONS), nullable=False)
+    # Only set for chunks produced from timestamped video/audio transcripts (see
+    # rag_service.chunk_segments_by_time) — NULL for plain text/PDF/DOCX/PPTX chunks, which
+    # have no time axis. Lets Ask AI citations point at a moment in a video, not just the file.
+    start_seconds = db.Column(db.Float, nullable=True)
+    end_seconds = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     course_content = db.relationship(
@@ -370,6 +397,109 @@ class ContentEmbedding(db.Model):
 
     def __repr__(self):
         return f'<ContentEmbedding content={self.course_content_id} chunk={self.chunk_index}>'
+
+
+class VideoMomentFlag(db.Model):
+    """One raw signal — an automatic keyword hit or a student click — that a moment in a
+    video might be worth highlighting (Phase 6 addendum, video moment highlighting).
+
+    Append-only audit log, deliberately kept separate from VideoMoment (the promoted,
+    citable artifact): this table is high-volume and never mutated, while VideoMoment is
+    low-volume and has real state (caption, status, retry count). Collapsing them would mean
+    a spam-flag delete could risk an already-embedded caption, and would make "a student
+    clicked" indistinguishable from "a citable artifact exists".
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    course_content_id = db.Column(db.Integer, db.ForeignKey('course_content.id'), nullable=False)
+    timestamp_seconds = db.Column(db.Float, nullable=False)
+    # floor(timestamp_seconds / SEGMENT_CHUNK_WINDOW_SECONDS) — see moment_service.bucket_for.
+    # Stored (not computed at query time) so "one flag per student per moment" can be a plain
+    # DB unique constraint below, and weight a plain indexed GROUP BY.
+    bucket_index = db.Column(db.Integer, nullable=False)
+    source = db.Column(db.String(20), nullable=False)  # 'auto' | 'student'
+    added_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # NULL for source='auto'
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    course_content = db.relationship(
+        'CourseContent',
+        backref=db.backref('moment_flags', lazy='dynamic', cascade='all, delete-orphan'),
+    )
+
+    __table_args__ = (
+        # The real anti-spam primitive: one flag per student per bucket per video, enforced by
+        # Postgres. Does NOT dedupe source='auto' rows (added_by is NULL for all of them, and
+        # Postgres treats NULLs as distinct in a unique constraint) — auto idempotency is
+        # instead handled by delete-and-reinsert in moment_service.record_auto_moments.
+        db.UniqueConstraint('course_content_id', 'bucket_index', 'added_by', name='uq_video_moment_flag_bucket_user'),
+        db.Index('idx_video_moment_flag_bucket', 'course_content_id', 'bucket_index'),
+    )
+
+    def __repr__(self):
+        return f'<VideoMomentFlag content={self.course_content_id} bucket={self.bucket_index} source={self.source}>'
+
+
+class VideoMoment(db.Model):
+    """A promoted, citable moment in a video — created once a VideoMomentFlag bucket crosses
+    its course's weighting threshold (or a teacher flags it directly). Captioned via AI vision
+    once, then re-embedded into ContentEmbedding on every reindex without another API call.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    course_content_id = db.Column(db.Integer, db.ForeignKey('course_content.id'), nullable=False)
+    # The bucket this moment claims — identity for the sweep's anti-join and for teacher
+    # blocking. timestamp_seconds is the refined payload (may differ from the bucket's
+    # nominal start once the frame-analysis pass picks an exact moment within it).
+    bucket_index = db.Column(db.Integer, nullable=False)
+    timestamp_seconds = db.Column(db.Float, nullable=False)
+    weight_at_promotion = db.Column(db.Integer, nullable=False, default=0)
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending | captioned | failed | blocked
+    caption = db.Column(db.Text, nullable=True)
+    frame_phash = db.Column(db.String(32), nullable=True)
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+    last_attempt_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    captioned_at = db.Column(db.DateTime, nullable=True)
+
+    course_content = db.relationship(
+        'CourseContent',
+        backref=db.backref('moments', lazy='dynamic', cascade='all, delete-orphan'),
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint('course_content_id', 'bucket_index', name='uq_video_moment_bucket'),
+    )
+
+    def __repr__(self):
+        return f'<VideoMoment content={self.course_content_id} bucket={self.bucket_index} status={self.status}>'
+
+
+class TranscriptSegment(db.Model):
+    """One Whisper-transcribed segment (~2-8s) of a video/audio CourseContent's spoken
+    audio, persisted specifically for subtitle generation (see lms/subtitle_service.py).
+    embed_content_item's own RAG chunking (chunk_segments_by_time) collapses the same
+    segments into much coarser ~45s windows for retrieval — that's the right grain for
+    citations, but far too coarse for subtitles, which need this original per-segment
+    timing. Populated as a side effect of transcription in embed_content_item; deleted and
+    re-inserted on every reindex, mirroring ContentEmbedding's own idempotency pattern.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    course_content_id = db.Column(db.Integer, db.ForeignKey('course_content.id'), nullable=False)
+    segment_index = db.Column(db.Integer, nullable=False)
+    start_seconds = db.Column(db.Float, nullable=False)
+    end_seconds = db.Column(db.Float, nullable=False)
+    text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    course_content = db.relationship(
+        'CourseContent',
+        backref=db.backref('transcript_segments', lazy='dynamic', cascade='all, delete-orphan'),
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint('course_content_id', 'segment_index', name='uq_transcript_segment_index'),
+    )
+
+    def __repr__(self):
+        return f'<TranscriptSegment content={self.course_content_id} idx={self.segment_index}>'
 
 
 class AiConversation(db.Model):

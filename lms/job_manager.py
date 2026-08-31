@@ -21,19 +21,36 @@ TRANSLATION_SWEEP_INTERVAL_HOURS = 24
 
 # Recurring RAG-embedding sweep (Phase 6) — catches CourseContent items that were created
 # through any of the app's many content-creation paths (uploads, Drive imports, picker
-# import, etc.) without needing a job-queue hook at every one of those call sites. Runs far
-# more often than the translation sweep since new material should become askable quickly,
-# but processes in small batches so one run can't monopolize the worker or blow through the
-# Gemini free-tier rate limit.
+# import, etc.). Runs far more often than the translation sweep since new material should
+# become askable quickly, but processes in small batches so one run can't monopolize the
+# worker or blow through the Gemini free-tier rate limit.
+#
+# Two triggers, whichever comes first — the same "threshold + interval" split already used
+# for the translation pipeline: the interval below is the ceiling on latency when nothing's
+# happening; record_content_update() (called from every content-creation call site) is the
+# "threshold" side, immediately jumping the recurring job's next run to now once
+# CONTENT_UPDATE_TRIGGER_COUNT items have accumulated, instead of making a teacher wait out
+# the full interval after a batch of uploads.
 EMBEDDING_SWEEP_JOB_ID = 'embedding-sweep-recurring'
-EMBEDDING_SWEEP_INTERVAL_MINUTES = 10
+EMBEDDING_SWEEP_INTERVAL_MINUTES = 30
 EMBEDDING_SWEEP_BATCH_SIZE = 20
+CONTENT_UPDATE_TRIGGER_COUNT = 3
+CONTENT_UPDATE_COUNTER_KEY = 'embedding_sweep_pending_update_count'
 
 # Recurring purge of "Ask AI" conversations the user hasn't consented to keep (see
 # rag_service.purge_stale_conversations) — daily is plenty since the retention window is 30
 # days; nothing time-sensitive about exactly when within a day it runs.
 CONVERSATION_PURGE_JOB_ID = 'conversation-purge-recurring'
 CONVERSATION_PURGE_INTERVAL_HOURS = 24
+
+# Recurring promotion of flagged video moments (Phase 6 addendum, video moment
+# highlighting) — see moment_service.promote_pending_moments. Deliberately slower and
+# smaller-batched than the embedding sweep: each promotion downloads a whole video to
+# extract a frame and spends a Gemini vision call, and this shares the single worker with
+# Whisper transcription (which can run 10+ minutes on one lecture).
+MOMENT_PROMOTION_JOB_ID = 'moment-promotion-recurring'
+MOMENT_PROMOTION_INTERVAL_MINUTES = 30
+MOMENT_PROMOTION_BATCH_SIZE = 5
 
 
 class JobStatus:
@@ -147,6 +164,8 @@ def _execute_job(job: 'BackgroundJob'):
             result = _execute_embed_course_content_job(job)
         elif job.type == 'embed_course':
             result = _execute_embed_course_job(job)
+        elif job.type == 'promote_moments':
+            result = _execute_promote_moments_job(job)
         else:
             raise ValueError(f"Unknown job type: {job.type}")
 
@@ -303,12 +322,60 @@ def _execute_embed_course_job(job):
     return stats
 
 
+def _execute_promote_moments_job(job):
+    """Promote and caption this course's flagged video moments right now, instead of waiting
+    up to MOMENT_PROMOTION_INTERVAL_MINUTES for the recurring sweep — the manual admin
+    "Promote flagged moments" trigger next to "Reindex course content"."""
+    from lms.models import Course
+    from lms.moment_service import promote_pending_moments
+
+    course_id = (job.data or {}).get('course_id')
+    course = Course.query.get(course_id) if course_id else None
+    if not course:
+        raise ValueError(f"promote_moments job {job.id}: course {course_id!r} not found")
+
+    stats = promote_pending_moments(limit=MOMENT_PROMOTION_BATCH_SIZE, course_id=course.id)
+    job.message = (
+        f"Promoted {stats['promoted']}, captioned {stats['captioned']}, "
+        f"failed {stats['failed']} ({stats['vision_calls']} vision call(s))."
+    )
+    job.save()
+    return stats
+
+
+def record_content_update():
+    """Call this right after a CourseContent row is created (upload, Picker import — not the
+    one-off backfill script). This is the "threshold" trigger for the embedding sweep: once
+    CONTENT_UPDATE_TRIGGER_COUNT items have accumulated since the last sweep run, immediately
+    reschedule the recurring sweep's next run to now, rather than making new material wait
+    out the full interval. Reset in run_scheduled_embedding_sweep, at the start of a run (not
+    in `finally`) so updates landing while a sweep is in flight still count toward the next
+    batch instead of being silently dropped.
+    """
+    from lms.models import AppSetting
+
+    setting = AppSetting.query.filter_by(key=CONTENT_UPDATE_COUNTER_KEY).first()
+    count = (int(setting.value) if setting else 0) + 1
+    if setting:
+        setting.value = str(count)
+    else:
+        db.session.add(AppSetting(key=CONTENT_UPDATE_COUNTER_KEY, value=str(count)))
+    db.session.commit()
+
+    if count >= CONTENT_UPDATE_TRIGGER_COUNT:
+        from lms.queue import job_queue
+        job_queue.enqueue_in(timedelta(seconds=0), run_scheduled_embedding_sweep, job_id=EMBEDDING_SWEEP_JOB_ID)
+        logger.info(f"Embedding sweep triggered early: {count} content update(s) accumulated")
+
+
 def run_scheduled_embedding_sweep():
-    """RQ scheduler entrypoint for the recurring embedding sweep (the "interval" trigger —
-    see the module-level comment above EMBEDDING_SWEEP_JOB_ID for why this exists instead of
-    a per-creation-site hook). Re-enqueues itself under the same job_id when done."""
+    """RQ scheduler entrypoint for the recurring embedding sweep — the "interval" trigger; see
+    the module-level comment above EMBEDDING_SWEEP_JOB_ID for the threshold-trigger half
+    (record_content_update). Re-enqueues itself under the same job_id when done — the fixed
+    job_id is also what lets record_content_update's early trigger simply reschedule this
+    same chain to fire now, rather than spawning a parallel one."""
     import uuid
-    from lms.models import CourseContent
+    from lms.models import AppSetting, CourseContent
     from lms.queue import job_queue
     from lms.rag_service import embed_content_item
 
@@ -318,6 +385,11 @@ def run_scheduled_embedding_sweep():
     db.session.add(job_model)
     db.session.commit()
     job = BackgroundJob(job_model)
+
+    counter = AppSetting.query.filter_by(key=CONTENT_UPDATE_COUNTER_KEY).first()
+    if counter and counter.value != '0':
+        counter.value = '0'
+        db.session.commit()
 
     stats = {'items': 0, 'chunks': 0}
     try:
@@ -373,6 +445,66 @@ def ensure_embedding_sweep_scheduled():
         job_id=EMBEDDING_SWEEP_JOB_ID,
     )
     logger.info(f"Bootstrapped recurring embedding sweep (every {EMBEDDING_SWEEP_INTERVAL_MINUTES}m)")
+
+
+def run_scheduled_moment_promotion():
+    """RQ scheduler entrypoint for the recurring video-moment promotion sweep — see
+    moment_service.promote_pending_moments. Re-enqueues itself under the same job_id when
+    done, same pattern as run_scheduled_embedding_sweep."""
+    import uuid
+    from lms.queue import job_queue
+    from lms.moment_service import promote_pending_moments
+
+    job_id = str(uuid.uuid4())
+    job_model = BackgroundJobModel(id=job_id, type='promote_video_moments', status=JobStatus.RUNNING, message='', error='')
+    job_model.started_at = datetime.now()
+    db.session.add(job_model)
+    db.session.commit()
+    job = BackgroundJob(job_model)
+
+    try:
+        stats = promote_pending_moments(limit=MOMENT_PROMOTION_BATCH_SIZE)
+        job.status = JobStatus.COMPLETED
+        job.result = stats
+        job.progress = 100
+        job.message = (
+            f"Promoted {stats['promoted']}, captioned {stats['captioned']}, "
+            f"failed {stats['failed']} ({stats['vision_calls']} vision call(s), "
+            f"{stats['videos_downloaded']} video(s) downloaded)."
+        )
+        job.completed_at = datetime.now()
+        job.save()
+    except Exception as e:
+        logger.error(f"Moment promotion sweep failed: {e}")
+        job.status = JobStatus.FAILED
+        job.error = str(e)
+        job.completed_at = datetime.now()
+        job.save()
+    finally:
+        job_queue.enqueue_in(
+            timedelta(minutes=MOMENT_PROMOTION_INTERVAL_MINUTES),
+            run_scheduled_moment_promotion,
+            job_id=MOMENT_PROMOTION_JOB_ID,
+        )
+
+
+def ensure_moment_promotion_scheduled():
+    """Bootstrap the recurring moment-promotion sweep. Idempotent — safe to call on every
+    worker startup, same pattern as ensure_embedding_sweep_scheduled."""
+    from rq.registry import ScheduledJobRegistry
+    from lms.queue import job_queue
+
+    registry = ScheduledJobRegistry(queue=job_queue)
+    if MOMENT_PROMOTION_JOB_ID in registry.get_job_ids():
+        logger.info("Moment promotion sweep already scheduled, skipping bootstrap")
+        return
+
+    job_queue.enqueue_in(
+        timedelta(minutes=1),
+        run_scheduled_moment_promotion,
+        job_id=MOMENT_PROMOTION_JOB_ID,
+    )
+    logger.info(f"Bootstrapped recurring moment promotion sweep (every {MOMENT_PROMOTION_INTERVAL_MINUTES}m)")
 
 
 def run_scheduled_conversation_purge():

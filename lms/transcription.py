@@ -18,6 +18,14 @@ logger = logging.getLogger(__name__)
 # viable without a GPU. Both overridable via env.
 DEFAULT_MODEL_SIZE = os.environ.get('WHISPER_MODEL_SIZE', 'small')
 DEFAULT_COMPUTE_TYPE = os.environ.get('WHISPER_COMPUTE_TYPE', 'int8')
+# 0 = let CTranslate2 auto-detect from visible core count — the right default locally (uses
+# every dev-machine core). On a real 2-vCPU box this under-performs: `docker update --cpus`
+# throttles CPU *time* but not visible core count, so the auto-sized thread pool still spawns
+# for every logical core and fights over the real 2-core budget. Measured on a genuine 2-CPU
+# cap: 2.1x slower than 16-core, not the naive ~8x — but pinning the thread count to the real
+# vCPU count removes that oversubscription overhead. Set explicitly per-environment, never
+# hardcoded, so this never silently throttles a dev machine with more cores.
+CPU_THREADS = int(os.environ.get('WHISPER_CPU_THREADS', 0))
 # Deliberately a runtime download into a mounted volume, not baked into the image —
 # models run 75MB-3GB and the image ships through GHCR on every deploy.
 # Defaults to a repo-relative path so `just dev` (which runs outside Docker) works; the
@@ -56,6 +64,7 @@ def _get_model():
             device='cpu',
             compute_type=DEFAULT_COMPUTE_TYPE,
             download_root=MODEL_CACHE_DIR,
+            cpu_threads=CPU_THREADS,
         )
         logger.info(f"Whisper model '{DEFAULT_MODEL_SIZE}' ready")
     return _model
@@ -72,12 +81,14 @@ def unload_model() -> None:
             logger.info('Whisper model unloaded')
 
 
-def transcribe_with_timestamps(file_path: str, language: str | None = None) -> list[dict] | None:
+def transcribe_with_timestamps(file_path: str, language: str | None = None) -> tuple[list[dict] | None, str | None]:
     """Transcribe an audio/video file into timestamped segments.
 
-    Returns a list of {'start': float_seconds, 'end': float_seconds, 'text': str},
-    or None if transcription failed. Only the audio stream is decoded — video frames
-    are never touched.
+    Returns (segments, detected_language) — segments is a list of {'start': float_seconds,
+    'end': float_seconds, 'text': str}, or (None, None) if transcription failed.
+    detected_language is Whisper's own language code (e.g. 'en'/'ru'), surfaced so callers
+    can label subtitle tracks correctly without a second detection pass. Only the audio
+    stream is decoded — video frames are never touched.
     """
     try:
         model = _get_model()
@@ -93,14 +104,12 @@ def transcribe_with_timestamps(file_path: str, language: str | None = None) -> l
             for s in segments
             if s.text and s.text.strip()
         ]
-        logger.info(
-            f"Transcribed {file_path}: {len(result)} segments, "
-            f"detected language={getattr(info, 'language', '?')}"
-        )
-        return result
+        detected_language = getattr(info, 'language', None)
+        logger.info(f"Transcribed {file_path}: {len(result)} segments, detected language={detected_language or '?'}")
+        return result, detected_language
     except Exception as e:
         logger.error(f"Whisper transcription failed for {file_path}: {e}")
-        return None
+        return None, None
     finally:
         if not KEEP_MODEL_LOADED:
             unload_model()

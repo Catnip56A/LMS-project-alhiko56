@@ -1,6 +1,7 @@
 """
 API routes for courses, forum, and resources
 """
+import math
 import os
 import re
 import requests
@@ -10,7 +11,7 @@ from flask_login import current_user, login_required
 from lms.extensions import limiter
 from lms.models import Course, ForumMessage, ForumChannel, PDFDocument, Translation, db
 from lms.translation_service import translation_service
-from lms.google_drive_service import authenticate, create_view_only_link, set_file_permissions
+from lms.google_drive_service import authenticate
 from lms.upload_validation import validate_upload, UploadValidationError, PDF_MIME_TYPES, content_type_for_mime
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -700,6 +701,52 @@ def set_user_language():
         'preferred_language': current_user.preferred_language
     })
 
+def _content_media_url(content, *, download=False):
+    """Resolve the URL a client should be redirected to for a CourseContent item's bytes.
+
+    R2 wins when content.r2_key is set (see CourseContent.storage_backend); Drive's
+    extension-based URL variants are the fallback for anything not yet migrated, so
+    un-migrated rows keep working unchanged while the backfill runs incrementally.
+
+    Drive needs three different serving hosts depending on file type; R2 needs exactly one
+    URL for every media type, since the object's own stored Content-Type governs rendering.
+
+    For embedding (download=False), an Office document (.doc/.docx/.ppt/.pptx/.xls/.xlsx)
+    with a generated r2_preview_key is served as that converted PDF instead of the raw
+    original — browsers have no native renderer for Office formats (see
+    lms/office_preview.py). Downloads always get the original file, never the converted copy.
+    """
+    from lms import r2_client
+
+    if not download and content.r2_preview_key:
+        return r2_client.generate_presigned_url(content.r2_preview_key)
+
+    if content.r2_key:
+        disposition = None
+        if download:
+            # The key's basename is a fixed-width 32-hex-char uuid, a dash, then the
+            # original filename (which may itself contain dashes) — see
+            # r2_client.build_content_key. Slice past the uuid+dash rather than splitting on
+            # '-', so a filename like "my-video-file.mp4" survives intact.
+            basename = content.r2_key.rsplit('/', 1)[-1]
+            original_name = basename[33:] if len(basename) > 33 and basename[32] == '-' else (content.title or 'download')
+            disposition = f'attachment; filename="{original_name}"'
+        return r2_client.generate_presigned_url(content.r2_key, disposition=disposition)
+
+    if content.drive_file_id:
+        file_id = content.drive_file_id
+        if download:
+            return f'https://drive.google.com/uc?export=download&id={file_id}'
+        title_lower = (content.title or '').lower()
+        if any(ext in title_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']):
+            return f'https://lh3.googleusercontent.com/d/{file_id}'
+        if any(ext in title_lower for ext in ['.mp3', '.wav', '.ogg', '.m4a', '.aac']):
+            return f'https://drive.google.com/uc?export=view&id={file_id}'
+        return f'https://drive.google.com/file/d/{file_id}/preview'
+
+    return None
+
+
 @api_bp.route('/file/<file_id>')
 @login_required
 def serve_file(file_id):
@@ -778,11 +825,20 @@ def serve_file(file_id):
                               content_id=course_content.id,
                               file_title=file_title,
                               file_type=file_type,
+                              file_mime_type=None,
+                              start_seconds=None,
                               back_url=back_url,
-                              current_user=current_user)
+                              current_user=current_user,
+                              is_manager=is_manager,
+                              course_id=course_content.course_id,
+                              has_subtitles=False,
+                              subtitle_language=None)
 
-    
+
     # For other files (submissions, PDFs, etc.), redirect to the drive_view_link
+    # Note: this route looks records up by drive_file_id, so R2-only CourseContent rows
+    # never reach it and no template links course content here — it's now legacy-only for
+    # CourseContent, still live for CourseAssignmentSubmission/PDFDocument.
     if hasattr(file_record, 'drive_view_link') and file_record.drive_view_link:
         return redirect(file_record.drive_view_link)
     
@@ -812,27 +868,53 @@ def serve_content_by_db_id(content_id):
     # 'video' is set by content-sniffing on upload/import (see upload_validation); it must
     # render in the in-app viewer like 'file' does, otherwise it falls through to a raw Drive
     # redirect that exposes the file id this route exists to hide.
-    if content.content_type in ('file', 'video') and content.drive_file_id:
+    if content.content_type in ('file', 'video') and content.has_bytes:
         file_title = content.title
         back_url = url_for('main.course_page_enrolled', course_id=content.course_id)
-        file_type = 'video' if content.content_type == 'video' else 'document'
-        title_lower = file_title.lower()
-        if content.content_type == 'video':
-            pass  # already resolved from sniffed bytes; don't let a title guess override it
-        elif any(ext in title_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']):
-            file_type = 'image'
-        elif any(ext in title_lower for ext in ['.mp3', '.wav', '.ogg', '.m4a', '.aac']):
-            file_type = 'audio'
-        elif any(ext in title_lower for ext in ['.mp4', '.webm', '.ogv', '.mov', '.avi']):
-            file_type = 'video'
-        elif any(ext in title_lower for ext in ['.zip', '.rar', '.7z', '.tar', '.gz']):
-            file_type = 'unsupported'
+        mime = content.file_mime_type or ''
+        if mime:
+            if mime.startswith('video/'):
+                file_type = 'video'
+            elif mime.startswith('audio/'):
+                file_type = 'audio'
+            elif mime.startswith('image/'):
+                file_type = 'image'
+            elif mime in ('application/zip', 'application/x-rar-compressed', 'application/x-rar'):
+                file_type = 'unsupported'
+            else:
+                file_type = 'document'
+        else:
+            # Legacy row with no sniffed MIME on record — fall back to guessing from the title.
+            file_type = 'video' if content.content_type == 'video' else 'document'
+            title_lower = file_title.lower()
+            if content.content_type == 'video':
+                pass  # already resolved from sniffed bytes; don't let a title guess override it
+            elif any(ext in title_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']):
+                file_type = 'image'
+            elif any(ext in title_lower for ext in ['.mp3', '.wav', '.ogg', '.m4a', '.aac']):
+                file_type = 'audio'
+            elif any(ext in title_lower for ext in ['.mp4', '.webm', '.ogv', '.mov', '.avi']):
+                file_type = 'video'
+            elif any(ext in title_lower for ext in ['.zip', '.rar', '.7z', '.tar', '.gz']):
+                file_type = 'unsupported'
+
+        start_seconds = request.args.get('t', type=float)
+        if start_seconds is not None and (start_seconds < 0 or not math.isfinite(start_seconds)):
+            start_seconds = None
+
+        from lms.subtitle_service import has_subtitles
         return render_template('file_viewer.html',
                                content_id=content_id,
                                file_title=file_title,
                                file_type=file_type,
+                               file_mime_type=content.file_mime_type,
+                               start_seconds=start_seconds,
                                back_url=back_url,
-                               current_user=current_user)
+                               current_user=current_user,
+                               is_manager=is_manager,
+                               course_id=content.course_id,
+                               has_subtitles=file_type in ('video', 'audio') and has_subtitles(content.id),
+                               subtitle_language=content.transcript_language)
 
     if content.drive_view_link:
         return redirect(content.drive_view_link)
@@ -841,15 +923,18 @@ def serve_content_by_db_id(content_id):
     return redirect(url_for('main.index', error='file_not_found'))
 
 
-@api_bp.route('/file/c/<int:content_id>/embed')
+@api_bp.route('/file/c/<int:content_id>/subtitles.vtt')
 @login_required
-def serve_content_embed(content_id):
-    """Redirect to the Drive embed URL without exposing the Drive file ID in page HTML."""
-    from lms.models import CourseContent, Course
-    from flask import redirect, abort
+def serve_content_subtitles(content_id):
+    """WebVTT subtitles built on the fly from this content's stored TranscriptSegment rows
+    (see subtitle_service.py) — same permission gate as the embed route, since subtitles
+    reveal the same spoken content the video/audio itself already would."""
+    from flask import abort
+    from lms.models import CourseContent
+    from lms.subtitle_service import generate_vtt
 
     content = CourseContent.query.get(content_id)
-    if not content or not content.drive_file_id:
+    if not content:
         abort(404)
 
     course = Course.query.get(content.course_id)
@@ -860,13 +945,41 @@ def serve_content_embed(content_id):
     if not content.is_published and not is_manager:
         abort(403)
 
-    file_id = content.drive_file_id
-    title_lower = (content.title or '').lower()
-    if any(ext in title_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']):
-        return redirect(f'https://lh3.googleusercontent.com/d/{file_id}')
-    if any(ext in title_lower for ext in ['.mp3', '.wav', '.ogg', '.m4a', '.aac']):
-        return redirect(f'https://drive.google.com/uc?export=view&id={file_id}')
-    return redirect(f'https://drive.google.com/file/d/{file_id}/preview')
+    vtt = generate_vtt(content)
+    if vtt is None:
+        abort(404)
+    return Response(vtt, mimetype='text/vtt')
+
+
+@api_bp.route('/file/c/<int:content_id>/embed')
+@login_required
+def serve_content_embed(content_id):
+    """Redirect to the file's actual bytes (an R2 presigned URL or a Drive embed URL)
+    without exposing the storage-backend file ID in page HTML."""
+    from lms.models import CourseContent, Course
+    from flask import redirect, abort
+
+    content = CourseContent.query.get(content_id)
+    if not content or not content.has_bytes:
+        abort(404)
+
+    course = Course.query.get(content.course_id)
+    is_manager = course.is_managed_by(current_user) if course else False
+    is_enrolled = course and current_user in course.users
+    if not (is_manager or is_enrolled):
+        abort(403)
+    if not content.is_published and not is_manager:
+        abort(403)
+
+    url = _content_media_url(content)
+    if not url:
+        abort(404)
+    resp = redirect(url)
+    # A presigned URL is only valid for a limited window — without no-store, a browser/bfcache
+    # could replay one after it expires (e.g. a tab left open past R2_URL_EXPIRY_SECONDS),
+    # producing a confusing mid-video 403 instead of a fresh redirect on the next load.
+    resp.headers['Cache-Control'] = 'private, no-store'
+    return resp
 
 
 @api_bp.route('/file/c/<int:content_id>/download')
@@ -890,8 +1003,10 @@ def download_content_by_db_id(content_id):
     if not content.is_published and not is_manager:
         return redirect(url_for('main.index', error='auth_required'))
 
-    if content.drive_file_id:
-        return redirect(f'https://drive.google.com/uc?export=download&id={content.drive_file_id}')
+    if content.has_bytes:
+        url = _content_media_url(content, download=True)
+        if url:
+            return redirect(url)
 
     return redirect(url_for('main.index', error='file_not_found'))
 
@@ -918,16 +1033,80 @@ def get_drive_picker_token():
     return jsonify({'access_token': current_user.google_access_token}), 200
 
 
+_GOOGLE_NATIVE_MIME_PREFIX = 'application/vnd.google-apps.'
+
+
+def _copy_drive_file_to_r2(service, file_id, course_id, name, mime, resource_key=None, size_hint=None):
+    """Download a Picker-selected Drive file's bytes and copy them into R2.
+
+    Returns (r2_key, effective_mime, r2_preview_key) on success, or (None, reason, None) on
+    failure/skip — `reason` is a short, user-facing string explaining why (e.g. 'google_doc',
+    'too_large', 'download_failed'). Google-native Docs/Sheets/Slides have no raw file bytes to
+    copy and are skipped rather than exported, per the deliberate scope decision for this
+    feature. `r2_preview_key` is set only for Office documents needing a converted PDF preview
+    to be viewable at all (see lms/office_preview.py) — None for everything else.
+
+    This runs synchronously inside a web request, behind gunicorn's 600s timeout — `size_hint`
+    (Drive's own declared file size, when the caller has it) lets an oversized file be rejected
+    before spending time downloading it at all.
+    """
+    import tempfile
+    import filetype as _filetype
+    from lms import office_preview, r2_client
+    from lms.routes import UPLOAD_STAGING_DIR
+    from lms.google_drive_service import download_file as _drive_download
+
+    if mime and mime.startswith(_GOOGLE_NATIVE_MIME_PREFIX):
+        return None, 'google_doc', None
+
+    max_bytes = current_app.config.get('MAX_CONTENT_LENGTH')
+    if max_bytes and size_hint:
+        try:
+            if int(size_hint) > max_bytes:
+                return None, 'too_large', None
+        except (TypeError, ValueError):
+            pass
+
+    os.makedirs(UPLOAD_STAGING_DIR, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(dir=UPLOAD_STAGING_DIR)
+    os.close(fd)
+    try:
+        if not _drive_download(service, file_id, tmp_path, resource_key=resource_key):
+            return None, 'download_failed', None
+
+        if max_bytes and os.path.getsize(tmp_path) > max_bytes:
+            return None, 'too_large', None
+
+        effective_mime = mime
+        if not effective_mime or effective_mime == 'application/octet-stream':
+            kind = _filetype.guess(tmp_path)
+            effective_mime = kind.mime if kind else effective_mime
+
+        key = r2_client.build_content_key(course_id, name)
+        if not r2_client.upload_file(tmp_path, key, content_type=effective_mime, filename=name):
+            return None, 'upload_failed', None
+
+        preview_key = office_preview.generate_and_upload_preview(tmp_path, effective_mime, key)
+        return key, effective_mime, preview_key
+    finally:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+
+
 def _import_drive_tree(service, structure, course_id, parent_folder_id, published, allow_view, order_ref):
-    """Recursively mirror a Drive folder tree into CourseContentFolder / CourseContent rows.
+    """Recursively mirror a Drive folder tree into CourseContentFolder / CourseContent rows,
+    copying each file's bytes into R2 along the way (see _copy_drive_file_to_r2).
 
     order_ref is a one-element list [int] used as a mutable counter shared across calls.
-    Returns the total number of file rows created.
+    Returns (created, skipped) counts.
     """
     from lms.models import CourseContent, CourseContentFolder
-    from lms.google_drive_service import import_drive_file as _import_file
+    from lms.google_drive_service import get_file_metadata as _gmeta
 
     created = 0
+    skipped = 0
 
     for folder_info in structure.get('folders', []):
         cf = CourseContentFolder(
@@ -939,23 +1118,36 @@ def _import_drive_tree(service, structure, course_id, parent_folder_id, publishe
         db.session.add(cf)
         db.session.flush()
         order_ref[0] += 1
-        created += _import_drive_tree(service, folder_info['structure'], course_id, cf.id, published, allow_view, order_ref)
+        sub_created, sub_skipped = _import_drive_tree(service, folder_info['structure'], course_id, cf.id, published, allow_view, order_ref)
+        created += sub_created
+        skipped += sub_skipped
 
     for file_info in structure.get('files', []):
-        file_data = _import_file(service, file_info['id'])
-        if not file_data or (isinstance(file_data, dict) and 'error' in file_data):
+        metadata = _gmeta(service, file_info['id'])
+        if isinstance(metadata, dict) and 'error' in metadata:
+            skipped += 1
             continue
-        view_link = file_data.get('view_link') or file_data.get('web_view_link', '')
+        mime = metadata.get('mimeType') or file_info.get('mime_type')
+        name = metadata.get('name') or file_info['name']
+        size_hint = metadata.get('size') or file_info.get('size')
+        key, effective_mime_or_reason, preview_key = _copy_drive_file_to_r2(service, file_info['id'], course_id, name, mime, size_hint=size_hint)
+        if not key:
+            current_app.logger.info(f"Skipped Picker import of '{name}': {effective_mime_or_reason}")
+            skipped += 1
+            continue
         item = CourseContent(
             course_id=course_id,
-            title=file_data.get('name', file_info['name']),
+            title=name,
             description='',
-            # Drive's own mimeType decides this — a lecture must land as 'video' or the RAG
-            # pipeline never transcribes it (see rag_service.extract_text_for_content).
-            content_type=content_type_for_mime(file_data.get('mime_type') or file_info.get('mime_type')),
-            content_data=view_link,
-            drive_file_id=file_data.get('file_id'),
-            drive_view_link=view_link,
+            # The copied bytes' own MIME decides this — a lecture must land as 'video' or the
+            # RAG pipeline never transcribes it (see rag_service.extract_text_for_content).
+            content_type=content_type_for_mime(effective_mime_or_reason),
+            content_data='',
+            r2_key=key,
+            r2_preview_key=preview_key,
+            file_mime_type=effective_mime_or_reason,
+            drive_file_id=file_info['id'],  # provenance only — serving/RAG prefer r2_key
+            drive_view_link=None,
             order=order_ref[0],
             folder_id=parent_folder_id,
             is_published=published,
@@ -966,7 +1158,7 @@ def _import_drive_tree(service, structure, course_id, parent_folder_id, publishe
         order_ref[0] += 1
         created += 1
 
-    return created
+    return created, skipped
 
 
 @api_bp.route('/picker-import', methods=['POST'])
@@ -1033,14 +1225,19 @@ def picker_import():
             db.session.flush()
 
             order_ref = [1]
-            file_count = _import_drive_tree(service, structure, course.id, root_cf.id, published, allow_view, order_ref)
+            file_count, skipped_count = _import_drive_tree(service, structure, course.id, root_cf.id, published, allow_view, order_ref)
             db.session.commit()
+            if file_count:
+                from lms.job_manager import record_content_update
+                for _ in range(file_count):
+                    record_content_update()
 
             return jsonify({
                 'success': True,
                 'folder': True,
                 'folder_name': folder_name,
                 'imported_count': file_count,
+                'skipped_count': skipped_count,
             }), 200
 
         # Single file import
@@ -1048,21 +1245,33 @@ def picker_import():
         if isinstance(metadata, dict) and 'error' in metadata:
             return jsonify({'error': metadata['error']}), 400
 
-        if allow_view:
-            set_file_permissions(service, file_id, make_public=True, resource_key=resource_key)
-
-        is_image = mime_type.startswith('image/')
-        view_link = create_view_only_link(service, file_id, is_image)
+        # Drive's metadata is authoritative; the client-supplied mime_type is only a fallback.
+        effective_mime = metadata.get('mimeType') or mime_type
+        name = metadata.get('name') or file_name
+        key, effective_mime_or_reason, preview_key = _copy_drive_file_to_r2(
+            service, file_id, course.id, name, effective_mime, resource_key=resource_key, size_hint=metadata.get('size'),
+        )
+        if not key:
+            reason = effective_mime_or_reason
+            messages = {
+                'google_doc': 'Google Docs/Sheets/Slides can\'t be imported directly — download a copy (PDF/Office format) from Drive and upload that instead.',
+                'too_large': 'This file is too large to import.',
+                'download_failed': 'Could not download the selected file from Google Drive.',
+                'upload_failed': 'Could not copy the selected file into storage.',
+            }
+            return jsonify({'error': messages.get(reason, 'Import failed.')}), 400
 
         content = CourseContent(
             course_id=course.id,
-            title=title or metadata.get('name', file_name),
+            title=title or name,
             description='',
-            # Drive's metadata is authoritative; the client-supplied mime_type is only a fallback.
-            content_type=content_type_for_mime(metadata.get('mimeType') or mime_type),
-            content_data=view_link,
-            drive_file_id=file_id,
-            drive_view_link=view_link,
+            content_type=content_type_for_mime(effective_mime_or_reason),
+            content_data='',
+            r2_key=key,
+            r2_preview_key=preview_key,
+            file_mime_type=effective_mime_or_reason,
+            drive_file_id=file_id,  # provenance only — serving/RAG prefer r2_key
+            drive_view_link=None,
             order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
             folder_id=int(folder_id) if folder_id else None,
             is_published=published,
@@ -1071,6 +1280,8 @@ def picker_import():
         )
         db.session.add(content)
         db.session.commit()
+        from lms.job_manager import record_content_update
+        record_content_update()
 
         return jsonify({'success': True, 'content_id': content.id, 'title': content.title}), 200
 
@@ -1179,6 +1390,267 @@ def _is_site_admin():
     return current_user.is_authenticated and current_user.is_admin
 
 
+def _moment_flag_rate_key():
+    """Per-user, not per-IP: a whole cohort watching the same lecture from one campus
+    network is the intended signal for video-moment flagging, not abuse — get_remote_address
+    (the shared limiter's default) would throttle the very convergence the weighting relies
+    on. Falls back to IP only for the (route-blocked, but defensive) unauthenticated case."""
+    if current_user.is_authenticated:
+        return f'user:{current_user.id}'
+    from flask_limiter.util import get_remote_address
+    return get_remote_address()
+
+
+@api_bp.route('/content/<int:content_id>/moment-flag', methods=['POST'])
+@login_required
+@limiter.limit("6 per minute", key_func=_moment_flag_rate_key)
+@limiter.limit("60 per day", key_func=_moment_flag_rate_key, exempt_when=_is_site_admin)
+def flag_video_moment(content_id):
+    """Student (or teacher) marks the video's current playback position as worth
+    highlighting (video moment highlighting, Phase 6 addendum). A teacher's own flag
+    instantly queues that moment for captioning, bypassing the weight threshold — see the
+    fast-path below; a student's flag just contributes one vote, counted at most once per
+    account per ~45s bucket (enforced by a DB unique constraint, not application logic)."""
+    from sqlalchemy.exc import IntegrityError
+    from lms.models import ContentEmbedding, CourseContent, Enrollment, VideoMoment, VideoMomentFlag
+    from lms.moment_service import bucket_for
+    from lms.rag_service import SEGMENT_CHUNK_WINDOW_SECONDS
+
+    content = CourseContent.query.get(content_id)
+    if not content:
+        return jsonify({'error': 'Content not found'}), 404
+
+    course = Course.query.get(content.course_id)
+    is_manager = course.is_managed_by(current_user) if course else False
+    is_enrolled = course and current_user in course.users
+    if not (is_manager or is_enrolled):
+        return jsonify({'error': 'forbidden'}), 403
+    if not content.is_published and not is_manager:
+        return jsonify({'error': 'forbidden'}), 403
+
+    if content.content_type != 'video' or not content.has_bytes:
+        return jsonify({'error': 'This content cannot be flagged.'}), 400
+
+    data = request.get_json(silent=True) or {}
+    timestamp_seconds = data.get('timestamp_seconds')
+    try:
+        timestamp_seconds = float(timestamp_seconds)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'timestamp_seconds is required'}), 400
+    if not math.isfinite(timestamp_seconds) or timestamp_seconds < 0:
+        return jsonify({'error': 'Invalid timestamp'}), 400
+
+    # Bound against the transcript's own known extent when available (exact); otherwise a
+    # generous sanity ceiling — an untranscribed video has no moments worth promoting yet
+    # regardless, so a loose bound here costs nothing.
+    known_end = (
+        db.session.query(db.func.max(ContentEmbedding.end_seconds))
+        .filter_by(course_content_id=content.id).scalar()
+    )
+    max_allowed = (known_end + SEGMENT_CHUNK_WINDOW_SECONDS) if known_end else 24 * 3600
+    if timestamp_seconds > max_allowed:
+        return jsonify({'error': 'Invalid timestamp'}), 400
+
+    if not is_manager:
+        enrollment = Enrollment.query.filter_by(user_id=current_user.id, course_id=course.id).first()
+        if enrollment and enrollment.moment_flags_blocked:
+            return jsonify({'error': 'forbidden'}), 403
+
+    bucket = bucket_for(timestamp_seconds)
+
+    blocked_moment = VideoMoment.query.filter_by(
+        course_content_id=content.id, bucket_index=bucket, status='blocked',
+    ).first()
+    if blocked_moment:
+        # Don't tell the student they've been singled out — just no-op as if it worked.
+        return jsonify({'success': True, 'already_flagged': True})
+
+    db.session.add(VideoMomentFlag(
+        course_content_id=content.id,
+        timestamp_seconds=timestamp_seconds,
+        bucket_index=bucket,
+        source='student',
+        added_by=current_user.id,
+    ))
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'success': True, 'already_flagged': True})
+
+    if is_manager:
+        # Teacher flag = instant promotion: queue this bucket for captioning regardless of
+        # weight. Idempotent — no-ops if the bucket's already pending/captioned/blocked. The
+        # sweep's existing retry branch picks this row up like any other pending moment, so
+        # no special-casing is needed there.
+        exists = VideoMoment.query.filter_by(course_content_id=content.id, bucket_index=bucket).first()
+        if not exists:
+            db.session.add(VideoMoment(
+                course_content_id=content.id,
+                bucket_index=bucket,
+                timestamp_seconds=timestamp_seconds,
+                weight_at_promotion=0,
+                status='pending',
+            ))
+            db.session.commit()
+
+    return jsonify({'success': True, 'already_flagged': False})
+
+
+@api_bp.route('/content/<int:content_id>/moments', methods=['GET'])
+@login_required
+def list_video_moments(content_id):
+    """Manager-only: the live weighted-candidate view plus already-decided VideoMoment rows,
+    for the moments panel in file_viewer.html."""
+    from lms.models import CourseContent, Enrollment, User, VideoMoment, VideoMomentFlag
+    from lms.moment_service import candidate_buckets
+    from lms.rag_service import _format_timestamp
+
+    content = CourseContent.query.get(content_id)
+    if not content:
+        return jsonify({'error': 'Content not found'}), 404
+    course = Course.query.get(content.course_id)
+    if not course or not course.is_managed_by(current_user):
+        return jsonify({'error': 'forbidden'}), 403
+
+    candidates = {
+        (c['course_content_id'], c['bucket_index']): c
+        for c in candidate_buckets() if c['course_content_id'] == content_id
+    }
+    decided = VideoMoment.query.filter_by(course_content_id=content_id).all()
+
+    blocked_user_ids = {
+        e.user_id for e in Enrollment.query.filter_by(course_id=course.id, moment_flags_blocked=True).all()
+    }
+
+    # Who flagged each bucket — lets the panel offer a per-student "block"/"unblock" action
+    # inline, not just a bucket-level one.
+    flaggers_by_bucket: dict[int, list[dict]] = {}
+    student_flags = (
+        db.session.query(VideoMomentFlag, User)
+        .join(User, VideoMomentFlag.added_by == User.id)
+        .filter(VideoMomentFlag.course_content_id == content_id, VideoMomentFlag.source == 'student')
+        .all()
+    )
+    for flag, user in student_flags:
+        flaggers_by_bucket.setdefault(flag.bucket_index, []).append({
+            'user_id': user.id, 'username': user.username, 'blocked': user.id in blocked_user_ids,
+        })
+
+    rows = []
+    seen_buckets = set()
+    for m in decided:
+        seen_buckets.add(m.bucket_index)
+        rows.append({
+            'bucket_index': m.bucket_index,
+            'timestamp_seconds': m.timestamp_seconds,
+            'formatted_timestamp': _format_timestamp(m.timestamp_seconds),
+            'weight': m.weight_at_promotion,
+            'status': m.status,
+            'caption': m.caption,
+            'flaggers': flaggers_by_bucket.get(m.bucket_index, []),
+        })
+    for (cid, bucket), c in candidates.items():
+        if bucket in seen_buckets:
+            continue
+        rows.append({
+            'bucket_index': bucket,
+            'timestamp_seconds': c['timestamp_seconds'],
+            'formatted_timestamp': _format_timestamp(c['timestamp_seconds']),
+            'weight': c['weight'],
+            'status': 'candidate',
+            'caption': None,
+            'flaggers': flaggers_by_bucket.get(bucket, []),
+        })
+
+    rows.sort(key=lambda r: r['timestamp_seconds'])
+    return jsonify({'success': True, 'moments': rows})
+
+
+@api_bp.route('/content/<int:content_id>/moments/block', methods=['POST'])
+@login_required
+def block_video_moment(content_id):
+    """Manager-only: block (or unblock) a specific timestamp bucket. Blocking stops it from
+    ever being (re-)promoted, and if it was already captioned, removes it from Ask AI
+    immediately. Unblocking a never-captioned bucket just deletes the placeholder row,
+    returning it to a normal re-evaluated candidate; unblocking a previously-captioned one
+    restores its citation from the still-stored caption text — no new vision API call."""
+    from lms.models import ContentEmbedding, CourseContent, VideoMoment
+    from lms.moment_service import _store_caption_embedding
+    from lms.rag_service import SEGMENT_CHUNK_WINDOW_SECONDS
+
+    content = CourseContent.query.get(content_id)
+    if not content:
+        return jsonify({'error': 'Content not found'}), 404
+    course = Course.query.get(content.course_id)
+    if not course or not course.is_managed_by(current_user):
+        return jsonify({'error': 'forbidden'}), 403
+
+    data = request.get_json(silent=True) or {}
+    try:
+        bucket_index = int(data.get('bucket_index'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'bucket_index is required'}), 400
+    blocked = bool(data.get('blocked', True))
+
+    moment = VideoMoment.query.filter_by(course_content_id=content_id, bucket_index=bucket_index).first()
+
+    if blocked:
+        if moment:
+            if moment.status == 'captioned':
+                ContentEmbedding.query.filter(
+                    ContentEmbedding.course_content_id == content_id,
+                    ContentEmbedding.start_seconds == moment.timestamp_seconds,
+                ).delete()
+            moment.status = 'blocked'
+        else:
+            db.session.add(VideoMoment(
+                course_content_id=content_id, bucket_index=bucket_index,
+                timestamp_seconds=bucket_index * SEGMENT_CHUNK_WINDOW_SECONDS,
+                status='blocked', weight_at_promotion=0,
+            ))
+    else:
+        if not moment or moment.status != 'blocked':
+            return jsonify({'error': 'This moment is not currently blocked.'}), 400
+        if moment.caption:
+            moment.status = 'captioned'
+            _store_caption_embedding(content, moment)
+        else:
+            db.session.delete(moment)
+
+    db.session.commit()
+    return jsonify({'success': True, 'blocked': blocked})
+
+
+@api_bp.route('/course/<int:course_id>/moment-flags/block-user', methods=['POST'])
+@login_required
+def block_moment_flagger(course_id):
+    """Manager-only: block/unblock a student from flagging video moments in this course.
+    Effective immediately in both directions — weight is computed live (moment_service.
+    candidate_buckets), so a block instantly removes that student's influence from every
+    bucket they've ever touched, with no backfill needed."""
+    from lms.models import Enrollment
+
+    course = Course.query.get(course_id)
+    if not course or not course.is_managed_by(current_user):
+        return jsonify({'error': 'forbidden'}), 403
+
+    data = request.get_json(silent=True) or {}
+    try:
+        user_id = int(data.get('user_id'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'user_id is required'}), 400
+    blocked = bool(data.get('blocked', True))
+
+    enrollment = Enrollment.query.filter_by(user_id=user_id, course_id=course_id).first()
+    if not enrollment:
+        return jsonify({'error': 'That user is not enrolled in this course.'}), 404
+
+    enrollment.moment_flags_blocked = blocked
+    db.session.commit()
+    return jsonify({'success': True, 'blocked': blocked})
+
+
 @api_bp.route('/course/<int:course_id>/ask', methods=['POST'])
 @login_required
 @limiter.limit("10 per minute", exempt_when=_is_site_admin)
@@ -1218,7 +1690,7 @@ def ask_course_assistant(course_id):
 @login_required
 @limiter.limit("5 per hour")
 def reindex_course_content(course_id):
-    """Manually (re)queue RAG indexing for every content item in a course — owners/admins
+    """Manually (re)queue RAG indexing for every content item in a course — site admins
     only. The recurring embedding sweep (job_manager.py) would eventually pick up anything
     new on its own; this just makes that happen immediately, and re-indexes existing items
     too (e.g. after fixing a broken upload)."""
@@ -1226,11 +1698,31 @@ def reindex_course_content(course_id):
     if not course:
         return jsonify({'error': 'Course not found'}), 404
 
-    if not course.is_owned_by(current_user):
-        return jsonify({'error': 'Only the course owner or an admin can trigger reindexing'}), 403
+    if not current_user.is_admin:
+        return jsonify({'error': 'Only a site admin can trigger reindexing'}), 403
 
     from lms.job_manager import job_manager
     job_id = job_manager.queue_job('embed_course', {'course_id': course.id})
+    return jsonify({'success': True, 'job_id': job_id}), 200
+
+
+@api_bp.route('/course/<int:course_id>/promote-moments', methods=['POST'])
+@login_required
+@limiter.limit("5 per hour")
+def promote_course_moments(course_id):
+    """Manually trigger the video-moment promotion sweep for this course right now, instead
+    of waiting up to MOMENT_PROMOTION_INTERVAL_MINUTES — site admins only, same restriction
+    as reindexing (this also spends real Gemini vision API calls, so it's not opened up to
+    course owners/teachers the way reindexing briefly was)."""
+    course = Course.query.get(course_id)
+    if not course:
+        return jsonify({'error': 'Course not found'}), 404
+
+    if not current_user.is_admin:
+        return jsonify({'error': 'Only a site admin can trigger this'}), 403
+
+    from lms.job_manager import job_manager
+    job_id = job_manager.queue_job('promote_moments', {'course_id': course.id})
     return jsonify({'success': True, 'job_id': job_id}), 200
 
 

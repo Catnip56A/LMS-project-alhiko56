@@ -104,13 +104,76 @@ explicitly deferred until we're past the local-only build.)*
   real-time WebSocket streaming for live meetings: no batch endpoint, no timestamps, paid tier
   only) and Gemini was rejected for this job specifically (no timestamps, and we hit 429s across
   every fallback model during Phase 6 testing). Verified end to end on a real 5:13 lecture:
-  113 timestamped segments, ~5x realtime on CPU. No system `ffmpeg` needed after all — PyAV
-  bundles the FFmpeg libraries. See `development_checklist.md`'s Phase 6 addendum for the full
+  113 timestamped segments. No system `ffmpeg` needed after all — PyAV bundles the FFmpeg
+  libraries. **Correction to an earlier number here**: the original "~5x realtime" figure was
+  measured with 16 cores available *and* VAD trimming the lecture's natural silence/pauses — it
+  mixed core-count and content effects and doesn't predict a real deployment. Isolated the two:
+  on a genuine 2-CPU cap (`docker update --cpus=2`, same file, same settings), the same lecture
+  took 2.1x longer than on 16 cores — ~24 min for a 50-minute lecture on 2 vCPUs, not the ~10
+  min this line used to imply. See `development_checklist.md`'s Phase 6 addendum for the full
   comparison and the production RAM/disk sizing.
+5. [ ] **On the production server's own `.env`** (not this repo — matches how `DEEPL_API_KEY`
+  etc. already work), set `WHISPER_CPU_THREADS=<real vCPU count>` once the VPS is provisioned
+  (e.g. `WHISPER_CPU_THREADS=2` for a 2-vCPU box). Left unset, `faster-whisper` auto-detects
+  from *visible* core count — fine locally (dev machines see all their own cores), but
+  measured to cost real throughput on a constrained cloud VM: `docker update --cpus` throttles
+  CPU time without changing what the container reports as its core count, so the thread pool
+  over-subscribes and fights over the real budget. Pinning it to the true count removes that.
+  Update the number if the plan is ever resized.
 
 No vector DB account needed — used the `pgvector` Postgres extension on the existing
 database. One thing this did require: plain `postgres:17-alpine` doesn't ship the
 extension, so the DB image is now `pgvector/pgvector:pg17` across dev/staging/production.
+
+---
+
+## Phase 6 addendum — Cloudflare R2 (course content storage)
+
+Course content (video, audio, documents, images — both direct uploads and Google Picker
+imports) now lives in Cloudflare R2 instead of Google Drive; see
+`development_checklist.md`'s "Phase 6 addendum — Cloudflare R2 migration" for the full design
+and reasoning (presigned URLs let the browser stream directly from Cloudflare's CDN, and a
+real `<video>` element replaces the old cross-origin Drive iframe, enabling seeking and
+click-to-seek citations).
+
+1. [x] **Dev — done, live-verified (2026-08-27).** Cloudflare account created, R2 enabled,
+  bucket `increment-lms` created (private, no public access/`r2.dev` domain) with an Object
+  Read & Write API token scoped to it, `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/
+  `R2_SECRET_ACCESS_KEY`/`R2_BUCKET_NAME` set in dev's `.env`. Confirmed live: real
+  upload/serve/delete round trips through the app, and the existing course content (1 video +
+  3 documents) backfilled from Drive into this bucket via `just backfill-r2`. Nothing further
+  needed for dev.
+2. [ ] **TODO when staging is deployed**: create a separate bucket (e.g. `lms-staging`, private,
+  same settings as dev's) and its own Object Read & Write API token scoped to just that bucket.
+  Set `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET_NAME` in staging's
+  `.env` (same var names as dev, different values — `R2_ACCOUNT_ID` is the same across all
+  environments, it's account-level not bucket-level). Do this **before** the first deploy that
+  includes this feature, or uploads on staging will fail with "File storage is not configured."
+3. [ ] **TODO when production is deployed**: same as staging — separate bucket (e.g.
+  `lms-production`), its own scoped API token, vars set in production's `.env`. Also before the
+  first deploy with this feature.
+4. [ ] **TODO, once production has real content in its bucket**: create one more R2 API token,
+  scoped to **Object Read only** (not write) on the production bucket, and add it to **dev's**
+  `.env` only as `R2_UPSTREAM_ACCOUNT_ID`/`R2_UPSTREAM_ACCESS_KEY_ID`/
+  `R2_UPSTREAM_SECRET_ACCESS_KEY`/`R2_UPSTREAM_BUCKET_NAME`. Without this, pulling the
+  production/staging DB into dev (`just db-pull-staging`) brings in `r2_key` values that only
+  exist in the production bucket, and that content 403s locally until re-uploaded — this
+  read-only token lets `r2_client`'s upstream fallback serve it instead. Not urgent; only
+  matters the first time someone runs a DB pull after production has its own migrated content.
+5. [ ] Optional, any environment: `R2_URL_EXPIRY_SECONDS=21600` — how long a media presigned URL
+  stays valid (default 6h). Shorter is more secure (a leaked URL stops working sooner) but
+  risks interrupting a long viewing session; longer is more convenient but widens the window a
+  shared/leaked link stays usable.
+
+Reference — the S3 endpoint is always `https://<account_id>.r2.cloudflarestorage.com` and the
+region is always the literal string `auto` (both hardcoded in `lms/r2_client.py`, not
+env-configurable).
+8. [ ] Once credentials are set, run the one-time backfill for any content already on Drive:
+  `just backfill-r2 --dry-run` first, then `just backfill-r2`. Safe to re-run — it only
+  processes rows that still have `drive_file_id` set and no `r2_key` yet.
+
+No new Google Drive scopes or credentials needed for this — Picker still uses the existing
+Google OAuth setup (Phase 4) purely as the file-selection UI; only the byte storage moved.
 
 ---
 

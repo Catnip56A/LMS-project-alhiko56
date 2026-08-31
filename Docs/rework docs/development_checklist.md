@@ -645,42 +645,127 @@ translation sweep).
     reason — not fixed here since no report of it happening yet, but worth a look if lecture
     videos ever seem to not be searchable via Ask AI.
 
-### Phase 6 addendum — Video moment highlighting (planned, not started)
+### Phase 6 addendum — Video moment highlighting (2026-08-28, done and live-verified — 10 of 10)
 
-Design worked out in discussion, not yet implemented. Extends the existing video transcription
-(`_transcribe_video`) so lecture videos surface specific *moments*, not just whole-file text.
+Design worked out in discussion. Extends the existing video transcription so lecture videos
+surface specific *moments*, not just whole-file text. Full detail, evidence, and the agreed
+step-by-step order are in "Decisions taken before implementation" immediately below this list
+— this list is the plan; that section is the log of what's actually landed.
 
-- [ ] Audio-only extraction via `ffmpeg` (skip video pixels entirely — audio is the cheap,
-  high-value part).
-- [ ] Transcription with word/segment-level timestamps — Whisper (self-hosted, free, needs
-  local compute) or Gemini (already have `GEMINI_API_KEY`, cloud, same quota caveats as the
-  rest of Phase 6). Engine choice still open — see `setup_checklist.md`.
-- [ ] Chunk by time-window or sentence boundary (~30–60s), storing start/end timestamps as
+- [x] ~~Audio-only extraction via `ffmpeg`~~ — **moot, not needed.** `faster-whisper` decodes
+  via PyAV, which bundles the FFmpeg libraries and reads only the audio stream natively. No
+  separate extraction step, no system `ffmpeg` install. **Frame extraction (below) also needs
+  no system ffmpeg** — PyAV bundles it there too; an earlier draft of this note incorrectly
+  said a Dockerfile `apt-get install ffmpeg` layer would be needed for that step. It isn't.
+- [x] **Transcription with word/segment-level timestamps — done.** Engine: self-hosted Whisper
+  (`faster-whisper`), not Gemini — see the engine comparison below. Verified end to end on a
+  real uploaded lecture: 113 timestamped segments, correct transcript content.
+- [x] Chunk by time-window or sentence boundary (~30–60s), storing start/end timestamps as
   metadata alongside the existing `pgvector` chunk embeddings, so Ask AI citations can point
-  to the exact moment in a video, not just the file.
-- [ ] New `video_moments` table (`video_id`, `timestamp`, `source`, `added_by`, `created_at`).
-- [ ] Stage 1 (auto): keyword/regex pass over the transcript (e.g. "as you can see," "this
-  diagram") — no API call needed.
-- [ ] Stage 2 (student): a "flag this moment" button on the video player.
-- [ ] Weighting instead of manual approval: `weight = COUNT(DISTINCT added_by)` per timestamp
-  bucket — auto-detection gets a base weight, each unique student flag adds weight. A
-  scheduled job (same RQ/Redis queue as the Drive worker and translation scheduler) promotes
-  candidates crossing a threshold to vision-captioning.
-  - Open question: fixed global threshold vs. configurable per course.
-- [ ] Abuse handling: per-student rate limits + a teacher control to block a student or
-  blocklist a specific timestamp — deliberately *not* per-flag manual approval, to avoid a
-  bottleneck.
-- [ ] Perceptual-hash frame diffing before any vision-captioning call (local, no API cost):
-  near-identical frames near a promoted moment collapse to one caption call using the
-  sharpest frame; meaningfully different frames (e.g. a slide transition) are captioned as two
-  distinct citable moments; continuous change (drawing, scrolling) biases toward captioning
-  the latest/most complete frame rather than diffing further.
-- [ ] Wire moment-promotion jobs into the existing shared background job queue (Phase 3) — no
-  new infrastructure needed.
+  to the exact moment in a video, not just the file. **Done — see "Step 2 done" below.**
+- [x] **Schema — two tables, not one.** `VideoMomentFlag` (append-only signal log: one row
+  per auto-detection or student click, `course_content_id`/`timestamp_seconds`/`bucket_index`/
+  `source`/`added_by`) and `VideoMoment` (the low-volume, mutable, promoted artifact —
+  `status`/`caption`/`frame_phash`/`attempts`). Split deliberately: `VideoMomentFlag` is
+  high-volume and never mutated; collapsing them would mean 99% of rows have NULL
+  caption/status columns, and a spam-flag delete could risk an already-embedded caption.
+  `Enrollment.moment_flags_blocked` (new column, default false) is the per-course
+  student-block flag, mirroring `Enrollment.is_teacher`'s existing scope rather than a new
+  moderation table. Migration `f6a7b8c9d0e1`, applied and confirmed live via `\dt` +
+  `\d enrollment`.
+- [x] **Stage 1 (auto)**: keyword/regex pass over the raw per-Whisper-segment transcript
+  (English + Russian trigger phrases — this app ships `SUPPORTED_LANGUAGES = ['en','ru']` and
+  Whisper auto-detects), run inside `embed_content_item` (`lms/rag_service.py`) rather than
+  inside `transcribe_video_segments` — the self-healing legacy-row path
+  (`_extract_drive_file_text`) also produces a segment list via a different route, and
+  `embed_content_item` is the one place both converge. New `lms/moment_service.py`:
+  `detect_auto_moments`/`record_auto_moments`. Unit-verified with a synthetic segment list:
+  correctly detected 3 real trigger phrases, correctly collapsed two same-bucket hits to one
+  (earliest kept), correctly skipped the Gemini-fallback whole-file placeholder shape
+  (`start=end=0.0`).
+- [x] **Stage 2 (student)**: "Flag this moment" button, `lms/templates/file_viewer.html`'s
+  `.controls-row`, matching the existing `#fullview-btn`/`#zoom-in-btn` button family and the
+  reindex-button's disable→text-swap→`setTimeout` feedback convention. `POST
+  /api/content/<id>/moment-flag` (`lms/routes/api.py`) — rate-limited **per-user, not the
+  app's default per-IP** (a lecture hall/campus NAT shares one IP, and that convergence is
+  the intended signal, not abuse), with the real anti-spam primitive being a DB unique
+  constraint (`uq_video_moment_flag_bucket_user`), not application logic. **Teacher flag =
+  instant promotion**: if the flagging user manages the course, their single flag queues the
+  bucket for captioning immediately, bypassing the weight threshold — verified live.
+- [x] **Weighting — adaptive, not fixed.** Resolves the "fixed global vs. configurable per
+  course" open question: `threshold = clamp(ceil(enrolled_student_count × 0.10), 2, 12)` —
+  computed live per course (`moment_service.threshold_for_course`), not a config setting.
+  `weight = COUNT(DISTINCT student added_by) + (1 if any auto flag present)`. Bucketed on the
+  existing `SEGMENT_CHUNK_WINDOW_SECONDS` (45s) grid with an adjacent-bucket merge pass for
+  the boundary artifact (two flags either side of a 45s edge). Computed live at query time,
+  not materialized — the decisive reason is retroactive correctness: blocking a student must
+  instantly zero out their contribution to every bucket they ever touched, with no backfill,
+  which only a live query gives for free. **Verified live**: a real student flag + a real
+  auto-detection flag on the same bucket of a real lecture correctly summed to weight 2,
+  correctly promoted; a second isolated test confirmed a blocked student's vote is excluded
+  from the weight computation with zero backfill.
+- [x] **Abuse handling**: per-user rate limits (6/min, 60/day) plus the DB unique constraint
+  (the layer that actually matters — a single student account cannot push a bucket's weight
+  above 1 no matter how many times they click). Teacher moderation: `POST
+  /api/course/<id>/moment-flags/block-user` (blocks a student, retroactive by construction —
+  see above) and `POST /api/content/<id>/moments/block` (blocks a specific bucket forever;
+  if already captioned, also deletes its `ContentEmbedding` row so it stops being cited
+  immediately). No moderation queue, no per-flag approval — promotion stays fully automatic,
+  teachers only intervene reactively, per the original design principle. A small manager-only
+  collapsible panel in `file_viewer.html` (`GET /api/content/<id>/moments`) lists flagged/
+  promoted moments with per-row "Block moment" and per-flagger "Block student" actions. All
+  three routes verified live via the real Flask test client with real session cookies.
+- [x] **Perceptual-hash frame diffing** (`lms/frame_extraction.py`, new — no Flask/DB
+  dependency, mirrors `transcription.py`'s split): samples a backward-weighted window of
+  frames via PyAV (both signal sources — the auto trigger firing mid-phrase, a student's
+  reaction-click — are systematically late relative to the actual visual), hashes each with
+  `imagehash.phash`, and classifies by consecutive Hamming distance: all near-duplicate → one
+  caption call on the sharpest frame, timestamped at the window's first frame; one or two
+  large jumps → a real transition, captioned as two distinct moments (capped at 2); sustained
+  middle-band distances (continuous change — drawing, scrolling) → caption only the last/most
+  complete frame. Cross-moment dedup against already-captioned frames on the same video skips
+  a redundant API call entirely when the lecturer returns to an earlier slide — the single
+  highest-leverage cost saving for slide-heavy lectures. Thresholds (6 near-duplicate / 14
+  distinct) are reasoned starting points, not yet tuned against a large real corpus.
+- [x] **Vision captioning wired into the RAG pipeline — the core hypothesis, proven live.**
+  New `gemini_client.generate_content_with_image` sends the frame inline as base64 (not the
+  heavier async File API used for video transcription — one HTTP request instead of
+  upload+poll+reference+cleanup), routed through the existing model-fallback chain. A
+  captioned `VideoMoment` becomes an ordinary `ContentEmbedding` row
+  (`[On-screen visual] <caption>`, `start_seconds` = the moment's refined timestamp) — **zero
+  changes to `answer_question()`**. **Live-verified end to end** on the real migrated lecture
+  (course 1, content 22): a real Gemini vision call (first model 503'd, the existing fallback
+  chain correctly recovered on the next candidate) produced a real caption of an actual video
+  frame; a real Ask AI question then cited it as a `2:02` timestamp chip alongside the
+  transcript-based citations, with the answer text correctly drawing on the caption's content
+  — exactly the "so Ask AI citations can point to the exact moment in a video" goal this whole
+  epic was scoped around, now extended to visual (not just spoken) moments.
+- [x] **Critical trap found and fixed as part of this work, not after**: `embed_content_item`
+  opens with `ContentEmbedding.query...delete()` — any reindex would have silently and
+  permanently deleted every caption embedding, since the promotion sweep never re-processes a
+  bucket that already has a `VideoMoment` row. Fixed by re-embedding from
+  `VideoMoment.caption` (the durable artifact) at the end of every `embed_content_item` run —
+  no new vision API call needed. **Verified live**: captioned a real moment, triggered a real
+  full reindex (including real Whisper re-transcription) of content 22, confirmed the caption
+  embedding was still present and byte-identical afterward.
+- [x] Wire moment-promotion jobs into the existing shared background job queue — done exactly
+  like the existing embedding sweep: `job_manager.run_scheduled_moment_promotion`/
+  `ensure_moment_promotion_scheduled`, registered in `lms/worker.py`, confirmed scheduled live
+  in RQ's `ScheduledJobRegistry` (`moment-promotion-recurring`, every 30 minutes, batch size
+  5). Deliberately slower/smaller-batched than the embedding sweep since each promotion
+  downloads a whole video and spends a real API call, sharing one worker with Whisper
+  transcription.
+
+**New dependencies**: `av` (promoted from transitive — was already pulled in by
+`faster-whisper` but never imported directly — to a direct `pyproject.toml` dependency, since
+relying on a transitive pin for a feature that now imports it directly is fragile) and
+`imagehash` (new, pulls in `scipy`/`pywavelets`).
 
 **Explicitly out of scope for v1**: full frame extraction/OCR/vision-captioning of *every*
-frame — too expensive. Only moments that cross the weighting threshold get a vision-captioning
-call.
+frame — too expensive. Only moments that cross the weighting threshold (or a teacher's direct
+flag) get a vision-captioning call. Also out of scope, a deliberate decision made before
+implementation: surfacing captioned moments anywhere besides Ask AI citations (e.g. seek-bar
+markers) — that's a materially larger, separate frontend feature.
 
 
 #### Decisions taken before implementation (2026-08-24)
@@ -699,25 +784,18 @@ native word-level output — which is the whole point of the feature.
   no apt layer there today, and the builder stage's packages aren't carried over. The worker
   runs from the same image, so the binary reaches both.
 
-**BLOCKER — no video player to attach interactive features to. Deferred, must come back to.**
-Course videos do not use an HTML5 `<video>` element; there isn't one anywhere in the app.
-`lms/templates/file_viewer.html:172-177` renders an iframe → `lms/routes/api.py:864` →
-302-redirect to `drive.google.com/file/d/{id}/preview`. That player is cross-origin with no
-postMessage API, so `currentTime` cannot be read, seeking cannot be driven, and timestamp
-deep-links (`#t=`) do not work against the preview wrapper.
+**BLOCKER — no video player to attach interactive features to. RESOLVED (2026-08-27) — see
+"Phase 6 addendum — Cloudflare R2 migration" below.** Course videos previously had no HTML5
+`<video>` element anywhere in the app (`file_viewer.html:172-177` rendered an iframe →
+`api.py:864` → 302-redirect to `drive.google.com/file/d/{id}/preview`, cross-origin with no
+postMessage API). The two escape routes floated at the time this was written (Flask range-proxy,
+or direct-to-Drive with a proxy fallback) were both superseded once Cloudflare R2 was chosen as
+the storage backend — see below for why. `file_viewer.html` now renders a real `<video>` element
+for every video/audio item, backed by R2 presigned URLs.
 
-Consequence: **student "flag this moment" (Stage 2) and click-to-seek citations cannot be built
-until the player is replaced.** Everything else in this addendum is server-side and unblocked —
-including auto-detection, weighting, frame extraction, and vision-captioning, since ffmpeg pulls
-frames server-side without any player involvement.
-
-Two escape routes when we return to this, neither yet chosen:
-- Flask range-proxy the bytes and render a real `<video>` — works at any file size, but lecture
-  videos then flow through gunicorn (bandwidth and worker-occupancy cost).
-- Direct Drive byte URL into `<video>`, mirroring what audio already does successfully
-  (`api.py:862` + `file_viewer.html:161-171`) — least code, but Drive serves large files behind
-  a virus-scan HTML interstitial that a browser `<video src>` cannot get past. `_download_public_drive_file`
-  handles that server-side with a confirm token; a raw `<video>` tag has no such escape.
+Consequence, now lifted: student "flag this moment" (Stage 2) and click-to-seek citations can
+now be built against a real player. Click-to-seek citations are done (see the R2 addendum);
+"flag this moment" itself is still not built.
 
 Until then, timestamped citations render as text ("at 12:43 …"), which still beats pointing at a
 50-minute file, just without one-click seeking.
@@ -775,9 +853,33 @@ Until then, timestamped citations render as text ("at 12:43 …"), which still b
      `Detected language 'en' with probability 1.00` -> `Transcribed: 113 segments` ->
      `Whisper model unloaded` -> `6 chunks stored`, `embedded_at` set. Transcript content is
      coherent and correct (a lecture on Homer's Odyssey), i.e. genuine ASR, not noise.
-     **~63s of CPU for 5:13 of audio = ~5x realtime**, so a 50-minute lecture lands around
-     10 minutes — consistent with the VPS sizing estimate above. Model downloaded to the
-     volume at runtime (464 MB) and RAM was released after the job, both as designed.
+     ~63s of CPU for 5:13 of audio on this 16-core dev box. Model downloaded to the volume
+     at runtime (464 MB) and RAM was released after the job, both as designed.
+   - **Correction — the "~5x realtime" / "~10 min for a 50-min lecture" estimate above was
+     wrong, found while sizing an actual hosting plan (Senko DE-EPYC-2: 2 vCPU, 4GB DDR5 ECC,
+     Frankfurt).** That figure conflated two effects: 16 cores being available, and VAD
+     trimming the lecture's natural pauses before they ever reached the decoder — neither
+     transfers to a real deploy target. Isolated the two with a controlled test: same real
+     lecture (re-downloaded via its retained `drive_file_id`), same production settings
+     (`vad_filter=True`), only core count changed (`docker update --cpus=2` on the actual
+     worker container). Result: **150.3s vs 70.8s — 2.1x slower on 2 cores, not the ~8x naive
+     scaling would predict.** For a 50-minute lecture: **~24 minutes on 2 vCPUs**, not ~10.
+     Caveat: `docker update --cpus` throttles CPU time but not the container's *visible* core
+     count (`nproc`/`sched_getaffinity` still reported 16), so CTranslate2's `cpu_threads=0`
+     auto-detect likely still sized its thread pool for 16 and fought over the 2-core budget —
+     the real DE-EPYC-2 box (genuinely 2 cores visible) is probably somewhat faster than this,
+     but this is the only number actually measured, so treat it as a conservative upper bound.
+   - **Fix applied**: `WHISPER_CPU_THREADS` env var (`lms/transcription.py`, default `0` =
+     auto-detect) — left unset locally (uses every dev-machine core, unaffected), set
+     explicitly to the real vCPU count on the production server's own `.env` (documented in
+     `setup_checklist.md`, not hardcoded into tracked `docker-compose.yml`, since it's a
+     property of whichever box is actually running the worker and needs to survive a plan
+     resize without a code change).
+   - Functionally this still fits: transcription runs as a background RQ job, not blocking the
+     upload, and the job timeout was already set to 3600s for this exact reason. The real
+     consequence is queueing — several long lectures uploaded close together process serially
+     on one worker, so the last one in a batch can sit well over an hour before it's searchable.
+     Not addressed in this pass; a second worker process would be the fix if that matters.
    - **Bug found and fixed during this verification**: the `content_type` sniffing call was
      first patched into the wrong `elif action ==` branch (`submit_assignment` rather than
      `upload_file`), leaving `detected_content_type` assigned where unused and *undefined*
@@ -804,28 +906,382 @@ Until then, timestamped citations render as text ("at 12:43 …"), which still b
      `POST /api/picker-import` with Drive metadata reporting `video/mp4` (HTTP 200, row created
      as `'video'`).
 
-   - [ ] **Open test gap — permission gating not covered.** The retrieval checks run so far
-     query `ContentEmbedding` directly, unscoped. They prove content is indexed and matchable
-     but do **not** exercise the filters the real `/api/course/<id>/ask` applies: publication
-     status (`is_published`), folder locks (`get_locked_content_ids()`, which resolves
-     assignment- and quiz-gated folders), and course enrolment. A student could in principle
-     receive AI answers drawn from material they cannot yet open. Needs a test with a
-     non-enrolled user, an unpublished item, and a locked-folder item, asserting none of them
-     appear in `sources`. Worth folding into `/security-review` at the next phase wrap.
+   - [x] **Permission-gating test gap — closed.** Two halves, both now verified through the
+     real `answer_question()` entry point (not a reconstructed query): private content
+     (`allow_others_to_view=False`) was genuinely leaking and is now fixed; quiz/assignment
+     folder-locking (`get_locked_content_ids()`) was already correctly wired in and is now
+     proven both directions with a live before/after-passing test. Full evidence at the
+     bottom of this addendum, dated 2026-08-24.
 
    - **Known limitation, by design — this is what step 2 fixes:** those 113 timestamped
      segments collapse into 6 chunks with **no timestamps stored**. `chunk_text()` flattens
      whitespace and `ContentEmbedding` has no column to hold start/end seconds, so the timing
      is produced and then discarded. Step 1's goal was only to prove timestamps *can* be
      produced; persisting them needs the migration in step 2.
-2. [ ] Migration for chunk start/end seconds; time-aware chunking; video chunks stored with
-   timestamps.
-3. [ ] Citations carry timestamps through `answer_question()` → API → chat UI as text.
-4. [ ] `video_moments` table + Stage 1 auto-detection (keyword/regex pass, no API cost).
-5. [ ] Weighting + promotion job on the existing RQ queue.
-6. [ ] Perceptual-hash frame diffing + vision-captioning of promoted moments only.
-7. [ ] *(blocked on player)* student flagging UI, per-student rate limits, teacher block/blocklist
-   controls, click-to-seek citations.
+2. [x] **Step 2 done — migration for chunk start/end seconds; time-aware chunking; video
+   chunks stored with timestamps.**
+   - Migration `c3d4e5f6a7b8`: `content_embedding.start_seconds`/`end_seconds` (nullable
+     `Float`). Additive-only — NULL for existing/future text/PDF/DOCX/PPTX chunks, which have
+     no time axis.
+   - New `chunk_segments_by_time()` in `rag_service.py`, parallel to `chunk_text()` (not a
+     replacement — plain text still has no timestamps to preserve). Groups Whisper's
+     timestamped segments into ~45s windows, also closing a window early if it would exceed
+     `CHUNK_SIZE` chars, so dense speech can't produce an unbounded chunk.
+   - **Bug caught by testing before this ever touched real data**: the initial version only
+     checked the size/window limits *before adding a new segment* to the current chunk — so a
+     single segment that alone exceeds `max_chars` never got split, since there's no "next
+     segment" to trigger the check. This is exactly the shape of the Gemini-fallback path
+     (one segment spanning the entire file, no per-segment timestamps) — a fallback
+     transcription would have produced one giant, unbounded chunk despite the docstring's
+     explicit claim that it "degrades gracefully." Caught with a 7-case test suite (window
+     split, char-based split, the oversized-single-segment case, empty/blank input, and a
+     realistic randomized 113-segment transcript with an exact word-coverage assertion — no
+     text dropped or duplicated). Fixed by sub-splitting an individual oversized segment with
+     `chunk_text()`'s own word-boundary logic; all its pieces share that segment's start/end,
+     since a single transcript segment has no finer-grained timing to split by.
+   - `extract_text_for_content()` now returns either a plain `str` (untimed sources) or a
+     `list[dict]` of timestamped segments (video/audio) — `embed_content_item()` dispatches on
+     which shape it got and normalizes both into the same `{'text','start','end'}` chunk shape
+     before embedding, so the storage loop doesn't care which source produced them.
+   - The self-healing branch in `_extract_drive_file_text()` (legacy rows mis-typed as `'file'`
+     that actually sniff as video/audio, from the earlier addendum) now preserves the segments
+     it already produces instead of flattening them to text first — it gets real timestamps
+     for free, no extra work.
+   - `_transcribe_video()` (the old flat-text-only wrapper) had exactly one caller, which this
+     step rewired to call `transcribe_video_segments()` directly — removed rather than left as
+     an orphan, same dead-code discipline as the rest of this session.
+   - **Verified against the real database, not a reconstruction**: re-ran indexing on content
+     22 (the same real 5:13 lecture from step 1). 113 raw Whisper segments correctly
+     time-chunked into **8 stored chunks**, each ~43-45s, all with real non-NULL, chronological
+     timestamps (e.g. `[0.0-44.6]`, `[44.6-88.6]`, ... `[307.4-329.2]`), transcript content
+     still coherent. **Zero regression on documents**: re-ran indexing on the three existing
+     document rows (ids 17/19/20) and got the exact same chunk counts as the original Phase 6
+     verification (10/1/13), with `start_seconds`/`end_seconds` correctly `NULL` on all of them.
+3. [x] **Step 3 done — citations carry timestamps through `answer_question()` -> API ->
+   chat UI, as text (click-to-seek stays blocked on the video-player work).**
+   - `_format_timestamp(seconds)` (new, `rag_service.py`): `5:12`, or `1:05:12` past the hour.
+   - Prompt context blocks now label a video chunk as `[Source: title, at 5:12]` instead of
+     just `[Source: title]` when `start_seconds` is set — nudged the system instruction to
+     let the model reference that moment in prose ("you may reference that moment... so the
+     student can find it in the video"), rather than only surfacing it in the citation chip.
+   - `sources` entries gain `timestamp` (formatted string) and `start_seconds` (raw float)
+     when the file's best-matching chunk has one; **unchanged shape for text/PDF/DOCX**
+     (`{content_id, title}` only) — no schema change needed since `AiConversationMessage.sources`
+     is a JSON column and both the API route and `get_conversation_history` already pass
+     `sources` through verbatim.
+   - One source per file at the time this step shipped — **since superseded**: multiple
+     citation chips per file (one per distinct moment actually cited, not just the
+     best-matching chunk) landed as part of "Video moment highlighting" above.
+   - Frontend chip (`course_page_enrolled.html`): `🎥 title (5:12)` when a timestamp is
+     present, `📄 title` otherwise — same click-through to `/api/file/c/<id>`, informational
+     only for now, consistent with the player blocker noted earlier in this addendum.
+   - **Verified against the real re-indexed video (content 22), not a reconstruction.** Asked
+     `answer_question()` directly "At what point in the video does the lecturer talk about
+     Odysseus returning from the land of the dead?" — the model answered *"...around the
+     **2:56 mark**... This follows the segment around the **2:12 mark**..."*, both pulled from
+     the real stored timestamps, and `sources` carried `{'timestamp': '2:56', 'start_seconds':
+     176.24}` matching that exact chunk from step 2's verification. Checked the branch
+     directly (not dependent on which content a live query happens to rank first): a
+     document chunk (`start_seconds=None`) produces a source with exactly `{content_id,
+     title}`; a video chunk (`start_seconds=307.36`) produces `{..., 'timestamp': '5:07',
+     'start_seconds': 307.36}` — confirmed both directions.
+4. [x] `video_moments` table + Stage 1 auto-detection (keyword/regex pass, no API cost) —
+   **done, see the "Video moment highlighting" section above** (as `VideoMomentFlag`/
+   `VideoMoment`, split from the single table originally sketched here).
+5. [x] Weighting + promotion job on the existing RQ queue — done, same section above.
+6. [x] Perceptual-hash frame diffing + vision-captioning of promoted moments only — done, same
+   section above. Multiple citation chips per file also landed alongside this (superseding
+   the "one source per file" limitation noted just above in step 3's evidence).
+7. [x] Student flagging UI, per-student rate limits, teacher block/blocklist controls,
+   click-to-seek citations — all done, same section above. No longer blocked: the player was
+   replaced (see the R2 migration section below).
+
+### Phase 6 addendum — Subtitles (2026-08-28, done and live-verified)
+
+Reuses the existing Whisper transcription pipeline — no new transcription engine, no new API
+cost. The gap this closes: `embed_content_item` already produced a raw per-segment transcript
+(`[{'start','end','text'}, ...]`, ~2-8s per segment) every time it transcribed a video/audio
+item, but immediately collapsed it into ~45s RAG chunks and discarded the original timing —
+too coarse to ever be usable as subtitle cues.
+
+- [x] **`transcription.transcribe_with_timestamps` now also returns the detected language**
+  (`(segments, language)` instead of just `segments`) — Whisper already detects this
+  per-file (`info.language`), it was just being logged and thrown away. Both call sites
+  (`rag_service.py`: `transcribe_video_segments`, `_extract_drive_file_text`'s self-healing
+  branch) updated to set `CourseContent.transcript_language` from it.
+- [x] **New `TranscriptSegment` model** (`course_content_id`, `segment_index`,
+  `start_seconds`, `end_seconds`, `text`) — persists the *original* per-segment transcript,
+  kept deliberately separate from `ContentEmbedding`'s coarser RAG chunks rather than trying
+  to reconstruct fine timing from them after the fact. New `lms/subtitle_service.py`
+  (Flask/DB layer, mirrors `moment_service.py`'s split): `record_transcript_segments`
+  (delete-and-reinsert, same idempotency pattern as `ContentEmbedding`/`VideoMomentFlag`),
+  `generate_vtt` (builds a WebVTT string on the fly — no caching, it's one indexed query and
+  trivial string work), `has_subtitles`. Hooked into `embed_content_item` right next to the
+  Stage-1 moment-detection hook, on the same raw segment list, before it gets chunked.
+  Migration `a7b8c9d0e1f2`.
+- [x] **New route** `GET /api/file/c/<id>/subtitles.vtt` — same permission gate as the
+  existing embed route (subtitles reveal the same spoken content the media itself would).
+  Wired into `file_viewer.html` as a `<track kind="subtitles" src="..." srclang="..."
+  label="..." default>` inside both the `<video>` and `<audio>` elements, only rendered when
+  `has_subtitles` is true; `srclang`/`label` come from `CourseContent.transcript_language`
+  ('en'/'ru', this app's two supported languages). **Same-language only** — a translated
+  second subtitle track via the existing DeepL pipeline was considered and explicitly scoped
+  out for this pass.
+- [x] **One-time backfill** (`scripts/migration/backfill_transcript_segments.py`,
+  `just backfill-subtitles`) for content transcribed before this feature existed, whose raw
+  segments were already discarded — same shape as the R2/moment-promotion backfill scripts
+  (dry-run, limit, course/content filters). Reuses `embed_content_item` wholesale (a full
+  re-transcription via Whisper, same cost as a manual reindex) rather than a bespoke
+  transcribe-only path.
+- [x] **Live-verified end to end** against the real course-1 lecture (content 22, previously
+  transcribed before this feature existed): dry-run correctly identified it as missing
+  subtitles; the real backfill re-transcribed it (113 segments, detected language `en` —
+  matching the exact segment count from this same lecture's original transcription test
+  months earlier, a good consistency check that nothing regressed) and stored both the
+  segments and the language; `GET .../subtitles.vtt` returned a genuinely valid, correctly-
+  timed WebVTT file (`WEBVTT` header, sequential numbered cues, `HH:MM:SS.mmm --> ...`
+  timestamps, real transcript text); the video viewer's rendered HTML included the `<track>`
+  tag with `srclang="en"` and `label="English"` exactly as expected. Also confirmed the
+  backfill's re-transcription didn't disturb the video's already-captioned visual moment
+  (from the "Video moment highlighting" work above) — its `ContentEmbedding` row survived the
+  same reindex run intact.
+- [x] Anonymous access to the subtitle route confirmed rejected (401, `@login_required`).
+
+### Phase 6 addendum — video player replacement, decided (2026-08-27, not yet implemented)
+
+Full design worked out in discussion for the player-blocked pieces (step 7 above): replacing
+the cross-origin Drive `/preview` iframe (`file_viewer.html:172-177`) so click-to-seek citations
+and eventually student moment-flagging become possible.
+
+**Every angle against Google's own iframe player was tried and closed, empirically, not
+assumed:**
+- No `postMessage` API — cross-origin, standard browser isolation, same reason `currentTime`
+  can't be read.
+- No start-time URL parameter — tested `?t=`, `?start=`, `#t=` against the real `/preview`
+  page; a naive diff looked like a signal (10 lines changed) until a same-URL-twice control
+  showed the identical 10-line diff with *zero* params involved — pure per-request nonce
+  noise (Google's CSP header alone carries a fresh script-nonce every call). The literal
+  parameter value never appears anywhere new in the response. Confirmed: not read, not honored.
+- No API-level embed mechanism either — `embedLink` existed in Drive API v2 ("a link for
+  embedding the file") but is absent from v3 (what this app uses), and even historically it
+  almost certainly just returned the same `/preview` URL the UI's "Embed item" button
+  generates — not a different backend with different capabilities.
+- Extracting bytes from the iframe's own stream is not merely undocumented, it's structurally
+  blocked by browser security (the isolation that stops any site reading another origin's
+  iframe content) — confirmed via Drive's own response headers
+  (`cross-origin-resource-policy: same-site`, `x-frame-options: SAMEORIGIN`).
+
+**Superseded (2026-08-27): the hybrid direct-Drive/Flask-proxy design below, and the eventlet
+switch it forced, were WITHDRAWN before implementation.** The empirical findings above (why the
+Drive iframe had to go) still stand and are kept for the record. But the delivery mechanism
+itself was replaced with Cloudflare R2 before any of the code below was written — see "Phase 6
+addendum — Cloudflare R2 migration" further down for the actual implementation. Reason: R2
+presigned URLs let the browser stream directly from Cloudflare's CDN, which removes gunicorn
+from the video byte-serving path entirely — the exact problem the hybrid design and the eventlet
+switch both existed to solve. The design below is kept only as a record of the road not taken
+and why; do not implement it.
+
+<details>
+<summary>Withdrawn: hybrid direct-Drive/Flask-proxy design + eventlet switch (superseded by R2, see above)</summary>
+
+Decided approach at the time: our own `<video>` element, not an iframe, with two backing
+sources — small files direct to Drive's public link, large files proxied through our own
+server (confirmed live: Drive's public link gates >~12.8MB behind an HTML interstitial;
+the authenticated `alt=media` API serves 150MB cleanly but needs a `Bearer` token no
+`<video src>` can attach, and query-param token auth is explicitly rejected by Google).
+Load analysis found bandwidth was not the binding constraint (even a pessimistic 4 Mbps
+lecture bitrate leaves ~10,000 views/month of headroom on Senko's 15TB cap) but gunicorn
+concurrency was: `worker_class = "sync"`, `workers = 3` means 3 simultaneous video viewers
+of any size exhausts 100% of the app's serving capacity for every other user. That's what
+motivated switching `worker_class` to `eventlet` (chosen over `gevent` specifically because
+`psycopg2` needs `eventlet`'s built-in cooperative patcher, not an added `psycogreen`
+dependency, in this psycopg2/SQLAlchemy-heavy codebase) — never implemented, since R2 made
+the whole proxy branch (and therefore the concurrency problem it created) unnecessary.
+
+</details>
+
+**Async workers remain real future work, independent of video.** Eventlet's motivation for
+*video* specifically is gone, but other genuinely long-running synchronous paths still exist:
+Gemini calls inside `answer_question` (several seconds per Ask AI request), the Picker import's
+new Drive-download-then-R2-upload round trip (`_copy_drive_file_to_r2`, runs synchronously
+inside a web request against gunicorn's `timeout = 600`), and RAG downloads in the worker. If
+this is revisited, the previously-found caveat still applies: a documented eventlet issue
+affects its psycopg2 patcher specifically over TLS-encrypted Postgres connections — likely moot
+here (DB traffic runs over the private Docker network, not TLS) but confirm live, don't assume.
+
+**Known, pre-existing gap — deliberately not fixed by the R2 work below**: none of the four
+content-serving routes in `lms/routes/api.py` (`serve_file`, `serve_content_by_db_id`,
+`serve_content_embed`, `download_content_by_db_id`) call `get_locked_content_ids()`
+(`lms/rag_service.py`), so a student can open a folder-locked file directly by URL even though
+Ask AI already refuses to cite it (`answer_question` does check it). Not introduced or widened
+by the R2 migration — logged here for a future dedicated fix, shape: one shared gate helper
+called from all four routes.
+
+**Structured-citation-syntax problem — still open, separate from what R2 solved.** Linking a
+model-mentioned timestamp in free prose back to a specific `content_id`/moment inline (so an
+individual mid-sentence mention becomes clickable exactly where the model wrote it) is still
+unsolved — parsing natural-language phrasing was explicitly ruled out as unreliable, and no
+structured syntax has been designed. What *is* solved (see the R2 addendum's multi-moment
+citations): the `sources` list itself now surfaces multiple distinct moments per file as
+separate chips, which covers the reported bug (several moments mentioned, only one was
+clickable) without needing inline prose parsing.
+
+### Phase 6 addendum — Cloudflare R2 migration (2026-08-27, done and live-verified)
+
+Full plan in `/home/alhiko56/.claude/plans/modular-sniffing-wren.md`. Moves course-content
+storage off Google Drive onto Cloudflare R2 (S3-compatible, presigned URLs, always-free egress),
+replaces the Drive `/preview` iframe with a real `<video>` element, and fixes the multi-moment
+citation bug. All code written, `uv run ruff check` clean, and live-verified end to end against
+a real R2 bucket (see the verification item below for exact evidence).
+
+**One real bug caught and fixed during live verification**: `serve_content_by_db_id`'s
+mime-based file-type classifier originally set `file_type = 'video'` for *any* row with
+`content_type == 'video'` regardless of the actual sniffed MIME — since `content_type='video'`
+covers both video **and** audio (see `content_type_for_mime`), every R2-backed audio upload
+rendered the `<video>` branch instead of the `<audio>` branch. Fixed to branch on
+`file_mime_type.startswith('video/'|'audio/')` directly. Caught by an actual end-to-end test
+(uploaded a real WAV, rendered the viewer, saw the wrong branch) — not by inspection.
+
+Scope decided: **all** course-content uploads move to R2 (direct uploads and Picker imports,
+every content type, not just video) — this retires Drive as course-content storage, not just a
+video-only fix. Existing Drive-hosted content is backfilled too. No eventlet switch (see above —
+its motivation is gone). Multi-chip citations, not inline prose parsing. Google-native
+Docs/Sheets/Slides on Picker import are skipped with a message, not exported. PDF viewer
+regression (native browser viewer exposes download/print, unlike Drive's `/preview`) accepted
+as-is. Locked-content authorization gap deliberately deferred (see above).
+
+- [x] **Schema**: `CourseContent.r2_key`/`file_mime_type` (nullable, additive), `has_bytes`/
+  `storage_backend` properties. Migration `d4e5f6a7b8c9`, applied and confirmed live via `\d
+  course_content`. `drive_file_id` is never cleared — kept as provenance/rollback even after a
+  row is migrated; R2 wins whenever both are set.
+- [x] **`lms/r2_client.py`** (new): boto3 S3-compatible client against R2's endpoint,
+  `build_content_key`/`upload_file`/`download_file`/`generate_presigned_url`/`delete_object`/
+  `object_exists`/`get_object_size`. Includes an optional read-only "upstream" client
+  (`R2_UPSTREAM_*`) so dev can play back media pulled in via `just db-pull-staging`/production
+  even when the object only exists in the production bucket.
+- [x] **Upload path** (`lms/routes/__init__.py`): direct uploads now go straight to R2, no
+  Google Drive credential needed at all (a real simplification — previously required a linked
+  Google account just to upload a course file). Staging cleanup consolidated into one
+  `try/finally`.
+- [x] **Picker import** (`lms/routes/api.py`): both the single-file and recursive-folder
+  branches now download the selected Drive file's bytes and copy them into R2
+  (`_copy_drive_file_to_r2`) instead of just referencing them in place — stops mutating the
+  teacher's Drive sharing settings entirely (no more `set_file_permissions(make_public=True)`),
+  a privacy improvement. Google-native Docs/Sheets/Slides are skipped with a clear per-file
+  message. `google_drive_service.download_file` gained the same `resource_key` support
+  `get_file_metadata` already had, needed for link-shared files.
+- [x] **Serving routes** (`lms/routes/api.py`): new `_content_media_url` helper resolves R2
+  (presigned URL) or Drive (today's extension-based URL) per item, so unmigrated rows keep
+  working unchanged during an incremental backfill. `serve_content_embed` sets
+  `Cache-Control: private, no-store` so an expired presigned URL can't be replayed from
+  bfcache. `serve_content_by_db_id` now also classifies file type from the sniffed
+  `file_mime_type` when available, and parses/validates a new `?t=<seconds>` query param for
+  click-to-seek.
+- [x] **RAG pipeline** (`lms/rag_service.py`): new `_download_content_bytes` dispatches to R2
+  or Drive; `extract_text_for_content`'s gates changed from `drive_file_id` truthiness to
+  `content.has_bytes`. No re-embedding needed for migrated content — bytes are identical, so
+  existing `ContentEmbedding` rows (including `start_seconds`) stay valid.
+- [x] **Multi-moment citations** (`lms/rag_service.py`, `answer_question`): a file can now earn
+  several citation chips — one per distinct moment actually cited — instead of collapsing to
+  its single best-matching chunk. A new timed chunk becomes its own source only if it's more
+  than `SEGMENT_CHUNK_WINDOW_SECONDS` (45s) from every moment already emitted for that file.
+  Sources sort so multiple moments in one file read chronologically.
+- [x] **Click-to-seek** (`course_page_enrolled.html`, `file_viewer.html`): citation chips link
+  to `?t=<start_seconds>`; the video branch is now a real `<video>` element (not an iframe);
+  new seek script reads the server-validated `start_seconds`, seeks on `loadedmetadata` (or
+  immediately if metadata is already cached, covering a warm-reload race), and shows a
+  friendly message if the presigned URL has expired. Audio's hardcoded `type="audio/mpeg"`
+  fixed too (was wrong for non-MP3 uploads) by omitting the `type` hint entirely — same
+  technique, lets the browser trust R2's actual stored Content-Type.
+- [x] **One-time backfill** (`scripts/migration/backfill_drive_to_r2.py`, `just backfill-r2`):
+  run for real against the dev DB's entire Drive-hosted corpus (4 rows: 1 video, 3 documents).
+  `--dry-run` listed all 4 correctly; the real run migrated all 4 (`Done: 4 migrated, 0 failed`
+  across two invocations); re-running afterward reports `0 row(s) to migrate` — confirmed
+  idempotent. The 12.8MB lecture video correctly triggered boto3's multipart upload path
+  (2 parts, confirmed via `x-amz-mp-parts-count: 2` on the object) with no code changes needed.
+  `drive_file_id` retained on every row post-migration, `embedded_at`/`ContentEmbedding` rows
+  untouched (self-heal branch correctly did not fire — the row was already `content_type='video'`).
+- [x] **Live end-to-end verification** — done against a real Cloudflare R2 bucket. Evidence:
+  - R2 client smoke test (upload/exists/presign/delete against a throwaway object) passed.
+  - Real upload of a synthetic audio file and a synthetic video file through the actual
+    `/course/<id>` POST route (Flask test client, real session, real DB, real R2 — not mocked):
+    both created correct `CourseContent` rows (`r2_key`, `file_mime_type`, `drive_file_id=None`),
+    left the upload staging directory empty afterward, and were fully cleaned up via
+    `delete_content` (confirmed both the DB row and the R2 object were gone after delete).
+  - `serve_content_embed` 302s to a presigned URL with `Cache-Control: private, no-store`.
+  - **Range/206 confirmed working** on presigned URLs for both a synthetic file and the real
+    12.8MB migrated lecture — `curl -r 0-100` returns `206` with a correct `Content-Range`
+    header in every case. Note: `curl -I` (HEAD) against a presigned GET URL returns a
+    misleading `403` on R2 — SigV4 presigned URLs are signed per-HTTP-method, and R2 enforces
+    that strictly (unlike some S3 implementations). Not a bug: real `<video>`/Range requests are
+    always GET, never HEAD, so this only affects how you manually test a presigned URL with
+    curl — use `curl -D -` (a real GET), not `curl -I`.
+  - **Multi-moment citations confirmed with a real live Gemini call**: asked Ask AI a question
+    spanning two topics >45s apart in the same real transcribed lecture (content id 22, "Test
+    video - transcribing") and got back three distinct source entries for that one file
+    (`0:44`, `2:12`, `3:39`) instead of one — the exact bug originally reported, fixed and
+    observed live. Re-ran the identical question after migrating that same content to R2 and
+    got byte-identical citations, confirming existing embeddings survive a backfill unchanged.
+  - Click-to-seek: `/api/file/c/<id>?t=42` renders the `<video>` element with
+    `var seekTo = 42.0;` correctly emitted server-side.
+  - **Not independently verified**: the actual browser-side scrub-bar/playback experience (all
+    of the above was verified via `curl`/Flask test client/direct R2 API calls, not a real
+    browser), the full Picker-import flow (needs live Google OAuth + a real Picker session,
+    can't be automated from here), and the `R2_UPSTREAM_*` dev/prod-bucket fallback (no
+    production bucket exists yet to fall back to).
+
+**Follow-on bug found and fixed after the above (2026-08-27): Office documents (.docx/.pptx/
+.xls/.xlsx and legacy .doc/.ppt) were invisible in the viewer.** Not caught by the verification
+above because it only checked the document iframe returned HTTP 200, not that the browser could
+actually render what came back. Root cause: Google Drive's `/preview` used to convert the file
+server-side before returning it; raw R2 bytes have no equivalent, and browsers have no native
+renderer for Office formats (unlike PDF/images, which render fine raw). Fix: headless LibreOffice
+converts these to PDF at ingestion time and the converted PDF is what gets embedded — the
+original file is untouched and still what downloads/RAG extraction use.
+- New `lms/office_preview.py` (`OFFICE_MIME_TYPES`, `convert_to_pdf`, `generate_and_upload_preview`
+  — the last one shared by all three ingestion paths below).
+- New `CourseContent.r2_preview_key` column (migration `e5f6a7b8c9d0`, nullable, additive) —
+  NULL means "the original is natively viewable, embed it directly"; set means "embed this PDF
+  instead." `_content_media_url` in `lms/routes/api.py` prefers it for embedding only, never
+  for downloads.
+- Wired into all three places bytes enter R2: the direct upload route, Picker import
+  (`_copy_drive_file_to_r2`, return signature grew a third element), and the backfill script.
+- New Dockerfile layer: `libreoffice-writer libreoffice-calc libreoffice-impress`
+  (`--no-install-recommends`, not the full `libreoffice` metapackage) — needed in every image
+  that can receive an upload/import/backfill, i.e. `app`/`worker` for all three environments,
+  since they all build from the same Dockerfile.
+- **Live-verified**: converted a real migrated `.docx` (the "CV Magsud Abbaszade.docx" from the
+  earlier backfill) via the actual LibreOffice binary in the container — produced a genuine,
+  valid PDF (`file` confirms `PDF document, version 1.7`), uploaded it, and confirmed
+  `serve_content_embed` now redirects to the `.preview.pdf` object (`Content-Type:
+  application/pdf`) instead of the raw `.docx`. Ran a full upload through the real route with a
+  LibreOffice-generated test `.docx` and confirmed the preview auto-generates.
+- **One test-only wrinkle, not a real-user bug**: a `.docx` generated directly via the
+  `python-docx` library (used for a quick synthetic test upload) sniffed as `application/zip`
+  via `filetype.guess()`, not as the Word MIME type — `python-docx`'s minimal zip-entry
+  ordering doesn't match what `filetype`'s OOXML heuristic expects. Confirmed this is specific
+  to that library, not a general problem: both a real-world Word-produced `.docx` and a
+  LibreOffice-produced `.docx` sniff correctly. Falls back gracefully anyway (classified
+  `file_type='unsupported'`, shows "Preview Not Available" rather than a blank/broken iframe).
+  Not fixed — real user uploads (from Word, LibreOffice, Google Docs export, etc.) are
+  unaffected.
+- **Not yet backfilled**: existing migrated content from before this fix doesn't get a preview
+  retroactively unless the backfill script is re-run — but the backfill's selection query only
+  picks up rows with `r2_key IS NULL`, so already-migrated rows are skipped. Manually generated
+  previews for the two currently-migrated `.docx` rows (ids 19, 20) as a one-off using the same
+  `generate_and_upload_preview` function the real ingestion paths call, and confirmed both now
+  embed correctly. A proper reusable "regenerate previews for rows missing one" script doesn't
+  exist yet — worth adding if more content accumulates from before this fix.
+
+**New known gaps, worth recording while fresh**: presigned URLs are shareable by anyone holding
+one for its remaining lifetime (`R2_URL_EXPIRY_SECONDS`, default 6h, is the only control);
+replaced/orphaned R2 objects (a re-uploaded file's old object) have no reaper script yet; Drive
+copies are intentionally retained post-backfill, purging them is a separate deliberate future
+step; `CourseAssignmentSubmission`/`PDFDocument` uploads are intentionally still on Drive, out
+of this migration's scope; `import_drive_folder`/`import_drive_file` in
+`google_drive_service.py` are pre-existing dead/legacy code (no callers outside each other) —
+noticed while working in this file, not touched, since removing them wasn't part of this plan.
+
 ### Phase 4/6 addendum — cleanup + review findings (2026-08-24)
 
 **Dead code removed** (~1,400 lines), each confirmed unreachable by a repo-wide reachability
@@ -894,8 +1350,30 @@ SSRF in the Drive download (hardcoded host, `file_id` passed as a query param).
   one, which is `submit_assignment`, not `upload_file`. Verified by locating the branch bounds
   explicitly and asserting every `os.remove` sits in the intended branch.
 
-- [ ] **Still open** — the permission-gating test gap logged above (unpublished content and
-  locked folders in Ask AI `sources`). Not addressed in this pass.
+- [x] **Fixed — reported live by the user, not caught by the earlier test-gap note.**
+  `answer_question()` filtered `course_id`, `is_published`, and locked folders, but never
+  `allow_others_to_view` — the exact flag the rest of the app already enforces consistently
+  (folder-contents endpoint at `api.py:1125`, file-serving gate at `api.py:745`: students see
+  only `allow_others_to_view=True`, course managers see everything). Ask AI was the one path
+  that skipped it, so a student could ask about — and receive answers quoting — a teacher's
+  "🔒 Private" content. Confirmed on the user's exact real-world case: `testuser`, a plain
+  student (`is_teacher=False`) enrolled in course 1, which has two private items (`terms of
+  use`, the private planning doc). Retrieval scoped to `allow_others_to_view=True` no longer
+  returns either, for a query aimed directly at the private one. Fix:
+  `if not course.is_managed_by(user): query.filter(CourseContent.allow_others_to_view.is_(True))`
+  in `rag_service.answer_question`, matching the same rule the rest of the app already uses.
+  The unrelated "can't ask about a course you're not enrolled in" behavior the user separately
+  confirmed working is unchanged — that's the existing `course_id` scoping, untouched here.
+- [x] **Quiz/assignment folder-locking verified — the other half of the test gap, closed.**
+  `get_locked_content_ids()` was already wired into `answer_question()`'s query
+  (`~CourseContent.id.in_(locked_ids)`) before this session touched it; it had simply never
+  been exercised end-to-end. Live test: a throwaway quiz, a folder with
+  `locked_until_quiz_id` set to it, and a planted secret inside. Called the real
+  `answer_question()` (not a reconstruction) as a student who had not passed — answer
+  correctly said it had no information, nothing from the locked item appeared in `sources`.
+  Recorded a `QuizAttempt(passed=True)` for the same student, called it again — the secret
+  was correctly surfaced and cited. Both directions confirmed via production code, not
+  inspection; probe rows (quiz, folder, content, embedding, attempt) deleted after.
 
 ## Phase 7 — AI audio overview
 
@@ -917,6 +1395,8 @@ SSRF in the Drive download (hardcoded host, `file_id` passed as a query param).
 - [ ] Forum/resource moderation rework
 - [ ] Translation review UI reflecting DeepL engine
 - [ ] Update `ADMIN_PERMISSIONS` (drop `moxo_test_management`, add quiz/promo-code keys)
+- [ ] Adding more control over platform features such as locking some of them
+- [ ] Reworking the UI of Admin panel
 
 ## Phase 10 — Real email delivery
 

@@ -433,13 +433,17 @@ def delete_file(service, file_id):
         logger.error(f'An error occurred: {error}')
         return False
 
-def download_file(service, file_id, local_path):
-    """Download a file from Google Drive to local path"""
+def download_file(service, file_id, local_path, resource_key=None):
+    """Download a file from Google Drive to local path. `resource_key` is required for
+    link-shared files — see get_file_metadata's docstring for why; without it, downloading a
+    Picker-selected, link-shared file 404s even though fetching its metadata succeeded."""
     from googleapiclient.http import MediaIoBaseDownload
     import io
-    
+
     try:
         request = service.files().get_media(fileId=file_id, supportsAllDrives=True)
+        if resource_key:
+            request.headers['X-Goog-Drive-Resource-Keys'] = f'{file_id}/{resource_key}'
         with io.FileIO(local_path, 'wb') as fh:
             downloader = MediaIoBaseDownload(fh, request)
             done = False

@@ -64,6 +64,15 @@ def detect_course_content_type(file_storage):
     return content_type_for_mime(_detect_mime(file_storage))
 
 
+def detect_mime_and_content_type(file_storage):
+    """Sniff both the real MIME type and its CourseContent.content_type in one pass —
+    the upload path needs both (MIME for R2's ContentType/file_mime_type column, content_type
+    for the row itself) and calling detect_course_content_type + _detect_mime separately would
+    sniff the same bytes twice."""
+    mime = _detect_mime(file_storage)
+    return mime, content_type_for_mime(mime)
+
+
 def validate_upload(file_storage, max_bytes=None, expected_mimes=None):
     """
     Validate an uploaded werkzeug FileStorage by real content, not just its filename.

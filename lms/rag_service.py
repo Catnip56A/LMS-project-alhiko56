@@ -22,13 +22,17 @@ from docx import Document as DocxDocument
 from pptx import Presentation
 from pypdf import PdfReader
 
-from lms import gemini_client, transcription
+from lms import gemini_client, r2_client, transcription
 from lms.models import db, AiConversation, AiConversationMessage, ContentEmbedding, CourseContent
 
 logger = logging.getLogger(__name__)
 
 CHUNK_SIZE = 1200
 CHUNK_OVERLAP = 150
+
+# Time-window target for video/audio chunking (chunk_segments_by_time) — independent of
+# CHUNK_SIZE above, which only bounds chunk length for dense speech (see that function).
+SEGMENT_CHUNK_WINDOW_SECONDS = 45.0
 
 # Retrieval is two-stage: first rank whole files by their single best-matching chunk (from
 # a wider candidate pool), then only pull context from the top few files. Mixing fragments
@@ -54,7 +58,9 @@ SYSTEM_INSTRUCTION = (
     "giving a bare one-line response — walk through the relevant concepts, not just the "
     "conclusion. If the student's question is ambiguous, underspecified, or you'd need more "
     "detail from them to give a good answer, ask a concise clarifying follow-up question "
-    "instead of guessing. Mention which material(s) you drew from by name."
+    "instead of guessing. Mention which material(s) you drew from by name. If an excerpt "
+    "is labeled with a timestamp (e.g. 'at 5:12'), you may reference that moment in your "
+    "answer (e.g. 'around the 5:12 mark') so the student can find it in the video."
 )
 
 # Effort modes: a student-facing toggle trading retrieval depth/answer length for speed. The
@@ -116,6 +122,76 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
     return chunks
 
 
+def chunk_segments_by_time(
+    segments: list[dict],
+    window_seconds: float = SEGMENT_CHUNK_WINDOW_SECONDS,
+    max_chars: int = CHUNK_SIZE,
+) -> list[dict]:
+    """Group timestamped transcript segments (from transcription.transcribe_with_timestamps)
+    into chunks of ~window_seconds, each carrying the real start/end of the audio it covers.
+
+    A window also closes early if it would exceed max_chars, so a chunk never grows unbounded
+    over a long stretch of dense speech. Returns [{'text', 'start', 'end'}, ...].
+
+    Degrades gracefully for the Gemini fallback path (_transcribe_via_gemini), which returns
+    a single segment spanning the whole file with start=end=0.0 (no real timestamps available):
+    the span-based close condition never fires since start never advances, but the max_chars
+    condition still splits it into multiple reasonably-sized chunks — same (0.0, 0.0) on all
+    of them, meaning "position unknown," rather than one unbounded blob.
+    """
+    chunks: list[dict] = []
+    cur_texts: list[str] = []
+    cur_start = None
+    cur_end = None
+    cur_chars = 0
+
+    def flush():
+        nonlocal cur_texts, cur_start, cur_end, cur_chars
+        if cur_texts:
+            chunks.append({'text': ' '.join(cur_texts), 'start': cur_start, 'end': cur_end})
+        cur_texts, cur_start, cur_end, cur_chars = [], None, None, 0
+
+    for seg in segments:
+        text = (seg.get('text') or '').strip()
+        if not text:
+            continue
+
+        if cur_texts and (
+            seg['end'] - cur_start > window_seconds
+            or cur_chars + len(text) + 1 > max_chars
+        ):
+            flush()
+
+        if len(text) > max_chars:
+            # A single segment's own text already exceeds max_chars — the Gemini-fallback
+            # path hits this, returning one segment spanning the whole file. Flush whatever
+            # was pending, then sub-split this segment's text with the same word-boundary
+            # logic chunk_text() uses. All pieces share the segment's start/end, since a
+            # single transcript segment carries no finer-grained timing to split by.
+            flush()
+            for piece in chunk_text(text, chunk_size=max_chars, overlap=0):
+                chunks.append({'text': piece, 'start': seg['start'], 'end': seg['end']})
+            continue
+
+        if cur_start is None:
+            cur_start = seg['start']
+        cur_texts.append(text)
+        cur_chars += len(text) + 1
+        cur_end = seg['end']
+
+    flush()
+    return chunks
+
+
+
+def _format_timestamp(seconds: float) -> str:
+    """5:12, or 1:05:12 past the hour mark. Whole seconds only — sub-second precision isn't
+    meaningful without a player that can actually seek to it."""
+    total = int(seconds)
+    h, rem = divmod(total, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
 # ── Text extraction ──────────────────────────────────────────────────────────────
 
 # Keyed by MIME, not extension — content titles are freeform display names (e.g. "Privacy
@@ -130,18 +206,33 @@ _DOCUMENT_MIMES = {
 }
 
 
-def extract_text_for_content(content: CourseContent) -> str | None:
-    """Best-effort text extraction. Returns None if the content type isn't supported for
-    indexing (e.g. links, images, or legacy Office formats like .doc/.ppt — Office *preview
+def extract_text_for_content(content: CourseContent) -> str | list[dict] | None:
+    """Best-effort content extraction for indexing. Returns None if the content type isn't
+    supported (e.g. links, images, or legacy Office formats like .doc/.ppt — Office *preview
     rendering* is separately Phase 8 scope, but raw text extraction from the modern .docx/
-    .pptx XML formats is unrelated to that and cheap enough to do here)."""
+    .pptx XML formats is unrelated to that and cheap enough to do here).
+
+    Returns a plain str for untimed sources (text/PDF/DOCX/PPTX), or a list of timestamped
+    segments (`[{'start','end','text'}, ...]`, see transcription.transcribe_with_timestamps)
+    for video/audio — embed_content_item dispatches on which shape it got back."""
     if content.content_type == 'text':
         return content.content_data
-    if content.content_type == 'file' and content.drive_file_id:
+    if content.content_type == 'file' and content.has_bytes:
         return _extract_drive_file_text(content)
-    if content.content_type == 'video' and content.drive_file_id:
-        return _transcribe_video(content)
+    if content.content_type == 'video' and content.has_bytes:
+        return transcribe_video_segments(content)
     return None
+
+
+def _download_content_bytes(content: CourseContent, dest_path: str) -> bool:
+    """Fetch a CourseContent's file bytes to dest_path from whichever backend holds them.
+    R2 first (the source of truth once a row is migrated, per CourseContent.storage_backend),
+    Drive as the fallback for rows not yet migrated off it."""
+    if content.r2_key:
+        return r2_client.download_file(content.r2_key, dest_path)
+    if content.drive_file_id:
+        return _download_public_drive_file(content.drive_file_id, dest_path)
+    return False
 
 
 def _download_public_drive_file(file_id: str, dest_path: str) -> bool:
@@ -183,12 +274,15 @@ def _download_public_drive_file(file_id: str, dest_path: str) -> bool:
         return False
 
 
-def _extract_drive_file_text(content: CourseContent) -> str | None:
+def _extract_drive_file_text(content: CourseContent) -> str | list[dict] | None:
+    """Returns extracted text for pdf/docx/pptx, or timestamped segments (list[dict]) for
+    legacy rows mis-typed as 'file' that actually sniff as video/audio — see the self-healing
+    branch below."""
     tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp_path = tmp.name
-        if not _download_public_drive_file(content.drive_file_id, tmp_path):
+        if not _download_content_bytes(content, tmp_path):
             return None
 
         kind = filetype.guess(tmp_path)
@@ -202,8 +296,9 @@ def _extract_drive_file_text(content: CourseContent) -> str | None:
             logger.info(
                 f"Content {content.id} is stored as 'file' but sniffs as {mime}; transcribing instead"
             )
-            segments = transcription.transcribe_with_timestamps(tmp_path)
-            return transcription.segments_to_text(segments) if segments else None
+            segments, language = transcription.transcribe_with_timestamps(tmp_path)
+            content.transcript_language = language
+            return segments
 
         extension = _DOCUMENT_MIMES.get(mime) if mime else None
         if not extension:
@@ -246,7 +341,7 @@ def transcribe_video_segments(content: CourseContent) -> list[dict] | None:
     try:
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             tmp_path = tmp.name
-        if not _download_public_drive_file(content.drive_file_id, tmp_path):
+        if not _download_content_bytes(content, tmp_path):
             return None
 
         # Keyed off the downloaded bytes, not content.title (see _extract_drive_file_text) —
@@ -256,8 +351,9 @@ def transcribe_video_segments(content: CourseContent) -> list[dict] | None:
         if not mime_type or not (mime_type.startswith('video/') or mime_type.startswith('audio/')):
             return None
 
-        segments = transcription.transcribe_with_timestamps(tmp_path)
+        segments, language = transcription.transcribe_with_timestamps(tmp_path)
         if segments:
+            content.transcript_language = language
             return segments
 
         logger.warning(f"Whisper returned nothing for content {content.id}; trying Gemini fallback")
@@ -295,37 +391,38 @@ def _transcribe_via_gemini(tmp_path: str, mime_type: str, title: str) -> str | N
             gemini_client.delete_gemini_file(gemini_file_name)
 
 
-def _transcribe_video(content: CourseContent) -> str | None:
-    """Plain-text transcript, for the existing text-only indexing path.
-
-    Timestamps are dropped here on purpose — storing them is step 2 of the video-moments
-    work (needs a migration on ContentEmbedding). Callers wanting moments should use
-    transcribe_video_segments() directly.
-    """
-    segments = transcribe_video_segments(content)
-    return transcription.segments_to_text(segments) if segments else None
-
 # ── Indexing ────────────────────────────────────────────────────────────────────
 
 def embed_content_item(content: CourseContent) -> int:
     """Extract, chunk, embed, and store one CourseContent item. Returns the number of
-    chunks stored (0 if nothing was extracted, e.g. an unsupported file type)."""
-    text = extract_text_for_content(content)
+    chunks stored (0 if nothing was extracted, e.g. an unsupported file type).
+
+    extract_text_for_content returns either a plain str (text/PDF/DOCX/PPTX — no time axis)
+    or a list of timestamped segments (video/audio). Both are normalized here into the same
+    {'text', 'start', 'end'} chunk shape before embedding, so the storage loop below doesn't
+    need to know which source produced them — start/end are simply None for untimed chunks."""
+    extracted = extract_text_for_content(content)
 
     ContentEmbedding.query.filter_by(course_content_id=content.id).delete()
 
-    if not text or not text.strip():
-        content.embedded_at = datetime.utcnow()
-        db.session.commit()
-        return 0
+    if isinstance(extracted, list):
+        chunks = chunk_segments_by_time(extracted)
+        # Stage 1 of video moment highlighting: an automatic keyword/regex pass over the raw
+        # per-segment transcript (finer-grained than the 45s chunks above) — see
+        # moment_service.py. Function-local import: moment_service imports from this module
+        # at its own top level, so a module-level import here would cycle.
+        from lms.moment_service import record_auto_moments
+        record_auto_moments(content, extracted)
+        # Subtitles: persist the same raw per-segment transcript at its original fine-grained
+        # timing, separately from the 45s chunks above — see subtitle_service.py.
+        from lms.subtitle_service import record_transcript_segments
+        record_transcript_segments(content, extracted)
+    elif extracted and extracted.strip():
+        chunks = [{'text': t, 'start': None, 'end': None} for t in chunk_text(extracted)]
+    else:
+        chunks = []
 
-    chunks = chunk_text(text)
-    if not chunks:
-        content.embedded_at = datetime.utcnow()
-        db.session.commit()
-        return 0
-
-    vectors = gemini_client.embed_batch(chunks, task_type='RETRIEVAL_DOCUMENT')
+    vectors = gemini_client.embed_batch([c['text'] for c in chunks], task_type='RETRIEVAL_DOCUMENT') if chunks else []
 
     stored = 0
     for idx, (chunk, vector) in enumerate(zip(chunks, vectors)):
@@ -334,10 +431,35 @@ def embed_content_item(content: CourseContent) -> int:
         db.session.add(ContentEmbedding(
             course_content_id=content.id,
             chunk_index=idx,
-            chunk_text=chunk,
+            chunk_text=chunk['text'],
+            start_seconds=chunk['start'],
+            end_seconds=chunk['end'],
             embedding=vector,
         ))
         stored += 1
+
+    # Re-embed any already-captioned video moments (see moment_service.py) — no vision API
+    # call, since the caption text is the durable artifact stored precisely so this is free.
+    # Without this, the ContentEmbedding.query...delete() above would silently and
+    # permanently drop every caption on the next reindex, since the promotion sweep never
+    # re-captions a bucket that already has a VideoMoment row.
+    from lms.moment_service import caption_chunks_for_content
+    caption_chunks = caption_chunks_for_content(content)
+    if caption_chunks:
+        next_index = len(chunks)
+        caption_vectors = gemini_client.embed_batch([c['text'] for c in caption_chunks], task_type='RETRIEVAL_DOCUMENT')
+        for i, (chunk, vector) in enumerate(zip(caption_chunks, caption_vectors)):
+            if not vector:
+                continue
+            db.session.add(ContentEmbedding(
+                course_content_id=content.id,
+                chunk_index=next_index + i,
+                chunk_text=chunk['text'],
+                start_seconds=chunk['start'],
+                end_seconds=chunk['end'],
+                embedding=vector,
+            ))
+            stored += 1
 
     content.embedded_at = datetime.utcnow()
     db.session.commit()
@@ -516,9 +638,11 @@ def answer_question(
     max_files: int | None = None, chunks_per_file: int | None = None,
     effort: str = DEFAULT_EFFORT,
 ) -> dict | None:
-    """Returns {'answer': str, 'sources': [{'content_id', 'title'}]}, or None if the
-    question couldn't be processed (e.g. GEMINI_API_KEY missing/unreachable). Tracks
-    multi-turn conversation memory per (user, course) when user is a real authenticated
+    """Returns {'answer': str, 'sources': [{'content_id', 'title', 'timestamp'?, 'start_seconds'?}]},
+    or None if the question couldn't be processed (e.g. GEMINI_API_KEY missing/unreachable).
+    Multiple entries may share a content_id — one per distinct moment actually cited in a
+    video/audio file, distinguished by start_seconds — rather than one entry per file.
+    Tracks multi-turn conversation memory per (user, course) when user is a real authenticated
     User — see _get_or_create_conversation / _persist_turn.
 
     `effort` ('quick'/'thorough', see EFFORT_LEVELS) sets retrieval depth and answer length
@@ -551,6 +675,12 @@ def answer_question(
             CourseContent.is_published.is_(True),
         )
     )
+    # Teacher-private files ("🔒 Private" in the content list) must not leak into answers.
+    # Same rule the rest of the app applies — see the folder-contents endpoint and the
+    # file-serving gate in routes/api.py: students only see allow_others_to_view=True,
+    # course managers see everything. `is_managed_by` handles anonymous/None users.
+    if not course.is_managed_by(user):
+        query = query.filter(CourseContent.allow_others_to_view.is_(True))
     if locked_ids:
         query = query.filter(~CourseContent.id.in_(locked_ids))
 
@@ -579,7 +709,8 @@ def answer_question(
         # Stage 2: within just those files, take each file's best few chunks.
         context_blocks = []
         sources = []
-        seen_content_ids = set()
+        emitted_untimed = set()
+        emitted_starts = {}  # content_id -> [start_seconds, ...] already given their own chip
         chunks_used = {}
         for embedding, content in candidates:
             if content.id not in selected_content_ids:
@@ -587,10 +718,36 @@ def answer_question(
             if chunks_used.get(content.id, 0) >= chunks_per_file:
                 continue
             chunks_used[content.id] = chunks_used.get(content.id, 0) + 1
-            context_blocks.append(f"[Source: {content.title}]\n{embedding.chunk_text}")
-            if content.id not in seen_content_ids:
-                seen_content_ids.add(content.id)
-                sources.append({'content_id': content.id, 'title': content.title})
+            if embedding.start_seconds is not None:
+                header = f"[Source: {content.title}, at {_format_timestamp(embedding.start_seconds)}]"
+            else:
+                header = f"[Source: {content.title}]"
+            context_blocks.append(f"{header}\n{embedding.chunk_text}")
+
+            # candidates is ordered by ascending distance, so the first chunk to claim a given
+            # moment is that moment's best match. A video can earn several chips — one per
+            # distinct moment actually cited — as long as each is more than one chunking
+            # window away from every moment already emitted for that file; that keeps two
+            # adjacent chunks of the same moment from spamming duplicate chips while still
+            # surfacing genuinely separate moments the AI mentioned in the same answer.
+            if embedding.start_seconds is None:
+                if content.id not in emitted_untimed:
+                    emitted_untimed.add(content.id)
+                    sources.append({'content_id': content.id, 'title': content.title})
+            else:
+                starts = emitted_starts.setdefault(content.id, [])
+                if all(abs(s - embedding.start_seconds) >= SEGMENT_CHUNK_WINDOW_SECONDS for s in starts):
+                    starts.append(embedding.start_seconds)
+                    sources.append({
+                        'content_id': content.id,
+                        'title': content.title,
+                        'timestamp': _format_timestamp(embedding.start_seconds),
+                        'start_seconds': embedding.start_seconds,
+                    })
+
+        # Files stay in relevance order; multiple moments within the same file read better
+        # chronologically ("2:10, then 12:43") than in retrieval-score order.
+        sources.sort(key=lambda s: (ranked_content_ids.index(s['content_id']), s.get('start_seconds', -1)))
 
         context = '\n\n---\n\n'.join(context_blocks)
         prompt_parts = []

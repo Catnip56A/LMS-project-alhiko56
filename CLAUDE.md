@@ -19,6 +19,8 @@ just make-admin <username> # Promote an existing user to full admin (Docker dev)
 - Models all in `lms/models/__init__.py`
 - `core_translator.py` — no Flask/DB dependency, used by both runtime and dev scripts
 - `translation_service.py` — runtime only, requires app context and DB
+- `r2_client.py` — object storage for course content bytes (Cloudflare R2); no Flask/DB dependency (same convention as `gemini_client.py`)
+- `office_preview.py` — converts Office documents (.doc/.docx/.ppt/.pptx/.xls/.xlsx) to PDF via headless LibreOffice for in-browser viewing (browsers have no native renderer for these); no Flask/DB dependency
 
 ## Admin permission tiers
 Three tiers: **Full admin** (`is_admin=True`, `admin_permissions=NULL`) → **Sub-admin** (`is_admin=True`, `admin_permissions=[list]`) → **Regular user** (`is_admin=False`).
