@@ -800,7 +800,7 @@ def course_page_enrolled(course_id):
         # Delete course content
         elif action == 'delete_content' and (course.is_managed_by(current_user)):
             from lms.models import CourseContent
-            from lms.google_drive_service import authenticate, delete_file
+            from lms.google_drive_service import authenticate, delete_file, set_file_permissions
             
             content_id = request.form.get('content_id')
             content = CourseContent.query.get(content_id)
@@ -827,6 +827,20 @@ def course_page_enrolled(course_id):
                         delete_file(service, content.drive_file_id)
                     except Exception as e:
                         current_app.logger.error(f"Error deleting file from Google Drive: {e}")
+
+            # An imported row still hosted on Drive (not yet R2-migrated) never had its own
+            # file deleted above — it lives in the teacher's own Drive, we only referenced it.
+            # But if it was ever made public (toggle_content_visibility, or the pre-R2-migration
+            # import path), that permission would otherwise survive this delete forever with no
+            # revoke. Best-effort: the file may already be gone or the permission already
+            # cleared, neither of which should block deleting the CourseContent row itself.
+            elif content.drive_file_id and content.is_imported and not content.r2_key:
+                service = authenticate()
+                if service:
+                    try:
+                        set_file_permissions(service, content.drive_file_id, make_public=False)
+                    except Exception as e:
+                        current_app.logger.warning(f"Could not revoke Drive permission on delete: {e}")
 
             # Delete from database
             db.session.delete(content)
@@ -880,9 +894,14 @@ def course_page_enrolled(course_id):
             
             # Toggle visibility
             content.allow_others_to_view = not content.allow_others_to_view
-            
-            # Update Google Drive permissions
-            if content.drive_file_id:
+
+            # Update Google Drive permissions — only for content actually still served from
+            # Drive. `drive_file_id` alone isn't a reliable signal: it's kept as provenance on
+            # every R2-migrated row too (see the R2 migration addendum), and those are served
+            # via R2 presigned URLs gated by this app's own auth checks, not Drive sharing —
+            # touching the retained Drive copy's permissions there would be pointless at best
+            # and a needless exposure at worst.
+            if content.drive_file_id and not content.r2_key:
                 service = authenticate()
                 if service:
                     try:

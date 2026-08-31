@@ -1046,9 +1046,10 @@ def _copy_drive_file_to_r2(service, file_id, course_id, name, mime, resource_key
     feature. `r2_preview_key` is set only for Office documents needing a converted PDF preview
     to be viewable at all (see lms/office_preview.py) — None for everything else.
 
-    This runs synchronously inside a web request, behind gunicorn's 600s timeout — `size_hint`
-    (Drive's own declared file size, when the caller has it) lets an oversized file be rejected
-    before spending time downloading it at all.
+    Runs inside a background job (lms.job_manager._execute_picker_import_file_job /
+    _execute_picker_import_folder_job — see picker_import in this file for the enqueue side),
+    not inline in a request — `size_hint` (Drive's own declared file size, when the caller has
+    it) still lets an oversized file be rejected before spending time downloading it at all.
     """
     import tempfile
     import filetype as _filetype
@@ -1166,15 +1167,14 @@ def _import_drive_tree(service, structure, course_id, parent_folder_id, publishe
 @login_required
 def picker_import():
     """
-    Import a single file that the teacher selected via the Google Picker.
-
-    Calls files().get() to verify access, then permissions().create(type='anyone', role='reader')
-    to make the file embeddable, and finally persists a CourseContent row.
+    Queue import of a file or folder the teacher selected via the Google Picker as a
+    background job — the actual work (Drive download, optional LibreOffice conversion, R2
+    upload, and for a folder, recursively doing that per file) can run for a long time,
+    previously inline in this request against gunicorn's 600s timeout. See
+    lms.job_manager._execute_picker_import_file_job / _execute_picker_import_folder_job for
+    the work itself, and picker_import_status below for the poll side.
     """
-    from lms.models import CourseContent, CourseContentFolder, Course
-    from lms.google_drive_service import (
-        get_file_metadata,
-    )
+    from lms.models import Course
 
     data = request.get_json()
     if not data:
@@ -1199,97 +1199,50 @@ def picker_import():
     if not course.is_managed_by(current_user):
         return jsonify({'error': 'forbidden'}), 403
 
-    service = authenticate(current_user)
-    if not service:
+    # Checked synchronously (cheap — a token refresh, no Drive/R2 traffic) so a missing link
+    # fails fast instead of after a job round-trip. The job itself re-authenticates as this
+    # user rather than reusing this connection — a googleapiclient service object can't be
+    # put in job.data (not JSON-serializable) or carried across the process boundary to the
+    # worker.
+    if not authenticate(current_user):
         return jsonify({'error': 'no_token', 'message': 'Please link your Google account first'}), 401
 
-    try:
-        if mime_type == 'application/vnd.google-apps.folder':
-            from lms.google_drive_service import collect_folder_structure, get_file_metadata as _gmeta
+    job_data = {
+        'user_id': current_user.id,
+        'course_id': course.id,
+        'file_id': file_id,
+        'file_name': file_name,
+        'mime_type': mime_type,
+        'resource_key': resource_key,
+        'folder_id': folder_id,
+        'title': title,
+        'published': published,
+        'allow_view': allow_view,
+    }
 
-            folder_meta = _gmeta(service, file_id, resource_key=resource_key)
-            if isinstance(folder_meta, dict) and 'error' in folder_meta:
-                return jsonify({'error': folder_meta['error']}), 400
+    from lms.job_manager import job_manager
+    job_type = 'picker_import_folder' if mime_type == 'application/vnd.google-apps.folder' else 'picker_import_file'
+    job_id = job_manager.queue_job(job_type, job_data)
 
-            folder_name = title or (folder_meta.get('name') if folder_meta else file_name)
-            structure = collect_folder_structure(service, file_id)
+    return jsonify({'success': True, 'job_id': job_id}), 202
 
-            # Create a root CourseContentFolder mirroring the Drive folder
-            root_cf = CourseContentFolder(
-                course_id=course.id,
-                parent_folder_id=int(folder_id) if folder_id else None,
-                title=folder_name,
-                order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1,
-            )
-            db.session.add(root_cf)
-            db.session.flush()
 
-            order_ref = [1]
-            file_count, skipped_count = _import_drive_tree(service, structure, course.id, root_cf.id, published, allow_view, order_ref)
-            db.session.commit()
-            if file_count:
-                from lms.job_manager import record_content_update
-                for _ in range(file_count):
-                    record_content_update()
+@api_bp.route('/picker-import/status/<job_id>', methods=['GET'])
+@login_required
+def picker_import_status(job_id):
+    """Poll side of the background Picker-import job queued by picker_import."""
+    from lms.job_manager import job_manager, JobStatus
+    job = job_manager.get_job(job_id)
+    job_data = job.data if job else None
+    if not job or job.type not in ('picker_import_file', 'picker_import_folder') \
+            or not job_data or job_data.get('user_id') != current_user.id:
+        return jsonify({'error': 'Job not found'}), 404
 
-            return jsonify({
-                'success': True,
-                'folder': True,
-                'folder_name': folder_name,
-                'imported_count': file_count,
-                'skipped_count': skipped_count,
-            }), 200
-
-        # Single file import
-        metadata = get_file_metadata(service, file_id, resource_key=resource_key)
-        if isinstance(metadata, dict) and 'error' in metadata:
-            return jsonify({'error': metadata['error']}), 400
-
-        # Drive's metadata is authoritative; the client-supplied mime_type is only a fallback.
-        effective_mime = metadata.get('mimeType') or mime_type
-        name = metadata.get('name') or file_name
-        key, effective_mime_or_reason, preview_key = _copy_drive_file_to_r2(
-            service, file_id, course.id, name, effective_mime, resource_key=resource_key, size_hint=metadata.get('size'),
-        )
-        if not key:
-            reason = effective_mime_or_reason
-            messages = {
-                'google_doc': 'Google Docs/Sheets/Slides can\'t be imported directly — download a copy (PDF/Office format) from Drive and upload that instead.',
-                'too_large': 'This file is too large to import.',
-                'download_failed': 'Could not download the selected file from Google Drive.',
-                'upload_failed': 'Could not copy the selected file into storage.',
-            }
-            return jsonify({'error': messages.get(reason, 'Import failed.')}), 400
-
-        content = CourseContent(
-            course_id=course.id,
-            title=title or name,
-            description='',
-            content_type=content_type_for_mime(effective_mime_or_reason),
-            content_data='',
-            r2_key=key,
-            r2_preview_key=preview_key,
-            file_mime_type=effective_mime_or_reason,
-            drive_file_id=file_id,  # provenance only — serving/RAG prefer r2_key
-            drive_view_link=None,
-            order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
-            folder_id=int(folder_id) if folder_id else None,
-            is_published=published,
-            allow_others_to_view=allow_view,
-            is_imported=True,
-        )
-        db.session.add(content)
-        db.session.commit()
-        from lms.job_manager import record_content_update
-        record_content_update()
-
-        return jsonify({'success': True, 'content_id': content.id, 'title': content.title}), 200
-
-    except Exception as e:
-        import traceback
-        current_app.logger.error(f'picker_import error: {e}\n{traceback.format_exc()}')
-        db.session.rollback()
-        return jsonify({'error': f'Import failed: {str(e)}'}), 500
+    if job.status == JobStatus.COMPLETED:
+        return jsonify({'success': True, 'status': 'completed', **(job.result or {})}), 200
+    if job.status == JobStatus.FAILED:
+        return jsonify({'success': False, 'status': 'failed', 'error': job.error or 'Import failed.'}), 200
+    return jsonify({'success': True, 'status': job.status}), 200
 
 
 @api_bp.route('/folder/<int:folder_id>/contents', methods=['GET'])
@@ -1675,15 +1628,45 @@ def ask_course_assistant(course_id):
     if len(question) > 1000:
         return jsonify({'error': 'question is too long (max 1000 characters)'}), 400
 
-    from lms.rag_service import answer_question, EFFORT_LEVELS, DEFAULT_EFFORT
+    from lms.rag_service import EFFORT_LEVELS, DEFAULT_EFFORT
     effort = data.get('effort') or DEFAULT_EFFORT
     if effort not in EFFORT_LEVELS:
         effort = DEFAULT_EFFORT
-    result = answer_question(course, question, current_user, effort=effort)
-    if result is None:
-        return jsonify({'error': 'AI assistant is rate-limited right now (every available model is at capacity). Please try again in a few minutes.'}), 503
 
-    return jsonify({'success': True, **result}), 200
+    # Runs as a background job, not inline — answer_question's Gemini call chain takes
+    # several real seconds (more under 'thorough'), and gunicorn's sync workers here are few
+    # (see deploy/gunicorn_config.py); holding one that long blocks every other request on the
+    # site. The frontend polls ask_course_assistant_status below for the result.
+    from lms.job_manager import job_manager
+    job_id = job_manager.queue_job('answer_question', {
+        'course_id': course.id,
+        'user_id': current_user.id,
+        'question': question,
+        'effort': effort,
+    })
+    return jsonify({'success': True, 'job_id': job_id}), 202
+
+
+@api_bp.route('/course/<int:course_id>/ask/status/<job_id>', methods=['GET'])
+@login_required
+@limiter.limit("120 per minute")
+def ask_course_assistant_status(course_id, job_id):
+    """Poll side of the background Ask AI job queued by ask_course_assistant. Scoped to the
+    requesting user and course — job ids are UUIDs (hard to guess), but an AI answer can
+    quote private course content, so this still checks ownership rather than trusting the id
+    alone."""
+    from lms.job_manager import job_manager, JobStatus
+    job = job_manager.get_job(job_id)
+    job_data = job.data if job else None
+    if not job or job.type != 'answer_question' or not job_data \
+            or job_data.get('course_id') != course_id or job_data.get('user_id') != current_user.id:
+        return jsonify({'error': 'Job not found'}), 404
+
+    if job.status == JobStatus.COMPLETED:
+        return jsonify({'success': True, 'status': 'completed', **(job.result or {})}), 200
+    if job.status == JobStatus.FAILED:
+        return jsonify({'success': False, 'status': 'failed', 'error': job.error or 'Something went wrong.'}), 200
+    return jsonify({'success': True, 'status': job.status}), 200
 
 
 @api_bp.route('/course/<int:course_id>/reindex', methods=['POST'])

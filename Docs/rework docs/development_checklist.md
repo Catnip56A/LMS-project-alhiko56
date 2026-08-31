@@ -313,11 +313,18 @@ issues surfaced while investigating:
    `routes/api.py`). The `import_drive_file`/`import_drive_folder` form actions in
    `routes/__init__.py`, plus `/api/import-drive-file` in `routes/api.py`, are **dead code** —
    grep confirms no template references those action names or a `drive_url` field.
-   - [ ] Delete the dead import paths (`import_drive_file`/`import_drive_folder` action
-     branches in `routes/__init__.py` ×2 call sites each, `/api/import-drive-file`) and the
-     `_import_from_drive()` worker→user fallback helper added for them this session. Keep
-     `google_drive_service.import_drive_file()` itself — `_import_drive_tree()` still uses it
-     for folder imports.
+   - [x] **Delete the dead import paths — done.** Turned out already done: commit `0a5d74a`
+     ("whisper transcription + dead code purge") had already deleted the
+     `import_drive_file`/`import_drive_folder` action branches in `routes/__init__.py`,
+     `_import_from_drive()`, and `/api/import-drive-file` — this checkbox just hadn't been
+     ticked retroactively. **Found while re-verifying (2026-08-31): the note below was also
+     stale.** `google_drive_service.import_drive_file()`/`import_drive_folder()` were kept on
+     the stated belief that `_import_drive_tree()` still called them — checked again and it
+     doesn't (it's been using `get_file_metadata`/`collect_folder_structure` directly since the
+     R2 migration rewrote it); a repo-wide grep confirmed zero remaining callers of either
+     function, or of `extract_file_id_from_url` (which only those two called). Deleted all
+     three (124 lines, `lms/google_drive_service.py`) — confirmed via `create_app()` still
+     registering all 151 routes with no import errors, live in the running container.
 
    **Root causes of the Picker 404s** (`files.get` returning "File not found" on a file the
    teacher had just picked and owns), found by live debugging:
@@ -337,20 +344,54 @@ issues surfaced while investigating:
      `app-dev` container. Two independent servers, same codebase. `just dev` also snapshots
      `.env` at launch, so new env vars need a full restart, not just the `--debug` autoreload.
 
-   **Import makes files world-readable — two follow-ups.** `picker_import()` calls
-   `set_file_permissions(make_public=True)` whenever `allow_view` is set, which creates a
-   Drive `{'type': 'anyone', 'role': 'reader'}` permission on a file in the *teacher's own
-   personal Drive*. The RAG pipeline depends on this (`_download_public_drive_file` fetches
-   bytes over the public link precisely to sidestep the `drive.file` scope limits), so the
-   behaviour itself is intentional — but its presentation and lifecycle are not:
-   - [ ] **Honest label.** The checkbox reads "Allow students to view" and is `checked` by
-     default, implying course-scoped access. It actually grants unauthenticated link-based
-     access to anyone holding the URL — no login, no enrollment check. Rename to something
-     truthful ("Make viewable via link (public)") and reconsider the default-on.
-   - [ ] **Revoke on delete.** The `make_public=False` branch only ever fires from the
-     content-edit and submission routes (driven by `allow_others_to_view`). Deleting course
-     content does not revoke the Drive permission, so files silently stay world-readable after
-     the course stops using them. Revoke on content deletion.
+   **Import makes files world-readable — two follow-ups. Re-evaluated 2026-08-31, after the R2
+   migration — see below for what's actually still true.** `picker_import()` used to call
+   `set_file_permissions(make_public=True)` whenever `allow_view` was set, creating a Drive
+   `{'type': 'anyone', 'role': 'reader'}` permission on a file in the *teacher's own personal
+   Drive*. The RAG pipeline depended on this at the time (`_download_public_drive_file` fetches
+   bytes over the public link precisely to sidestep the `drive.file` scope limits).
+   - [x] **Honest label — re-checked, no longer needed.** The premise changed: the R2
+     migration's Picker-import rewrite (see the "Cloudflare R2 migration" addendum further
+     down) already stopped `picker_import()` from calling `set_file_permissions` at all — it
+     copies bytes into R2 instead of referencing the Drive file in place, and the same is true
+     of the direct-upload path. Checked all three checkboxes this concern was about
+     (`fileAllowView` on direct upload, `pickerAllowView` on Picker import, the
+     `visibility_{{ item.id }}` toggle) against current behavior: for R2-backed content (the
+     normal case now and for everything created going forward) each one only ever sets
+     `CourseContent.allow_others_to_view`, an app-level flag enforced by this app's own
+     login+enrollment-gated routes — not a Drive public link. "Allow students to view" is an
+     accurate description of that. Renaming it to "Make viewable via link (public)" as
+     originally proposed would now be **wrong**, not more honest — it would describe a Drive
+     side effect that no longer happens for the common path. Left the labels as-is.
+   - [x] **Revoke on delete — real bug found and fixed, but narrower than described.** The
+     Picker-import fix above also means there's no world-readable Drive permission being
+     created for new content at all anymore, so the described leak mostly can't happen going
+     forward. But auditing every `set_file_permissions` call site while checking the above
+     turned up two real, still-live gaps for the one case the R2 migration didn't touch — a
+     `CourseContent` row that's `drive_file_id`-set, `is_imported=True`, and genuinely not yet
+     R2-migrated (`r2_key IS NULL`; only possible for content predating this app's current
+     ingestion paths, or not yet backfilled):
+     1. `toggle_content_visibility` (`routes/__init__.py`) gated its Drive-permission update on
+        `content.drive_file_id` alone — but `drive_file_id` is *retained as provenance on every
+        R2-migrated row too* (see the R2 addendum), so toggling visibility on an already-
+        migrated item was still reaching out to Drive and flipping the permission on the
+        now-unused retained copy, for no reason and with no bearing on how the content is
+        actually served. Fixed to also require `not content.r2_key`.
+     2. `delete_content` deleted the whole Drive file outright when the app had uploaded it
+        itself, but for an *imported* Drive-hosted row (referencing a file in the teacher's own
+        Drive, never owned by the app) it did neither that nor a permission revoke — exactly
+        the described leak, for this one now-narrow case. Added a `set_file_permissions(...,
+        make_public=False)` call for that specific branch (`drive_file_id` set, `is_imported`,
+        `not r2_key`), best-effort (a Drive-side failure logs a warning but never blocks
+        deleting the row itself — the DB record is authoritative regardless of what happens on
+        Drive's side).
+     **Verified live** (real Flask test client, real admin session, real Drive-authenticated
+     service): toggling visibility on a real R2-migrated row (content 20) made zero
+     `set_file_permissions` calls (previously would have made one); a synthetic still-Drive-
+     hosted imported row correctly triggered the new revoke call on delete
+     (`set_file_permissions(service, 'fake_...', make_public=False)`), and — with that call
+     forced to fail — the row was still deleted successfully, confirming the delete path isn't
+     hostage to Drive API availability.
 
 ## Phase 5 — Translation pipeline rework
 
@@ -1100,14 +1141,70 @@ the whole proxy branch (and therefore the concurrency problem it created) unnece
 
 </details>
 
-**Async workers remain real future work, independent of video.** Eventlet's motivation for
-*video* specifically is gone, but other genuinely long-running synchronous paths still exist:
-Gemini calls inside `answer_question` (several seconds per Ask AI request), the Picker import's
-new Drive-download-then-R2-upload round trip (`_copy_drive_file_to_r2`, runs synchronously
-inside a web request against gunicorn's `timeout = 600`), and RAG downloads in the worker. If
-this is revisited, the previously-found caveat still applies: a documented eventlet issue
-affects its psycopg2 patcher specifically over TLS-encrypted Postgres connections — likely moot
-here (DB traffic runs over the private Docker network, not TLS) but confirm live, don't assume.
+### Async / background-job conversion (2026-08-31, done and live-verified)
+
+**Policy, going forward: converting a request-handler function to a background job is now
+mandatory, not a future nice-to-have, whenever that function would otherwise hold one of
+gunicorn's sync worker slots for real time.** `worker_class = "sync"`,
+`WEB_CONCURRENCY` defaults to 3 (`deploy/gunicorn_config.py`) — a handful of concurrent slow
+requests is enough to saturate the entire site for every other user, exactly the failure mode
+the withdrawn eventlet design above existed to solve for video. Eventlet itself was never
+adopted (superseded by R2, see above) — the actual fix, both times below, was moving the slow
+work onto the existing RQ job queue + a polling endpoint, the same pattern already proven by
+the translation/embedding/moment-promotion sweeps, not `async def`/an ASGI rewrite (this is a
+sync WSGI app end to end).
+
+- [x] **`POST /api/course/<id>/ask`** (`lms/routes/api.py`) — previously called
+  `answer_question()` inline (a multi-second Gemini retrieval+generation chain, more under
+  'thorough' effort). Now enqueues an `answer_question` job (`lms/job_manager.py`,
+  `_execute_answer_question_job`) and returns `202 {job_id}` immediately; new
+  `GET /api/course/<id>/ask/status/<job_id>` (ownership-checked against `user_id` in
+  `job.data`, since an answer can quote private course content) is the poll side.
+  `course_page_enrolled.html`'s Ask AI form now enqueues then polls every 1.5s (up to ~2 min)
+  instead of awaiting one response. **Verified live** via the real Flask test client with a
+  real session/CSRF: the enqueue call returned in ~2s (previously would have blocked for the
+  full answer), the job correctly went `queued` → `running` → `completed` over ~70s in a
+  *separate* worker process, and the final poll returned the real answer with correct
+  citations (`0:00`/`1:29`/`5:07` marks on content 22, matching the same lecture used in every
+  earlier Ask AI verification this session).
+- [x] **Picker import** (`lms/routes/api.py`) — both the single-file and folder-tree branches
+  of `_copy_drive_file_to_r2`/`_import_drive_tree` previously ran serially inline against
+  gunicorn's `timeout = 600`, worst case on a folder with many files. `picker_import` now does
+  only the cheap synchronous checks (course access, a token-refresh-only `authenticate()`
+  fail-fast check) and enqueues `picker_import_file` or `picker_import_folder`
+  (`_execute_picker_import_file_job`/`_execute_picker_import_folder_job` in
+  `lms/job_manager.py`) — the Drive API `service` object can't be put in `job.data` (not
+  JSON-serializable) or passed across the process boundary, so the job re-authenticates as the
+  same user by id instead, the same "re-fetch models by id" convention every other job already
+  follows. New `GET /api/picker-import/status/<job_id>` poll side, same ownership-check
+  shape as the ask status endpoint. `course_page_enrolled.html`'s `submitPickerImport` now
+  polls every 2s (up to ~8 min, since a folder import can legitimately take minutes). **Verified
+  live** end to end (real Flask test client, real admin session with a real linked Google
+  account): enqueue returned in 0.7s with a `job_id`; a second, non-owning user correctly got
+  `404` polling that job's status (ownership check working); the job itself ran in the worker
+  and correctly surfaced a real Drive API 404 (expected — the test file predates this admin
+  account's `drive.file` grant, the same scope limitation documented in the Phase 4 addendum
+  above) as `status: 'failed'` with the real error message intact, and no partial `CourseContent`
+  row was left behind.
+- [x] **Found and fixed while adding the first job whose DB write can fail mid-transaction**:
+  `job_manager._execute_job`'s exception handler didn't roll back the session before calling
+  `job.save()` — a failure raised mid-commit (e.g. a `CourseContent` insert hitting a
+  constraint) would leave the session aborted, and `job.save()`'s own commit right after would
+  then also fail, silently leaving the job stuck at `running` forever instead of recording
+  `failed`. Every job type benefits from the fix (`db.session.rollback()` added right before
+  `job.status = JobStatus.FAILED`), not just the two new ones — previous job types mostly
+  avoided the failure mode by swallowing per-item errors before they reached this handler
+  (`_execute_embed_course_job`'s per-item `try/except: continue`), so it hadn't been hit yet.
+
+**RAG downloads in the worker** (the third item originally flagged here) are already
+background-job work by construction — `embed_content_item` only ever runs inside the embedding
+sweep/reindex jobs, never inline in a request — so there was nothing to convert there; that
+bullet in the original note was describing where the slow work already lived, not a gap.
+
+If eventlet is ever revisited for a different reason, the previously-found caveat still
+applies: a documented eventlet issue affects its psycopg2 patcher specifically over
+TLS-encrypted Postgres connections — likely moot here (DB traffic runs over the private Docker
+network, not TLS) but confirm live, don't assume.
 
 **Known, pre-existing gap — deliberately not fixed by the R2 work below**: none of the four
 content-serving routes in `lms/routes/api.py` (`serve_file`, `serve_content_by_db_id`,

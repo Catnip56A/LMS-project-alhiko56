@@ -3526,6 +3526,29 @@ async function handleFolderExpand(folderId, courseId) {
         _showStep(2);
     }
 
+    function _sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
+
+    // Import now runs as a background job (see picker_import / picker_import_status in
+    // routes/api.py) instead of inline — Drive download + optional LibreOffice conversion +
+    // R2 upload (repeated per file for a folder) can run long enough to hit gunicorn's 600s
+    // timeout, so this polls for the result instead of awaiting one response. A folder with
+    // many files can legitimately take minutes, hence the generous attempt count.
+    async function _pollPickerImportJob(jobId) {
+        var maxAttempts = 240;
+        for (var attempt = 0; attempt < maxAttempts; attempt++) {
+            await _sleep(2000);
+            var resp = await fetch('/api/picker-import/status/' + jobId);
+            var result = await resp.json();
+            if (!resp.ok) {
+                throw new Error(result.error || '{{ _("Import failed.") }}');
+            }
+            if (result.status === 'completed') { return result; }
+            if (result.status === 'failed') { throw new Error(result.error || '{{ _("Import failed.") }}'); }
+            // still 'queued' or 'running' — keep polling
+        }
+        throw new Error('{{ _("Import is taking longer than expected. Check back on the course page shortly.") }}');
+    }
+
     window.submitPickerImport = async function() {
         if (!_selectedFile) return;
 
@@ -3555,22 +3578,23 @@ async function handleFolderExpand(folderId, courseId) {
                 headers: { 'Content-Type': 'application/json' },
                 body:    JSON.stringify(payload),
             });
-            var result = await resp.json();
-
-            if (result.success) {
-                var msg = result.folder
-                    ? '{{ _("Folder imported:") }} ' + result.folder_name + ' (' + result.imported_count + ' {{ _("files") }})'
-                    : '{{ _("Successfully imported:") }} ' + result.title;
-                _setStatus(msg, 'success');
-                setTimeout(function() { window.location.reload(); }, 1500);
-            } else {
-                _setStatus(result.error || '{{ _("Import failed.") }}', 'danger');
-                btn.disabled = false;
-                btnText.style.display = '';
-                btnSpin.style.display = 'none';
+            var queued = await resp.json();
+            if (!resp.ok || !queued.success || !queued.job_id) {
+                _setStatus(queued.error || '{{ _("Import failed.") }}', 'danger');
+                return;
             }
+
+            _setStatus('{{ _("Importing…") }}', 'info');
+            var result = await _pollPickerImportJob(queued.job_id);
+
+            var msg = result.folder
+                ? '{{ _("Folder imported:") }} ' + result.folder_name + ' (' + result.imported_count + ' {{ _("files") }})'
+                : '{{ _("Successfully imported:") }} ' + result.title;
+            _setStatus(msg, 'success');
+            setTimeout(function() { window.location.reload(); }, 1500);
         } catch (err) {
-            _setStatus('{{ _("Request failed:") }} ' + err.message, 'danger');
+            _setStatus(err.message || '{{ _("Request failed.") }}', 'danger');
+        } finally {
             btn.disabled = false;
             btnText.style.display = '';
             btnSpin.style.display = 'none';
@@ -3729,6 +3753,33 @@ async function handleFolderExpand(folderId, courseId) {
         messages.scrollTop = messages.scrollHeight;
     }
 
+    function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
+
+    // The answer runs as a background job (see ask_course_assistant / ask_course_assistant_status
+    // in routes/api.py) rather than inline, so this polls for the result instead of awaiting one
+    // response — the Gemini call chain can take several real seconds, which would otherwise hold
+    // one of gunicorn's few sync workers for the whole wait. ~2 minutes of polling covers even a
+    // slow 'thorough' answer with real margin; anything longer is treated as failed.
+    async function pollAskJob(jobId) {
+        var maxAttempts = 80;
+        for (var attempt = 0; attempt < maxAttempts; attempt++) {
+            await sleep(1500);
+            var resp = await fetch('/api/course/' + courseId + '/ask/status/' + jobId);
+            var result = await resp.json();
+            if (!resp.ok) {
+                throw new Error(result.error || '{{ _("Something went wrong.") }}');
+            }
+            if (result.status === 'completed') {
+                return result;
+            }
+            if (result.status === 'failed') {
+                throw new Error(result.error || '{{ _("Something went wrong.") }}');
+            }
+            // still 'queued' or 'running' — keep polling
+        }
+        throw new Error('{{ _("The assistant is taking longer than expected. Please try again.") }}');
+    }
+
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         var question = input.value.trim();
@@ -3737,6 +3788,8 @@ async function handleFolderExpand(folderId, courseId) {
         addMessage('user', question, null);
         input.value = '';
         submitBtn.disabled = true;
+        var originalBtnText = submitBtn.textContent;
+        submitBtn.textContent = '{{ _("Thinking…") }}';
 
         try {
             var resp = await fetch('/api/course/' + courseId + '/ask', {
@@ -3744,16 +3797,18 @@ async function handleFolderExpand(folderId, courseId) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ question: question, effort: currentEffort }),
             });
-            var result = await resp.json();
-            if (resp.ok && result.success) {
-                addMessage('assistant', result.answer, result.sources);
-            } else {
-                addMessage('error', result.error || '{{ _("Something went wrong.") }}', null);
+            var queued = await resp.json();
+            if (!resp.ok || !queued.success || !queued.job_id) {
+                addMessage('error', queued.error || '{{ _("Something went wrong.") }}', null);
+                return;
             }
+            var result = await pollAskJob(queued.job_id);
+            addMessage('assistant', result.answer, result.sources);
         } catch (err) {
             addMessage('error', '{{ _("Request failed:") }} ' + err.message, null);
         } finally {
             submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
         }
     });
 
