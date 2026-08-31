@@ -2,11 +2,11 @@
    reply-to state, and per-message pin/translate/edit/delete actions. Included by both
    forum.html (with channel tabs, via loadForumUIChannel()) and the course page's channel tab
    (fixed to that course's own channel, no tabs). One instance per page. #}
-<div id="forum-ui-messages" class="mb-3"></div>
-<div id="forum-ui-empty" class="text-muted" style="display:none;">{{ _('No messages yet — be the first to post.') }}</div>
-
 <div class="d-flex justify-content-between align-items-center mb-2">
-  <button type="button" id="forum-ui-view-toggle" class="btn btn-sm btn-outline-secondary">{{ _('Switch to thread view') }}</button>
+  <div>
+    <button type="button" id="forum-ui-view-toggle" class="btn btn-sm btn-outline-secondary">{{ _('Switch to thread view') }}</button>
+    <button type="button" id="forum-ui-pinned-btn" class="btn btn-sm btn-outline-secondary">{{ _('Pinned messages') }}</button>
+  </div>
   <button type="button" id="forum-ui-clear-btn" class="btn btn-sm btn-outline-danger" style="display:none;">{{ _('Clear channel history') }}</button>
 </div>
 
@@ -15,13 +15,23 @@
   <button type="button" class="close" id="forum-ui-reply-chip-clear" style="font-size:1rem;">&times;</button>
 </div>
 
-<form id="forum-ui-post-form" class="d-flex" style="gap:8px;">
+<div id="forum-ui-file-chip" class="alert alert-light py-1 px-2 mb-2" style="display:none;">
+  <span id="forum-ui-file-chip-text"></span>
+  <button type="button" class="close" id="forum-ui-file-chip-clear" style="font-size:1rem;">&times;</button>
+</div>
+
+<form id="forum-ui-post-form" class="d-flex mb-3" style="gap:8px;">
   <div id="forum-ui-username-group" style="display:none; flex:0 0 140px;">
     <input type="text" id="forum-ui-username" class="form-control" placeholder="{{ _('Your name') }}">
   </div>
-  <textarea id="forum-ui-message" class="form-control" rows="1" placeholder="{{ _('Write a message…') }}" required></textarea>
+  <textarea id="forum-ui-message" class="form-control" rows="1" placeholder="{{ _('Write a message…') }}"></textarea>
+  <input type="file" id="forum-ui-file-input" style="display:none;">
+  <button type="button" id="forum-ui-attach-btn" class="btn btn-outline-secondary" title="{{ _('Attach file') }}">📎</button>
   <button type="submit" class="btn btn-success">{{ _('Send') }}</button>
 </form>
+
+<div id="forum-ui-messages" class="mb-3"></div>
+<div id="forum-ui-empty" class="text-muted" style="display:none;">{{ _('No messages yet — be the first to post.') }}</div>
 
 <script>
 (function() {
@@ -30,6 +40,7 @@
     var messagesEl = document.getElementById('forum-ui-messages');
     var emptyEl = document.getElementById('forum-ui-empty');
     var viewToggleBtn = document.getElementById('forum-ui-view-toggle');
+    var pinnedBtn = document.getElementById('forum-ui-pinned-btn');
     var clearBtn = document.getElementById('forum-ui-clear-btn');
     var replyChip = document.getElementById('forum-ui-reply-chip');
     var replyChipText = document.getElementById('forum-ui-reply-chip-text');
@@ -38,8 +49,14 @@
     var usernameInput = document.getElementById('forum-ui-username');
     var messageInput = document.getElementById('forum-ui-message');
     var postForm = document.getElementById('forum-ui-post-form');
+    var fileInput = document.getElementById('forum-ui-file-input');
+    var attachBtn = document.getElementById('forum-ui-attach-btn');
+    var fileChip = document.getElementById('forum-ui-file-chip');
+    var fileChipText = document.getElementById('forum-ui-file-chip-text');
+    var fileChipClear = document.getElementById('forum-ui-file-chip-clear');
 
     var THREAD_DEPTH_LIMIT = 4;
+    var isAuthenticated = {{ current_user.is_authenticated | tojson }};
 
     var state = {
         channelSlug: null,
@@ -91,10 +108,29 @@
         }).then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); });
     }
 
+    function formAction(url, method, formData) {
+        return fetch(url, { method: method, body: formData })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); });
+    }
+
     // ---------------------------------------------------------------- rendering
+
+    function jumpToMessage(id) {
+        var target = document.getElementById('forum-msg-' + id);
+        if (!target) {
+            render();
+            target = document.getElementById('forum-msg-' + id);
+        }
+        if (!target) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.style.transition = 'background-color 0.3s';
+        target.style.backgroundColor = '#fff3cd';
+        setTimeout(function() { target.style.backgroundColor = ''; }, 1200);
+    }
 
     function messageCard(msg, depth) {
         var wrap = document.createElement('div');
+        wrap.id = 'forum-msg-' + msg.id;
         wrap.className = 'card mb-2';
         wrap.style.marginLeft = (depth || 0) * 20 + 'px';
         if (msg.pinned) { wrap.style.borderColor = '#f0c36d'; }
@@ -118,22 +154,51 @@
 
         if (state.viewMode === 'linear' && msg.parent_id && msg.parent_username) {
             var quote = document.createElement('div');
-            quote.style.cssText = 'border-left:3px solid #ccc; padding-left:8px; margin:4px 0; color:#777; font-size:0.85rem;';
+            quote.style.cssText = 'border-left:3px solid #ccc; padding-left:8px; margin:4px 0; color:#777; font-size:0.85rem; cursor:pointer;';
             quote.textContent = '↩ ' + msg.parent_username + ': ' + (msg.parent_snippet || '');
+            quote.addEventListener('click', function() { jumpToMessage(msg.parent_id); });
             body.appendChild(quote);
         }
 
-        var text = document.createElement('div');
-        text.className = 'forum-ui-text';
         if (msg.deleted) {
+            var text = document.createElement('div');
+            text.className = 'forum-ui-text';
             text.style.fontStyle = 'italic';
             text.style.color = '#999';
             text.textContent = '{{ _("[message deleted]") }}';
-        } else {
+            body.appendChild(text);
+        } else if (msg.message) {
+            var text = document.createElement('div');
+            text.className = 'forum-ui-text';
             text.style.whiteSpace = 'pre-wrap';
             text.textContent = msg.message;
+            body.appendChild(text);
         }
-        body.appendChild(text);
+
+        if (!msg.deleted && msg.file_url) {
+            var attachWrap = document.createElement('div');
+            attachWrap.className = 'mt-1';
+            if (msg.file_mime_type && msg.file_mime_type.indexOf('image/') === 0) {
+                var img = document.createElement('img');
+                img.src = msg.file_url;
+                img.alt = msg.file_name || '';
+                img.style.cssText = 'max-width:260px; max-height:260px; border-radius:4px; display:block;';
+                var imgLink = document.createElement('a');
+                imgLink.href = msg.file_view_url || msg.file_url;
+                imgLink.target = '_blank';
+                imgLink.rel = 'noopener';
+                imgLink.appendChild(img);
+                attachWrap.appendChild(imgLink);
+            } else {
+                var fileLink = document.createElement('a');
+                fileLink.href = msg.file_view_url || msg.file_url;
+                fileLink.target = '_blank';
+                fileLink.rel = 'noopener';
+                fileLink.textContent = '📎 ' + (msg.file_name || '{{ _("Attachment") }}');
+                attachWrap.appendChild(fileLink);
+            }
+            body.appendChild(attachWrap);
+        }
 
         if (!msg.deleted) {
             var actions = document.createElement('div');
@@ -277,6 +342,27 @@
         if (state.viewMode === 'linear') { renderLinear(); } else { renderThreaded(); }
     }
 
+    function showPinnedView() {
+        emptyEl.style.display = 'none';
+        messagesEl.innerHTML = '';
+        var back = document.createElement('a');
+        back.href = '#';
+        back.textContent = '← {{ _("Back") }}';
+        back.className = 'd-block mb-2';
+        back.addEventListener('click', function(e) { e.preventDefault(); render(); });
+        messagesEl.appendChild(back);
+
+        var pinned = state.messages.filter(function(m) { return m.pinned; }).sort(function(a, b) { return a.id - b.id; });
+        if (!pinned.length) {
+            var none = document.createElement('div');
+            none.className = 'text-muted';
+            none.textContent = '{{ _("No pinned messages in this channel.") }}';
+            messagesEl.appendChild(none);
+            return;
+        }
+        pinned.forEach(function(m) { messagesEl.appendChild(messageCard(m, 0)); });
+    }
+
     // ---------------------------------------------------------------- data
 
     function loadMessages() {
@@ -291,7 +377,7 @@
                 state.channelType = res.data.channel_type;
                 state.requiresLogin = res.data.requires_login;
                 state.messages = res.data.messages;
-                usernameGroup.style.display = state.requiresLogin ? 'none' : '';
+                usernameGroup.style.display = (state.requiresLogin || isAuthenticated) ? 'none' : '';
                 render();
             });
     }
@@ -313,6 +399,8 @@
     });
     updateViewToggleLabel();
 
+    pinnedBtn.addEventListener('click', function() { showPinnedView(); });
+
     clearBtn.addEventListener('click', function() {
         if (!state.channelId) return;
         if (!confirm('{{ _("Permanently delete every message in this channel? This cannot be undone.") }}')) return;
@@ -321,15 +409,37 @@
         });
     });
 
+    attachBtn.addEventListener('click', function() { fileInput.click(); });
+
+    fileInput.addEventListener('change', function() {
+        var f = fileInput.files[0];
+        if (!f) { fileChip.style.display = 'none'; return; }
+        fileChipText.textContent = '📎 ' + f.name + ' (' + Math.ceil(f.size / 1024) + ' KB)';
+        fileChip.style.display = '';
+    });
+    fileChipClear.addEventListener('click', function() {
+        fileInput.value = '';
+        fileChip.style.display = 'none';
+    });
+
     postForm.addEventListener('submit', function(e) {
         e.preventDefault();
         var text = messageInput.value.trim();
-        if (!text) return;
-        var payload = { channel: state.channelSlug, message: text, parent_id: state.replyTo };
-        if (!state.requiresLogin) { payload.username = usernameInput.value.trim(); }
-        messageAction('/api/forum/messages', 'POST', payload).then(function(res) {
+        var file = fileInput.files[0];
+        if (!text && !file) return;
+
+        var formData = new FormData();
+        formData.append('channel', state.channelSlug);
+        formData.append('message', text);
+        if (state.replyTo) { formData.append('parent_id', state.replyTo); }
+        if (!state.requiresLogin) { formData.append('username', usernameInput.value.trim()); }
+        if (file) { formData.append('attachment', file); }
+
+        formAction('/api/forum/messages', 'POST', formData).then(function(res) {
             if (res.ok) {
                 messageInput.value = '';
+                fileInput.value = '';
+                fileChip.style.display = 'none';
                 setReplyTo(null);
                 loadMessages();
             } else {

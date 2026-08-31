@@ -13,6 +13,11 @@ from lms.models import db, ForumChannel, ForumMessage, ForumChannelMembership
 
 logger = logging.getLogger(__name__)
 
+# Deliberately tighter than the site-wide MAX_CONTENT_LENGTH (500MB) — a chat attachment is a
+# quick sync upload inline in a request handler (see CLAUDE.md's async-conversion rule), not
+# something that should hold a gunicorn worker for a large-file transfer.
+FORUM_ATTACHMENT_MAX_BYTES = 25 * 1024 * 1024
+
 
 def ensure_course_channel(course):
     """Get-or-create the course-scoped channel for `course`. Called right after a Course row
@@ -113,6 +118,9 @@ def purge_expired_channel_messages() -> dict:
             ForumMessage.timestamp < cutoff,
         ).all()
         for msg in old:
+            if msg.r2_key:
+                from lms import r2_client
+                r2_client.delete_object(msg.r2_key)
             db.session.delete(msg)
         total_deleted += len(old)
     db.session.commit()

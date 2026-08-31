@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('File unavailable') }} - {{ site_settings.site_name or 'LMS' }}{% endblock %}
+
+{% block content %}
+{% include 'components/navbar.html' %}
+
+<div class="container text-center" style="max-width: 500px; padding: 4rem 1rem;">
+    <h3 style="color: #337a2c;">{{ _('File unavailable') }}</h3>
+    <p class="text-muted">{{ reason }}</p>
+    <p>{{ _('Redirecting you in') }} <span id="file-unavailable-countdown">15</span> {{ _('seconds…') }}</p>
+    <a href="{{ redirect_url }}" class="btn btn-success">{{ _('Go now') }}</a>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    var seconds = 15;
+    var el = document.getElementById('file-unavailable-countdown');
+    var target = {{ redirect_url | tojson }};
+    var timer = setInterval(function() {
+        seconds -= 1;
+        if (el) { el.textContent = seconds; }
+        if (seconds <= 0) {
+            clearInterval(timer);
+            window.location.href = target;
+        }
+    }, 1000);
+})();
+</script>
+{% endblock %}

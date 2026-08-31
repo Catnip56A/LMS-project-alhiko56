@@ -212,6 +212,11 @@ class ForumMessage(db.Model):
     # Soft-delete marker for manual per-message deletion (moderator or the author) — the row
     # stays so reply threads don't orphan; rendered as a "[message deleted]" placeholder.
     deleted_at = db.Column(db.DateTime, nullable=True)
+    # Optional single file attachment, same one-file-per-row shape as
+    # CourseAssignmentSubmission rather than a separate attachment table.
+    r2_key = db.Column(db.String(500), nullable=True)
+    file_mime_type = db.Column(db.String(100), nullable=True)
+    original_filename = db.Column(db.String(255), nullable=True)
 
     # Relationship for replies
     # passive_deletes=True: let the DB's ON DELETE CASCADE (see parent_id's FK, migration

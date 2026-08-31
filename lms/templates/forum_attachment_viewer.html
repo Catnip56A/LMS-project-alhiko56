@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ file_name }} - {{ site_settings.site_name or 'LMS' }}{% endblock %}
+
+{% block content %}
+{% include 'components/navbar.html' %}
+
+<style>
+    .attach-viewer-container {
+        width: 100%;
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    .attach-viewer-header {
+        background: #337a2c;
+        color: white;
+        padding: 12px 15px;
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .attach-viewer-header h5 { margin: 0; font-size: 1.1rem; }
+    .attach-viewer-header .controls-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .attach-back-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 6px 14px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+    }
+    .attach-back-btn:hover { background: rgba(255, 255, 255, 0.3); color: white; text-decoration: none; }
+    .attach-zoom-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        padding: 2px;
+    }
+    .attach-zoom-btn {
+        background: transparent;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+    }
+    .attach-zoom-btn:hover { background: rgba(255, 255, 255, 0.25); }
+    .attach-zoom-level { color: white; font-size: 0.85rem; min-width: 42px; text-align: center; user-select: none; }
+    .attach-viewer-frame {
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        background: #f8f9fa;
+        height: 75vh;
+        overflow: auto;
+    }
+    .attach-viewer-container:fullscreen,
+    .attach-viewer-container:-webkit-full-screen {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+    }
+    .attach-viewer-container:fullscreen .attach-viewer-frame,
+    .attach-viewer-container:-webkit-full-screen .attach-viewer-frame {
+        flex: 1;
+        height: auto;
+        border-radius: 0;
+    }
+    .attach-image-viewer {
+        width: 100%; height: 100%;
+        display: flex; justify-content: center; align-items: center;
+        padding: 20px; box-sizing: border-box;
+    }
+    .attach-image-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; }
+    .attach-audio-viewer {
+        width: 100%; height: 100%;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        padding: 40px; box-sizing: border-box;
+    }
+    .attach-unsupported {
+        width: 100%; height: 100%;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        padding: 40px; text-align: center; color: #6c757d;
+    }
+</style>
+
+<div class="attach-viewer-container" id="attach-viewer-container">
+    <div class="attach-viewer-header">
+        <h5><i class="fa fa-file"></i> {{ file_name }}</h5>
+        <div class="controls-row">
+            {% if file_type in ('image', 'pdf') %}
+            <div class="attach-zoom-controls">
+                <button type="button" id="attach-zoom-out" class="attach-zoom-btn" title="{{ _('Zoom out') }}"><i class="fa fa-search-minus"></i></button>
+                <span id="attach-zoom-level" class="attach-zoom-level">100%</span>
+                <button type="button" id="attach-zoom-in" class="attach-zoom-btn" title="{{ _('Zoom in') }}"><i class="fa fa-search-plus"></i></button>
+                <button type="button" id="attach-zoom-reset" class="attach-zoom-btn" title="{{ _('Reset zoom') }}"><i class="fa fa-undo"></i></button>
+            </div>
+            {% endif %}
+            {% if file_type in ('image', 'pdf', 'video') %}
+            <button type="button" id="attach-fullview-btn" class="attach-back-btn" style="cursor:pointer;">
+                <i class="fa fa-expand"></i> {{ _('Full view') }}
+            </button>
+            {% endif %}
+            <a href="{{ back_url }}" class="attach-back-btn"><i class="fa fa-arrow-left"></i> {{ _('Back') }}</a>
+        </div>
+    </div>
+    <div class="attach-viewer-frame">
+        {% if file_type == 'image' %}
+            <div class="attach-image-viewer">
+                <img id="attach-zoom-target" src="{{ embed_url }}" alt="{{ file_name }}">
+            </div>
+        {% elif file_type == 'pdf' %}
+            <iframe id="attach-zoom-target" src="{{ embed_url }}#toolbar=0&navpanes=0" style="width:100%; height:100%; border:none;"></iframe>
+        {% elif file_type == 'audio' %}
+            <div class="attach-audio-viewer">
+                <i class="fa fa-music" style="font-size:60px; color:#337a2c; margin-bottom:20px;"></i>
+                <audio controls style="width:100%; max-width:500px;">
+                    <source src="{{ embed_url }}">
+                </audio>
+            </div>
+        {% elif file_type == 'video' %}
+            <video id="attach-zoom-target" controls style="width:100%; height:100%; background:#000;">
+                <source src="{{ embed_url }}">
+            </video>
+        {% else %}
+            <div class="attach-unsupported">
+                <i class="fa fa-file" style="font-size:60px; margin-bottom:20px;"></i>
+                <p>{{ _('Preview not available for this file type.') }}</p>
+                <a href="{{ embed_url }}" class="btn btn-success" target="_blank" rel="noopener"><i class="fa fa-download"></i> {{ _('Open file') }}</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // Zoom: scales the img/iframe/video via a CSS transform — there's no viewer-internal
+    // zoom API for a cross-origin iframe or a plain media element, and .attach-viewer-frame's
+    // overflow:auto (see stylesheet above) lets the user scroll to whatever then overflows.
+    var target = document.getElementById('attach-zoom-target');
+    var zoomIn = document.getElementById('attach-zoom-in');
+    var zoomOut = document.getElementById('attach-zoom-out');
+    var zoomReset = document.getElementById('attach-zoom-reset');
+    var zoomLevel = document.getElementById('attach-zoom-level');
+    if (target && zoomIn && zoomOut && zoomReset && zoomLevel) {
+        var MIN_ZOOM = 0.5, MAX_ZOOM = 2.5, STEP = 0.1;
+        var zoom = 1.0;
+        target.style.transformOrigin = 'top left';
+        target.style.transition = 'transform 0.1s ease-out';
+
+        function applyZoom() {
+            target.style.transform = 'scale(' + zoom.toFixed(2) + ')';
+            zoomLevel.textContent = Math.round(zoom * 100) + '%';
+        }
+        zoomIn.addEventListener('click', function() { zoom = Math.min(MAX_ZOOM, zoom + STEP); applyZoom(); });
+        zoomOut.addEventListener('click', function() { zoom = Math.max(MIN_ZOOM, zoom - STEP); applyZoom(); });
+        zoomReset.addEventListener('click', function() { zoom = 1.0; applyZoom(); });
+    }
+
+    // Full view: fullscreens the whole container (header included) so the back/zoom/exit
+    // controls stay reachable, rather than just the frame going fullscreen.
+    var fullviewBtn = document.getElementById('attach-fullview-btn');
+    var container = document.getElementById('attach-viewer-container');
+    if (fullviewBtn && container) {
+        function isFullscreen() {
+            return document.fullscreenElement || document.webkitFullscreenElement;
+        }
+        fullviewBtn.addEventListener('click', function() {
+            if (isFullscreen()) {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            } else if (container.requestFullscreen) {
+                container.requestFullscreen();
+            } else if (container.webkitRequestFullscreen) {
+                container.webkitRequestFullscreen();
+            }
+        });
+        function updateFullviewLabel() {
+            fullviewBtn.innerHTML = isFullscreen()
+                ? '<i class="fa fa-compress"></i> {{ _("Exit full view") }}'
+                : '<i class="fa fa-expand"></i> {{ _("Full view") }}';
+        }
+        document.addEventListener('fullscreenchange', updateFullviewLabel);
+        document.addEventListener('webkitfullscreenchange', updateFullviewLabel);
+    }
+})();
+</script>
+{% endblock %}

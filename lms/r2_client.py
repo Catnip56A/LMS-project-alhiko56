@@ -108,6 +108,19 @@ def build_content_key(course_id, filename, when: datetime | None = None) -> str:
     return f'courses/{course_id}/{when.strftime("%Y")}/{when.strftime("%m")}/{uuid.uuid4().hex}-{name}'
 
 
+def build_forum_attachment_key(channel_id, filename, when: datetime | None = None) -> str:
+    """Same shape as build_content_key but channel-scoped, for chat/forum message attachments."""
+    when = when or datetime.now()
+    name = secure_filename(filename or '') or 'file'
+    if len(name) > 120:
+        base, dot, ext = name.rpartition('.')
+        if dot and len(ext) <= 10:
+            name = base[:120 - len(ext) - 1] + '.' + ext
+        else:
+            name = name[:120]
+    return f'forum/{channel_id}/{when.strftime("%Y")}/{when.strftime("%m")}/{uuid.uuid4().hex}-{name}'
+
+
 def upload_file(local_path: str, key: str, content_type: str | None = None, filename: str | None = None) -> bool:
     client = _client()
     if client is None:

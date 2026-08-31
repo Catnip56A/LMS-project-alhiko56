@@ -259,6 +259,18 @@ def _serialize_forum_message(message, current_user_id):
     linear view render an inline reply-quote without a second fetch."""
     parent = message.parent if message.parent_id else None
     is_deleted = message.deleted_at is not None
+    # A stable app URL, not a raw presigned R2 URL — see serve_forum_attachment, which
+    # re-checks can_view_channel on every request. Baking a live signed URL (a bearer
+    # capability good for hours, per r2_client's DEFAULT_URL_EXPIRY_SECONDS) directly into
+    # this list response would let anyone who ever saw it keep using it after being removed
+    # from a DM or unenrolled from a course, with no further permission check — the same
+    # reason CourseContent's /api/file/c/<id>/embed route exists instead of embedding its URL.
+    has_file = bool(message.r2_key) and not is_deleted
+    file_url = url_for('api.serve_forum_attachment', message_id=message.id) if has_file else None
+    # Where a click/tap on the attachment navigates — a same-origin viewer page (embeds the
+    # actual bytes one hop behind itself via file_url) rather than file_url directly, so the
+    # address bar a user actually sees stays on this app instead of resolving to the R2 host.
+    file_view_url = url_for('api.view_forum_attachment', message_id=message.id) if has_file else None
     return {
         'id': message.id,
         'user_id': message.user_id,
@@ -271,6 +283,10 @@ def _serialize_forum_message(message, current_user_id):
         'parent_snippet': (parent.message[:80] if parent and parent.message and not parent.deleted_at else None),
         'pinned': message.pinned,
         'is_current_user': current_user_id is not None and message.user_id == current_user_id,
+        'file_url': file_url,
+        'file_view_url': file_view_url,
+        'file_name': None if is_deleted else message.original_filename,
+        'file_mime_type': None if is_deleted else message.file_mime_type,
     }
 
 
@@ -304,40 +320,185 @@ def get_forum_messages():
         'messages': [_serialize_forum_message(m, current_user_id) for m in messages],
     })
 
-@api_bp.route('/forum/messages', methods=['POST'])
-def post_forum_message():
-    """Post a new forum message or reply"""
-    from lms.forum_service import can_post_to_channel
 
-    data = request.get_json()
-    if not data or 'message' not in data or not data['message'].strip():
+def _get_site_settings():
+    from lms.models import SiteSettings
+    try:
+        return SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
+    except Exception:
+        return SiteSettings()
+
+
+def _render_file_unavailable(reason, status=404):
+    """Friendly HTML page for a failed file-serving request, auto-redirecting after 15s —
+    used instead of a raw JSON error or Flask's generic 404 page, since this route is meant
+    to be followed directly (a link/img src), not just called via fetch()."""
+    from flask import render_template
+    from flask_babel import get_locale
+    from urllib.parse import urlparse
+
+    site_settings = _get_site_settings()
+    redirect_url = url_for('main.index')
+    ref = request.referrer
+    if ref:
+        parsed = urlparse(ref)
+        if not parsed.netloc or parsed.netloc == request.host:
+            redirect_url = ref
+
+    return render_template(
+        'file_unavailable.html', reason=reason, redirect_url=redirect_url,
+        site_settings=site_settings, current_locale=str(get_locale()),
+    ), status
+
+
+@api_bp.route('/forum/messages/<int:message_id>/attachment')
+def serve_forum_attachment(message_id):
+    """Redirect to a message's attachment bytes — mirrors serve_content_embed's shape:
+    re-checks access on every request instead of handing out a long-lived presigned URL
+    that would keep working after a viewer loses access to the channel."""
+    from flask_babel import _
+    from lms.forum_service import can_view_channel
+
+    message = ForumMessage.query.get(message_id)
+    if not message or not message.r2_key or message.deleted_at is not None:
+        return _render_file_unavailable(_('This file is no longer available.'), 404)
+    if not can_view_channel(message.forum_channel, current_user):
+        return _render_file_unavailable(_("You don't have access to view this file."), 403)
+
+    from lms import r2_client
+    disposition = f'inline; filename="{message.original_filename}"' if message.original_filename else None
+    url = r2_client.generate_presigned_url(message.r2_key, disposition=disposition)
+    if not url:
+        return _render_file_unavailable(_('This file could not be found in storage.'), 404)
+    resp = redirect(url)
+    resp.headers['Cache-Control'] = 'private, no-store'
+    return resp
+
+
+@api_bp.route('/file/f/<int:message_id>')
+def view_forum_attachment(message_id):
+    """Small in-app viewer for a forum message's attachment — same shape as
+    serve_content_by_db_id's /api/file/c/<id> for course content: the file's actual bytes
+    load one hop behind this page (via serve_forum_attachment, embedded in an img/iframe/
+    audio/video tag), so a viewer who opens/clicks the attachment sees this app's own URL in
+    their address bar rather than navigating straight to the R2 host. Deliberately skips
+    file_viewer.html's anti-copy/watermark/moments machinery — that's built for protected
+    course material, not a casual chat attachment."""
+    from flask import render_template
+    from flask_babel import get_locale, _
+    from lms.forum_service import can_view_channel
+
+    message = ForumMessage.query.get(message_id)
+    if not message or not message.r2_key or message.deleted_at is not None:
+        return _render_file_unavailable(_('This file is no longer available.'), 404)
+    if not can_view_channel(message.forum_channel, current_user):
+        return _render_file_unavailable(_("You don't have access to view this file."), 403)
+
+    channel = message.forum_channel
+    if channel.channel_type == 'course' and channel.course_id:
+        back_url = url_for('main.course_page_enrolled', course_id=channel.course_id)
+    elif channel.channel_type == 'dm':
+        back_url = url_for('main.messages')
+    else:
+        back_url = url_for('main.forum')
+
+    mime = message.file_mime_type or ''
+    if mime.startswith('image/'):
+        file_type = 'image'
+    elif mime == 'application/pdf':
+        file_type = 'pdf'
+    elif mime.startswith('audio/'):
+        file_type = 'audio'
+    elif mime.startswith('video/'):
+        file_type = 'video'
+    else:
+        file_type = 'other'
+
+    return render_template(
+        'forum_attachment_viewer.html',
+        file_name=message.original_filename or _('File'),
+        file_type=file_type,
+        embed_url=url_for('api.serve_forum_attachment', message_id=message.id),
+        back_url=back_url,
+        site_settings=_get_site_settings(), current_locale=str(get_locale()),
+    )
+
+
+@api_bp.route('/forum/messages', methods=['POST'])
+@limiter.limit("30 per minute")
+def post_forum_message():
+    """Post a new forum message or reply, optionally with one file attachment.
+
+    multipart/form-data (not JSON) so an attachment can ride along with the text in one
+    request — a message needs at least text or a file, not necessarily both.
+    """
+    from lms.forum_service import can_post_to_channel, FORUM_ATTACHMENT_MAX_BYTES
+    from lms.upload_validation import validate_upload, UploadValidationError, detect_mime_and_content_type
+
+    message_text = (request.form.get('message') or '').strip()
+    attachment = request.files.get('attachment')
+    has_attachment = bool(attachment and attachment.filename)
+    if not message_text and not has_attachment:
         return jsonify({'error': 'Message required'}), 400
 
-    channel_slug = data.get('channel', 'general')
+    channel_slug = request.form.get('channel', 'general')
     channel = ForumChannel.query.filter_by(slug=channel_slug, is_active=True).first()
     if not channel:
         return jsonify({'error': 'Channel not found'}), 404
     if not can_post_to_channel(channel, current_user):
         return jsonify({'error': 'Access denied for this channel'}), 403
 
-    parent_id = data.get('parent_id')
+    parent_id = request.form.get('parent_id') or None
     if parent_id:
         parent = ForumMessage.query.filter_by(id=parent_id, channel_id=channel.id).first()
         if not parent:
             return jsonify({'error': 'Parent message not found in this channel'}), 404
 
+    r2_key = file_mime_type = original_filename = None
+    if has_attachment:
+        try:
+            validate_upload(attachment, max_bytes=FORUM_ATTACHMENT_MAX_BYTES)
+        except UploadValidationError as e:
+            return jsonify({'error': str(e)}), 400
+
+        from lms import r2_client
+        if not r2_client.is_configured():
+            return jsonify({'error': 'File storage is not configured. Please contact an administrator.'}), 503
+
+        from lms.routes import UPLOAD_STAGING_DIR
+        from werkzeug.utils import secure_filename
+        import uuid
+
+        os.makedirs(UPLOAD_STAGING_DIR, exist_ok=True)
+        original_filename = secure_filename(attachment.filename) or 'file'
+        temp_path = os.path.join(UPLOAD_STAGING_DIR, f'{uuid.uuid4().hex}_{original_filename}')
+        try:
+            attachment.save(temp_path)
+            attachment.stream.seek(0)
+            file_mime_type, _content_type = detect_mime_and_content_type(attachment)
+            r2_key = r2_client.build_forum_attachment_key(channel.id, original_filename)
+            if not r2_client.upload_file(temp_path, r2_key, content_type=file_mime_type, filename=original_filename):
+                return jsonify({'error': 'Failed to upload file. Please try again.'}), 500
+        finally:
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
+
+    attachment_fields = {'r2_key': r2_key, 'file_mime_type': file_mime_type, 'original_filename': original_filename}
     if not current_user.is_authenticated:
         # Anonymous posting only ever reaches here for a channel with requires_login=False
         # (can_post_to_channel already enforced that) — course/group/dm channels always
         # require login, so this branch is unreachable for them.
-        username = data.get('username', '').strip()
+        username = request.form.get('username', '').strip()
         if not username:
             return jsonify({'error': 'Username required for anonymous posting'}), 400
-        new_message = ForumMessage(username=username, message=data['message'], parent_id=parent_id, channel_id=channel.id)
+        new_message = ForumMessage(username=username, message=message_text, parent_id=parent_id, channel_id=channel.id, **attachment_fields)
     else:
         new_message = ForumMessage(
             user_id=current_user.id, username=current_user.username,
-            message=data['message'], parent_id=parent_id, channel_id=channel.id,
+            message=message_text, parent_id=parent_id, channel_id=channel.id,
+            **attachment_fields,
         )
 
     db.session.add(new_message)
@@ -381,6 +542,13 @@ def delete_forum_message(message_id):
         return jsonify({'error': 'Unauthorized'}), 403
 
     message.deleted_at = datetime.utcnow()
+    if message.r2_key:
+        # The row survives (soft delete), but the file becomes permanently unreachable via
+        # the UI the moment deleted_at is set (_serialize_forum_message hides file_url for
+        # deleted messages, and there's no "undelete") — so free the R2 object now rather
+        # than leaving it orphaned forever.
+        from lms import r2_client
+        r2_client.delete_object(message.r2_key)
     db.session.commit()
 
     return jsonify({'success': True}), 200
@@ -439,7 +607,12 @@ def clear_forum_channel(channel_id):
         return jsonify({'error': 'Unauthorized'}), 403
 
     top_level = ForumMessage.query.filter_by(channel_id=channel.id, parent_id=None).all()
-    count = ForumMessage.query.filter_by(channel_id=channel.id).count()
+    all_in_channel = ForumMessage.query.filter_by(channel_id=channel.id).all()
+    count = len(all_in_channel)
+    from lms import r2_client
+    for message in all_in_channel:
+        if message.r2_key:
+            r2_client.delete_object(message.r2_key)
     for message in top_level:
         db.session.delete(message)
     db.session.commit()
