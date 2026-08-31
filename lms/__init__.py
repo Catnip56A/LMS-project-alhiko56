@@ -15,7 +15,6 @@ from lms.models import (
     Course as Course,
     ForumMessage as ForumMessage,
     ForumChannel as ForumChannel,
-    PDFDocument as PDFDocument,
     Translation as Translation,
 )
 from flask_migrate import Migrate

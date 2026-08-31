@@ -1,6 +1,5 @@
 
 from flask import Blueprint, render_template, request, redirect, flash, url_for, jsonify, current_app, abort
-from markupsafe import Markup
 from flask_babel import get_locale, _
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
@@ -34,7 +33,7 @@ def _folder_is_ancestor_of(folder_id, target_id):
 @main_bp.route('/', methods=['GET', 'POST'])
 def index():
     """Serve the Home page: enrolled courses, recent activity, recommendations, promo-code join."""
-    from lms.models import SiteSettings, PDFDocument, Course, ContentView, CourseContent, db
+    from lms.models import SiteSettings, Course, ContentView, CourseContent, db
 
     # Handle POST requests for deletions and actions
     if request.method == 'POST':
@@ -61,32 +60,6 @@ def index():
                 db.session.commit()
                 flash('Root folder order updated!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course_id_int or 0))
-
-        # Delete PDF
-        if action == 'delete_pdf' and current_user.is_authenticated:
-            from lms.google_drive_service import authenticate, delete_file
-            pdf_id = request.form.get('pdf_id')
-            pdf = PDFDocument.query.get(pdf_id)
-            if not pdf:
-                flash('PDF not found.', 'error')
-                return redirect(url_for('main.index'))
-            # Check permission: must be the uploader or an admin
-            if pdf.uploaded_by != current_user.id and not current_user.is_admin:
-                flash('You do not have permission to delete this PDF.', 'error')
-                return redirect(url_for('main.index'))
-            # Delete from Google Drive only if the app uploaded it (not imported from user's Drive)
-            if pdf.drive_file_id and not pdf.is_imported:
-                service = authenticate()
-                if service:
-                    try:
-                        delete_file(service, pdf.drive_file_id)
-                    except Exception as e:
-                        current_app.logger.error(f"Error deleting PDF from Google Drive: {e}")
-            # Delete from database
-            db.session.delete(pdf)
-            db.session.commit()
-            flash('PDF deleted successfully!', 'success')
-            return redirect(url_for('main.index'))
 
     # Always return a response, even if database is unavailable
     try:
@@ -560,7 +533,7 @@ def course_page_enrolled(course_id):
             assignment_id = request.form.get('assignment_id')
             uploaded_file = request.files.get('submission_file')
             allow_others_to_view = True  # Always allow viewing for submissions
-            
+
             if not uploaded_file:
                 flash('Please select a file to upload.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
@@ -581,93 +554,69 @@ def course_page_enrolled(course_id):
             unique_filename = f"{current_user.id}_{timestamp}_{filename}"
             temp_file_path = os.path.join(temp_dir, unique_filename)
 
-            # Save the file temporarily
-            uploaded_file.save(temp_file_path)
-            
-            # Upload to Google Drive
-            from lms.google_drive_service import authenticate, upload_file, create_view_only_link, set_file_permissions
-            service = authenticate()
-            if not service:
-                flash('Failed to authenticate with Google Drive. Please link your Google account first.', 'error')
+            try:
+                # Save the file temporarily
+                uploaded_file.save(temp_file_path)
+                # Sniff the real bytes, same as the course-content upload path.
+                uploaded_file.stream.seek(0)
+                detected_mime, _detected_content_type = detect_mime_and_content_type(uploaded_file)
+
+                from lms import r2_client
+                if not r2_client.is_configured():
+                    flash('File storage is not configured. Please contact an administrator.', 'error')
+                    return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+                r2_key = r2_client.build_content_key(course.id, filename)
+                if not r2_client.upload_file(temp_file_path, r2_key, content_type=detected_mime, filename=filename):
+                    flash('Failed to upload file. Please try again.', 'error')
+                    return redirect(url_for('main.course_page_enrolled', course_id=course.id))
+
+                from lms import office_preview
+                r2_preview_key = office_preview.generate_and_upload_preview(temp_file_path, detected_mime, r2_key)
+
+                # Check if user already has a submission for this assignment
+                existing_submission = CourseAssignmentSubmission.query.filter_by(
+                    assignment_id=int(assignment_id),
+                    user_id=current_user.id
+                ).first()
+
+                if existing_submission:
+                    # A resubmission replaces the previous R2 object outright — clean up the
+                    # one being superseded so it doesn't linger as an orphan forever (mirrors
+                    # delete_content's unconditional R2 cleanup below).
+                    if existing_submission.r2_key:
+                        r2_client.delete_object(existing_submission.r2_key)
+                    if existing_submission.r2_preview_key:
+                        r2_client.delete_object(existing_submission.r2_preview_key)
+                    existing_submission.r2_key = r2_key
+                    existing_submission.r2_preview_key = r2_preview_key
+                    existing_submission.file_mime_type = detected_mime
+                    existing_submission.drive_file_id = None
+                    existing_submission.drive_view_link = None
+                    existing_submission.submitted_at = datetime.now()
+                    existing_submission.declined = False  # Clear declined status on resubmission
+                    db.session.commit()
+                    flash('Assignment resubmitted successfully!', 'success')
+                else:
+                    # Create new submission record
+                    new_submission = CourseAssignmentSubmission(
+                        assignment_id=int(assignment_id),
+                        user_id=current_user.id,
+                        r2_key=r2_key,
+                        r2_preview_key=r2_preview_key,
+                        file_mime_type=detected_mime,
+                        submitted_at=datetime.now(),
+                        allow_others_to_view=allow_others_to_view
+                    )
+                    db.session.add(new_submission)
+                    db.session.commit()
+                    flash('Assignment submitted successfully!', 'success')
+            finally:
                 try:
                     os.remove(temp_file_path)
                 except OSError:
                     pass
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            try:
-                drive_file_id = upload_file(service, temp_file_path, filename)
-            except Exception as e:
-                current_app.logger.error(f"Error uploading to Drive: {e}")
-                if "insufficientPermissions" in str(e) or "403" in str(e):
-                    flash(Markup('Your Google account does not have sufficient Drive permissions. Please <a href="/auth/link-google-account" class="alert-link">re-link your Google account</a> to grant full Drive access.'), 'error')
-                else:
-                    flash('Failed to upload file to Google Drive. Please try again.', 'error')
-                # Clean up temporary file
-                try:
-                    os.remove(temp_file_path)
-                except Exception:
-                    pass
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            if not drive_file_id:
-                flash('Failed to upload file to Google Drive. Please try again.', 'error')
-                # Clean up temporary file
-                try:
-                    os.remove(temp_file_path)
-                except Exception:
-                    pass
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
 
-            # Try to set permissions, but don't fail if this doesn't work
-            if allow_others_to_view:
-                try:
-                    set_file_permissions(service, drive_file_id, make_public=True)
-                except Exception as e:
-                    current_app.logger.warning(f"Warning: Could not set file permissions: {e}")
-                    # Continue anyway - file is uploaded, just might have restricted permissions
-            
-            # Create view-only link
-            view_link = create_view_only_link(service, drive_file_id, is_image=False)
-            if not view_link:
-                flash('Failed to create view link.', 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            # Check if user already has a submission for this assignment
-            existing_submission = CourseAssignmentSubmission.query.filter_by(
-                assignment_id=int(assignment_id),
-                user_id=current_user.id
-            ).first()
-            
-            if existing_submission:
-                # Update existing submission
-                existing_submission.drive_file_id = drive_file_id
-                existing_submission.drive_view_link = view_link
-                existing_submission.submitted_at = datetime.now()
-                existing_submission.declined = False  # Clear declined status on resubmission
-                db.session.commit()
-                flash('Assignment resubmitted successfully!', 'success')
-            else:
-                # Create new submission record
-                new_submission = CourseAssignmentSubmission(
-                    assignment_id=int(assignment_id),
-                    user_id=current_user.id,
-                    drive_file_id=drive_file_id,
-                    drive_view_link=view_link,
-                    submitted_at=datetime.now(),
-                    allow_others_to_view=allow_others_to_view
-                )
-                db.session.add(new_submission)
-                db.session.commit()
-                flash('Assignment submitted successfully!', 'success')
-            
-            # Clean up temporary file
-            try:
-                os.remove(temp_file_path)
-            except Exception:
-                pass
-            
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Add reply to announcement
@@ -864,8 +813,18 @@ def course_page_enrolled(course_id):
             if submission.user_id != current_user.id and not current_user.is_admin:
                 flash('You do not have permission to delete this submission.', 'error')
                 return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            # Delete from Google Drive
+
+            # An R2 object is always our own copy (see submit_assignment), so its deletion is
+            # unconditional, same as delete_content's r2_key branch.
+            if submission.r2_key:
+                from lms import r2_client
+                r2_client.delete_object(submission.r2_key)
+                if submission.r2_preview_key:
+                    r2_client.delete_object(submission.r2_preview_key)
+
+            # Delete from Google Drive — legacy rows only, submissions have no "imported from
+            # elsewhere" concept (unlike CourseContent), so a Drive-backed submission is
+            # always the app's own upload and can be deleted outright.
             if submission.drive_file_id:
                 service = authenticate()
                 if service:
@@ -873,7 +832,7 @@ def course_page_enrolled(course_id):
                         delete_file(service, submission.drive_file_id)
                     except Exception as e:
                         current_app.logger.error(f"Error deleting file from Google Drive: {e}")
-            
+
             # Delete from database
             db.session.delete(submission)
             db.session.commit()
@@ -947,9 +906,10 @@ def course_page_enrolled(course_id):
             
             # Toggle visibility
             submission.allow_others_to_view = not submission.allow_others_to_view
-            
-            # Update Google Drive permissions
-            if submission.drive_file_id:
+
+            # Update Google Drive permissions — legacy rows only (see toggle_content_visibility
+            # for why r2_key must also be checked, not just drive_file_id).
+            if submission.drive_file_id and not submission.r2_key:
                 service = authenticate()
                 if service:
                     try:

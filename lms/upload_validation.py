@@ -25,7 +25,6 @@ ALLOWED_MIME_TYPES = {
 TEXT_LIKE_EXTENSIONS = {'txt', 'csv', 'json', 'xml'}
 
 IMAGE_MIME_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'}
-PDF_MIME_TYPES = {'application/pdf'}
 
 
 class UploadValidationError(ValueError):

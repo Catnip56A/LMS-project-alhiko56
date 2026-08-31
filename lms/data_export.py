@@ -17,7 +17,7 @@ def export_user_data(user):
     """Return the given user's own data as a JSON-serializable dict."""
     from lms.models import (
         ForumMessage, CourseAssignmentSubmission, CourseAnnouncementReply,
-        CourseReview, Certificate, PDFDocument,
+        CourseReview, Certificate,
     )
 
     def iso(dt):
@@ -59,10 +59,6 @@ def export_user_data(user):
         'certificates': [
             {'id': c.id, 'course_id': c.course_id, 'issued_at': iso(c.issued_at), 'revoked': c.revoked}
             for c in Certificate.query.filter_by(user_id=user.id).all()
-        ],
-        'uploaded_pdfs': [
-            {'id': p.id, 'title': p.title, 'upload_date': iso(p.upload_date)}
-            for p in PDFDocument.query.filter_by(uploaded_by=user.id).all()
         ],
     }
 

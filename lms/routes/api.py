@@ -5,14 +5,13 @@ import math
 import os
 import re
 import requests
-from werkzeug.utils import secure_filename
 from flask import Blueprint, request, jsonify, current_app, redirect, url_for, Response
 from flask_login import current_user, login_required
 from lms.extensions import limiter
-from lms.models import Course, ForumMessage, ForumChannel, PDFDocument, Translation, db
+from lms.models import Course, ForumMessage, ForumChannel, Translation, db
 from lms.translation_service import translation_service
 from lms.google_drive_service import authenticate
-from lms.upload_validation import validate_upload, UploadValidationError, PDF_MIME_TYPES, content_type_for_mime
+from lms.upload_validation import content_type_for_mime
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -349,151 +348,6 @@ def delete_forum_message(message_id):
     
     return jsonify({'success': True}), 200
 
-@api_bp.route('/pdfs')
-def get_pdfs():
-    """Get all active PDF documents (without sensitive info)"""
-    from flask_login import current_user
-    pdfs = PDFDocument.query.filter_by(is_active=True).all()
-    return jsonify([{
-        'id': p.id,
-        'title': p.title,
-        'description': p.description,
-        'file_size': p.file_size,
-        'upload_date': p.upload_date.isoformat() if p.upload_date else None,
-        'uploaded_by': p.uploaded_by,
-        # Only show PIN to the uploader
-        'access_pin': p.access_pin if (current_user.is_authenticated and p.uploaded_by == current_user.id) else None
-    } for p in pdfs])
-
-@api_bp.route('/pdfs/upload', methods=['POST'])
-@limiter.limit("5 per 30 seconds")
-def upload_pdf():
-    """Upload a new PDF document"""
-    from flask import request
-    import random
-    import string
-    from flask_login import current_user
-    
-    # Check if user is authenticated and is admin
-    if not current_user.is_authenticated or not current_user.is_admin:
-        return jsonify({'error': 'Admin access required'}), 403
-    
-    # Check if user has Google OAuth tokens
-    if not current_user.google_access_token:
-        return jsonify({
-            'error': 'Google Drive access required. Please link your Google account first.',
-            'login_required': True,
-            'login_url': url_for('auth.link_google_account', _external=True)
-        }), 403
-    
-    # Check if file is present
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
-    
-    file = request.files['file']
-    if not file or file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
-        return jsonify({'error': 'Only PDF files are allowed'}), 400
-
-    try:
-        validate_upload(file, max_bytes=current_app.config['MAX_CONTENT_LENGTH'], expected_mimes=PDF_MIME_TYPES)
-    except UploadValidationError as e:
-        return jsonify({'error': str(e)}), 400
-
-    # Get form data
-    title = request.form.get('title', '').strip()
-    description = request.form.get('description', '').strip()
-    pin = request.form.get('pin', '').strip()
-    
-    if not title:
-        return jsonify({'error': 'Title is required'}), 400
-    
-    # Generate PIN if not provided
-    if not pin:
-        pin = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    
-    # Validate PIN length
-    if len(pin) < 4 or len(pin) > 10:
-        return jsonify({'error': 'PIN must be 4-10 characters'}), 400
-    
-    try:
-        # Create temporary directory
-        temp_dir = os.path.join(current_app.static_folder, 'temp')
-        os.makedirs(temp_dir, exist_ok=True)
-        
-        # Generate secure filename
-        filename = secure_filename(file.filename)
-        unique_filename = f"{random.randint(1000, 9999)}_{filename}"
-        temp_file_path = os.path.join(temp_dir, unique_filename)
-        
-        # Save file temporarily
-        file.save(temp_file_path)
-        
-        # Upload to Google Drive
-        from lms.google_drive_service import authenticate, upload_file, create_view_only_link
-        service = authenticate()
-        if not service:
-            return jsonify({'error': 'Failed to authenticate with Google Drive'}), 500
-        
-        try:
-            drive_file_id = upload_file(service, temp_file_path, filename)
-        except Exception as e:
-            current_app.logger.error(f"Error uploading to Drive: {e}")
-            if "insufficientPermissions" in str(e) or "403" in str(e):
-                return jsonify({'error': 'Your Google account does not have sufficient permissions. Please re-link your Google account with full Drive access.'}), 403
-            return jsonify({'error': 'Failed to upload file to Google Drive'}), 500
-        
-        if not drive_file_id:
-            return jsonify({'error': 'Failed to upload file to Google Drive'}), 500
-        
-        # Create view-only link
-        view_link = create_view_only_link(service, drive_file_id, is_image=False)
-        if not view_link:
-            return jsonify({'error': 'Failed to create view link'}), 500
-        
-        # Create database record
-        new_pdf = PDFDocument(
-            title=title,
-            description=description,
-            filename=unique_filename,
-            original_filename=file.filename,
-            drive_file_id=drive_file_id,
-            drive_view_link=view_link,
-            file_size=os.path.getsize(temp_file_path),
-            access_pin=pin,
-            uploaded_by=current_user.id if current_user.is_authenticated else None
-        )
-        
-        db.session.add(new_pdf)
-        db.session.commit()
-        
-        # Clean up temporary file
-        try:
-            os.remove(temp_file_path)
-        except Exception:
-            pass
-        
-        return jsonify({
-            'success': True,
-            'id': new_pdf.id,
-            'title': new_pdf.title,
-            'pin': new_pdf.access_pin,
-            'message': 'PDF uploaded successfully'
-        }), 201
-        
-    except Exception as e:
-        db.session.rollback()
-        # Clean up temporary file if it was saved
-        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
-            try:
-                os.remove(temp_file_path)
-            except Exception:
-                pass
-        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
-
 # Translation endpoints
 @api_bp.route('/translate', methods=['POST'])
 @limiter.limit("5 per 30 seconds")
@@ -747,20 +601,84 @@ def _content_media_url(content, *, download=False):
     return None
 
 
+def _r2_or_drive_media_url(*, r2_key, drive_file_id, fallback_name=None, download=False, r2_preview_key=None):
+    """R2-vs-Drive URL resolution for CourseAssignmentSubmission — the same precedence
+    _content_media_url uses for CourseContent (R2 wins when set, Drive's single generic
+    download/preview pair is the fallback for rows not yet migrated), factored out separately
+    since CourseAssignmentSubmission doesn't share CourseContent's shape (no `.title`, and
+    Drive never needed type-specific URLs — e.g. the image/audio branches — here, since
+    submissions were never rendered in an iframe the way CourseContent was)."""
+    from lms import r2_client
+
+    if not download and r2_preview_key:
+        return r2_client.generate_presigned_url(r2_preview_key)
+
+    if r2_key:
+        disposition = None
+        if download:
+            # Same key shape as CourseContent's (r2_client.build_content_key) — see
+            # _content_media_url's comment for why this slices rather than splits on '-'.
+            basename = r2_key.rsplit('/', 1)[-1]
+            original_name = basename[33:] if len(basename) > 33 and basename[32] == '-' else (fallback_name or 'download')
+            disposition = f'attachment; filename="{original_name}"'
+        return r2_client.generate_presigned_url(r2_key, disposition=disposition)
+
+    if drive_file_id:
+        if download:
+            return f'https://drive.google.com/uc?export=download&id={drive_file_id}'
+        return f'https://drive.google.com/file/d/{drive_file_id}/preview'
+
+    return None
+
+
+@api_bp.route('/file/s/<int:submission_id>')
+@login_required
+def serve_submission_by_db_id(submission_id):
+    """Serve an assignment submission by its database ID — the R2-aware sibling of serve_file
+    for CourseAssignmentSubmission, needed because an R2-only row (submitted after the R2
+    migration) has no drive_file_id for serve_file's URL scheme to key off, mirroring why
+    serve_content_by_db_id exists for CourseContent."""
+    from lms.models import CourseAssignmentSubmission
+
+    submission = CourseAssignmentSubmission.query.get(submission_id)
+    if not submission:
+        return redirect(url_for('main.index', error='file_not_found'))
+
+    course = submission.assignment.course if submission.assignment else None
+    is_owner = current_user.is_authenticated and submission.user_id == current_user.id
+    is_admin = current_user.is_authenticated and current_user.is_admin
+    is_manager = course.is_managed_by(current_user) if course else False
+    # Pre-existing permission shape, preserved as-is (not tightened or loosened here): a
+    # submission with allow_others_to_view=True (the default set by submit_assignment) is
+    # viewable by any authenticated user, not just the owner/course manager or classmates —
+    # the legacy serve_file route already allowed exactly this for submissions.
+    is_public = submission.allow_others_to_view
+    if not (is_owner or is_admin or is_manager or (is_public and current_user.is_authenticated)):
+        return redirect(url_for('main.index', error='auth_required'))
+
+    url = _r2_or_drive_media_url(
+        r2_key=submission.r2_key,
+        r2_preview_key=submission.r2_preview_key,
+        drive_file_id=submission.drive_file_id,
+    )
+    if not url:
+        return redirect(url_for('main.index', error='file_not_found'))
+    return redirect(url)
+
+
 @api_bp.route('/file/<file_id>')
 @login_required
 def serve_file(file_id):
     """Serve a Google Drive file after authentication"""
-    from lms.models import CourseAssignmentSubmission, CourseContent, PDFDocument, Course
+    from lms.models import CourseAssignmentSubmission, CourseContent, Course
     from flask_login import current_user
     from flask import redirect, render_template, url_for
 
     # Find the file in any of the models that store files
     submission = CourseAssignmentSubmission.query.filter_by(drive_file_id=file_id).first()
     course_content = CourseContent.query.filter_by(drive_file_id=file_id).first()
-    pdf_doc = PDFDocument.query.filter_by(drive_file_id=file_id).first()
 
-    file_record = submission or course_content or pdf_doc
+    file_record = submission or course_content
 
     if not file_record:
         return redirect(url_for('main.index', error='file_not_found'))
@@ -835,10 +753,11 @@ def serve_file(file_id):
                               subtitle_language=None)
 
 
-    # For other files (submissions, PDFs, etc.), redirect to the drive_view_link
+    # For other files (submissions, etc.), redirect to the drive_view_link
     # Note: this route looks records up by drive_file_id, so R2-only CourseContent rows
     # never reach it and no template links course content here — it's now legacy-only for
-    # CourseContent, still live for CourseAssignmentSubmission/PDFDocument.
+    # CourseContent, still live for any not-yet-migrated CourseAssignmentSubmission row
+    # (submit_assignment/serve_submission_by_db_id are the current path for new submissions).
     if hasattr(file_record, 'drive_view_link') and file_record.drive_view_link:
         return redirect(file_record.drive_view_link)
     

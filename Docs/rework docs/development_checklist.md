@@ -1374,10 +1374,149 @@ original file is untouched and still what downloads/RAG extraction use.
 one for its remaining lifetime (`R2_URL_EXPIRY_SECONDS`, default 6h, is the only control);
 replaced/orphaned R2 objects (a re-uploaded file's old object) have no reaper script yet; Drive
 copies are intentionally retained post-backfill, purging them is a separate deliberate future
-step; `CourseAssignmentSubmission`/`PDFDocument` uploads are intentionally still on Drive, out
-of this migration's scope; `import_drive_folder`/`import_drive_file` in
-`google_drive_service.py` are pre-existing dead/legacy code (no callers outside each other) —
-noticed while working in this file, not touched, since removing them wasn't part of this plan.
+step. **`CourseAssignmentSubmission`/`PDFDocument` uploads were "intentionally still on Drive,
+out of this migration's scope" at the time this was written — no longer true, see the
+2026-08-31 addendum immediately below.** `import_drive_folder`/`import_drive_file` in
+`google_drive_service.py` were noted here as pre-existing dead/legacy code, not touched since
+removing them wasn't part of this plan — since deleted, see the Phase 4 leftover-cleanup
+addendum further down (2026-08-31), which found they'd become *fully* dead (not just unused
+outside each other) once `_import_drive_tree` stopped calling them.
+
+### Phase 6 addendum — R2 migration extended to submissions and PDFDocument (2026-08-31, done and live-verified)
+
+**Superseded in part — see "PDFDocument removed entirely" further below.** Everything in this
+section about `PDFDocument` (migrating it to R2, the new `/api/file/p/<id>` route, its half of
+the backfill script) describes real work that landed and was live-verified, then was itself
+removed a short time later the same day once the user, after hearing the "zero reachable UI"
+finding explained in full, decided the feature should just be deleted rather than kept around
+unreachable. Left as-is below for the historical record rather than rewritten — the
+`CourseAssignmentSubmission` portions of this section are all still current.
+
+Closes the gap the R2 migration addendum above explicitly left open. `CourseContent` was R2
+from that earlier pass; `CourseAssignmentSubmission` (assignment uploads) and `PDFDocument`
+(the PIN-gated PDF sharing feature) were still 100% Drive-dependent until now. Same schema
+shape as `CourseContent`'s migration (`r2_key`/`file_mime_type`, plus `r2_preview_key` for
+submissions only — `PDFDocument` is PDF-only by construction, per `upload_pdf`'s
+`expected_mimes=PDF_MIME_TYPES`, so it never needs the Office-to-PDF conversion). Migration
+`b8c9d0e1f2a3`. `drive_file_id`/`drive_view_link` kept on both, provenance-only once `r2_key`
+is set — same convention as `CourseContent`.
+
+- [x] **Real, live security bug found and fixed along the way, not introduced by this
+  pass**: `upload_pdf` (`lms/routes/api.py`) staged uploads at
+  `os.path.join(current_app.static_folder, 'temp')` — the exact same unauthenticated-exposure
+  class already found and fixed for course-content/assignment uploads earlier this session
+  (`UPLOAD_STAGING_DIR`, moved outside the static root) — but this one call site was missed by
+  that earlier sweep. Any PDF uploaded through this route was briefly served completely
+  unauthenticated at `/static/temp/<name>` for as long as the (now-removed) Drive upload took.
+  Fixed as a natural side effect of moving this path to R2 (which needed `UPLOAD_STAGING_DIR`
+  anyway) — confirmed live: `static/temp/` has zero files after a real PDF upload through the
+  actual route.
+- [x] **Real finding: `PDFDocument` has zero reachable UI anywhere in the app right now.**
+  Its only frontend is markup inside `index.html`, and `index.html` is rendered by zero
+  routes — confirmed by grepping every route handler for `render_template('index.html'`
+  (no hits) after the earlier MoxoTest cleanup removed the `/moxo-test` route that used to be
+  the only thing still rendering it. No admin panel exposure either. **Explicitly discussed with
+  the user before proceeding** (not assumed): decided to migrate the feature to R2 and keep it
+  intact rather than deleting it or leaving it Drive-only, since it's real, working backend
+  functionality with just a missing frontend — reviving it with an actual UI is separate,
+  unscheduled future work.
+- [x] **`upload_pdf`'s Drive-account gate removed** (`if not current_user.google_access_token:
+  return ... 403`) — made no sense once the route no longer touches Drive at all; would have
+  needlessly blocked an admin with no linked Google account from uploading a PDF.
+- [x] New DB-id-keyed serving routes, mirroring `serve_content_by_db_id`'s reason for existing:
+  `GET /api/file/s/<int:submission_id>` and `GET /api/file/p/<int:pdf_id>`. Needed because the
+  legacy `serve_file(file_id)` route is keyed by `drive_file_id` in the URL — an R2-only row
+  (no Drive file at all) has nothing to put there. New shared `_r2_or_drive_media_url()`
+  helper factors out the R2-vs-Drive precedence both routes need (same precedence
+  `_content_media_url` already uses for `CourseContent`). `course_page_enrolled.html`'s two
+  "View Submission"/"View Your Submission" links updated from `/api/file/{{ …drive_file_id }}`
+  to `/api/file/s/{{ …id }}`; `serve_file` itself untouched, kept for any still-Drive-only
+  legacy row.
+  - **Pre-existing permission behavior preserved, not tightened or loosened**: both new routes
+    keep the same "any authenticated user can view a `allow_others_to_view=True` file, not just
+    enrolled classmates or the PIN holder" behavior `serve_file` already had for these two
+    models — flagged in code comments as a pre-existing gap, not fixed here (PDFDocument's
+    `access_pin` in particular is not enforced by the serving route at all, and never was).
+- [x] **`submit_assignment`, `delete_submission`, `toggle_submission_visibility`
+  (`lms/routes/__init__.py`) rewritten for R2** — upload now goes straight to R2 (no Drive
+  credential needed at all, matching the simplification the original `CourseContent` upload
+  path already got), with the same "clean up the object being superseded" logic on resubmission
+  that `delete_content` already used; `toggle_submission_visibility` gained the same
+  `not submission.r2_key` guard `toggle_content_visibility` got in the Phase 4 leftover-cleanup
+  pass, so it doesn't reach out to Drive for the (now-provenance-only) `drive_file_id` on an
+  R2-migrated row.
+- [x] **`upload_pdf`, `delete_pdf` (`lms/routes/api.py`, `lms/routes/__init__.py`) rewritten
+  the same way** — R2 upload, R2 cleanup on delete, Drive-permission calls now gated to
+  genuinely-still-Drive-hosted legacy rows only.
+- [x] New backfill script `scripts/migration/backfill_submissions_pdfs_to_r2.py`
+  (`just backfill-submissions-pdfs`), same idempotent/resumable shape as
+  `backfill_drive_to_r2.py`. Needed two different download strategies, unlike `CourseContent`
+  (always public): `CourseAssignmentSubmission` rows were always made Drive-public
+  (`set_file_permissions(..., make_public=True)` in the old upload path), so they download the
+  same way `CourseContent` does, over the public link; `PDFDocument` rows were **never** made
+  public (`create_view_only_link` only ever built a URL string, never touched a permission —
+  confirmed by reading it), so they need an authenticated `download_file()` call instead. No
+  existing rows in either table in dev to actually exercise this against (both were empty) —
+  the script exists for whenever this ships somewhere with real data.
+- [x] **Live-verified end to end** (real Flask test client, real sessions, real R2 bucket, no
+  mocks): submitted a real assignment as `testuser` → row created with `r2_key` set and
+  `drive_file_id` NULL, real R2 object confirmed to exist, correct sniffed
+  `file_mime_type='application/pdf'`; viewed it via the new `/api/file/s/<id>` route → real 302
+  to a genuine R2 presigned URL; resubmitted → confirmed the old R2 object was deleted and a
+  new one created; toggled visibility → no error, no Drive call attempted; deleted the
+  submission → both the DB row and the R2 object confirmed gone. Same full cycle repeated for
+  `PDFDocument` as `admin`: upload (201, real R2 object, correct mime), view via
+  `/api/file/p/<id>` (302 to a real presigned URL), delete (row and object both confirmed
+  gone) — and confirmed zero files left behind in `static/temp/`, closing the security finding
+  above.
+
+**Document storage was R2-first across all three models at this point** (`CourseContent`,
+`CourseAssignmentSubmission`, `PDFDocument`) — see below for `PDFDocument`'s subsequent removal.
+
+### Phase 6 addendum — PDFDocument removed entirely (2026-08-31, done and live-verified)
+
+Follow-up to the "zero reachable UI" finding two sections above. Once the user understood the
+finding in full — `PDFDocument`'s only frontend (`index.html`) is rendered by zero routes,
+confirmed by grep, not just "hard to find" — they asked for the feature to be removed outright
+rather than kept alive with no way to reach it. Reversed the earlier migrate-and-keep decision
+from the same day.
+
+- [x] Model deleted (`lms/models/__init__.py`) and its re-export dropped
+  (`lms/__init__.py`).
+- [x] All routes deleted: `GET /api/pdfs`, `POST /api/pdfs/upload`, `GET /api/file/p/<id>`
+  (`lms/routes/api.py`), the `delete_pdf` form action (`lms/routes/__init__.py`). `serve_file`'s
+  three-model lookup (`submission or course_content or pdf_doc`) trimmed back to two.
+  `_r2_or_drive_media_url()`'s docstring corrected to describe its one remaining caller
+  (`CourseAssignmentSubmission`) rather than two.
+- [x] `PDF_MIME_TYPES` (`lms/upload_validation.py`) deleted — it had exactly one caller,
+  `upload_pdf`, which is now gone.
+- [x] GDPR data export (`lms/data_export.py`, `export_user_data`) — dropped the `uploaded_pdfs`
+  key and its `PDFDocument` import. Verified live: `export_user_data()` still runs cleanly and
+  returns every other section unchanged.
+- [x] Migration `c9d0e1f2a3b4` drops the `pdf_document` table outright — the first genuinely
+  destructive migration in this chain (every other one so far has been additive/nullable).
+  Explicitly documented in the migration's own docstring as unsafe to run against a database
+  with real rows in that table without exporting them first; the dev database's table was
+  confirmed empty before dropping it, so nothing was actually lost here. `downgrade()` restores
+  the empty schema only, not data.
+- [x] The backfill script from the section above split back apart:
+  `backfill_submissions_pdfs_to_r2.py` deleted, replaced by
+  `scripts/migration/backfill_submissions_to_r2.py` (`just backfill-submissions`, renamed from
+  `backfill-submissions-pdfs`) — submission-only now, since there's nothing left to backfill
+  `PDFDocument` into.
+- [x] **Live-verified**: app boots clean post-removal (150 routes, down from 153 — the three
+  deleted PDF routes), `uv run ruff check` clean across every touched file, `GET /api/pdfs` and
+  `POST /api/pdfs/upload` both confirmed `404` through the real running app, `export_user_data()`
+  confirmed still working with the `uploaded_pdfs` key genuinely gone (not just empty), and the
+  renamed backfill script's `--dry-run` confirmed running cleanly against the real dev database.
+
+**What's left before Drive can be called fully removed, not yet decided**: the
+worker-account/Drive-Writer OAuth machinery and the Picker-import-from-Drive feature (an
+*ingestion* path, not storage — it already copies bytes into R2 on import, so it could
+plausibly stay even after Drive is otherwise "gone"), plus retiring the `Admin → Drive
+Writer`/`Admin → Drive Worker` admin surfaces and running `backfill-r2`/`backfill-submissions`
+against real data once this ships somewhere with a real Drive-hosted corpus to migrate. Flagged
+for a decision, not decided unilaterally here.
 
 ### Phase 4/6 addendum — cleanup + review findings (2026-08-24)
 
@@ -1489,7 +1628,9 @@ SSRF in the Drive download (hardcoded host, `file_id` passed as a query param).
 - [ ] Remove MoxoTest (view, permission, route, model)
 - [ ] Rework course management (promo codes, open-source toggles)
 - [ ] Quiz authoring UI
-- [ ] Forum/resource moderation rework
+- [ ] Resource moderation rework (forum moderation itself superseded by the dedicated
+  Phase 11 below — this bullet now covers whatever non-forum resource moderation surface
+  remains, e.g. course/content-level flags)
 - [ ] Translation review UI reflecting DeepL engine
 - [ ] Update `ADMIN_PERMISSIONS` (drop `moxo_test_management`, add quiz/promo-code keys)
 - [ ] Adding more control over platform features such as locking some of them
@@ -1509,6 +1650,135 @@ from ever completing signup once this is live, and needs a provider decision fro
 - [ ] Verify a real signup end-to-end: account created → real email received → link works
 
 *(Scheduled after Phases 6-9 per explicit instruction — lowest priority in the roadmap.)*
+
+## Phase 11 — Forum rework (course groupchats, groups, DMs, reply UX)
+
+Planned 2026-08-31, not yet started. Supersedes Phase 9's old "Forum/resource moderation
+rework" bullet — this is a full rework, not an admin-panel tweak. Current state going in:
+`ForumChannel`/`ForumMessage` (`lms/models/__init__.py`) are **global only**, a deliberate
+Phase 2 decision at the time ("Forum stayed global rather than becoming course-scoped like
+Resources did") — no `course_id` column exists on either model today. Replies today are a
+Reddit-style nested tree (`ForumMessage.parent_id`, self-referential FK) with no group/DM
+concept at all.
+
+**Correction (2026-08-31) — "course groupchat" means reworking the existing Announcements tab
+into a channel, not adding a new tab.** The course page already has a course-scoped
+messaging surface today — the "Announcements" tab, backed by its own separate model pair
+(`CourseAnnouncement`: title + message, teacher-authored, `is_published`-gated; and
+`CourseAnnouncementReply`: a second, independent Reddit-style nested-reply tree, parallel to
+and unrelated to `ForumMessage`'s). The plan is to fold that into the same course-scoped
+`ForumChannel`/`ForumMessage` system used for global channels — a real channel, not a
+moderator-created Group (Groups stay forum-tab-only, per the bullet below) — shown embedded in
+what's currently the Announcements tab *and* in the Forum tab, same channel both places. This
+implies migrating (or at minimum retiring in favor of) `CourseAnnouncement`/
+`CourseAnnouncementReply` rather than adding a second, separate course-scoped messaging system
+alongside them — confirm the exact migration/retirement shape when this is scoped for real,
+since existing announcement data would need a home in the new shape.
+
+- [ ] **Course channel** (was "course groupchat" — renamed for clarity, see correction above):
+  a `ForumChannel` scoped to one course, replacing the Announcements tab's current
+  `CourseAnnouncement`/`CourseAnnouncementReply` pair, shown both embedded on the course page
+  (where Announcements lives today) and in the Forum tab (two surfaces for the same channel,
+  not two separate features). Shape: add nullable `ForumChannel.course_id` — NULL keeps every
+  existing global channel working unchanged, set means course-scoped. One course likely gets
+  exactly one auto-created channel (mirrors how `Enrollment` already gates course access).
+- [ ] **Moderator-created Groups**: channels created by site admins/sub-admins with the right
+  permission, forum-tab-only (not shown on any course page), not tied to a `course_id`. Reuses
+  the existing `ForumChannel` shape (`is_public`, `admin_only`, etc. already exist) — likely
+  just a `channel_type` discriminator ('global' | 'course' | 'group') rather than a new model.
+- [ ] **Private messages (1:1 DM)**: new model — this app has no DM/PrivateMessage concept
+  today. Own inbox/thread view, separate from channel-based messaging.
+- [ ] **Per-message translation**: the DeepL pipeline (`core_translator.py`) already exists and
+  is proven (Phase 5) but has never been wired to user-generated chat text — today it only
+  translates course content and UI strings. Likely an on-demand per-message "translate" action
+  rather than the batch/sweep pattern content translation uses, given volume and that most
+  messages will never be translated.
+- [ ] **Pinning messages**: channel-scoped, moderator-only action.
+- [ ] **Deletable chat history — two modes**: time-based auto-expiry (a recurring job, same RQ
+  pattern as the translation/embedding/conversation-purge sweeps — `ForumMessage` has no
+  retention concept today) and manual per-message/bulk delete (moderator-triggered, immediate).
+- [ ] **Reply UX overhaul**: WhatsApp/Telegram-style linear feed with inline reply-preview
+  (quoting the replied-to message inline) as the **default** view; the existing Reddit-style
+  nested-tree view (`parent_id`) becomes a user-togglable alternate view, not removed. The
+  Reddit view needs a "view thread" expand action for when nesting depth has shrunk the reply
+  box too far to comfortably read/type in.
+- [ ] **Message ordering — clarified, not a new ID scheme.** `ForumMessage.id` (autoincrement
+  PK) and `.timestamp` already exist and are already used by the current frontend
+  (`forum.html`'s reply/edit/delete actions all key off `message.id`) — nothing needs "adding
+  ids." The actual open design question is *sort order*: the new linear (WhatsApp-style) view
+  needs strict chronological order; the existing Reddit view's ordering (top-level threads by
+  recency/activity, replies nested under their parent) is a separate, already-working concept
+  that shouldn't change. Confirm both orderings explicitly when this is built rather than
+  assuming one generalizes to the other.
+
+## Phase 12 — Sitewide input censoring (mandatory)
+
+Planned 2026-08-31, not yet started. Applies beyond the forum — every user-authored text field
+across the site needs to go through this, not just chat/DM/group messages: quiz short-answer
+text, course/content titles & descriptions, profile bio, assignment submission text fields,
+forum channel/group names. New `lms/content_moderation.py` (no Flask/DB dependency, mirrors
+`core_translator.py`'s role), called at each of those input boundaries.
+
+**Decided approach (2026-08-31):** word-list only, no ML/classifier layer. Google's Perspective
+API — the obvious off-the-shelf toxicity API — was considered and ruled out: it's genuinely
+being retired (Google/Jigsaw's own announcement; new requests stop being accepted after
+February 2026, service ends entirely December 31, 2026), so building against it now would mean
+migrating off it almost immediately. A self-hosted ML alternative (e.g. a multilingual
+Toxic-BERT variant, which does cover Russian) was also considered and explicitly passed on —
+this project has twice already deliberately avoided a `torch` dependency (picked
+`faster-whisper`'s ctranslate2 backend over `openai-whisper` specifically to dodge torch's
+~800MB weight), and a BERT-family model would reintroduce exactly that tradeoff. **Enforcement
+posture: hard-block at submit time** (reject with an inline error, nothing gets posted) — with
+a word-list match being an unambiguous violation (not a graded/borderline score the way an ML
+classifier's output would be), a hard reject is the right default; there's no nuance here to
+route to a moderator review queue for. A message a moderator still wants gone after the fact is
+covered by Phase 11's manual-delete feature, not by this layer.
+
+- [ ] `lms/content_moderation.py`: `check_text(text) -> {'blocked': bool, 'matched_terms': [...]}`
+  (or similar), loading maintained EN + RU word lists (RU profanity/mat has real,
+  actively-maintained open lists distinct from EN ones — don't assume one list transliterates
+  to the other).
+- [ ] Wire into every input boundary listed above — forum/DM/group messages first (Phase 11
+  ships alongside this), then retrofit the pre-existing surfaces (quiz answers, course/content
+  text fields, profile bio, submissions).
+- [ ] Admin-manageable word list (add/remove terms without a code deploy) — likely a simple
+  admin panel view, matching this app's existing `SecureModelView` conventions.
+- [ ] Revisit if word-list-only proves insufficient in practice (e.g. sustained harassment
+  phrased without listed words) — Gemini-based classification (reusing `gemini_client.py`'s
+  existing model-fallback chain, zero new dependency) was the runner-up approach and stays the
+  natural upgrade path if this is revisited later, now that the ML-model-with-torch option is
+  off the table and Perspective is disqualified either way.
+
+## Phase 13 — Analytics improvements
+
+Planned 2026-08-31, not yet started — a brainstormed list of where analytics would add real
+value, to be scoped down before implementation. `ContentView` (existing) and `BackgroundJob`
+(existing, tracks every job's status/timing) are the two tables most of this can build on
+without new instrumentation; the video-moment-highlighting feature's `VideoMomentFlag` data
+(Phase 6 addendum) is currently written but only ever consumed by the promotion sweep — it's
+real, already-collected per-timestamp engagement signal that no dashboard surfaces yet.
+
+- [ ] **Student-facing**: personal progress (content completed vs. total per course, quiz score
+  history), activity/streak tracking.
+- [ ] **Teacher-facing, per course**: enrollment/retention over time and a join-but-never-opened
+  drop-off funnel; content engagement (view counts already exist via `ContentView` — video
+  watch-through/engagement could finally surface `VideoMomentFlag` data as a teacher-only
+  engagement heatmap, distinct from the *student-facing* seek-bar markers that were explicitly
+  scoped out of the video-moments feature — this is a teacher analytics view, not that); quiz
+  analytics (per-question difficulty, score distribution, most-missed questions); assignment
+  analytics (submission rate, on-time vs. late, grade distribution); forum/chat engagement once
+  Phase 11 exists (messages per channel, most active students, moderation-action counts); Ask
+  AI usage per course (question volume, quick vs. thorough split, how often retrieval returns
+  "no indexed material" — a proxy for content gaps).
+- [ ] **Admin/site-wide**: DAU/WAU/MAU, signup funnel (signup → verified → first course join →
+  first content view), retention cohorts; cost/ops (Gemini call volume and estimated cost
+  trend, Whisper minutes transcribed, R2 storage growth, background-job failure rate — all
+  derivable from existing tables); content health (courses with zero content or zero
+  enrollment, translation coverage %, content that's never been viewed); growth (which public
+  courses drive the most signups, promo-code redemption effectiveness).
+- [ ] **Moderation-specific** (ties directly to Phase 12): censored-message volume over time
+  (a spike is a signal worth surfacing on its own) and per-user block counts, to surface repeat
+  offenders for admin action.
 
 ---
 

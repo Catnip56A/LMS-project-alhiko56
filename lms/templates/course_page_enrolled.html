@@ -1223,7 +1223,7 @@
                                     {% if user_submission.declined %}
                                         <div class="alert alert-warning mt-2"><i class="fas fa-exclamation-circle"></i> {{ _('This submission has been declined. Please resubmit.') }}</div>
                                     {% endif %}
-                                    <a href="/api/file/{{ user_submission.drive_file_id }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Your Submission') }}</a>
+                                    <a href="/api/file/s/{{ user_submission.id }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Your Submission') }}</a>
                                     {% if user_submission.declined %}
                                         <button type="button" class="btn btn-sm btn-primary mt-1" data-toggle="collapse" data-target="#resubmit_{{ user_submission.id }}">{{ _('Resubmit') }}</button>
                                         <div class="collapse mt-2" id="resubmit_{{ user_submission.id }}">
@@ -1316,7 +1316,7 @@
                                         <strong>{{ submission.user.username }}</strong>
                                         <span class="badge badge-{{ status }}">{{ status_text }}</span>
                                         - {{ _('Submitted:') }} {{ submission.submitted_at.strftime('%b %d, %Y %I:%M %p') }}<br>
-                                        <a href="/api/file/{{ submission.drive_file_id }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Submission') }}</a>
+                                        <a href="/api/file/s/{{ submission.id }}" target="_blank" class="btn btn-sm btn-info mt-1">{{ _('View Submission') }}</a>
                                         {% if submission.declined %}
                                         <div class="alert alert-warning mt-2"><i class="fas fa-exclamation-circle"></i> {{ _('Submission Declined') }}</div>
                                         {% endif %}

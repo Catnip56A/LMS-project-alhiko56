@@ -231,8 +231,11 @@ class CourseAssignmentSubmission(db.Model):
     assignment_id = db.Column(db.Integer, db.ForeignKey('course_assignment.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     file_path = db.Column(db.String(300), nullable=True)  # Legacy field, now nullable
-    drive_file_id = db.Column(db.String(100))  # Google Drive file ID
+    drive_file_id = db.Column(db.String(100))  # Google Drive file ID — provenance only once r2_key is set
     drive_view_link = db.Column(db.String(300))  # Google Drive view link
+    r2_key = db.Column(db.String(500), nullable=True)  # Cloudflare R2 object key — wins over Drive when set
+    r2_preview_key = db.Column(db.String(500), nullable=True)  # Converted-PDF preview for Office-format submissions
+    file_mime_type = db.Column(db.String(150), nullable=True)  # Sniffed from bytes at upload time
     submitted_at = db.Column(db.DateTime, server_default=db.func.now())
     grade = db.Column(db.Integer, nullable=True)
     comment = db.Column(db.Text, nullable=True)
@@ -244,26 +247,6 @@ class CourseAssignmentSubmission(db.Model):
 
     def __repr__(self):
         return f'<CourseAssignmentSubmission {self.id}>'
-
-class PDFDocument(db.Model):
-    """PDF document model for secure document management"""
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    filename = db.Column(db.String(300), nullable=False)
-    original_filename = db.Column(db.String(300), nullable=False)
-    drive_file_id = db.Column(db.String(100))  # Google Drive file ID
-    drive_view_link = db.Column(db.String(300))  # Google Drive view link
-    file_size = db.Column(db.Integer)
-    access_pin = db.Column(db.String(10), nullable=False)
-    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    upload_date = db.Column(db.DateTime, server_default=db.func.now())
-    is_active = db.Column(db.Boolean, default=True)
-    allow_others_to_view = db.Column(db.Boolean, default=True)  # Allow other users to view this file
-    is_imported = db.Column(db.Boolean, default=False)
-
-    def __repr__(self):
-        return f'<PDFDocument {self.title}>'
 
 class SiteSettings(db.Model):
     """Minimal site branding settings (name, logo, contact, navigation)."""
