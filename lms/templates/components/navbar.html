@@ -12,6 +12,11 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/forum" data-nav="forum">{{ _('Forum') }}</a>
                 </li>
+                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="/messages" data-nav="messages">{{ _('Messages') }}</a>
+                </li>
+                {% endif %}
                 <li class="nav-item">
                     <a class="nav-link" href="/resources" data-nav="resources">{{ _('Resources') }}</a>
                 </li>

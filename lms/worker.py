@@ -23,11 +23,13 @@ def main():
             ensure_embedding_sweep_scheduled,
             ensure_conversation_purge_scheduled,
             ensure_moment_promotion_scheduled,
+            ensure_forum_purge_scheduled,
         )
         ensure_translation_sweep_scheduled()
         ensure_embedding_sweep_scheduled()
         ensure_conversation_purge_scheduled()
         ensure_moment_promotion_scheduled()
+        ensure_forum_purge_scheduled()
 
         logger.info("RQ worker starting, listening on queue '%s'", QUEUE_NAME)
         worker = Worker([QUEUE_NAME], connection=get_redis_connection())

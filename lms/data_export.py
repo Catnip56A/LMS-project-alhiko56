@@ -3,11 +3,11 @@ GDPR-adjacent self-service helpers: export a user's own data as a plain dict (JS
 and anonymize a user's account on deletion.
 
 Account "deletion" anonymizes the User row rather than removing it outright — several
-tables (forum messages, assignment submissions, announcement replies, reviews,
-certificates) have NOT NULL foreign keys to `user.id`, so a hard delete would either
-orphan that content or require a much larger cascade-delete migration. Anonymizing in
-place (clearing PII, invalidating login) satisfies the erasure request without breaking
-referential integrity or other users' content (e.g. a forum thread a deleted user posted in).
+tables (forum messages, assignment submissions, reviews, certificates) have NOT NULL
+foreign keys to `user.id`, so a hard delete would either orphan that content or require a
+much larger cascade-delete migration. Anonymizing in place (clearing PII, invalidating
+login) satisfies the erasure request without breaking referential integrity or other
+users' content (e.g. a forum thread a deleted user posted in).
 """
 import secrets
 from datetime import datetime
@@ -15,10 +15,7 @@ from datetime import datetime
 
 def export_user_data(user):
     """Return the given user's own data as a JSON-serializable dict."""
-    from lms.models import (
-        ForumMessage, CourseAssignmentSubmission, CourseAnnouncementReply,
-        CourseReview, Certificate,
-    )
+    from lms.models import ForumMessage, CourseAssignmentSubmission, CourseReview, Certificate
 
     def iso(dt):
         return dt.isoformat() if dt else None
@@ -37,8 +34,10 @@ def export_user_data(user):
             {'id': e.course.id, 'title': e.course.title, 'is_teacher': e.is_teacher, 'created_by_me': e.course.created_by == user.id}
             for e in user.enrollments
         ],
+        # Covers every message type — global channel, course channel (formerly
+        # CourseAnnouncement/CourseAnnouncementReply, now unified here), Group, and DM.
         'forum_messages': [
-            {'id': m.id, 'channel': m.channel, 'message': m.message, 'timestamp': iso(m.timestamp)}
+            {'id': m.id, 'channel': m.forum_channel.slug, 'message': m.message, 'timestamp': iso(m.timestamp)}
             for m in ForumMessage.query.filter_by(user_id=user.id).all()
         ],
         'assignment_submissions': [
@@ -47,10 +46,6 @@ def export_user_data(user):
                 'grade': s.grade, 'passed': s.passed,
             }
             for s in CourseAssignmentSubmission.query.filter_by(user_id=user.id).all()
-        ],
-        'announcement_replies': [
-            {'id': r.id, 'announcement_id': r.announcement_id, 'message': r.message, 'created_at': iso(r.created_at)}
-            for r in CourseAnnouncementReply.query.filter_by(user_id=user.id).all()
         ],
         'course_reviews': [
             {'id': r.id, 'course_id': r.course_id, 'rating': r.rating, 'title': r.title, 'review_text': r.review_text}

@@ -14,7 +14,7 @@ from wtforms.validators import Optional, DataRequired, ValidationError, NumberRa
 from flask_admin.model.form import InlineFormAdmin
 from flask_login import current_user
 from flask_wtf import FlaskForm
-from lms.models import User, Course, ForumMessage, ForumChannel, db, SiteSettings, CourseContent, ContentView, AppSetting, Enrollment, Quiz, QuizQuestion, QUIZ_QUESTION_TYPES
+from lms.models import User, Course, ForumMessage, ForumChannel, ForumChannelMembership, db, SiteSettings, CourseContent, ContentView, AppSetting, Enrollment, Quiz, QuizQuestion, QUIZ_QUESTION_TYPES
 from flask_admin.contrib.sqla.fields import QuerySelectMultipleField
 from lms.password_policy import validate_password_strength, PasswordPolicyError
 
@@ -789,6 +789,9 @@ class CourseView(SecureModelView):
             db.session.add(course)
             db.session.commit()
 
+            from lms.forum_service import ensure_course_channel
+            ensure_course_channel(course)
+
             # Queue translation instead of blocking this request on an external API call
             try:
                 from lms.job_manager import job_manager
@@ -803,39 +806,57 @@ class CourseView(SecureModelView):
         return self.render('admin/course_edit.html', course=None)
 
 class ForumChannelView(SecureModelView):
-    """Admin view for ForumChannel model"""
+    """Admin view for ForumChannel — also where moderators create Groups (channel_type='group'),
+    per the "created by moderators of the site" requirement: reaching this view already
+    requires has_perm('forum_management'). Course channels are normally auto-created
+    alongside their Course (see forum_service.ensure_course_channel) and shouldn't usually be
+    hand-created here, but the field is left editable rather than hidden for flexibility."""
     permission = 'forum_management'
-    column_list = ('name', 'slug', 'description', 'requires_login', 'admin_only', 'is_public', 'is_active', 'sort_order', 'created_at')
+    column_list = ('name', 'slug', 'channel_type', 'course_id', 'membership_mode', 'retention_days',
+                   'requires_login', 'admin_only', 'is_public', 'is_active', 'sort_order', 'created_at')
     column_searchable_list = ['name', 'slug', 'description']
-    column_filters = ['requires_login', 'admin_only', 'is_public', 'is_active']
-    form_columns = ('name', 'slug', 'description', 'requires_login', 'admin_only', 'is_public', 'is_active', 'sort_order')
-    form_excluded_columns = ('created_at', 'updated_at')
+    column_filters = ['channel_type', 'requires_login', 'admin_only', 'is_public', 'is_active']
+    form_columns = ('name', 'slug', 'description', 'channel_type', 'course_id', 'membership_mode',
+                     'retention_days', 'requires_login', 'admin_only', 'is_public', 'is_active', 'sort_order')
+    form_excluded_columns = ('created_at', 'updated_at', 'created_by')
+    form_choices = {
+        'channel_type': [('global', 'Global'), ('course', 'Course'), ('group', 'Group'), ('dm', 'DM')],
+        'membership_mode': [('', '(not applicable)'), ('open', 'Open — anyone logged in'), ('invite_only', 'Invite-only')],
+    }
 
     def on_model_change(self, form, model, is_created):
-        """Ensure slug is URL-friendly"""
+        """Ensure slug is URL-friendly; stamp created_by for newly-created Groups."""
         if hasattr(model, 'slug') and model.slug:
-            # Make slug URL-friendly
             model.slug = model.slug.lower().replace(' ', '-').replace('_', '-')
+        if is_created and model.channel_type == 'group' and not model.created_by:
+            model.created_by = current_user.id
         return super().on_model_change(form, model, is_created)
 
     def delete_model(self, model):
-        """Override delete to prevent deletion of 'general' channel and move messages"""
-        if model.slug == 'general':
-            flash('Cannot delete the General Discussion channel.', 'error')
+        """Refuse to delete a channel that still has messages — there's no single obvious
+        fallback channel to move them to across all channel types (unlike the single
+        global-only forum this originally guarded), so this asks the admin to clear the
+        channel's history first (POST /api/forum/channels/<id>/clear) rather than silently
+        picking a destination."""
+        if ForumMessage.query.filter_by(channel_id=model.id).first() is not None:
+            flash('This channel still has messages — clear its history first before deleting it.', 'error')
             return False
-        
-        # Move all messages from this channel to 'general'
-        messages_to_move = ForumMessage.query.filter_by(channel=model.slug).all()
-        for message in messages_to_move:
-            message.channel = 'general'
-        db.session.commit()
-        
-        # Proceed with deletion
         return super().delete_model(model)
 
 class ForumMessageView(SecureModelView):
     """Admin view for ForumMessage model"""
     permission = 'forum_management'
+    column_list = ('channel', 'username', 'message', 'pinned', 'deleted_at', 'timestamp')
+    column_searchable_list = ['username', 'message']
+    column_filters = ['channel_id', 'pinned']
+
+
+class ForumChannelMembershipView(SecureModelView):
+    """Admin view for adding/removing Group and DM members — the working (if unglamorous)
+    way to manage invite-only Group membership until a dedicated in-app UI exists."""
+    permission = 'forum_management'
+    column_list = ('channel', 'user', 'joined_at')
+    column_filters = ['channel_id']
 
 
 class TranslateContentView(BaseView):
@@ -1189,6 +1210,7 @@ def init_admin(app):
     admin.add_view(DriveWorkerView(name='Drive Worker', endpoint='drive_worker'))
     admin.add_view(ForumChannelView(ForumChannel, db.session))
     admin.add_view(ForumMessageView(ForumMessage, db.session))
+    admin.add_view(ForumChannelMembershipView(ForumChannelMembership, db.session, name='Forum Members'))
     admin.add_view(GoogleLoginView(name='Google Login', endpoint='google_login'))
     admin.add_view(CertificateTuningView(name='Certificate Tuning', endpoint='certificate_tuning'))
     admin.add_view(TranslateContentView(name='Translate', endpoint='translate'))

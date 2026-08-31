@@ -1489,143 +1489,11 @@
             </div>
             {% endif %}
         </div>
-        {% macro render_reply(reply, ann_id, depth=0) %}
-        <div class="card mb-2 reply-card" data-depth="{{ depth }}">
-            <div class="card-body p-2">
-                <strong>{{ reply.user.username }}</strong> <small class="text-muted">{{ reply.created_at.strftime('%b %d, %I:%M %p') }}</small>
-                <p class="mb-1">{{ reply.message }}</p>
-                
-                <!-- Reply button -->
-                <button class="btn btn-sm btn-link p-0" type="button" data-toggle="collapse" data-target="#reply-form-{{ ann_id }}-{{ reply.id }}">
-                    {{ _('Reply') }}
-                </button>
-                
-                <!-- Reply form -->
-                <div class="collapse" id="reply-form-{{ ann_id }}-{{ reply.id }}">
-                    <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" class="mt-2">
-                        <input type="hidden" name="action" value="add_reply">
-                        <input type="hidden" name="announcement_id" value="{{ ann_id }}">
-                        <input type="hidden" name="parent_reply_id" value="{{ reply.id }}">
-                        <div class="form-group">
-                            <textarea class="form-control form-control-sm" name="reply_message" rows="2" placeholder="{{ _('Write a reply...') }}" required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-sm btn-primary">{{ _('Post Reply') }}</button>
-                    </form>
-                </div>
-                
-                <!-- Recursively render child replies -->
-                {% set child_replies = reply.child_replies|list %}
-                {% if child_replies %}
-                <div class="mt-2">
-                    {% for child_reply in child_replies %}
-                        {{ render_reply(child_reply, ann_id, depth + 1) }}
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endmacro %}
-
         <div class="tab-pane fade" id="announcements" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
                 <h4>{{ _('Announcements') }}</h4>
-                {% if is_teacher_or_admin %}
-                <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addAnnouncementModal">
-                    + {{ _('Add Announcement') }}
-                </button>
-                {% endif %}
             </div>
-            {% if announcements %}
-            <ul class="list-group mb-4">
-                {% for ann in announcements %}
-                <li class="list-group-item">
-                    <div><strong>{{ ann.title }}</strong></div>
-                    <div>{{ ann.message }}</div>
-                    <div><small>{{ _('Posted:') }} {{ ann.created_at.strftime('%b %d, %Y %I:%M %p') }}</small></div>
-                    
-                    {% if is_teacher_or_admin %}
-                    <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" style="display: inline; margin-right: 0.5rem;" onsubmit="return confirm('{{ _('Are you sure you want to delete this announcement? This will also delete all replies.') }}');">
-                        <input type="hidden" name="action" value="delete_announcement">
-                        <input type="hidden" name="announcement_id" value="{{ ann.id }}">
-                        <button type="submit" class="btn btn-danger btn-sm">{{ _('Delete Announcement') }}</button>
-                    </form>
-                    {% endif %}
-                    
-                    <!-- Reply button -->
-                    <button class="btn btn-sm btn-link" type="button" data-toggle="collapse" data-target="#reply-form-{{ ann.id }}">
-                        {{ _('Reply') }}
-                    </button>
-                    
-                    <!-- Reply form -->
-                    <div class="collapse" id="reply-form-{{ ann.id }}">
-                        <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}" class="mt-2">
-                            <input type="hidden" name="action" value="add_reply">
-                            <input type="hidden" name="announcement_id" value="{{ ann.id }}">
-                            <div class="form-group">
-                                <textarea class="form-control" name="reply_message" rows="2" placeholder="{{ _('Write a reply...') }}" required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-sm btn-primary">{{ _('Post Reply') }}</button>
-                        </form>
-                    </div>
-                    
-                    <!-- Display replies recursively -->
-                    {% set top_level_replies = ann.replies|selectattr('parent_reply_id', 'none')|list %}
-                    {% if top_level_replies %}
-                    <div class="mt-3">
-                        {% for reply in top_level_replies %}
-                            {{ render_reply(reply, ann.id, 0) }}
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </li>
-                {% endfor %}
-            </ul>
-            
-            {# Pagination controls for announcements #}
-            {% if announcements_pagination.pages > 1 %}
-            <nav aria-label="Announcement pagination" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% if announcements_pagination.has_prev %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, announcement_page=announcements_pagination.prev_num) }}" aria-label="{{ _('Previous') }}">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link" aria-hidden="true">&laquo;</span>
-                    </li>
-                    {% endif %}
-                    
-                    {% for page_num in announcements_pagination.iter_pages() %}
-                    {% if page_num %}
-                        {% if announcements_pagination.page == page_num %}
-                        <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
-                        {% else %}
-                        <li class="page-item"><a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, announcement_page=page_num) }}">{{ page_num }}</a></li>
-                        {% endif %}
-                    {% else %}
-                        <li class="page-item disabled"><span class="page-link">…</span></li>
-                    {% endif %}
-                    {% endfor %}
-                    
-                    {% if announcements_pagination.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.course_page_enrolled', course_id=course.id, announcement_page=announcements_pagination.next_num) }}" aria-label="{{ _('Next') }}">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link" aria-hidden="true">&raquo;</span>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
-            {% else %}
-            <p>{{ _('No announcements yet.') }}</p>
-            {% endif %}
+            {% include 'components/forum_ui.html' %}
         </div>
 
         <!-- Reviews Tab -->
@@ -2205,40 +2073,6 @@
 
     {% if is_teacher_or_admin %}
     <!-- Add Announcement Modal -->
-    <div class="modal fade" id="addAnnouncementModal" tabindex="-1" role="dialog" aria-labelledby="addAnnouncementModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <form method="post" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
-            <input type="hidden" name="action" value="add_announcement">
-            <div class="modal-header">
-              <h5 class="modal-title" id="addAnnouncementModalLabel">{{ _('Add Announcement') }}</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label for="announcement_title">{{ _('Title') }} *</label>
-                <input type="text" id="announcement_title" class="form-control" name="announcement_title" required>
-              </div>
-              <div class="form-group">
-                <label for="announcement_message">{{ _('Message') }} *</label>
-                <textarea id="announcement_message" class="form-control" name="announcement_message" rows="6" required></textarea>
-              </div>
-              <div class="form-check">
-                <input type="checkbox" class="form-check-input" name="announcement_published" id="announcementPublished" checked>
-                <label class="form-check-label" for="announcementPublished">{{ _('Publish immediately') }}</label>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
-              <button type="submit" class="btn btn-primary">{{ _('Add Announcement') }}</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
     <!-- Create Folder Modal -->
     <div class="modal fade" id="createFolderModal" tabindex="-1" role="dialog" aria-labelledby="createFolderModalLabel" aria-hidden="true">
       <div class="modal-dialog" role="document">
@@ -3305,7 +3139,7 @@ async function handleFolderExpand(folderId, courseId) {
 {% include 'components/footer.html' %}
 <script>
 (function() {
-    var total = {{ announcements_pagination.total }};
+    var total = {{ course_channel.messages.count() }};
     var courseId = {{ course.id }};
     var storageKey = 'ann_seen_' + courseId;
     var seen = parseInt(localStorage.getItem(storageKey) || '0', 10);
@@ -3321,6 +3155,12 @@ async function handleFolderExpand(folderId, courseId) {
             localStorage.setItem(storageKey, String(total));
             if (badge) badge.style.display = 'none';
         });
+    }
+
+    // The Announcements tab is now this course's own ForumChannel — load it via the shared
+    // forum component (components/forum_ui.html) once, on page load.
+    if (window.ForumUI) {
+        window.ForumUI.loadChannel('{{ course_channel.slug }}', {{ 'true' if is_teacher_or_admin else 'false' }});
     }
 })();
 </script>

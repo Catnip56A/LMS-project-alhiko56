@@ -192,23 +192,47 @@ class PromoCode(db.Model):
         return f'<PromoCode {self.code}>'
 
 class ForumMessage(db.Model):
-    """Forum message model for community discussions"""
+    """Forum message model for community discussions — used for global channels, course
+    channels (replacing the old CourseAnnouncement/CourseAnnouncementReply pair), moderator
+    Groups, and private 1:1 DMs alike (see ForumChannel.channel_type)."""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     username = db.Column(db.String(80))
     message = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, server_default=db.func.now())
-    parent_id = db.Column(db.Integer, db.ForeignKey('forum_message.id'), nullable=True)
-    channel = db.Column(db.String(50), default='general', nullable=False)  # Channel/category for the message
-    
+    # ondelete='CASCADE': deleting a message deliberately takes its replies with it (used by
+    # the hard-delete expiry sweep and moderator "clear history" action — single-message
+    # moderator/author deletion is a soft delete instead, specifically so this cascade never
+    # fires from that action and orphans nothing).
+    parent_id = db.Column(db.Integer, db.ForeignKey('forum_message.id', ondelete='CASCADE'), nullable=True)
+    # Real FK, not a bare string — a prior version of this model stored `channel` as a plain
+    # string with no referential integrity to ForumChannel at all.
+    channel_id = db.Column(db.Integer, db.ForeignKey('forum_channel.id'), nullable=False)
+    pinned = db.Column(db.Boolean, nullable=False, default=False, server_default=db.text('false'))
+    # Soft-delete marker for manual per-message deletion (moderator or the author) — the row
+    # stays so reply threads don't orphan; rendered as a "[message deleted]" placeholder.
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
     # Relationship for replies
-    replies = db.relationship('ForumMessage', backref=db.backref('parent', remote_side=[id]), lazy='dynamic')
+    # passive_deletes=True: let the DB's ON DELETE CASCADE (see parent_id's FK, migration
+    # d0e1f2a3b4c5) actually delete replies when their parent is deleted. Without this,
+    # SQLAlchemy's default behavior is to UPDATE each loaded child's parent_id to NULL before
+    # issuing the parent's DELETE — satisfying the ORM's own bookkeeping, but running before
+    # the DB-level cascade ever gets a chance to fire, silently orphaning replies instead of
+    # removing them (found live: a hard-deleted parent left its reply behind with parent_id
+    # NULL rather than gone).
+    replies = db.relationship(
+        'ForumMessage', backref=db.backref('parent', remote_side=[id]),
+        lazy='dynamic', passive_deletes=True,
+    )
+    forum_channel = db.relationship('ForumChannel', backref=db.backref('messages', lazy='dynamic'))
 
     def __repr__(self):
         return f'<ForumMessage {self.id}>'
 
 class ForumChannel(db.Model):
-    """Forum channel model for organizing discussions"""
+    """Forum channel model — covers global channels (the original use), course-scoped
+    channels, moderator-created Groups, and private 1:1 DMs, all via channel_type."""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)  # Display name
     slug = db.Column(db.String(50), unique=True, nullable=False)  # URL-friendly identifier
@@ -221,8 +245,40 @@ class ForumChannel(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
+    # 'global' (the original/default kind) | 'course' | 'group' | 'dm'
+    channel_type = db.Column(db.String(20), nullable=False, default='global', server_default="'global'")
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=True)  # set only for channel_type='course'
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # NULL for the original global channels
+    # 'open' (anyone logged in can view/post, same as the existing requires_login/is_public/
+    # admin_only gates) | 'invite_only' (gated by ForumChannelMembership rows). Meaningful only
+    # for channel_type='group' — NULL for global/course channels (existing gates apply), and a
+    # 'dm' channel is implicitly always membership-gated regardless of this field.
+    membership_mode = db.Column(db.String(20), nullable=True)
+    retention_days = db.Column(db.Integer, nullable=True)  # NULL = never auto-expire
+
+    course = db.relationship('Course', backref=db.backref('forum_channels', lazy='dynamic'))
+
     def __repr__(self):
         return f'<ForumChannel {self.name} ({self.slug})>'
+
+
+class ForumChannelMembership(db.Model):
+    """Explicit membership row — used unconditionally for channel_type='dm' (exactly 2 rows)
+    and for channel_type='group' with membership_mode='invite_only' (gates view/post access).
+    Not consulted for 'open' groups or global/course channels, which use ForumChannel's
+    existing requires_login/is_public/admin_only/course-enrollment gates instead."""
+    id = db.Column(db.Integer, primary_key=True)
+    channel_id = db.Column(db.Integer, db.ForeignKey('forum_channel.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    joined_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    channel = db.relationship('ForumChannel', backref=db.backref('memberships', lazy='dynamic'))
+    user = db.relationship('User')
+
+    __table_args__ = (db.UniqueConstraint('channel_id', 'user_id', name='uq_forum_channel_membership'),)
+
+    def __repr__(self):
+        return f'<ForumChannelMembership channel={self.channel_id} user={self.user_id}>'
 
 
 class CourseAssignmentSubmission(db.Model):
@@ -719,39 +775,6 @@ class QuizAnswer(db.Model):
 
     def __repr__(self):
         return f'<QuizAnswer attempt={self.attempt_id} question={self.question_id}>'
-
-
-class CourseAnnouncement(db.Model):
-    """Course announcements/messages"""
-    id = db.Column(db.Integer, primary_key=True)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    title = db.Column(db.String(200), nullable=False)
-    message = db.Column(db.Text, nullable=False)
-    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    is_published = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-    
-    course = db.relationship('Course', backref=db.backref('announcements', lazy='dynamic'))
-    author = db.relationship('User')
-    
-    def __repr__(self):
-        return f'<CourseAnnouncement {self.title}>'
-
-
-class CourseAnnouncementReply(db.Model):
-    """Replies/messages sent to course announcements"""
-    id = db.Column(db.Integer, primary_key=True)
-    announcement_id = db.Column(db.Integer, db.ForeignKey('course_announcement.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    parent_reply_id = db.Column(db.Integer, db.ForeignKey('course_announcement_reply.id'), nullable=True)
-    message = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-    announcement = db.relationship('CourseAnnouncement', backref=db.backref('replies', lazy='select'))
-    user = db.relationship('User')
-    parent_reply = db.relationship('CourseAnnouncementReply', remote_side=[id], backref=db.backref('child_replies', lazy='select'))
-
-    def __repr__(self):
-        return f'<CourseAnnouncementReply {self.id}>'
 
 
 class CourseReview(db.Model):

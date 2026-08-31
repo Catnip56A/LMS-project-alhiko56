@@ -1,0 +1,341 @@
+{# Shared forum channel view — message list (linear default / Reddit-toggle), compose box,
+   reply-to state, and per-message pin/translate/edit/delete actions. Included by both
+   forum.html (with channel tabs, via loadForumUIChannel()) and the course page's channel tab
+   (fixed to that course's own channel, no tabs). One instance per page. #}
+<div id="forum-ui-messages" class="mb-3"></div>
+<div id="forum-ui-empty" class="text-muted" style="display:none;">{{ _('No messages yet — be the first to post.') }}</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <button type="button" id="forum-ui-view-toggle" class="btn btn-sm btn-outline-secondary">{{ _('Switch to thread view') }}</button>
+  <button type="button" id="forum-ui-clear-btn" class="btn btn-sm btn-outline-danger" style="display:none;">{{ _('Clear channel history') }}</button>
+</div>
+
+<div id="forum-ui-reply-chip" class="alert alert-light py-1 px-2 mb-2" style="display:none;">
+  <span id="forum-ui-reply-chip-text"></span>
+  <button type="button" class="close" id="forum-ui-reply-chip-clear" style="font-size:1rem;">&times;</button>
+</div>
+
+<form id="forum-ui-post-form" class="d-flex" style="gap:8px;">
+  <div id="forum-ui-username-group" style="display:none; flex:0 0 140px;">
+    <input type="text" id="forum-ui-username" class="form-control" placeholder="{{ _('Your name') }}">
+  </div>
+  <textarea id="forum-ui-message" class="form-control" rows="1" placeholder="{{ _('Write a message…') }}" required></textarea>
+  <button type="submit" class="btn btn-success">{{ _('Send') }}</button>
+</form>
+
+<script>
+(function() {
+    'use strict';
+
+    var messagesEl = document.getElementById('forum-ui-messages');
+    var emptyEl = document.getElementById('forum-ui-empty');
+    var viewToggleBtn = document.getElementById('forum-ui-view-toggle');
+    var clearBtn = document.getElementById('forum-ui-clear-btn');
+    var replyChip = document.getElementById('forum-ui-reply-chip');
+    var replyChipText = document.getElementById('forum-ui-reply-chip-text');
+    var replyChipClear = document.getElementById('forum-ui-reply-chip-clear');
+    var usernameGroup = document.getElementById('forum-ui-username-group');
+    var usernameInput = document.getElementById('forum-ui-username');
+    var messageInput = document.getElementById('forum-ui-message');
+    var postForm = document.getElementById('forum-ui-post-form');
+
+    var THREAD_DEPTH_LIMIT = 4;
+
+    var state = {
+        channelSlug: null,
+        channelId: null,
+        channelType: null,
+        requiresLogin: true,
+        canModerate: false,
+        messages: [],
+        replyTo: null,
+        viewMode: localStorage.getItem('forum_view_mode') || 'linear',
+    };
+
+    function esc(s) {
+        var d = document.createElement('div');
+        d.textContent = s == null ? '' : s;
+        return d.innerHTML;
+    }
+
+    function fmtTime(iso) {
+        if (!iso) return '';
+        var d = new Date(iso);
+        return d.toLocaleString();
+    }
+
+    function updateViewToggleLabel() {
+        viewToggleBtn.textContent = state.viewMode === 'linear'
+            ? '{{ _("Switch to thread view") }}'
+            : '{{ _("Switch to chat view") }}';
+    }
+
+    function setReplyTo(msg) {
+        if (!msg) {
+            state.replyTo = null;
+            replyChip.style.display = 'none';
+            return;
+        }
+        state.replyTo = msg.id;
+        replyChipText.textContent = '{{ _("Replying to") }} ' + (msg.username || '?') + ': "' + (msg.message || '').slice(0, 60) + '"';
+        replyChip.style.display = '';
+        messageInput.focus();
+    }
+    replyChipClear.addEventListener('click', function() { setReplyTo(null); });
+
+    function messageAction(url, method, body) {
+        return fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: body ? JSON.stringify(body) : undefined,
+        }).then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); });
+    }
+
+    // ---------------------------------------------------------------- rendering
+
+    function messageCard(msg, depth) {
+        var wrap = document.createElement('div');
+        wrap.className = 'card mb-2';
+        wrap.style.marginLeft = (depth || 0) * 20 + 'px';
+        if (msg.pinned) { wrap.style.borderColor = '#f0c36d'; }
+
+        var body = document.createElement('div');
+        body.className = 'card-body py-2 px-3';
+
+        var header = document.createElement('div');
+        header.style.fontSize = '0.8rem';
+        header.style.color = '#666';
+        header.innerHTML = '<strong>' + esc(msg.username || '{{ _("Anonymous") }}') + '</strong> · ' + esc(fmtTime(msg.timestamp))
+            + (msg.pinned ? ' · <span style="color:#92620a;">📌 {{ _("Pinned") }}</span>' : '');
+        if (state.channelType !== 'dm' && !msg.is_current_user && msg.user_id && msg.username) {
+            var messageLink = document.createElement('a');
+            messageLink.href = '/messages?user=' + encodeURIComponent(msg.username);
+            messageLink.textContent = ' · {{ _("Message") }}';
+            messageLink.style.marginLeft = '2px';
+            header.appendChild(messageLink);
+        }
+        body.appendChild(header);
+
+        if (state.viewMode === 'linear' && msg.parent_id && msg.parent_username) {
+            var quote = document.createElement('div');
+            quote.style.cssText = 'border-left:3px solid #ccc; padding-left:8px; margin:4px 0; color:#777; font-size:0.85rem;';
+            quote.textContent = '↩ ' + msg.parent_username + ': ' + (msg.parent_snippet || '');
+            body.appendChild(quote);
+        }
+
+        var text = document.createElement('div');
+        text.className = 'forum-ui-text';
+        if (msg.deleted) {
+            text.style.fontStyle = 'italic';
+            text.style.color = '#999';
+            text.textContent = '{{ _("[message deleted]") }}';
+        } else {
+            text.style.whiteSpace = 'pre-wrap';
+            text.textContent = msg.message;
+        }
+        body.appendChild(text);
+
+        if (!msg.deleted) {
+            var actions = document.createElement('div');
+            actions.className = 'mt-1';
+            actions.style.fontSize = '0.8rem';
+
+            var replyBtn = document.createElement('a');
+            replyBtn.href = '#';
+            replyBtn.textContent = '{{ _("Reply") }}';
+            replyBtn.style.marginRight = '10px';
+            replyBtn.addEventListener('click', function(e) { e.preventDefault(); setReplyTo(msg); });
+            actions.appendChild(replyBtn);
+
+            var translateBtn = document.createElement('a');
+            translateBtn.href = '#';
+            translateBtn.textContent = '{{ _("Translate") }}';
+            translateBtn.style.marginRight = '10px';
+            translateBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var target = (document.documentElement.lang || 'en').slice(0, 2);
+                translateBtn.textContent = '{{ _("Translating…") }}';
+                messageAction('/api/forum/messages/' + msg.id + '/translate', 'POST', { target_language: target })
+                    .then(function(res) {
+                        translateBtn.textContent = '{{ _("Translate") }}';
+                        if (res.ok) {
+                            var t = document.createElement('div');
+                            t.style.cssText = 'color:#337a2c; margin-top:4px; font-size:0.85rem;';
+                            t.textContent = res.data.translated_text;
+                            body.appendChild(t);
+                        }
+                    });
+            });
+            actions.appendChild(translateBtn);
+
+            if (msg.is_current_user) {
+                var editBtn = document.createElement('a');
+                editBtn.href = '#'; editBtn.textContent = '{{ _("Edit") }}'; editBtn.style.marginRight = '10px';
+                editBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var next = prompt('{{ _("Edit message:") }}', msg.message);
+                    if (next === null || !next.trim()) return;
+                    messageAction('/api/forum/messages/' + msg.id, 'PUT', { message: next }).then(function(res) {
+                        if (res.ok) loadMessages();
+                    });
+                });
+                actions.appendChild(editBtn);
+            }
+
+            if (msg.is_current_user || state.canModerate) {
+                var delBtn = document.createElement('a');
+                delBtn.href = '#'; delBtn.textContent = '{{ _("Delete") }}'; delBtn.style.marginRight = '10px'; delBtn.style.color = '#c0392b';
+                delBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (!confirm('{{ _("Delete this message?") }}')) return;
+                    messageAction('/api/forum/messages/' + msg.id, 'DELETE').then(function(res) {
+                        if (res.ok) loadMessages();
+                    });
+                });
+                actions.appendChild(delBtn);
+            }
+
+            if (state.canModerate) {
+                var pinBtn = document.createElement('a');
+                pinBtn.href = '#';
+                pinBtn.textContent = msg.pinned ? '{{ _("Unpin") }}' : '{{ _("Pin") }}';
+                pinBtn.style.marginRight = '10px';
+                pinBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    messageAction('/api/forum/messages/' + msg.id + '/pin', 'POST', { pinned: !msg.pinned }).then(function(res) {
+                        if (res.ok) loadMessages();
+                    });
+                });
+                actions.appendChild(pinBtn);
+            }
+
+            body.appendChild(actions);
+        }
+
+        wrap.appendChild(body);
+        return wrap;
+    }
+
+    function renderLinear() {
+        messagesEl.innerHTML = '';
+        var sorted = state.messages.slice().sort(function(a, b) { return a.id - b.id; });
+        sorted.forEach(function(m) { messagesEl.appendChild(messageCard(m, 0)); });
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function buildParentIndex() {
+        var byParent = {};
+        state.messages.forEach(function(m) {
+            var key = m.parent_id || 'root';
+            (byParent[key] = byParent[key] || []).push(m);
+        });
+        return byParent;
+    }
+
+    function showThreadView(rootMessage) {
+        var byParent = buildParentIndex();
+        messagesEl.innerHTML = '';
+        var back = document.createElement('a');
+        back.href = '#';
+        back.textContent = '← {{ _("Back") }}';
+        back.className = 'd-block mb-2';
+        back.addEventListener('click', function(e) { e.preventDefault(); renderThreaded(); });
+        messagesEl.appendChild(back);
+
+        // Flatten the whole subtree under rootMessage, indenting relative to it (not the
+        // channel root) so a deep thread reads comfortably full-width.
+        (function walk(m, depth) {
+            messagesEl.appendChild(messageCard(m, depth));
+            (byParent[m.id] || []).forEach(function(child) { walk(child, depth + 1); });
+        })(rootMessage, 0);
+    }
+
+    function renderThreaded() {
+        messagesEl.innerHTML = '';
+        var byParent = buildParentIndex();
+
+        function renderNode(m, depth) {
+            if (depth >= THREAD_DEPTH_LIMIT && (byParent[m.id] || []).length) {
+                var viewThread = document.createElement('a');
+                viewThread.href = '#';
+                viewThread.style.marginLeft = depth * 20 + 'px';
+                viewThread.className = 'd-block mb-2';
+                viewThread.textContent = '{{ _("View thread") }} (' + byParent[m.id].length + ') →';
+                viewThread.addEventListener('click', function(e) { e.preventDefault(); showThreadView(m); });
+                messagesEl.appendChild(messageCard(m, depth));
+                messagesEl.appendChild(viewThread);
+                return;
+            }
+            messagesEl.appendChild(messageCard(m, depth));
+            (byParent[m.id] || []).forEach(function(child) { renderNode(child, depth + 1); });
+        }
+        (byParent['root'] || []).forEach(function(m) { renderNode(m, 0); });
+    }
+
+    function render() {
+        emptyEl.style.display = state.messages.length ? 'none' : '';
+        if (state.viewMode === 'linear') { renderLinear(); } else { renderThreaded(); }
+    }
+
+    // ---------------------------------------------------------------- data
+
+    function loadMessages() {
+        return fetch('/api/forum/messages?channel=' + encodeURIComponent(state.channelSlug))
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(res) {
+                if (!res.ok) {
+                    messagesEl.innerHTML = '<div class="alert alert-warning">' + esc(res.data.error || '{{ _("Could not load this channel.") }}') + '</div>';
+                    return;
+                }
+                state.channelId = res.data.channel_id;
+                state.channelType = res.data.channel_type;
+                state.requiresLogin = res.data.requires_login;
+                state.messages = res.data.messages;
+                usernameGroup.style.display = state.requiresLogin ? 'none' : '';
+                render();
+            });
+    }
+
+    window.ForumUI = window.ForumUI || {};
+    window.ForumUI.loadChannel = function(slug, canModerate) {
+        state.channelSlug = slug;
+        state.canModerate = !!canModerate;
+        setReplyTo(null);
+        clearBtn.style.display = state.canModerate ? '' : 'none';
+        return loadMessages();
+    };
+
+    viewToggleBtn.addEventListener('click', function() {
+        state.viewMode = state.viewMode === 'linear' ? 'threaded' : 'linear';
+        localStorage.setItem('forum_view_mode', state.viewMode);
+        updateViewToggleLabel();
+        render();
+    });
+    updateViewToggleLabel();
+
+    clearBtn.addEventListener('click', function() {
+        if (!state.channelId) return;
+        if (!confirm('{{ _("Permanently delete every message in this channel? This cannot be undone.") }}')) return;
+        messageAction('/api/forum/channels/' + state.channelId + '/clear', 'POST').then(function(res) {
+            if (res.ok) { loadMessages(); } else { alert(res.data.error || '{{ _("Could not clear this channel.") }}'); }
+        });
+    });
+
+    postForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var text = messageInput.value.trim();
+        if (!text) return;
+        var payload = { channel: state.channelSlug, message: text, parent_id: state.replyTo };
+        if (!state.requiresLogin) { payload.username = usernameInput.value.trim(); }
+        messageAction('/api/forum/messages', 'POST', payload).then(function(res) {
+            if (res.ok) {
+                messageInput.value = '';
+                setReplyTo(null);
+                loadMessages();
+            } else {
+                alert(res.data.error || '{{ _("Could not post message.") }}');
+            }
+        });
+    });
+})();
+</script>

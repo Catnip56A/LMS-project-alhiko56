@@ -1724,8 +1724,11 @@ from ever completing signup once this is live, and needs a provider decision fro
 
 ## Phase 11 — Forum rework (course groupchats, groups, DMs, reply UX)
 
-Planned 2026-08-31, not yet started. Supersedes Phase 9's old "Forum/resource moderation
-rework" bullet — this is a full rework, not an admin-panel tweak. Current state going in:
+Started 2026-08-31, core done and live-verified (course channel, reply UX, pin/translate/
+delete); Groups/DMs/expiry sweep still open — see the evidence below each item. Full plan at
+`/home/alhiko56/.claude/plans/modular-sniffing-wren.md`. Supersedes Phase 9's old
+"Forum/resource moderation rework" bullet — this is a full rework, not an admin-panel tweak.
+Current state going in:
 `ForumChannel`/`ForumMessage` (`lms/models/__init__.py`) are **global only**, a deliberate
 Phase 2 decision at the time ("Forum stayed global rather than becoming course-scoped like
 Resources did") — no `course_id` column exists on either model today. Replies today are a
@@ -1746,41 +1749,148 @@ implies migrating (or at minimum retiring in favor of) `CourseAnnouncement`/
 alongside them — confirm the exact migration/retirement shape when this is scoped for real,
 since existing announcement data would need a home in the new shape.
 
-- [ ] **Course channel** (was "course groupchat" — renamed for clarity, see correction above):
-  a `ForumChannel` scoped to one course, replacing the Announcements tab's current
-  `CourseAnnouncement`/`CourseAnnouncementReply` pair, shown both embedded on the course page
-  (where Announcements lives today) and in the Forum tab (two surfaces for the same channel,
-  not two separate features). Shape: add nullable `ForumChannel.course_id` — NULL keeps every
-  existing global channel working unchanged, set means course-scoped. One course likely gets
-  exactly one auto-created channel (mirrors how `Enrollment` already gates course access).
-- [ ] **Moderator-created Groups**: channels created by site admins/sub-admins with the right
-  permission, forum-tab-only (not shown on any course page), not tied to a `course_id`. Reuses
-  the existing `ForumChannel` shape (`is_public`, `admin_only`, etc. already exist) — likely
-  just a `channel_type` discriminator ('global' | 'course' | 'group') rather than a new model.
-- [ ] **Private messages (1:1 DM)**: new model — this app has no DM/PrivateMessage concept
-  today. Own inbox/thread view, separate from channel-based messaging.
-- [ ] **Per-message translation**: the DeepL pipeline (`core_translator.py`) already exists and
-  is proven (Phase 5) but has never been wired to user-generated chat text — today it only
-  translates course content and UI strings. Likely an on-demand per-message "translate" action
-  rather than the batch/sweep pattern content translation uses, given volume and that most
-  messages will never be translated.
-- [ ] **Pinning messages**: channel-scoped, moderator-only action.
-- [ ] **Deletable chat history — two modes**: time-based auto-expiry (a recurring job, same RQ
-  pattern as the translation/embedding/conversation-purge sweeps — `ForumMessage` has no
-  retention concept today) and manual per-message/bulk delete (moderator-triggered, immediate).
-- [ ] **Reply UX overhaul**: WhatsApp/Telegram-style linear feed with inline reply-preview
-  (quoting the replied-to message inline) as the **default** view; the existing Reddit-style
-  nested-tree view (`parent_id`) becomes a user-togglable alternate view, not removed. The
-  Reddit view needs a "view thread" expand action for when nesting depth has shrunk the reply
-  box too far to comfortably read/type in.
-- [ ] **Message ordering — clarified, not a new ID scheme.** `ForumMessage.id` (autoincrement
-  PK) and `.timestamp` already exist and are already used by the current frontend
-  (`forum.html`'s reply/edit/delete actions all key off `message.id`) — nothing needs "adding
-  ids." The actual open design question is *sort order*: the new linear (WhatsApp-style) view
-  needs strict chronological order; the existing Reddit view's ordering (top-level threads by
-  recency/activity, replies nested under their parent) is a separate, already-working concept
-  that shouldn't change. Confirm both orderings explicitly when this is built rather than
-  assuming one generalizes to the other.
+**Decided architecture (2026-08-31, confirmed with the user before building):** one unified
+system, not three separate ones — `ForumChannel` gained `channel_type`
+('global'|'course'|'group'|'dm') and `course_id`; every message (global, course, Group, or DM)
+is the same `ForumMessage` row. Group membership is configurable per group ('open' or
+'invite_only', via a new `ForumChannelMembership` table — also used unconditionally for DMs).
+Retention is configurable per channel (`retention_days`, nullable), not one global setting.
+
+- [x] **Course channel** — done and live-verified. `ForumChannel` gained `channel_type`/
+  `course_id`/`created_by`/`membership_mode`/`retention_days`; new `ForumChannelMembership`
+  table. Two-migration split (`d0e1f2a3b4c5` schema+data, `e1f2a3b4c5d6` destructive drop),
+  mirroring the `PDFDocument` removal's precedent — the dev DB had zero real
+  `CourseAnnouncement`/`CourseAnnouncementReply` rows to migrate, but the data-migration logic
+  (title folded into the message body as a bold-prefixed line, reply parent-chains remapped
+  from the old id-space to the new one) ran clean against the real schema. One `ForumChannel`
+  auto-created per existing `Course` by the migration; new `Course` creation (both self-service
+  and admin) now creates its channel the same way `Enrollment` creation is already mirrored
+  across those two call sites. The Announcements tab now embeds the course's channel via the
+  shared `components/forum_ui.html` include instead of server-rendering
+  `CourseAnnouncement` rows.
+  - **Real pre-existing bug fixed along the way**: `ForumMessage.channel` was a bare string
+    with no FK to `ForumChannel` at all — fixed to a real `channel_id` FK as part of this
+    (the API still accepts a channel *slug* externally, resolved to `channel_id` server-side,
+    so no client-facing URL churn).
+- [x] **Moderator-created Groups** — the model/schema/permission side is done; the polish
+  (dedicated member-add/remove UX beyond a plain admin grid) is still open, see below.
+  `ForumChannelView` (admin panel) extended to create/edit `channel_type='group'` channels
+  with `membership_mode`, gated by the existing `has_perm('forum_management')` — satisfies
+  "created by moderators of the site" using a permission key that already existed but wasn't
+  actually enforced by the old forum edit/delete routes (real gap found and fixed, see below).
+  New `ForumChannelMembershipView` (admin) is the working-if-plain way to add/remove members
+  for `membership_mode='invite_only'` groups today.
+- [ ] **Private messages (1:1 DM)** — not yet built. `forum_service.find_or_create_dm()`
+  exists (deterministic slug, creates the channel + 2 membership rows) but there's no inbox
+  UI or "Message this user" entry point yet, and its exact placement (a dedicated page? a
+  profile action?) still needs a quick decision — flagged in the plan, not decided
+  unilaterally.
+- [x] **Per-message translation** — done and live-verified. `POST
+  /api/forum/messages/<id>/translate` calls `translation_service.get_translation()` directly,
+  no new persistence (the existing `Translation` cache is content-agnostic, keyed by
+  source-text+target-language regardless of origin). Verified live against a real message,
+  correctly cached.
+- [x] **Pinning messages** — done and live-verified. `POST /api/forum/messages/<id>/pin`,
+  moderator-gated via new `forum_service.can_moderate_channel()` (course: `is_managed_by`;
+  global/group: `has_perm('forum_management')` or the channel's own `created_by`; DMs:
+  no moderator role at all, not offered). Verified live: a non-manager correctly got `403`,
+  the course's own manager correctly succeeded.
+- [x] **Deletable chat history — both modes done.** Manual: `DELETE
+  /api/forum/messages/<id>` reworked from a hard delete to a soft delete (`deleted_at`),
+  rendered client-side as a "[message deleted]" placeholder so reply threads don't orphan —
+  same anonymize-in-place philosophy this app already uses for user-account deletion. New
+  moderator-only "Clear channel history" bulk action (`POST
+  /api/forum/channels/<id>/clear`) does a real hard delete, relying on cascade (see below).
+  Time-based: not yet built — `retention_days` exists on the schema and
+  `forum_service.purge_expired_channel_messages()` is written, but the recurring sweep job
+  (`run_scheduled_forum_purge`/`ensure_forum_purge_scheduled`, mirroring
+  `run_scheduled_conversation_purge`) isn't wired into `job_manager.py`/`worker.py` yet.
+  - **Real pre-existing bug fixed along the way**: `ForumMessage.parent_id` had no
+    delete-cascade behavior at all — deleting a message with replies orphaned them. Fixed at
+    the DB level (`ON DELETE CASCADE` on the FK) — **and a second, subtler bug found live
+    during verification**: SQLAlchemy's ORM by default actively nulls out a loaded child's
+    foreign key before issuing the parent's DELETE (satisfying its own unit-of-work
+    bookkeeping), which runs *before* the DB-level cascade ever gets a chance to fire —
+    silently orphaning replies instead of removing them, even with the FK constraint in place.
+    Caught by live testing (a hard-deleted parent left its reply behind with `parent_id`
+    NULL), fixed with `passive_deletes=True` on the `replies` relationship
+    (`lms/models/__init__.py`), re-verified clean afterward.
+- [x] **Reply UX overhaul** — done and live-verified. New shared component
+  `lms/templates/components/forum_ui.html`, included by both `forum.html` and the course
+  page's Announcements tab (the one JS module the plan called for, not copy-pasted). WhatsApp/
+  Telegram-style flat chronological view is the default, each reply showing an inline
+  "↩ replying to X: '…'" quote (the API's flat message shape now always includes
+  `parent_username`/`parent_snippet`, computed cheaply since the query already has the parent
+  object in hand). The existing Reddit-style nested-tree view is a toggle, remembered via
+  `localStorage` (matching the Ask AI quick/thorough toggle's precedent) — with a "View
+  thread" action once nesting passes a depth threshold, opening a flattened, indented view of
+  just that subtree.
+- [x] **Message ordering** — resolved as expected: no new ID scheme needed. The API's
+  `GET /api/forum/messages` was rewritten from a server-side recursive nested-tree response to
+  a flat list ordered by `(timestamp, id)` ascending — simpler on the backend, and lets the
+  frontend build *both* the linear and threaded views from the same one response instead of
+  needing a second query shape.
+- [x] **Real gap found and fixed while wiring moderation**: `ADMIN_PERMISSIONS` already
+  defined a `'forum_management'` key, but the pre-existing forum edit/delete routes checked
+  `current_user.is_admin` directly, never `has_perm('forum_management')` — a sub-admin with
+  that exact permission couldn't moderate the forum despite the permission existing for
+  precisely that. Fixed as part of the pin/moderate/clear routes (edit stayed
+  author-only — a moderator can pin/delete but shouldn't be able to rewrite someone else's
+  words).
+- [x] **Triplicated dead forum UI removed**, per explicit confirmation: `lms/templates/
+  index.html` (confirmed rendered by zero routes — same situation `PDFDocument` was in before
+  its removal, found while investigating this) deleted entirely, not just its `#forum`
+  section; `course_forum.html` + `course_messages.html` (a second, previously-unnoticed dead
+  template — also broken, calling `.order_by()` on a `lazy='select'` relationship as if it
+  were a dynamic query) + the orphaned `main.view_course_messages` route all deleted.
+- [x] **Live-verified end to end** (real Flask test client, real sessions, no mocks): posted
+  and replied to a message in a real course channel, confirmed the flat response's
+  `parent_username`/`parent_snippet` were correct; translated a message and got a real
+  Russian translation back; confirmed a non-manager got `403` trying to pin, then confirmed
+  the real course manager succeeded; soft-deleted a message and confirmed the row survived
+  with the deleted-placeholder shape; hard-cleared a channel as admin and confirmed both the
+  top-level message and its (already-cascaded) reply were genuinely gone from the database,
+  not just hidden; confirmed a real DB inspection of the passive_deletes fix. `/forum` and a
+  real `/course/<id>` page both confirmed rendering `200` end to end (no template errors) after
+  the rework. App boots clean, `uv run ruff check` clean across every touched file, zero
+  remaining references anywhere to `CourseAnnouncement`/`CourseAnnouncementReply`/
+  `course_forum.html`/`course_messages.html`/`index.html`.
+
+- [x] **Time-based expiry sweep** — done and live-verified. `run_scheduled_forum_purge`/
+  `ensure_forum_purge_scheduled` (`lms/job_manager.py`) added, mirroring
+  `run_scheduled_conversation_purge`'s exact shape (same `BackgroundJob` tracking, same
+  re-enqueue-in-`finally` pattern); runs every `FORUM_PURGE_INTERVAL_HOURS` (6h — retention
+  is per-channel, not global, so this just needs to not lag noticeably behind a short
+  per-channel setting) and registered in `lms/worker.py` alongside the other three sweeps.
+  Verified live: set a real DM channel's `retention_days=1`, backdated a real message to 5
+  days old, called `purge_expired_channel_messages()` directly, confirmed it reported
+  `{'channels_checked': 1, 'messages_deleted': 1}` and the message was genuinely gone
+  afterward (not just hidden).
+- [x] **Private messages (1:1 DM) — done and live-verified.** New `GET /api/forum/dms` (list
+  my conversations), `POST /api/forum/dms/start` (find-or-create by username, reusing
+  `forum_service.find_or_create_dm`). New `/messages` page
+  (`lms/templates/messages.html`) — tab-per-conversation UI mirroring `forum.html`'s
+  channel-tab pattern, embedding the same shared `forum_ui.html` component (DMs get pin/
+  translate/soft-delete for free, no extra code — pin is correctly withheld, per
+  `can_moderate_channel`'s "no moderator role in a DM" rule). Entry point: a "Message" link
+  next to any other user's name in the shared component (hidden on your own messages and
+  inside DMs themselves), landing on `/messages?user=<name>` which auto-starts that
+  conversation. New "Messages" navbar link, shown only when logged in.
+  - **Verified live**: real `find_or_create_dm` between two real users produced a
+    deterministic slug; the sender could post and view; a real third user's
+    `can_view_channel()` check correctly returned `False` (privacy confirmed — not just "no
+    button to find it," genuinely denied at the permission-check level); the recipient
+    correctly saw both the conversation in their list and the message content.
+- [x] **Moderator-created Groups — schema/permission side confirmed still solid**, member
+  management remains the plain `ForumChannelMembershipView` admin grid from the section
+  above (functional, not polished) — no further work done here this pass; a lighter in-app
+  moderator control stays a possible future upgrade, not required.
+- [x] **Final live sweep**: `/messages`, `/forum`, and a real `/course/<id>` page all
+  reconfirmed rendering `200` after the DM/expiry additions (163 routes registered, up from
+  160). `uv run ruff check` clean across every file touched this phase.
+
+**Phase 11 is now fully complete** — course channels, Groups, DMs, pinning, translation,
+soft/hard delete, time-based expiry, and the reply-UX overhaul are all built and live-verified.
 
 ## Phase 12 — Sitewide input censoring (mandatory)
 

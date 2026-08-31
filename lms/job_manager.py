@@ -43,6 +43,14 @@ CONTENT_UPDATE_COUNTER_KEY = 'embedding_sweep_pending_update_count'
 CONVERSATION_PURGE_JOB_ID = 'conversation-purge-recurring'
 CONVERSATION_PURGE_INTERVAL_HOURS = 24
 
+# Recurring forum time-based expiry sweep (Phase 11, forum rework) — hard-deletes messages
+# older than each ForumChannel's own retention_days, if set (see
+# forum_service.purge_expired_channel_messages). Retention is per-channel, not a single
+# global setting, so this just needs to run often enough that a short retention window (e.g.
+# a Group that wants to self-clean daily) doesn't lag noticeably behind its own setting.
+FORUM_PURGE_JOB_ID = 'forum-purge-recurring'
+FORUM_PURGE_INTERVAL_HOURS = 6
+
 # Recurring promotion of flagged video moments (Phase 6 addendum, video moment
 # highlighting) — see moment_service.promote_pending_moments. Deliberately slower and
 # smaller-batched than the embedding sweep: each promotion downloads a whole video to
@@ -682,6 +690,62 @@ def ensure_conversation_purge_scheduled():
         job_id=CONVERSATION_PURGE_JOB_ID,
     )
     logger.info(f"Bootstrapped recurring conversation purge (every {CONVERSATION_PURGE_INTERVAL_HOURS}h)")
+
+
+def run_scheduled_forum_purge():
+    """RQ scheduler entrypoint for the recurring forum time-based expiry sweep — hard-deletes
+    messages older than each channel's own retention_days, if set (see
+    forum_service.purge_expired_channel_messages). Re-enqueues itself under the same job_id."""
+    import uuid
+    from lms.queue import job_queue
+    from lms.forum_service import purge_expired_channel_messages
+
+    job_id = str(uuid.uuid4())
+    job_model = BackgroundJobModel(id=job_id, type='forum_purge', status=JobStatus.RUNNING, message='', error='')
+    job_model.started_at = datetime.now()
+    db.session.add(job_model)
+    db.session.commit()
+    job = BackgroundJob(job_model)
+
+    try:
+        stats = purge_expired_channel_messages()
+        job.status = JobStatus.COMPLETED
+        job.result = stats
+        job.progress = 100
+        job.message = f"Checked {stats['channels_checked']} channel(s), deleted {stats['messages_deleted']} message(s)."
+        job.completed_at = datetime.now()
+        job.save()
+    except Exception as e:
+        logger.error(f"Forum expiry purge failed: {e}")
+        job.status = JobStatus.FAILED
+        job.error = str(e)
+        job.completed_at = datetime.now()
+        job.save()
+    finally:
+        job_queue.enqueue_in(
+            timedelta(hours=FORUM_PURGE_INTERVAL_HOURS),
+            run_scheduled_forum_purge,
+            job_id=FORUM_PURGE_JOB_ID,
+        )
+
+
+def ensure_forum_purge_scheduled():
+    """Bootstrap the recurring forum expiry sweep. Idempotent, same pattern as the other
+    sweeps' bootstrap functions."""
+    from rq.registry import ScheduledJobRegistry
+    from lms.queue import job_queue
+
+    registry = ScheduledJobRegistry(queue=job_queue)
+    if FORUM_PURGE_JOB_ID in registry.get_job_ids():
+        logger.info("Forum expiry purge already scheduled, skipping bootstrap")
+        return
+
+    job_queue.enqueue_in(
+        timedelta(minutes=1),
+        run_scheduled_forum_purge,
+        job_id=FORUM_PURGE_JOB_ID,
+    )
+    logger.info(f"Bootstrapped recurring forum expiry purge (every {FORUM_PURGE_INTERVAL_HOURS}h)")
 
 
 def run_queued_job(job_id: str):

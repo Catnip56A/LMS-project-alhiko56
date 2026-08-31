@@ -139,8 +139,13 @@ def create_course():
 
         course = Course(title=title, description=description, created_by=current_user.id)
         db.session.add(course)
-        db.session.flush()  # assign course.id before creating the enrollment
+        db.session.flush()  # assign course.id before creating the enrollment/channel
         db.session.add(Enrollment(user=current_user, course=course, joined_via=JOIN_VIA_CREATOR))
+        from lms.models import ForumChannel
+        db.session.add(ForumChannel(
+            name=course.title, slug=f'course-{course.id}', channel_type='course',
+            course_id=course.id, requires_login=True, is_active=True,
+        ))
         db.session.commit()
 
         try:
@@ -374,7 +379,7 @@ def quiz_review(course_id, quiz_id):
 # Enrolled-only course page
 @main_bp.route('/course/<int:course_id>', methods=['GET', 'POST'])
 def course_page_enrolled(course_id):
-    from lms.models import Course, SiteSettings, CourseContent, CourseAssignment, CourseAnnouncement, CourseContentFolder, CourseAssignmentSubmission, CourseAnnouncementReply, CourseReview, db
+    from lms.models import Course, SiteSettings, CourseContent, CourseAssignment, CourseContentFolder, CourseAssignmentSubmission, CourseReview, db
     from datetime import datetime
 
     # Find course by id
@@ -395,26 +400,8 @@ def course_page_enrolled(course_id):
         
         action = request.form.get('action')
         
-        # Add announcement
-        if action == 'add_announcement' and (course.is_managed_by(current_user)):
-            title = request.form.get('announcement_title')
-            message = request.form.get('announcement_message')
-            is_published = request.form.get('announcement_published') == 'on'
-            
-            new_announcement = CourseAnnouncement(
-                course_id=course.id,
-                title=title,
-                message=message,
-                is_published=is_published,
-                created_at=datetime.now()
-            )
-            db.session.add(new_announcement)
-            db.session.commit()
-            flash('Announcement added successfully!', 'success')
-            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-        
         # Add assignment
-        elif action == 'add_assignment' and (course.is_managed_by(current_user)):
+        if action == 'add_assignment' and (course.is_managed_by(current_user)):
             title = request.form.get('assignment_title')
             description = request.form.get('assignment_description')
             due_date_str = request.form.get('assignment_due_date')
@@ -617,28 +604,6 @@ def course_page_enrolled(course_id):
                 except OSError:
                     pass
 
-            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-        
-        # Add reply to announcement
-        elif action == 'add_reply' and current_user.is_authenticated:
-            announcement_id = request.form.get('announcement_id')
-            parent_reply_id = request.form.get('parent_reply_id')
-            message = request.form.get('reply_message')
-            
-            if not message:
-                flash('Reply message cannot be empty.', 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            new_reply = CourseAnnouncementReply(
-                announcement_id=int(announcement_id),
-                user_id=current_user.id,
-                parent_reply_id=int(parent_reply_id) if parent_reply_id else None,
-                message=message,
-                created_at=datetime.now()
-            )
-            db.session.add(new_reply)
-            db.session.commit()
-            flash('Reply added successfully!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Create folder
@@ -969,31 +934,6 @@ def course_page_enrolled(course_id):
             db.session.delete(assignment)
             db.session.commit()
             flash('Assignment deleted successfully!', 'success')
-            return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-        
-        # Delete announcement
-        elif action == 'delete_announcement' and (course.is_managed_by(current_user)):
-            from lms.models import CourseAnnouncement
-            announcement_id = request.form.get('announcement_id')
-            announcement = CourseAnnouncement.query.get(announcement_id)
-            
-            if not announcement:
-                flash('Announcement not found.', 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            # Check if announcement belongs to this course
-            if announcement.course_id != course.id:
-                flash('Announcement does not belong to this course.', 'error')
-                return redirect(url_for('main.course_page_enrolled', course_id=course.id))
-            
-            # Delete all replies first
-            for reply in announcement.replies:
-                db.session.delete(reply)
-            
-            # Delete announcement
-            db.session.delete(announcement)
-            db.session.commit()
-            flash('Announcement deleted successfully!', 'success')
             return redirect(url_for('main.course_page_enrolled', course_id=course.id))
         
         # Add review
@@ -1410,7 +1350,6 @@ def course_page_enrolled(course_id):
 
     # Only one page for course content (no pagination)
     assignment_page = request.args.get('assignment_page', 1, type=int)
-    announcement_page = request.args.get('announcement_page', 1, type=int)
     review_page = request.args.get('review_page', 1, type=int)
 
     # Items per page for assignments, announcements, reviews
@@ -1452,15 +1391,11 @@ def course_page_enrolled(course_id):
     )
     assignments = assignments_pagination.items
 
-    # Load announcements with eager-loaded replies and users and pagination
-    # We'll filter replies in Python for simplicity, but limit the data loaded
-    announcements_pagination = CourseAnnouncement.query.filter_by(course_id=course.id, is_published=True).options(
-        joinedload(CourseAnnouncement.author),
-        subqueryload(CourseAnnouncement.replies).joinedload(CourseAnnouncementReply.user)
-    ).order_by(CourseAnnouncement.created_at.desc()).paginate(
-        page=announcement_page, per_page=per_page, error_out=False
-    )
-    announcements = announcements_pagination.items
+    # The Announcements tab is now the course's own ForumChannel — rendered client-side by
+    # static/js/forum.js against /api/forum/messages, not server-rendered here. Just resolve
+    # (get-or-create, defensive) which channel it should load.
+    from lms.forum_service import ensure_course_channel
+    course_channel = ensure_course_channel(course)
 
     # Load reviews with eager-loaded users and pagination
     reviews_pagination = CourseReview.query.filter_by(course_id=course.id).options(
@@ -1534,8 +1469,7 @@ def course_page_enrolled(course_id):
         root_folders=root_folders,
         assignments=assignments,
         assignments_pagination=assignments_pagination,
-        announcements=announcements,
-        announcements_pagination=announcements_pagination,
+        course_channel=course_channel,
         reviews=reviews,
         reviews_pagination=reviews_pagination,
         passed_assignment_ids=[sub.assignment_id for sub in passed_subs],
@@ -1576,6 +1510,19 @@ def forum():
     return render_template('forum.html',
                          is_authenticated=current_user.is_authenticated,
                          site_settings=site_settings, current_locale=str(get_locale()))
+
+@main_bp.route('/messages')
+@login_required
+def messages():
+    """Private messages inbox — lists the user's DM channels (see /api/forum/dms) and embeds
+    the shared forum_ui component for whichever conversation is selected."""
+    from lms.models import SiteSettings
+    try:
+        site_settings = SiteSettings.query.filter_by(is_active=True).first() or SiteSettings()
+    except Exception as e:
+        current_app.logger.error(f"Database error in messages route: {e}")
+        site_settings = SiteSettings()
+    return render_template('messages.html', site_settings=site_settings, current_locale=str(get_locale()))
 
 @main_bp.route('/resources')
 def resources():
@@ -1644,29 +1591,6 @@ def terms():
 def privacy():
     """Serve privacy policy page"""
     return render_template('privacyPolicy.html')
-
-@main_bp.route('/course/<slug>/messages')
-@login_required
-def view_course_messages(slug):
-    from lms.models import Course, CourseAnnouncement, CourseAnnouncementReply
-    from slugify import slugify
-    # Only allow admin/teacher
-    if not current_user.is_admin:
-        flash('You do not have permission to view messages.', 'error')
-        return redirect(url_for('main.index'))
-    # Find course by slug
-    courses = Course.query.all()
-    course = None
-    for c in courses:
-        if slugify(c.title) == slug:
-            course = c
-            break
-    if not course:
-        flash('Course not found.', 'error')
-        return redirect(url_for('main.index'))
-    # Get all announcements and their replies
-    announcements = CourseAnnouncement.query.filter_by(course_id=course.id).order_by(CourseAnnouncement.created_at.desc()).all()
-    return render_template('course_forum.html', course=course, announcements=announcements, CourseAnnouncementReply=CourseAnnouncementReply)
 
 @main_bp.route('/move_file', methods=['POST'])
 def move_file():

@@ -9,24 +9,9 @@
     <h2 style="color: #337a2c;">{{ _('Community Forum') }}</h2>
 
     <ul class="nav nav-tabs" id="channel-tabs" style="margin-bottom: 1.5rem;"></ul>
+    <h6 id="channel-title" class="mb-3">{{ _('Loading…') }}</h6>
 
-    <div class="card" style="border-radius: 10px; margin-bottom: 1.5rem;">
-        <div class="card-body">
-            <h6 id="channel-title">{{ _('Loading…') }}</h6>
-            <form id="post-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="form-group" id="username-group" style="display: none;">
-                    <input type="text" id="post-username" class="form-control" placeholder="{{ _('Your name') }}">
-                </div>
-                <div class="form-group">
-                    <textarea id="post-message" class="form-control" rows="3" placeholder="{{ _('Share your thoughts…') }}" required></textarea>
-                </div>
-                <button type="submit" id="post-btn" class="btn btn-success">{{ _('Post Message') }}</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="messages-container"></div>
+    {% include 'components/forum_ui.html' %}
 </div>
 
 {% include 'components/footer.html' %}
@@ -36,169 +21,42 @@
 {{ super() }}
 <script>
 (function () {
-    let channels = [];
-    let currentChannel = null;
-    const isAuthenticated = {{ 'true' if is_authenticated else 'false' }};
-    const isAdmin = {{ 'true' if current_user.is_authenticated and current_user.is_admin else 'false' }};
+    var channels = [];
 
-    function el(tag, opts) {
-        const e = document.createElement(tag);
-        opts = opts || {};
-        if (opts.className) e.className = opts.className;
-        if (opts.text !== undefined) e.textContent = opts.text;
-        if (opts.html !== undefined) e.innerHTML = opts.html;
-        if (opts.attrs) Object.entries(opts.attrs).forEach(([k, v]) => e.setAttribute(k, v));
-        return e;
-    }
-
-    async function loadChannels() {
-        const resp = await fetch('/api/forum/channels', { credentials: 'same-origin' });
-        channels = await resp.json();
-        const tabs = document.getElementById('channel-tabs');
-        tabs.innerHTML = '';
-        channels.forEach((c, i) => {
-            const li = el('li', { className: 'nav-item' });
-            const a = el('a', { className: 'nav-link' + (i === 0 ? ' active' : ''), text: c.name, attrs: { href: 'javascript:void(0)' } });
-            a.addEventListener('click', () => switchChannel(c.slug));
-            li.appendChild(a);
-            tabs.appendChild(li);
+    function loadChannels() {
+        fetch('/api/forum/channels').then(function(r) { return r.json(); }).then(function(data) {
+            channels = data;
+            var tabs = document.getElementById('channel-tabs');
+            tabs.innerHTML = '';
+            channels.forEach(function(c, i) {
+                var li = document.createElement('li');
+                li.className = 'nav-item';
+                var a = document.createElement('a');
+                a.className = 'nav-link' + (i === 0 ? ' active' : '');
+                a.href = 'javascript:void(0)';
+                a.textContent = c.name;
+                a.addEventListener('click', function() { switchChannel(c); });
+                li.appendChild(a);
+                tabs.appendChild(li);
+            });
+            if (channels.length > 0) {
+                switchChannel(channels[0]);
+            } else {
+                document.getElementById('channel-title').textContent = '{{ _("No channels available") }}';
+            }
         });
-        if (channels.length > 0) {
-            switchChannel(channels[0].slug);
-        } else {
-            document.getElementById('channel-title').textContent = '{{ _("No channels available") }}';
-        }
     }
 
-    function switchChannel(slug) {
-        currentChannel = slug;
-        document.querySelectorAll('#channel-tabs .nav-link').forEach((a, i) => {
-            a.classList.toggle('active', channels[i] && channels[i].slug === slug);
+    function switchChannel(channel) {
+        document.querySelectorAll('#channel-tabs .nav-link').forEach(function(a, i) {
+            a.classList.toggle('active', channels[i] && channels[i].slug === channel.slug);
         });
-        const channelObj = channels.find(c => c.slug === slug);
-        document.getElementById('channel-title').textContent = channelObj ? channelObj.name : slug;
-        document.getElementById('username-group').style.display = (!isAuthenticated) ? '' : 'none';
-        loadMessages(slug);
+        document.getElementById('channel-title').textContent = channel.name;
+        // can_moderate comes from the server (/api/forum/channels) — every moderation
+        // action is independently re-checked server-side regardless of what's shown here,
+        // this just avoids showing controls that would immediately 403.
+        window.ForumUI.loadChannel(channel.slug, channel.can_moderate);
     }
-
-    function renderMessage(message, container, depth) {
-        const wrap = el('div', { className: 'card mb-2', attrs: { style: `margin-left:${depth * 24}px;` } });
-        const body = el('div', { className: 'card-body py-2' });
-
-        const userLine = el('strong', { text: message.username + (message.is_current_user ? ' ({{ _("You") }})' : '') });
-        const text = el('p', { className: 'mb-1', text: message.message });
-        const time = el('small', { className: 'text-muted d-block', text: new Date(message.timestamp).toLocaleString() });
-
-        body.appendChild(userLine);
-        body.appendChild(text);
-        body.appendChild(time);
-
-        const actions = el('div', { className: 'mt-1' });
-        const replyBtn = el('button', { className: 'btn btn-sm btn-link p-0 mr-2', text: '{{ _("Reply") }}' });
-        replyBtn.addEventListener('click', () => replyToMessage(message.id, message.username));
-        actions.appendChild(replyBtn);
-
-        if (isAuthenticated && (message.is_current_user || isAdmin)) {
-            const editBtn = el('button', { className: 'btn btn-sm btn-link p-0 mr-2', text: '{{ _("Edit") }}' });
-            editBtn.addEventListener('click', () => editMessage(message.id, message.message));
-            const delBtn = el('button', { className: 'btn btn-sm btn-link text-danger p-0', text: '{{ _("Delete") }}' });
-            delBtn.addEventListener('click', () => deleteMessage(message.id));
-            actions.appendChild(editBtn);
-            actions.appendChild(delBtn);
-        }
-        body.appendChild(actions);
-        wrap.appendChild(body);
-        container.appendChild(wrap);
-
-        (message.replies || []).forEach(r => renderMessage(r, container, depth + 1));
-    }
-
-    async function loadMessages(slug) {
-        const container = document.getElementById('messages-container');
-        container.innerHTML = '';
-        const resp = await fetch(`/api/forum/messages?channel=${encodeURIComponent(slug)}`, { credentials: 'same-origin' });
-        if (resp.status === 403) {
-            container.appendChild(el('p', { className: 'text-muted', text: '{{ _("Log in to view this channel.") }}' }));
-            return;
-        }
-        if (!resp.ok) {
-            container.appendChild(el('p', { className: 'text-muted', text: '{{ _("Could not load messages.") }}' }));
-            return;
-        }
-        const data = await resp.json();
-        const messages = data.messages || [];
-        if (messages.length === 0) {
-            container.appendChild(el('p', { className: 'text-muted', text: '{{ _("No messages yet — be the first!") }}' }));
-            return;
-        }
-        messages.forEach(m => renderMessage(m, container, 0));
-    }
-
-    async function postMessage(payload) {
-        const resp = await fetch('/api/forum/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify(payload),
-        });
-        if (!resp.ok) {
-            const err = await resp.json().catch(() => ({}));
-            alert(err.error || '{{ _("Failed to post message.") }}');
-            return false;
-        }
-        return true;
-    }
-
-    async function replyToMessage(parentId, parentUsername) {
-        const reply = prompt('{{ _("Reply to") }} ' + parentUsername + ':', '');
-        if (!reply || !reply.trim()) return;
-        const payload = { message: reply.trim(), parent_id: parentId, channel: currentChannel };
-        if (!isAuthenticated) {
-            const username = prompt('{{ _("Your name:") }}', '');
-            if (!username || !username.trim()) return;
-            payload.username = username.trim();
-        }
-        if (await postMessage(payload)) loadMessages(currentChannel);
-    }
-
-    async function editMessage(id, current) {
-        const updated = prompt('{{ _("Edit message:") }}', current);
-        if (updated === null || !updated.trim() || updated.trim() === current) return;
-        const resp = await fetch(`/api/forum/messages/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ message: updated.trim() }),
-        });
-        if (resp.ok) loadMessages(currentChannel);
-        else alert('{{ _("Failed to update message.") }}');
-    }
-
-    async function deleteMessage(id) {
-        if (!confirm('{{ _("Delete this message?") }}')) return;
-        const resp = await fetch(`/api/forum/messages/${id}`, { method: 'DELETE', credentials: 'same-origin' });
-        if (resp.ok) loadMessages(currentChannel);
-        else alert('{{ _("Failed to delete message.") }}');
-    }
-
-    document.getElementById('post-form').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const message = document.getElementById('post-message').value.trim();
-        if (!message) return;
-        const payload = { message, channel: currentChannel };
-        if (!isAuthenticated) {
-            const username = document.getElementById('post-username').value.trim();
-            if (!username) { alert('{{ _("Please enter your name.") }}'); return; }
-            payload.username = username;
-        }
-        const btn = document.getElementById('post-btn');
-        btn.disabled = true;
-        if (await postMessage(payload)) {
-            document.getElementById('post-message').value = '';
-            loadMessages(currentChannel);
-        }
-        btn.disabled = false;
-    });
 
     loadChannels();
 })();

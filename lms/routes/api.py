@@ -172,179 +172,279 @@ def get_current_user():
 
 @api_bp.route('/forum/channels')
 def get_forum_channels():
-    """Get all active forum channels.
-
-    Guests (not authenticated) only see channels marked is_public — a discoverability
-    filter layered on top of requires_login/admin_only, which still gate actual message
-    access below. Authenticated users see every active channel, same as before.
+    """Get every channel the current user (or anonymous guest) is allowed to see —
+    global channels (the original use of this endpoint), course channels for courses the
+    user is enrolled in/manages, and Groups (open ones, or invite-only ones the user
+    belongs to). DMs are never listed here — see the (future) dedicated DM endpoint.
     """
-    query = ForumChannel.query.filter_by(is_active=True)
-    if not current_user.is_authenticated:
-        query = query.filter_by(is_public=True)
-    channels = query.order_by(ForumChannel.sort_order).all()
+    from lms.forum_service import can_view_channel, can_moderate_channel
+
+    channels = ForumChannel.query.filter(
+        ForumChannel.is_active.is_(True),
+        ForumChannel.channel_type.in_(['global', 'course', 'group']),
+    ).order_by(ForumChannel.sort_order, ForumChannel.name).all()
+
+    visible = [c for c in channels if can_view_channel(c, current_user)]
 
     return jsonify([{
         'id': c.id,
         'name': c.name,
         'slug': c.slug,
         'description': c.description,
+        'channel_type': c.channel_type,
+        'course_id': c.course_id,
+        'membership_mode': c.membership_mode,
         'requires_login': c.requires_login,
         'admin_only': c.admin_only,
-        'is_public': c.is_public
-    } for c in channels])
+        'is_public': c.is_public,
+        'can_moderate': can_moderate_channel(c, current_user),
+    } for c in visible])
+
+
+@api_bp.route('/forum/dms')
+@login_required
+def get_dm_channels():
+    """List the current user's private conversations — their DM channels, each with the
+    other participant's username for display. Not returned by get_forum_channels above,
+    which deliberately excludes channel_type='dm' entirely."""
+    from lms.models import ForumChannelMembership, User
+
+    memberships = ForumChannelMembership.query.filter_by(user_id=current_user.id).join(
+        ForumChannel, ForumChannelMembership.channel_id == ForumChannel.id
+    ).filter(ForumChannel.channel_type == 'dm').all()
+
+    result = []
+    for m in memberships:
+        other = ForumChannelMembership.query.filter(
+            ForumChannelMembership.channel_id == m.channel_id,
+            ForumChannelMembership.user_id != current_user.id,
+        ).first()
+        other_user = User.query.get(other.user_id) if other else None
+        result.append({
+            'channel_id': m.channel_id,
+            'slug': m.channel.slug,
+            'other_username': other_user.username if other_user else None,
+            'other_user_id': other_user.id if other_user else None,
+        })
+    return jsonify(result)
+
+
+@api_bp.route('/forum/dms/start', methods=['POST'])
+@login_required
+def start_dm():
+    """Find-or-create a DM channel with another user by username — the "Message this user"
+    entry point. Returns the channel slug so the caller can immediately load it."""
+    from lms.models import User
+    from lms.forum_service import find_or_create_dm
+
+    data = request.get_json(silent=True) or {}
+    username = (data.get('username') or '').strip()
+    if not username:
+        return jsonify({'error': 'username is required'}), 400
+    if username == current_user.username:
+        return jsonify({'error': "You can't message yourself"}), 400
+
+    target = User.query.filter_by(username=username).first()
+    if not target:
+        return jsonify({'error': 'User not found'}), 404
+
+    channel = find_or_create_dm(current_user, target)
+    return jsonify({'success': True, 'slug': channel.slug, 'channel_id': channel.id, 'other_username': target.username}), 200
+
+
+def _serialize_forum_message(message, current_user_id):
+    """Shared JSON shape for a single message — a flat list, not a nested tree. The
+    frontend builds both the linear (WhatsApp-style) and nested (Reddit-style) views from
+    this same flat, chronologically-ordered list; parent_username/parent_snippet let the
+    linear view render an inline reply-quote without a second fetch."""
+    parent = message.parent if message.parent_id else None
+    is_deleted = message.deleted_at is not None
+    return {
+        'id': message.id,
+        'user_id': message.user_id,
+        'username': message.username,
+        'message': None if is_deleted else message.message,
+        'deleted': is_deleted,
+        'timestamp': message.timestamp.isoformat() if message.timestamp else None,
+        'parent_id': message.parent_id,
+        'parent_username': (parent.username if parent else None),
+        'parent_snippet': (parent.message[:80] if parent and parent.message and not parent.deleted_at else None),
+        'pinned': message.pinned,
+        'is_current_user': current_user_id is not None and message.user_id == current_user_id,
+    }
+
 
 @api_bp.route('/forum/messages')
 def get_forum_messages():
-    """Get forum messages, optionally filtered by channel"""
-    channel_slug = request.args.get('channel', 'general')
+    """Get every message in one channel, as a flat chronological list (see
+    _serialize_forum_message for why — the frontend builds both reply-view modes from this
+    one shape)."""
+    from lms.forum_service import can_view_channel
 
-    # Get channel from database
+    channel_slug = request.args.get('channel', 'general')
     channel = ForumChannel.query.filter_by(slug=channel_slug, is_active=True).first()
     if not channel:
         return jsonify({'error': 'Channel not found'}), 404
-    
-    # Check access permissions
-    if channel.admin_only:
-        if not current_user.is_authenticated or not current_user.is_admin:
-            return jsonify({'error': 'Admin access required for this channel'}), 403
-    elif channel.requires_login and not current_user.is_authenticated:
-        return jsonify({'error': 'Authentication required for this channel'}), 403
-    
-    def build_thread(message, depth=0):
-        """Recursively build message thread"""
-        # Get user's preferred language
-        user_language = current_user.preferred_language if current_user.is_authenticated else 'en'
+    if not can_view_channel(channel, current_user):
+        return jsonify({'error': 'Access denied for this channel'}), 403
 
-        result = {
-            'id': message.id,
-            'username': message.username,
-            'message': message.message,
-            'timestamp': message.timestamp.isoformat(),
-            'channel': message.channel,
-            'is_current_user': current_user.is_authenticated and message.username == current_user.username,
-            'depth': depth,
-            'user_language': user_language,
-            'replies': []
-        }
+    messages = (
+        ForumMessage.query.filter_by(channel_id=channel.id)
+        .order_by(ForumMessage.timestamp.asc(), ForumMessage.id.asc())
+        .all()
+    )
+    current_user_id = current_user.id if current_user.is_authenticated else None
 
-        # Get replies sorted by timestamp
-        for reply in message.replies.order_by(ForumMessage.timestamp.asc()).all():
-            result['replies'].append(build_thread(reply, depth + 1))
-
-        return result
-    
-    # Get messages for the specified channel
-    top_level_messages = ForumMessage.query.filter_by(channel=channel_slug, parent_id=None).order_by(ForumMessage.timestamp.desc()).all()
-    
     return jsonify({
-        'channel': channel_slug,
+        'channel': channel.slug,
+        'channel_id': channel.id,
         'channel_name': channel.name,
+        'channel_type': channel.channel_type,
         'requires_login': channel.requires_login,
-        'messages': [build_thread(msg) for msg in top_level_messages]
+        'messages': [_serialize_forum_message(m, current_user_id) for m in messages],
     })
 
 @api_bp.route('/forum/messages', methods=['POST'])
 def post_forum_message():
     """Post a new forum message or reply"""
-    data = request.get_json()
+    from lms.forum_service import can_post_to_channel
 
-    if not data or 'message' not in data:
+    data = request.get_json()
+    if not data or 'message' not in data or not data['message'].strip():
         return jsonify({'error': 'Message required'}), 400
-    
-    channel = data.get('channel', 'general')
-    
-    # Validate channel exists and is active
-    channel_obj = ForumChannel.query.filter_by(slug=channel, is_active=True).first()
-    if not channel_obj:
+
+    channel_slug = data.get('channel', 'general')
+    channel = ForumChannel.query.filter_by(slug=channel_slug, is_active=True).first()
+    if not channel:
         return jsonify({'error': 'Channel not found'}), 404
-    
-    # Check access permissions
-    if channel_obj.admin_only:
-        if not current_user.is_authenticated or not current_user.is_admin:
-            return jsonify({'error': 'Admin access required for this channel'}), 403
-    elif channel_obj.requires_login:
-        if not current_user.is_authenticated:
-            return jsonify({'error': 'Authentication required for this channel'}), 403
-    
+    if not can_post_to_channel(channel, current_user):
+        return jsonify({'error': 'Access denied for this channel'}), 403
+
     parent_id = data.get('parent_id')
     if parent_id:
-        # Verify parent message exists and is in the same channel
-        parent = ForumMessage.query.filter_by(id=parent_id, channel=channel).first()
+        parent = ForumMessage.query.filter_by(id=parent_id, channel_id=channel.id).first()
         if not parent:
             return jsonify({'error': 'Parent message not found in this channel'}), 404
-    
-    # Handle anonymous posting for public channels
+
     if not current_user.is_authenticated:
-        # For anonymous users, require username
+        # Anonymous posting only ever reaches here for a channel with requires_login=False
+        # (can_post_to_channel already enforced that) — course/group/dm channels always
+        # require login, so this branch is unreachable for them.
         username = data.get('username', '').strip()
         if not username:
             return jsonify({'error': 'Username required for anonymous posting'}), 400
-        
-        new_message = ForumMessage(
-            username=username,
-            message=data['message'],
-            parent_id=parent_id,
-            channel=channel
-        )
+        new_message = ForumMessage(username=username, message=data['message'], parent_id=parent_id, channel_id=channel.id)
     else:
-        # Use the logged-in user's information
         new_message = ForumMessage(
-            user_id=current_user.id,
-            username=current_user.username,
-            message=data['message'],
-            parent_id=parent_id,
-            channel=channel
+            user_id=current_user.id, username=current_user.username,
+            message=data['message'], parent_id=parent_id, channel_id=channel.id,
         )
-    
+
     db.session.add(new_message)
     db.session.commit()
-    
-    # Refresh to get the server-generated timestamp
     db.session.refresh(new_message)
-    
-    return jsonify({
-        'success': True,
-        'message_id': new_message.id,
-        'message': new_message.message,
-        'username': new_message.username,
-        'channel': new_message.channel,
-        'timestamp': new_message.timestamp.isoformat() if new_message.timestamp else None,
-        'parent_id': new_message.parent_id
-    }), 201
-    
+
+    return jsonify({'success': True, **_serialize_forum_message(new_message, current_user.id if current_user.is_authenticated else None)}), 201
+
 @api_bp.route('/forum/messages/<int:message_id>', methods=['PUT'])
 @login_required
 def edit_forum_message(message_id):
-    """Edit a forum message (only by owner or admin)"""
+    """Edit a forum message (only by its author — moderators can pin/delete but not rewrite
+    someone else's words)."""
     message = ForumMessage.query.get_or_404(message_id)
-    
-    # Check if user owns the message or is admin
-    if message.user_id != current_user.id and not current_user.is_admin:
+
+    if message.user_id != current_user.id:
         return jsonify({'error': 'Unauthorized'}), 403
-    
+    if message.deleted_at:
+        return jsonify({'error': 'Cannot edit a deleted message'}), 400
+
     data = request.get_json()
-    if not data or 'message' not in data:
+    if not data or 'message' not in data or not data['message'].strip():
         return jsonify({'error': 'Message required'}), 400
-    
+
     message.message = data['message']
     db.session.commit()
-    
+
     return jsonify({'success': True}), 200
 
 @api_bp.route('/forum/messages/<int:message_id>', methods=['DELETE'])
 @login_required
 def delete_forum_message(message_id):
-    """Delete a forum message (only by owner or admin)"""
+    """Soft-delete a forum message (owner or a moderator of its channel) — the row stays so
+    reply threads don't orphan, rendered client-side as a "[message deleted]" placeholder."""
+    from datetime import datetime
+    from lms.forum_service import can_moderate_channel
+
     message = ForumMessage.query.get_or_404(message_id)
-    
-    # Check if user owns the message or is admin
-    if message.user_id != current_user.id and not current_user.is_admin:
+    is_owner = message.user_id == current_user.id
+    if not (is_owner or can_moderate_channel(message.forum_channel, current_user)):
         return jsonify({'error': 'Unauthorized'}), 403
-    
-    db.session.delete(message)
+
+    message.deleted_at = datetime.utcnow()
     db.session.commit()
-    
+
     return jsonify({'success': True}), 200
+
+
+@api_bp.route('/forum/messages/<int:message_id>/pin', methods=['POST'])
+@login_required
+def pin_forum_message(message_id):
+    """Pin/unpin a message — moderator-only. Not offered for DMs (see can_moderate_channel)."""
+    from lms.forum_service import can_moderate_channel
+
+    message = ForumMessage.query.get_or_404(message_id)
+    if not can_moderate_channel(message.forum_channel, current_user):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    data = request.get_json(silent=True) or {}
+    message.pinned = bool(data.get('pinned', True))
+    db.session.commit()
+
+    return jsonify({'success': True, 'pinned': message.pinned}), 200
+
+
+@api_bp.route('/forum/messages/<int:message_id>/translate', methods=['POST'])
+@login_required
+@limiter.limit("20 per minute")
+def translate_forum_message(message_id):
+    """Translate one message on demand — no new persistence, the existing Translation table
+    already caches by (source_text, target_language) regardless of where the text came from."""
+    from lms.forum_service import can_view_channel
+
+    message = ForumMessage.query.get_or_404(message_id)
+    if not can_view_channel(message.forum_channel, current_user):
+        return jsonify({'error': 'Access denied'}), 403
+    if message.deleted_at:
+        return jsonify({'error': 'Message was deleted'}), 400
+
+    target_language = (request.get_json(silent=True) or {}).get('target_language', '').strip()
+    if not target_language:
+        return jsonify({'error': 'target_language is required'}), 400
+
+    translated = translation_service.get_translation(message.message, target_language)
+    return jsonify({'success': True, 'translated_text': translated}), 200
+
+
+@api_bp.route('/forum/channels/<int:channel_id>/clear', methods=['POST'])
+@login_required
+@limiter.limit("5 per hour")
+def clear_forum_channel(channel_id):
+    """Hard-delete every message in a channel — the moderator "clear history" (per-call, not
+    time-based) action. Relies on ForumMessage.parent_id's ON DELETE CASCADE so replies of a
+    deleted top-level message don't need to be walked/deleted individually."""
+    from lms.forum_service import can_moderate_channel
+
+    channel = ForumChannel.query.get_or_404(channel_id)
+    if not can_moderate_channel(channel, current_user):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    top_level = ForumMessage.query.filter_by(channel_id=channel.id, parent_id=None).all()
+    count = ForumMessage.query.filter_by(channel_id=channel.id).count()
+    for message in top_level:
+        db.session.delete(message)
+    db.session.commit()
+
+    return jsonify({'success': True, 'deleted': count}), 200
 
 # Translation endpoints
 @api_bp.route('/translate', methods=['POST'])

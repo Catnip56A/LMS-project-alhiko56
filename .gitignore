@@ -97,6 +97,9 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
+#documentation personal
+promptForLicense.md
+
 # mkdocs documentation
 /site
 

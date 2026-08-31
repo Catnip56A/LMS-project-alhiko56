@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('Messages') }} - {{ site_settings.site_name or 'LMS' }}{% endblock %}
+
+{% block content %}
+{% include 'components/navbar.html' %}
+
+<div class="container" style="max-width: 800px; padding: 2rem 1rem;">
+    <h2 style="color: #337a2c;">{{ _('Messages') }}</h2>
+
+    <div class="d-flex mb-3" style="gap:8px;">
+        <input type="text" id="dm-start-username" class="form-control" placeholder="{{ _('Username to message…') }}">
+        <button type="button" id="dm-start-btn" class="btn btn-success">{{ _('Message') }}</button>
+    </div>
+
+    <ul class="nav nav-tabs" id="dm-tabs" style="margin-bottom: 1.5rem;"></ul>
+    <div id="dm-empty" class="text-muted" style="display:none;">{{ _('No conversations yet — message someone above to start one.') }}</div>
+    <h6 id="dm-title" class="mb-3" style="display:none;"></h6>
+
+    {% include 'components/forum_ui.html' %}
+</div>
+
+{% include 'components/footer.html' %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+(function () {
+    var dms = [];
+
+    function renderTabs(selectedSlug) {
+        var tabs = document.getElementById('dm-tabs');
+        tabs.innerHTML = '';
+        dms.forEach(function(d) {
+            var li = document.createElement('li');
+            li.className = 'nav-item';
+            var a = document.createElement('a');
+            a.className = 'nav-link' + (d.slug === selectedSlug ? ' active' : '');
+            a.href = 'javascript:void(0)';
+            a.textContent = d.other_username || '{{ _("Unknown user") }}';
+            a.addEventListener('click', function() { selectDm(d); });
+            li.appendChild(a);
+            tabs.appendChild(li);
+        });
+    }
+
+    function selectDm(d) {
+        document.getElementById('dm-title').style.display = '';
+        document.getElementById('dm-title').textContent = d.other_username || '{{ _("Unknown user") }}';
+        renderTabs(d.slug);
+        // DMs have no moderator role (see forum_service.can_moderate_channel) — pin/clear
+        // controls never show here regardless of what's passed.
+        window.ForumUI.loadChannel(d.slug, false);
+    }
+
+    function loadDms(selectSlug) {
+        fetch('/api/forum/dms').then(function(r) { return r.json(); }).then(function(data) {
+            dms = data;
+            document.getElementById('dm-empty').style.display = dms.length ? 'none' : '';
+            if (!dms.length) { return; }
+            var target = dms.find(function(d) { return d.slug === selectSlug; }) || dms[0];
+            selectDm(target);
+        });
+    }
+
+    document.getElementById('dm-start-btn').addEventListener('click', function() {
+        var username = document.getElementById('dm-start-username').value.trim();
+        if (!username) return;
+        fetch('/api/forum/dms/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: username }),
+        }).then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+          .then(function(res) {
+              if (!res.ok) { alert(res.data.error || '{{ _("Could not start conversation.") }}'); return; }
+              document.getElementById('dm-start-username').value = '';
+              loadDms(res.data.slug);
+          });
+    });
+
+    var prefillUser = new URLSearchParams(window.location.search).get('user');
+    if (prefillUser) {
+        fetch('/api/forum/dms/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: prefillUser }),
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.success) { loadDms(data.slug); } else { loadDms(); }
+        });
+    } else {
+        loadDms();
+    }
+})();
+</script>
+{% endblock %}
