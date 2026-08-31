@@ -1510,13 +1510,84 @@ from the same day.
   confirmed still working with the `uploaded_pdfs` key genuinely gone (not just empty), and the
   renamed backfill script's `--dry-run` confirmed running cleanly against the real dev database.
 
-**What's left before Drive can be called fully removed, not yet decided**: the
-worker-account/Drive-Writer OAuth machinery and the Picker-import-from-Drive feature (an
-*ingestion* path, not storage — it already copies bytes into R2 on import, so it could
-plausibly stay even after Drive is otherwise "gone"), plus retiring the `Admin → Drive
-Writer`/`Admin → Drive Worker` admin surfaces and running `backfill-r2`/`backfill-submissions`
-against real data once this ships somewhere with a real Drive-hosted corpus to migrate. Flagged
-for a decision, not decided unilaterally here.
+**What was left before Drive could be called fully removed** — the worker-account/Drive-Writer
+OAuth machinery and the Picker-import-from-Drive feature — is addressed by the section
+immediately below.
+
+### Phase 6 addendum — Picker import removed, replaced with async multi-file upload (2026-08-31, done and live-verified)
+
+Follow-up to the section above's open question. Discussed with the user: keep Picker import
+(it only ever ingests, doesn't store, so it didn't conflict with "Drive is no longer used for
+storage") vs. remove it too and go Drive-free for course-content ingestion entirely. User chose
+removal — Picker import's real value was letting a teacher bulk-import many files without
+selecting them one at a time; asked whether folder-structure recreation specifically mattered
+enough to rebuild that capability a different way (e.g. directory upload preserving relative
+paths, or ZIP upload with server-side extraction) — decided **no**, drop the
+folder-structure-recreation feature and keep it simple: multi-file upload, flat, no subfolders
+recreated.
+
+- [x] **Picker import backend deleted wholesale**: `GET /api/drive-picker-token`, `POST
+  /api/picker-import`, `GET /api/picker-import/status/<job_id>` (`lms/routes/api.py`);
+  `_copy_drive_file_to_r2()`/`_import_drive_tree()` helper functions; the `picker_import_file`/
+  `picker_import_folder` job types and their execution functions (`lms/job_manager.py`).
+  `collect_folder_structure()`/`list_folder_contents()` (`lms/google_drive_service.py`) also
+  deleted — confirmed dead once `_import_drive_tree` (their only caller) was gone.
+- [x] **Old synchronous single-file `upload_file` form action deleted too**
+  (`lms/routes/__init__.py`) — replaced outright by the new async route below rather than kept
+  running alongside it, so there's one upload path instead of two.
+- [x] **New async multi-file upload**: `POST /api/course/<id>/upload-content` +
+  `GET /api/course/<id>/upload-content/status/<job_id>` (`lms/routes/api.py`), new
+  `bulk_upload_content` job type (`_execute_bulk_upload_content_job`, `lms/job_manager.py`).
+  Files are validated and staged to `UPLOAD_STAGING_DIR` synchronously (cheap — disk writes
+  only, no network I/O), then a single job uploads each to R2 (+ LibreOffice preview
+  generation where applicable) and creates its `CourseContent` row, so N files each
+  potentially needing a slow upload/conversion can't hold a gunicorn worker for real time —
+  the same "mandatory for anything that would otherwise block a slot" policy from this
+  session's earlier async conversion work. **Deliberately flat**: every file lands directly in
+  the chosen target folder; no subfolder structure is recreated (Picker's old folder import
+  used to do that). Title handling: a single file uses the shared Title field if one was
+  given, otherwise (or for multiple files) each file's own original filename is used —
+  matching the convention Picker import itself already used. The whole batch is validated
+  before anything is staged, so one bad file 400s the request with nothing uploaded, rather
+  than a partial batch.
+  - Status-poll ownership check differs deliberately from the Ask AI/Picker-import status
+    endpoints: those check the exact requesting `user_id` (an AI answer or an import is
+    personal), this one checks `course.is_managed_by(current_user)` — any teacher/admin
+    managing the course can check an upload's status, not just whoever clicked upload,
+    matching how every other course-content action in this app is gated.
+- [x] **Frontend**: the "Import from Drive" button and its modal deleted; the "Upload File"
+  modal reworked into "Upload Files" — `multiple` on the file input, Title field now optional
+  (used only for a single-file upload), submission converted from a native form POST to a
+  `fetch()`-based enqueue-then-poll flow (`course_page_enrolled.html`), mirroring the pattern
+  already established for Ask AI and the (now-removed) Picker import. The Google Picker
+  `<script>` tag, `gapi`/`google.picker` calls, and the `.picker-dialog`/`.picker-dialog-bg`
+  z-index CSS overrides all removed as dead weight alongside it.
+- [x] **Now-unused config removed**: `GOOGLE_API_KEY`/`GOOGLE_APP_ID` (`lms/config.py`) —
+  Picker-specific, nothing else read them (confirmed by grep before removing).
+- [x] **Live-verified end to end** (real Flask test client, real admin session, real R2
+  bucket): a real 2-file batch upload (one PDF, one PNG) enqueued in 0.15s, the job correctly
+  went `queued` → `running` → `completed`, both `CourseContent` rows were created with real R2
+  objects and correctly sniffed MIME types, titled by their own filenames (no shared title
+  given); a single-file upload with a shared Title correctly used that title instead of the
+  filename; a 2-file batch with one deliberately invalid file correctly rejected the whole
+  batch with `400` and created zero rows (confirmed via a before/after count); a non-managing
+  user correctly got `404` polling another course's upload job status. App boots clean at 149
+  routes (down from 150), zero Picker-related strings anywhere in the codebase (`grep`
+  confirmed), `ruff` clean across every touched file.
+
+**Drive dependency status after this**: no active code path in the app requires a working
+Drive connection for anything to function — every ingestion path (direct upload, multi-file
+upload, assignment submissions) is R2-only now. What remains is dormant, not active: the
+`and not r2_key`-guarded legacy-Drive-cleanup branches in `delete_content`/
+`toggle_content_visibility`/`delete_submission`/`toggle_submission_visibility` (only fire for
+rows that predate this app's R2-only ingestion paths), the worker-account/Drive-Writer OAuth
+admin panels (`Admin → Drive Writer`/`Admin → Drive Worker`) and `link_google_account` (still
+present, nothing requires them to be connected anymore), and a separately-noticed, likely-dead
+"Sign in with Google" account-creation flow (`auth.google_callback`) that has no button linking
+to it anywhere in the current templates — unrelated to this task, not investigated further,
+worth a look sometime the way `PDFDocument` was. Retiring any of that admin/legacy surface is
+optional cleanup, not required for correctness — flagged for whenever it's wanted, not decided
+unilaterally here.
 
 ### Phase 4/6 addendum — cleanup + review findings (2026-08-24)
 

@@ -168,10 +168,8 @@ def _execute_job(job: 'BackgroundJob'):
             result = _execute_promote_moments_job(job)
         elif job.type == 'answer_question':
             result = _execute_answer_question_job(job)
-        elif job.type == 'picker_import_file':
-            result = _execute_picker_import_file_job(job)
-        elif job.type == 'picker_import_folder':
-            result = _execute_picker_import_folder_job(job)
+        elif job.type == 'bulk_upload_content':
+            result = _execute_bulk_upload_content_job(job)
         else:
             raise ValueError(f"Unknown job type: {job.type}")
 
@@ -381,131 +379,94 @@ def _execute_answer_question_job(job):
     return result
 
 
-def _execute_picker_import_file_job(job):
-    """Import one Picker-selected Drive file into R2 as a CourseContent row — the single-file
-    branch of the picker_import route (routes/api.py), moved to a background job because it
-    downloads the file from Drive, may run a LibreOffice conversion, and uploads to R2, all
-    potentially slow and previously run inline in the request against gunicorn's 600s
-    timeout. See picker_import / picker_import_status in routes/api.py for the enqueue/poll
-    sides. `service` (the Drive API client) can't be put in job.data — it's rebuilt here via
-    authenticate(user), same as every other job re-fetches its model objects by id."""
-    from lms.models import Course, CourseContent, User
-    from lms.google_drive_service import authenticate, get_file_metadata
-    from lms.routes.api import _copy_drive_file_to_r2
+def _execute_bulk_upload_content_job(job):
+    """Upload N already-staged local files into R2 as CourseContent rows — queued by
+    upload_course_content (routes/api.py), which replaced both the old synchronous
+    single-file upload_file form action and the removed Picker-import-from-Drive feature's
+    bulk-import role. Deliberately flat: every file lands directly in the target folder, no
+    subfolder structure is recreated (Picker's old folder import used to do that; the
+    replacement doesn't, per an explicit scope decision). Each staged temp file is removed
+    after being processed — success or failure — so a job that fails partway doesn't leave
+    orphaned files in UPLOAD_STAGING_DIR."""
+    import os as _os
+    import filetype
+    from lms.models import Course, CourseContent
     from lms.upload_validation import content_type_for_mime
+    from lms import office_preview, r2_client
 
     data = job.data or {}
     course = Course.query.get(data.get('course_id'))
-    user = User.query.get(data.get('user_id'))
-    if not course or not user:
-        raise ValueError(f"picker_import_file job {job.id}: course or user no longer exists")
+    if not course:
+        raise ValueError(f"bulk_upload_content job {job.id}: course {data.get('course_id')!r} not found")
 
-    service = authenticate(user)
-    if not service:
-        raise RuntimeError('Google account is no longer linked — please reconnect and retry the import.')
+    folder_id = data.get('folder_id')
+    shared_title = (data.get('title') or '').strip()
+    description = data.get('description') or ''
+    published = bool(data.get('published', True))
+    allow_view = bool(data.get('allow_view', True))
+    files = data.get('files') or []
+    single_file = len(files) == 1
 
-    file_id = data['file_id']
-    resource_key = data.get('resource_key')
-    metadata = get_file_metadata(service, file_id, resource_key=resource_key)
-    if isinstance(metadata, dict) and 'error' in metadata:
-        raise RuntimeError(metadata['error'])
+    created = 0
+    failed = 0
+    errors = []
 
-    # Drive's metadata is authoritative; the client-supplied mime_type is only a fallback.
-    effective_mime = metadata.get('mimeType') or data.get('mime_type')
-    name = metadata.get('name') or data.get('file_name')
-    key, effective_mime_or_reason, preview_key = _copy_drive_file_to_r2(
-        service, file_id, course.id, name, effective_mime, resource_key=resource_key, size_hint=metadata.get('size'),
-    )
-    if not key:
-        messages = {
-            'google_doc': "Google Docs/Sheets/Slides can't be imported directly — download a copy (PDF/Office format) from Drive and upload that instead.",
-            'too_large': 'This file is too large to import.',
-            'download_failed': 'Could not download the selected file from Google Drive.',
-            'upload_failed': 'Could not copy the selected file into storage.',
-        }
-        raise RuntimeError(messages.get(effective_mime_or_reason, 'Import failed.'))
+    for i, entry in enumerate(files):
+        staged_path = entry['staged_path']
+        original_filename = entry['original_filename']
+        try:
+            if not _os.path.exists(staged_path):
+                raise RuntimeError('staged file missing (job may have been retried)')
 
-    content = CourseContent(
-        course_id=course.id,
-        title=data.get('title') or name,
-        description='',
-        content_type=content_type_for_mime(effective_mime_or_reason),
-        content_data='',
-        r2_key=key,
-        r2_preview_key=preview_key,
-        file_mime_type=effective_mime_or_reason,
-        drive_file_id=file_id,  # provenance only — serving/RAG prefer r2_key
-        drive_view_link=None,
-        order=CourseContent.query.filter_by(course_id=course.id).count() + 1,
-        folder_id=int(data['folder_id']) if data.get('folder_id') else None,
-        is_published=bool(data.get('published', True)),
-        allow_others_to_view=bool(data.get('allow_view', True)),
-        is_imported=True,
-    )
-    db.session.add(content)
-    db.session.commit()
-    record_content_update()
+            kind = filetype.guess(staged_path)
+            mime = kind.mime if kind else None
 
-    return {'content_id': content.id, 'title': content.title}
+            r2_key = r2_client.build_content_key(course.id, original_filename)
+            if not r2_client.upload_file(staged_path, r2_key, content_type=mime, filename=original_filename):
+                raise RuntimeError('R2 upload failed')
 
+            r2_preview_key = office_preview.generate_and_upload_preview(staged_path, mime, r2_key)
+            title = shared_title if (single_file and shared_title) else original_filename
 
-def _execute_picker_import_folder_job(job):
-    """Import a Picker-selected Drive folder tree into R2 — the folder branch of the
-    picker_import route, moved to a background job for the same reason as
-    _execute_picker_import_file_job, amplified: a folder can contain many files, each
-    downloaded/converted/uploaded serially by _import_drive_tree, so this is the case that
-    most realistically could have exceeded gunicorn's 600s timeout."""
-    from lms.models import Course, CourseContentFolder, User
-    from lms.google_drive_service import authenticate, get_file_metadata, collect_folder_structure
-    from lms.routes.api import _import_drive_tree
+            content = CourseContent(
+                course_id=course.id,
+                folder_id=int(folder_id) if folder_id else None,
+                title=title,
+                description=description,
+                content_type=content_type_for_mime(mime),
+                content_data='',
+                r2_key=r2_key,
+                r2_preview_key=r2_preview_key,
+                file_mime_type=mime,
+                is_published=published,
+                allow_others_to_view=allow_view,
+                order=0,
+            )
+            db.session.add(content)
+            db.session.commit()
+            record_content_update()
+            created += 1
+        except Exception as e:
+            db.session.rollback()
+            failed += 1
+            errors.append(f'{original_filename}: {e}')
+            logger.error(f"bulk_upload_content job {job.id}: failed on {original_filename!r}: {e}")
+        finally:
+            try:
+                _os.remove(staged_path)
+            except OSError:
+                pass
 
-    data = job.data or {}
-    course = Course.query.get(data.get('course_id'))
-    user = User.query.get(data.get('user_id'))
-    if not course or not user:
-        raise ValueError(f"picker_import_folder job {job.id}: course or user no longer exists")
+        job.progress = int(((i + 1) / len(files)) * 100) if files else 100
+        job.message = f"Uploaded {created}/{len(files)}..."
+        job.save()
 
-    service = authenticate(user)
-    if not service:
-        raise RuntimeError('Google account is no longer linked — please reconnect and retry the import.')
-
-    file_id = data['file_id']
-    resource_key = data.get('resource_key')
-    folder_meta = get_file_metadata(service, file_id, resource_key=resource_key)
-    if isinstance(folder_meta, dict) and 'error' in folder_meta:
-        raise RuntimeError(folder_meta['error'])
-
-    folder_name = data.get('title') or (folder_meta.get('name') if folder_meta else data.get('file_name'))
-    structure = collect_folder_structure(service, file_id)
-
-    root_folder_id = data.get('folder_id')
-    root_cf = CourseContentFolder(
-        course_id=course.id,
-        parent_folder_id=int(root_folder_id) if root_folder_id else None,
-        title=folder_name,
-        order=CourseContentFolder.query.filter_by(course_id=course.id).count() + 1,
-    )
-    db.session.add(root_cf)
-    db.session.flush()
-
-    order_ref = [1]
-    file_count, skipped_count = _import_drive_tree(
-        service, structure, course.id, root_cf.id,
-        bool(data.get('published', True)), bool(data.get('allow_view', True)), order_ref,
-    )
-    db.session.commit()
-    for _ in range(file_count):
-        record_content_update()
-
-    job.message = f"Imported {file_count} file(s), skipped {skipped_count}."
-    job.save()
-
-    return {'folder': True, 'folder_name': folder_name, 'imported_count': file_count, 'skipped_count': skipped_count}
+    return {'created': created, 'failed': failed, 'errors': errors}
 
 
 def record_content_update():
-    """Call this right after a CourseContent row is created (upload, Picker import — not the
-    one-off backfill script). This is the "threshold" trigger for the embedding sweep: once
+    """Call this right after a CourseContent row is created (upload — not the one-off backfill
+    script). This is the "threshold" trigger for the embedding sweep: once
     CONTENT_UPDATE_TRIGGER_COUNT items have accumulated since the last sweep run, immediately
     reschedule the recurring sweep's next run to now, rather than making new material wait
     out the full interval. Reset in run_scheduled_embedding_sweep, at the start of a run (not

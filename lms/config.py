@@ -28,11 +28,7 @@ class Config:
 
     GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
     GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
-    # Browser-restricted API key with Google Picker API enabled (public, safe to expose to browser)
-    GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
-    # GCP project number — the numeric prefix of GOOGLE_CLIENT_ID (e.g. 860511395930)
-    GOOGLE_APP_ID = os.environ.get('GOOGLE_APP_ID', '')
-    
+
 
 class DevelopmentConfig(Config):
     """Development configuration"""

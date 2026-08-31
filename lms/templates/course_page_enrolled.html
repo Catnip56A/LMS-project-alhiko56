@@ -380,10 +380,6 @@
             padding-right: 0;
         }
     }
-
-    /* Google Picker must sit above Bootstrap modal (z-index 1050) */
-    .picker-dialog-bg { z-index: 2000 !important; }
-    .picker-dialog    { z-index: 2001 !important; }
 </style>
 {% endblock %}
 
@@ -1016,10 +1012,7 @@
                         + {{ _('Create Folder') }}
                     </button>
                     <button type="button" class="btn btn-success" data-toggle="modal" data-target="#uploadFileModal" data-folder-id="" data-folder-name="Root">
-                        + {{ _('Upload File') }}
-                    </button>
-                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#importDriveModal" data-folder-id="" data-folder-name="Root">
-                        <i class="fas fa-cloud-download-alt"></i> {{ _('Import from Drive') }}
+                        + {{ _('Upload Files') }}
                     </button>
                     <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#importAssignmentModal" data-folder-id="" data-folder-name="Root">
                         <i class="fas fa-file-import"></i> {{ _('Import Assignment') }}
@@ -2288,107 +2281,46 @@
     <div class="modal fade" id="uploadFileModal" tabindex="-1" role="dialog" aria-labelledby="uploadFileModalLabel" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
-          <form method="post" enctype="multipart/form-data" action="{{ url_for('main.course_page_enrolled', course_id=course.id) }}">
-            <input type="hidden" name="action" value="upload_file">
-            <input type="hidden" name="file_folder_id" id="fileFolderId" value="">
-            <div class="modal-header">
-              <h5 class="modal-title" id="uploadFileModalLabel">{{ _('Upload File') }}</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-            <div class="modal-body">
-              <div class="alert alert-info">
-                {{ _('Upload to:') }} <strong id="fileFolderName">{{ _('Root') }}</strong>
-              </div>
-              <div class="form-group">
-                <label for="content_file">{{ _('File') }} *</label>
-                <input type="file" id="content_file" class="form-control-file" name="content_file" required>
-              </div>
-              <div class="form-group">
-                <label for="file_title">{{ _('Title') }} *</label>
-                <input type="text" id="file_title" class="form-control" name="file_title" required>
-              </div>
-              <div class="form-group">
-                <label for="file_description">{{ _('Description') }}</label>
-                <textarea id="file_description" class="form-control" name="file_description" rows="2"></textarea>
-              </div>
-              <div class="form-check">
-                <input type="checkbox" class="form-check-input" name="file_published" id="filePublished" checked>
-                <label class="form-check-label" for="filePublished">{{ _('Publish immediately') }}</label>
-              </div>
-              <div class="form-check">
-                <input type="checkbox" class="form-check-input" name="allow_others_to_view" id="fileAllowView" checked>
-                <label class="form-check-label" for="fileAllowView">{{ _('Allow students to view this file') }}</label>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
-              <button type="submit" class="btn btn-primary">{{ _('Upload File') }}</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Import from Google Drive Modal -->
-    <div class="modal fade" id="importDriveModal" tabindex="-1" role="dialog" aria-labelledby="importDriveModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
+          <input type="hidden" id="fileFolderId" value="">
           <div class="modal-header">
-            <h5 class="modal-title" id="importDriveModalLabel">{{ _('Import from Google Drive') }}</h5>
+            <h5 class="modal-title" id="uploadFileModalLabel">{{ _('Upload Files') }}</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
           <div class="modal-body">
-            <div class="alert alert-info mb-3">
-              {{ _('Import to:') }} <strong id="importDriveFolderName">{{ _('Root') }}</strong>
+            <div class="alert alert-info">
+              {{ _('Upload to:') }} <strong id="fileFolderName">{{ _('Root') }}</strong>
             </div>
-
-            <!-- Step 1: open Picker -->
-            <div id="pickerStep1">
-              <p class="text-muted small">{{ _('Only files you own are shown. Files shared with you are not listed.') }}</p>
-              <button type="button" class="btn btn-primary btn-block" id="openPickerBtn" onclick="openGooglePicker()">
-                <i class="fas fa-folder-open mr-1"></i> {{ _('Browse My Google Drive') }}
-              </button>
-              <div id="pickerNoToken" class="alert alert-warning mt-2" style="display:none;">
-                {{ _('Your Google account is not linked.') }}
-                <a href="{{ url_for('auth.link_google_account') }}" class="alert-link">{{ _('Link now') }}</a>
-              </div>
+            <div class="form-group">
+              <label for="content_file">{{ _('Files') }} *</label>
+              <input type="file" id="content_file" class="form-control-file" name="content_file" multiple>
+              <small class="form-text text-muted">{{ _('Select multiple files to upload them all at once — each one keeps its own filename as its title, landing directly in the folder above (no subfolders are recreated).') }}</small>
             </div>
-
-            <!-- Step 2: file selected -->
-            <div id="pickerStep2" style="display:none;">
-              <div class="alert alert-success mb-2">
-                <strong>{{ _('Selected:') }}</strong> <span id="pickerSelectedName"></span><br>
-                <small class="text-muted" id="pickerSelectedType"></small>
-              </div>
-              <button type="button" class="btn btn-outline-secondary btn-sm mb-3" onclick="clearPickerSelection()">
-                <i class="fas fa-redo mr-1"></i>{{ _('Choose a different file') }}
-              </button>
-
-              <div class="form-group">
-                <label for="pickerTitle">{{ _('Title (optional)') }}</label>
-                <input type="text" id="pickerTitle" class="form-control" placeholder="{{ _('Leave empty to use the original filename') }}">
-              </div>
-              <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="pickerPublished" checked>
-                <label class="form-check-label" for="pickerPublished">{{ _('Publish immediately') }}</label>
-              </div>
-              <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="pickerAllowView" checked>
-                <label class="form-check-label" for="pickerAllowView">{{ _('Allow students to view') }}</label>
-              </div>
+            <div class="form-group">
+              <label for="file_title">{{ _('Title') }}</label>
+              <input type="text" id="file_title" class="form-control" placeholder="{{ _('Leave empty to use each file\'s original name') }}">
+              <small class="form-text text-muted">{{ _('Only used when uploading a single file.') }}</small>
             </div>
-
-            <div id="pickerImportStatus" class="mt-2" style="display:none;"></div>
+            <div class="form-group">
+              <label for="file_description">{{ _('Description') }}</label>
+              <textarea id="file_description" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="filePublished" checked>
+              <label class="form-check-label" for="filePublished">{{ _('Publish immediately') }}</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="fileAllowView" checked>
+              <label class="form-check-label" for="fileAllowView">{{ _('Allow students to view these files') }}</label>
+            </div>
+            <div id="uploadFileStatus" class="mt-2" style="display:none;"></div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ _('Cancel') }}</button>
-            <button type="button" class="btn btn-success" id="pickerImportBtn" onclick="submitPickerImport()" style="display:none;" disabled>
-              <span id="pickerBtnText"><i class="fas fa-cloud-download-alt mr-1"></i>{{ _('Import') }}</span>
-              <span id="pickerBtnLoading" style="display:none;"><i class="fas fa-spinner fa-spin mr-1"></i>{{ _('Importing…') }}</span>
+            <button type="button" class="btn btn-primary" id="uploadFileSubmitBtn" onclick="submitFileUpload()">
+              <span id="uploadFileBtnText">{{ _('Upload') }}</span>
+              <span id="uploadFileBtnLoading" style="display:none;"><i class="fas fa-spinner fa-spin mr-1"></i>{{ _('Uploading…') }}</span>
             </button>
           </div>
         </div>
@@ -2844,22 +2776,6 @@ $(document).ready(function() {
 
         try {
             $('#uploadFileModal').modal('show');
-        } catch(err) {
-            console.error('Error showing modal:', err);
-        }
-    });
-
-    // Manually handle import from Drive button clicks
-    $(document).on('click', '[data-target="#importDriveModal"]', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        window._pickerTargetFolderId = $(this).data('folder-id') || null;
-        $('#importDriveFolderName').text($(this).data('folder-name') || 'Root');
-        clearPickerSelection();
-
-        try {
-            $('#importDriveModal').modal('show');
         } catch(err) {
             console.error('Error showing modal:', err);
         }
@@ -3409,191 +3325,90 @@ async function handleFolderExpand(folderId, courseId) {
 })();
 </script>
 
-{% if is_teacher_or_admin %}
-{# Google Picker — only load for teachers/admins who can import files #}
-<script src="https://apis.google.com/js/api.js"></script>
 <script>
 (function() {
     'use strict';
 
-    var _pickerReady = false;
-    var _selectedFile = null;
-    var _pickerOpen = false;
-
-    // Load the Picker library as soon as gapi is available
-    gapi.load('picker', function() { _pickerReady = true; });
-
-    // Block the modal from closing while the Picker is open
-    $('#uploadFileModal').on('hide.bs.modal', function(e) {
-        if (_pickerOpen) e.preventDefault();
-    });
-
-    // ------------------------------------------------------------------ helpers
-
-    function _showStep(step) {
-        document.getElementById('pickerStep1').style.display = step === 1 ? '' : 'none';
-        document.getElementById('pickerStep2').style.display = step === 2 ? '' : 'none';
-        document.getElementById('pickerImportBtn').style.display = step === 2 ? '' : 'none';
-        document.getElementById('pickerImportBtn').disabled = step !== 2;
-    }
-
-    function _setStatus(msg, type) {
-        var el = document.getElementById('pickerImportStatus');
+    function _setUploadStatus(msg, type) {
+        var el = document.getElementById('uploadFileStatus');
         el.className = 'alert alert-' + (type || 'info') + ' mt-2';
         el.textContent = msg;
         el.style.display = '';
     }
-
-    function _clearStatus() {
-        var el = document.getElementById('pickerImportStatus');
+    function _clearUploadStatus() {
+        var el = document.getElementById('uploadFileStatus');
         el.style.display = 'none';
         el.textContent = '';
     }
-
-    // ------------------------------------------------------------------ public API
-
-    window.clearPickerSelection = function() {
-        _selectedFile = null;
-        document.getElementById('pickerTitle').value = '';
-        document.getElementById('pickerPublished').checked = true;
-        document.getElementById('pickerAllowView').checked = true;
-        _clearStatus();
-        _showStep(1);
-    };
-
-    window.openGooglePicker = async function() {
-        var btn = document.getElementById('openPickerBtn');
-        var noToken = document.getElementById('pickerNoToken');
-        noToken.style.display = 'none';
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Loading…';
-
-        try {
-            // Fetch a fresh, server-refreshed access token
-            var resp = await fetch('/api/drive-picker-token');
-            var data = await resp.json();
-
-            if (!resp.ok) {
-                if (data.error === 'no_token') { noToken.style.display = ''; }
-                else { _setStatus(data.message || 'Could not retrieve Drive token.', 'danger'); }
-                return;
-            }
-
-            if (!_pickerReady) {
-                await new Promise(function(resolve) { gapi.load('picker', function() { _pickerReady = true; resolve(); }); });
-            }
-
-            var apiKey  = {{ config.GOOGLE_API_KEY | tojson }};
-            var appId   = {{ config.GOOGLE_APP_ID  | tojson }};
-
-            var docsView = new google.picker.DocsView()
-                .setIncludeFolders(true)
-                .setSelectFolderEnabled(true);
-
-            var picker = new google.picker.PickerBuilder()
-                .addView(docsView)
-                .enableFeature(google.picker.Feature.MINE_ONLY)   // owner:me — no shared files
-                .setOAuthToken(data.access_token)
-                .setDeveloperKey(apiKey)
-                .setAppId(appId)
-                .setCallback(_pickerCallback)
-                .build();
-
-            _pickerOpen = true;
-            picker.setVisible(true);
-
-        } catch (err) {
-            _setStatus('Error opening Google Drive: ' + err.message, 'danger');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-folder-open mr-1"></i>{{ _("Browse My Google Drive") }}';
-        }
-    };
-
-    function _restoreModalBackdrop() {
-        _pickerOpen = false;
-    }
-
-    function _pickerCallback(pickerData) {
-        if (pickerData.action === google.picker.Action.CANCEL) { _restoreModalBackdrop(); return; }
-        if (pickerData.action !== google.picker.Action.PICKED) return;
-        _restoreModalBackdrop();
-        var doc = pickerData.docs[0];
-        _selectedFile = { id: doc.id, name: doc.name, mimeType: doc.mimeType, resourceKey: doc.resourceKey || '' };
-        document.getElementById('pickerSelectedName').textContent = doc.name;
-        document.getElementById('pickerSelectedType').textContent = doc.mimeType;
-        _clearStatus();
-        _showStep(2);
-    }
-
     function _sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
 
-    // Import now runs as a background job (see picker_import / picker_import_status in
-    // routes/api.py) instead of inline — Drive download + optional LibreOffice conversion +
-    // R2 upload (repeated per file for a folder) can run long enough to hit gunicorn's 600s
-    // timeout, so this polls for the result instead of awaiting one response. A folder with
-    // many files can legitimately take minutes, hence the generous attempt count.
-    async function _pollPickerImportJob(jobId) {
+    // Upload runs as a background job (see upload_course_content / upload_course_content_status
+    // in routes/api.py) instead of inline — several files, each potentially needing an R2
+    // upload and a LibreOffice conversion, could otherwise hold a gunicorn worker for real
+    // time, the same reasoning behind this session's async job-queue conversion elsewhere.
+    // This polls for the result instead of awaiting one response.
+    async function _pollUploadJob(courseId, jobId) {
         var maxAttempts = 240;
         for (var attempt = 0; attempt < maxAttempts; attempt++) {
             await _sleep(2000);
-            var resp = await fetch('/api/picker-import/status/' + jobId);
+            var resp = await fetch('/api/course/' + courseId + '/upload-content/status/' + jobId);
             var result = await resp.json();
-            if (!resp.ok) {
-                throw new Error(result.error || '{{ _("Import failed.") }}');
-            }
+            if (!resp.ok) { throw new Error(result.error || '{{ _("Upload failed.") }}'); }
             if (result.status === 'completed') { return result; }
-            if (result.status === 'failed') { throw new Error(result.error || '{{ _("Import failed.") }}'); }
+            if (result.status === 'failed') { throw new Error(result.error || '{{ _("Upload failed.") }}'); }
             // still 'queued' or 'running' — keep polling
         }
-        throw new Error('{{ _("Import is taking longer than expected. Check back on the course page shortly.") }}');
+        throw new Error('{{ _("Upload is taking longer than expected. Check back on the course page shortly.") }}');
     }
 
-    window.submitPickerImport = async function() {
-        if (!_selectedFile) return;
+    window.submitFileUpload = async function() {
+        var fileInput = document.getElementById('content_file');
+        var files = fileInput.files;
+        if (!files || !files.length) {
+            _setUploadStatus('{{ _("Please select at least one file.") }}', 'danger');
+            return;
+        }
 
-        var btn       = document.getElementById('pickerImportBtn');
-        var btnText   = document.getElementById('pickerBtnText');
-        var btnSpin   = document.getElementById('pickerBtnLoading');
-        btn.disabled  = true;
+        var btn      = document.getElementById('uploadFileSubmitBtn');
+        var btnText  = document.getElementById('uploadFileBtnText');
+        var btnSpin  = document.getElementById('uploadFileBtnLoading');
+        btn.disabled = true;
         btnText.style.display = 'none';
         btnSpin.style.display = '';
-        _clearStatus();
+        _clearUploadStatus();
 
-        var payload = {
-            course_id:  {{ course.id }},
-            folder_id:  window._pickerTargetFolderId || null,
-            file_id:    _selectedFile.id,
-            file_name:  _selectedFile.name,
-            mime_type:  _selectedFile.mimeType,
-            resource_key: _selectedFile.resourceKey,
-            title:      document.getElementById('pickerTitle').value.trim(),
-            published:  document.getElementById('pickerPublished').checked,
-            allow_view: document.getElementById('pickerAllowView').checked,
-        };
+        var formData = new FormData();
+        for (var i = 0; i < files.length; i++) {
+            formData.append('files', files[i]);
+        }
+        formData.append('folder_id', document.getElementById('fileFolderId').value || '');
+        formData.append('title', document.getElementById('file_title').value.trim());
+        formData.append('description', document.getElementById('file_description').value.trim());
+        formData.append('published', document.getElementById('filePublished').checked);
+        formData.append('allow_view', document.getElementById('fileAllowView').checked);
+
+        var courseId = {{ course.id }};
 
         try {
-            var resp = await fetch('/api/picker-import', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(payload),
+            var resp = await fetch('/api/course/' + courseId + '/upload-content', {
+                method: 'POST',
+                body: formData,
             });
             var queued = await resp.json();
             if (!resp.ok || !queued.success || !queued.job_id) {
-                _setStatus(queued.error || '{{ _("Import failed.") }}', 'danger');
+                _setUploadStatus(queued.error || '{{ _("Upload failed.") }}', 'danger');
                 return;
             }
 
-            _setStatus('{{ _("Importing…") }}', 'info');
-            var result = await _pollPickerImportJob(queued.job_id);
+            _setUploadStatus('{{ _("Uploading…") }}', 'info');
+            var result = await _pollUploadJob(courseId, queued.job_id);
 
-            var msg = result.folder
-                ? '{{ _("Folder imported:") }} ' + result.folder_name + ' (' + result.imported_count + ' {{ _("files") }})'
-                : '{{ _("Successfully imported:") }} ' + result.title;
-            _setStatus(msg, 'success');
+            var msg = '{{ _("Uploaded") }} ' + result.created + ' {{ _("file(s).") }}'
+                + (result.failed ? ' ' + result.failed + ' {{ _("failed.") }}' : '');
+            _setUploadStatus(msg, result.failed ? 'warning' : 'success');
             setTimeout(function() { window.location.reload(); }, 1500);
         } catch (err) {
-            _setStatus(err.message || '{{ _("Request failed.") }}', 'danger');
+            _setUploadStatus(err.message || '{{ _("Request failed.") }}', 'danger');
         } finally {
             btn.disabled = false;
             btnText.style.display = '';
@@ -3602,7 +3417,6 @@ async function handleFolderExpand(folderId, courseId) {
     };
 })();
 </script>
-{% endif %}
 
 <script>
 (function() {

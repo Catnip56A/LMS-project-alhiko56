@@ -5,8 +5,7 @@ byte storage; runtime orchestration (uploads, serving, RAG downloads) lives in
 routes/api.py, routes/__init__.py, and rag_service.py.
 
 Credentials are read inline via os.environ.get at point of use, not centralized into
-Config — Config is reserved for values templates/JS need (e.g. GOOGLE_API_KEY for the
-browser-side Picker widget), which R2 secrets never are.
+Config — Config is reserved for values templates/JS need, which R2 secrets never are.
 
 A second, optional "upstream" client can be configured (R2_UPSTREAM_*) pointing at the
 production bucket with a read-only token. This exists purely for dev: pulling the

@@ -10,8 +10,6 @@ from flask_login import current_user, login_required
 from lms.extensions import limiter
 from lms.models import Course, ForumMessage, ForumChannel, Translation, db
 from lms.translation_service import translation_service
-from lms.google_drive_service import authenticate
-from lms.upload_validation import content_type_for_mime
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -930,237 +928,102 @@ def download_content_by_db_id(content_id):
     return redirect(url_for('main.index', error='file_not_found'))
 
 
-@api_bp.route('/drive-picker-token')
+@api_bp.route('/course/<int:course_id>/upload-content', methods=['POST'])
 @login_required
-def get_drive_picker_token():
-    """Return a valid (refreshed if needed) Drive access token for initialising the Google Picker."""
-    from datetime import datetime
-    from lms.google_drive_service import refresh_credentials
-
-    # No course-scoped gate here — this just vends the caller's own Drive OAuth token
-    # (drive.file scope, so it only ever grants access to files they create/pick
-    # themselves). The actual privileged action (writing into a specific course) is
-    # gated separately at picker_import() below.
-    if not current_user.google_access_token:
-        return jsonify({'error': 'no_token', 'message': 'Google account not linked'}), 401
-
-    if current_user.google_token_expiry and datetime.utcnow() >= current_user.google_token_expiry:
-        creds = refresh_credentials(current_user)
-        if not creds:
-            return jsonify({'error': 'refresh_failed', 'message': 'Token refresh failed — please re-link your Google account'}), 401
-
-    return jsonify({'access_token': current_user.google_access_token}), 200
-
-
-_GOOGLE_NATIVE_MIME_PREFIX = 'application/vnd.google-apps.'
-
-
-def _copy_drive_file_to_r2(service, file_id, course_id, name, mime, resource_key=None, size_hint=None):
-    """Download a Picker-selected Drive file's bytes and copy them into R2.
-
-    Returns (r2_key, effective_mime, r2_preview_key) on success, or (None, reason, None) on
-    failure/skip — `reason` is a short, user-facing string explaining why (e.g. 'google_doc',
-    'too_large', 'download_failed'). Google-native Docs/Sheets/Slides have no raw file bytes to
-    copy and are skipped rather than exported, per the deliberate scope decision for this
-    feature. `r2_preview_key` is set only for Office documents needing a converted PDF preview
-    to be viewable at all (see lms/office_preview.py) — None for everything else.
-
-    Runs inside a background job (lms.job_manager._execute_picker_import_file_job /
-    _execute_picker_import_folder_job — see picker_import in this file for the enqueue side),
-    not inline in a request — `size_hint` (Drive's own declared file size, when the caller has
-    it) still lets an oversized file be rejected before spending time downloading it at all.
-    """
-    import tempfile
-    import filetype as _filetype
-    from lms import office_preview, r2_client
-    from lms.routes import UPLOAD_STAGING_DIR
-    from lms.google_drive_service import download_file as _drive_download
-
-    if mime and mime.startswith(_GOOGLE_NATIVE_MIME_PREFIX):
-        return None, 'google_doc', None
-
-    max_bytes = current_app.config.get('MAX_CONTENT_LENGTH')
-    if max_bytes and size_hint:
-        try:
-            if int(size_hint) > max_bytes:
-                return None, 'too_large', None
-        except (TypeError, ValueError):
-            pass
-
-    os.makedirs(UPLOAD_STAGING_DIR, exist_ok=True)
-    fd, tmp_path = tempfile.mkstemp(dir=UPLOAD_STAGING_DIR)
-    os.close(fd)
-    try:
-        if not _drive_download(service, file_id, tmp_path, resource_key=resource_key):
-            return None, 'download_failed', None
-
-        if max_bytes and os.path.getsize(tmp_path) > max_bytes:
-            return None, 'too_large', None
-
-        effective_mime = mime
-        if not effective_mime or effective_mime == 'application/octet-stream':
-            kind = _filetype.guess(tmp_path)
-            effective_mime = kind.mime if kind else effective_mime
-
-        key = r2_client.build_content_key(course_id, name)
-        if not r2_client.upload_file(tmp_path, key, content_type=effective_mime, filename=name):
-            return None, 'upload_failed', None
-
-        preview_key = office_preview.generate_and_upload_preview(tmp_path, effective_mime, key)
-        return key, effective_mime, preview_key
-    finally:
-        try:
-            os.remove(tmp_path)
-        except OSError:
-            pass
-
-
-def _import_drive_tree(service, structure, course_id, parent_folder_id, published, allow_view, order_ref):
-    """Recursively mirror a Drive folder tree into CourseContentFolder / CourseContent rows,
-    copying each file's bytes into R2 along the way (see _copy_drive_file_to_r2).
-
-    order_ref is a one-element list [int] used as a mutable counter shared across calls.
-    Returns (created, skipped) counts.
-    """
-    from lms.models import CourseContent, CourseContentFolder
-    from lms.google_drive_service import get_file_metadata as _gmeta
-
-    created = 0
-    skipped = 0
-
-    for folder_info in structure.get('folders', []):
-        cf = CourseContentFolder(
-            course_id=course_id,
-            parent_folder_id=parent_folder_id,
-            title=folder_info['name'],
-            order=order_ref[0],
-        )
-        db.session.add(cf)
-        db.session.flush()
-        order_ref[0] += 1
-        sub_created, sub_skipped = _import_drive_tree(service, folder_info['structure'], course_id, cf.id, published, allow_view, order_ref)
-        created += sub_created
-        skipped += sub_skipped
-
-    for file_info in structure.get('files', []):
-        metadata = _gmeta(service, file_info['id'])
-        if isinstance(metadata, dict) and 'error' in metadata:
-            skipped += 1
-            continue
-        mime = metadata.get('mimeType') or file_info.get('mime_type')
-        name = metadata.get('name') or file_info['name']
-        size_hint = metadata.get('size') or file_info.get('size')
-        key, effective_mime_or_reason, preview_key = _copy_drive_file_to_r2(service, file_info['id'], course_id, name, mime, size_hint=size_hint)
-        if not key:
-            current_app.logger.info(f"Skipped Picker import of '{name}': {effective_mime_or_reason}")
-            skipped += 1
-            continue
-        item = CourseContent(
-            course_id=course_id,
-            title=name,
-            description='',
-            # The copied bytes' own MIME decides this — a lecture must land as 'video' or the
-            # RAG pipeline never transcribes it (see rag_service.extract_text_for_content).
-            content_type=content_type_for_mime(effective_mime_or_reason),
-            content_data='',
-            r2_key=key,
-            r2_preview_key=preview_key,
-            file_mime_type=effective_mime_or_reason,
-            drive_file_id=file_info['id'],  # provenance only — serving/RAG prefer r2_key
-            drive_view_link=None,
-            order=order_ref[0],
-            folder_id=parent_folder_id,
-            is_published=published,
-            allow_others_to_view=allow_view,
-            is_imported=True,
-        )
-        db.session.add(item)
-        order_ref[0] += 1
-        created += 1
-
-    return created, skipped
-
-
-@api_bp.route('/picker-import', methods=['POST'])
 @limiter.limit("10 per minute")
-@login_required
-def picker_import():
-    """
-    Queue import of a file or folder the teacher selected via the Google Picker as a
-    background job — the actual work (Drive download, optional LibreOffice conversion, R2
-    upload, and for a folder, recursively doing that per file) can run for a long time,
-    previously inline in this request against gunicorn's 600s timeout. See
-    lms.job_manager._execute_picker_import_file_job / _execute_picker_import_folder_job for
-    the work itself, and picker_import_status below for the poll side.
+def upload_course_content(course_id):
+    """Queue a multi-file course-content upload as a background job — replaces both the old
+    synchronous single-file upload_file form action and the removed Picker-import-from-Drive
+    feature's bulk-import role (see the "Picker import replaced" checklist entry). Deliberately
+    flat, unlike Picker's old folder import: every file lands directly in the chosen target
+    folder, no subfolder structure is recreated, per an explicit scope decision. Multiple
+    files, each potentially needing a LibreOffice conversion and an R2 upload, could otherwise
+    hold a gunicorn worker for real time — the same reasoning behind this session's async
+    job-queue conversion elsewhere. See _execute_bulk_upload_content_job (job_manager.py) for
+    the work itself, and upload_course_content_status below for the poll side.
     """
     from lms.models import Course
+    from lms.upload_validation import validate_upload, UploadValidationError
+    from werkzeug.utils import secure_filename
+    import uuid
 
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'JSON body required'}), 400
-
-    course_id = data.get('course_id')
-    file_id = data.get('file_id', '').strip()
-    file_name = data.get('file_name', '').strip()
-    mime_type = data.get('mime_type', '')
-    resource_key = data.get('resource_key', '').strip()
-    folder_id = data.get('folder_id') or None
-    title = data.get('title', '').strip() or file_name
-    published = bool(data.get('published', True))
-    allow_view = bool(data.get('allow_view', True))
-
-    if not course_id or not file_id:
-        return jsonify({'error': 'course_id and file_id are required'}), 400
-
-    course = Course.query.get(int(course_id))
+    course = Course.query.get(course_id)
     if not course:
         return jsonify({'error': 'Course not found'}), 404
     if not course.is_managed_by(current_user):
         return jsonify({'error': 'forbidden'}), 403
 
-    # Checked synchronously (cheap — a token refresh, no Drive/R2 traffic) so a missing link
-    # fails fast instead of after a job round-trip. The job itself re-authenticates as this
-    # user rather than reusing this connection — a googleapiclient service object can't be
-    # put in job.data (not JSON-serializable) or carried across the process boundary to the
-    # worker.
-    if not authenticate(current_user):
-        return jsonify({'error': 'no_token', 'message': 'Please link your Google account first'}), 401
+    files = request.files.getlist('files')
+    if not files:
+        return jsonify({'error': 'No files provided'}), 400
+
+    folder_id = request.form.get('folder_id') or None
+    title = (request.form.get('title') or '').strip()
+    description = (request.form.get('description') or '').strip()
+    published = request.form.get('published') in ('true', 'True', '1', 'on')
+    allow_view = request.form.get('allow_view') in ('true', 'True', '1', 'on')
+
+    from lms.routes import UPLOAD_STAGING_DIR
+    os.makedirs(UPLOAD_STAGING_DIR, exist_ok=True)
+
+    # Validate every file before staging any of them — rejects the whole batch on the first
+    # bad file with simple, predictable semantics rather than a partial upload.
+    for f in files:
+        try:
+            validate_upload(f, max_bytes=current_app.config['MAX_CONTENT_LENGTH'])
+        except UploadValidationError as e:
+            return jsonify({'error': f'{f.filename}: {e}'}), 400
+
+    staged = []
+    try:
+        for f in files:
+            filename = secure_filename(f.filename) or 'file'
+            temp_path = os.path.join(UPLOAD_STAGING_DIR, f'{uuid.uuid4().hex}_{filename}')
+            f.save(temp_path)
+            staged.append({'staged_path': temp_path, 'original_filename': f.filename})
+    except Exception:
+        for item in staged:
+            try:
+                os.remove(item['staged_path'])
+            except OSError:
+                pass
+        raise
 
     job_data = {
-        'user_id': current_user.id,
         'course_id': course.id,
-        'file_id': file_id,
-        'file_name': file_name,
-        'mime_type': mime_type,
-        'resource_key': resource_key,
         'folder_id': folder_id,
         'title': title,
+        'description': description,
         'published': published,
         'allow_view': allow_view,
+        'files': staged,
     }
 
     from lms.job_manager import job_manager
-    job_type = 'picker_import_folder' if mime_type == 'application/vnd.google-apps.folder' else 'picker_import_file'
-    job_id = job_manager.queue_job(job_type, job_data)
+    job_id = job_manager.queue_job('bulk_upload_content', job_data)
 
     return jsonify({'success': True, 'job_id': job_id}), 202
 
 
-@api_bp.route('/picker-import/status/<job_id>', methods=['GET'])
+@api_bp.route('/course/<int:course_id>/upload-content/status/<job_id>', methods=['GET'])
 @login_required
-def picker_import_status(job_id):
-    """Poll side of the background Picker-import job queued by picker_import."""
+def upload_course_content_status(course_id, job_id):
+    """Poll side of the background upload job queued by upload_course_content."""
     from lms.job_manager import job_manager, JobStatus
     job = job_manager.get_job(job_id)
     job_data = job.data if job else None
-    if not job or job.type not in ('picker_import_file', 'picker_import_folder') \
-            or not job_data or job_data.get('user_id') != current_user.id:
+    if not job or job.type != 'bulk_upload_content' or not job_data or job_data.get('course_id') != course_id:
+        return jsonify({'error': 'Job not found'}), 404
+
+    from lms.models import Course
+    course = Course.query.get(course_id)
+    if not course or not course.is_managed_by(current_user):
         return jsonify({'error': 'Job not found'}), 404
 
     if job.status == JobStatus.COMPLETED:
         return jsonify({'success': True, 'status': 'completed', **(job.result or {})}), 200
     if job.status == JobStatus.FAILED:
-        return jsonify({'success': False, 'status': 'failed', 'error': job.error or 'Import failed.'}), 200
+        return jsonify({'success': False, 'status': 'failed', 'error': job.error or 'Upload failed.'}), 200
     return jsonify({'success': True, 'status': job.status}), 200
 
 
