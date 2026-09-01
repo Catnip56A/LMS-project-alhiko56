@@ -1,103 +1,90 @@
-# Session Handoff — 2026-08-31
+# Session Handoff — 2026-08-31 (cont.)
 
 ## Working on
-Three threads this session: (1) finishing the async/R2/Drive-removal roadmap, (2) a full
-forum rework (Phase 11 of `Docs/rework docs/development_checklist.md`), (3) session-continuity
-tooling (`/handoff`, SessionStart hook). All code is written and live-verified; **nothing from
-this session is committed yet**.
+Continuation of Phase 11 forum rework: chat UX polish plus a new file-attachment feature for
+forum/chat messages, including a security fix for how attachment URLs are exposed. Everything
+below is now committed (`f4adc56`, on top of `2d4ab1b`) — working tree is clean.
 
 ## Key decisions (with reasoning)
-- **Async conversion is mandatory, not optional**, for any request handler that would block a
-  gunicorn sync worker for real time — `WEB_CONCURRENCY=3`/`worker_class=sync` means 3
-  concurrent slow requests saturate the whole site. Ask AI and Picker/multi-file upload were
-  converted to RQ job+poll for this reason.
-- **PDFDocument removed entirely**, reversing an initial migrate-and-keep call — it had zero
-  reachable UI (only referenced from `index.html`, which nothing renders since the MoxoTest
-  route removal). User's own lesson: lead with "zero routes render it," not a softer framing,
-  when flagging a suspected-dead feature — that's what changed the answer.
-- **Picker-import-from-Drive removed too**, replaced by async multi-file upload, deliberately
-  **flat** (no subfolder-structure recreation) — user chose simplicity over rebuilding that
-  capability a different way (directory upload / ZIP extraction were discussed and declined).
-- **Forum rework: one unified system**, not three separate ones. `ForumChannel` gained
-  `channel_type` ('global'|'course'|'group'|'dm') + `course_id`; every message (global,
-  course, Group, DM) is the same `ForumMessage` row. Reasoning: pin/translate/delete/expire/
-  reply-UX get built once and work everywhere instead of three times.
-- **Group membership is per-group configurable** ('open' vs 'invite_only'), **retention is
-  per-channel configurable** (not one global setting) — both explicit user calls over simpler
-  single-policy alternatives.
-- **SessionEnd hook skipped, kept `/handoff` manual** — prompt/agent-type hooks (the kind that
-  can invoke the model) are documented as tool-event-only (PreToolUse/PostToolUse/
-  PermissionRequest), not available on SessionEnd. A `command`-hook workaround (shelling out to
-  `claude -p`) was floated and explicitly declined by the user — cost/recursion risk, unverifiable
-  from inside a turn. SessionStart hook (auto-loads this file) was built and kept.
+- **Never embed a raw presigned R2 URL in a bulk JSON API response.** The user caught this
+  themselves (`/api/forum/messages` was returning the full `*.r2.cloudflarestorage.com`
+  presigned link in `file_url`) — I hadn't flagged it proactively. Fixed by mirroring the
+  existing `/api/file/c/<id>/embed` pattern: a stable app-owned URL
+  (`serve_forum_attachment`, `GET /api/forum/messages/<id>/attachment`) that re-checks
+  `can_view_channel` on every hit before redirecting to a freshly-generated presigned URL.
+  **Standing rule for this codebase, not just this feature.**
+- **Address bar must never show the R2 host**, even via redirect. A same-origin in-app viewer
+  page (`view_forum_attachment`, `GET /api/file/f/<id>`) embeds the actual bytes one hop behind
+  itself via `<img>`/`<iframe>`/`<audio>`/`<video>` `src`, so a top-level navigation stays on
+  the app's own domain — same shape as the existing `/api/file/c/<id>` course-content viewer,
+  which the user explicitly pointed at as the pattern to match.
+- **Chat attachments stay synchronous**, capped at 25MB (`FORUM_ATTACHMENT_MAX_BYTES` in
+  `forum_service.py`) — deliberately tighter than the sitewide 500MB limit, since this is an
+  inline single-file upload in a request handler (same shape as `submit_assignment`), not the
+  batch/LibreOffice-conversion case that CLAUDE.md's async-conversion rule actually targets.
+- **One file column-set per message row**, not a separate attachments table — `r2_key` /
+  `file_mime_type` / `original_filename` added directly to `ForumMessage`, matching
+  `CourseAssignmentSubmission`'s existing one-file-per-row shape rather than introducing a new
+  join table for a feature that's one-file-per-message today.
+- **Failed attachment fetches show a friendly countdown page**, not a raw JSON error or generic
+  404 — `file_unavailable.html`, 15s auto-redirect. Redirect target is `request.referrer` only
+  if same-origin (`urlparse(ref).netloc == request.host`), else falls back to `main.index` —
+  open-redirect guard, not just a UX nicety.
+- **Authenticated users skip the "Your name" prompt** in channels that don't require login —
+  use `current_user.username` automatically instead of asking every time (explicit user
+  request, small UX papercut).
+- Zoom/full-view in the new attachment viewer were **ported in simplified form** from
+  `file_viewer.html`, deliberately excluding its anti-copy/watermark/moments-panel machinery —
+  out of scope for a chat attachment viewer.
 
 ## Current state
-- **Drive/R2**: `CourseContent` and `CourseAssignmentSubmission` are R2-only. `PDFDocument`
-  gone (model, routes, migration `c9d0e1f2a3b4`). Picker import gone (routes, job types,
-  frontend all deleted). Remaining Drive dependency is dormant only: `and not r2_key`-guarded
-  legacy-cleanup branches, the worker-account/Drive-Writer admin panels, `auth.link_google_account`
-  (confirmed redundant, not removed), and a separately-noticed likely-dead
-  `auth.google_callback` ("Sign in with Google" — no button links to it). None of this is
-  required for anything to work; it's optional future cleanup.
-- **Forum (Phase 11) — fully complete and live-verified**: course channels replace the old
-  Announcements tab (`CourseAnnouncement`/`CourseAnnouncementReply` migrated then dropped,
-  migrations `d0e1f2a3b4c5`/`e1f2a3b4c5d6`); moderator-created Groups (admin panel,
-  `has_perm('forum_management')`); private DMs (`/messages` page,
-  `forum_service.find_or_create_dm`); pin, per-message translate (reuses
-  `translation_service.get_translation` directly, no new persistence), soft-delete + moderator
-  hard-clear, time-based expiry sweep (`run_scheduled_forum_purge`, mirrors the conversation-purge
-  job shape); reply UX overhaul — WhatsApp-style linear default + Reddit-style toggle + "View
-  thread" for deep nesting, one shared component (`components/forum_ui.html`) used everywhere.
-  Two real bugs found and fixed live, not by inspection: `ForumMessage.channel` had no FK at
-  all (fixed to `channel_id`); a DB-level `ON DELETE CASCADE` alone wasn't enough — SQLAlchemy's
-  ORM nulls a loaded child's FK before the parent's DELETE fires, defeating the DB cascade,
-  fixed with `passive_deletes=True` on the `replies` relationship.
-- **Session tooling**: `.claude/commands/handoff.md` (this command) and
-  `.claude/settings.local.json` + `.claude/hooks/session_start_handoff.py` (SessionStart
-  auto-loads this file next session) are both in place. The SessionStart hook may need one
-  `/hooks` open or a fresh session to actually activate (settings watcher only watches dirs
-  that had a settings file when the current session started, and `settings.local.json` was
-  created mid-session).
-- Dead code removed alongside the forum work: `index.html` (whole file, confirmed zero routes
-  render it), `course_forum.html`, `course_messages.html` (a second, previously-unnoticed dead
-  template with the same broken `.order_by()`-on-`lazy='select'` bug as the first).
+- Forum toolbar (view-toggle, pinned-messages button, clear-channel) now sits above the
+  message list and compose form — no more scrolling to reach controls.
+- Reply "quote" preview is clickable — jumps to and highlights the original message
+  (`jumpToMessage()` in `forum_ui.html`, re-renders first if the target isn't in the current
+  view).
+- "View all pinned messages" toggle exists next to the thread-view switch.
+- File attachments work end-to-end: upload (multipart form + `validate_upload` content-sniffing)
+  → R2 storage (`build_forum_attachment_key`, channel-scoped) → serve via permission-checked
+  redirect → in-app viewer with zoom (0.5x–2.5x, images/PDF) and full-view (Fullscreen API,
+  images/PDF/video). Images render inline in the chat; other types show a download-style link.
+  Both point at `file_view_url` (viewer) not `file_url` (raw redirect) from the message list.
+- R2 cleanup wired into every message-deletion path: soft-delete, moderator hard-clear, and the
+  time-based expiry sweep (`purge_expired_channel_messages`) all call `r2_client.delete_object`
+  when a message has an `r2_key`.
+- Migration `ef25eadc107b` (add `r2_key`/`file_mime_type`/`original_filename` to
+  `forum_message`) applied via `just migrate`.
+- Lint clean (`uv run ruff check`) on all edited Python files as of the commit.
 
 ## Open questions
-- **`auth.link_google_account`** confirmed redundant (only callers are two links in
-  `google_account_info.html`, existed purely for Picker import's Drive access, which is gone)
-  — not removed yet, bundle into a future Drive-cleanup pass along with the worker/writer admin
-  panels and the dead `auth.google_callback` flow. Don't do any of this unilaterally.
-- **Two questions from the user, not yet clarified, saved to memory
-  (`pending_questions_2026_08_31`)**: "how do you store assets for sites in production env
-  vps" (likely wants this app's R2 architecture explained, not confirmed) and "GitHub +
-  license + Zenodo + ORCID combination" (reads as an academic-software-publishing question,
-  no prior context in this project — needs the user to say what project/scope this is about).
-- **What's next isn't chosen**: candidates are Phase 9 (admin panel rework), Phase 10 (real
-  email), Phase 12 (sitewide censoring — already fully planned, word-list-only, see memory
+Unchanged from the prior handoff, still not acted on:
+- `auth.link_google_account` confirmed redundant, not removed — bundle into a future
+  Drive-cleanup pass (worker/writer admin panels + dead `auth.google_callback` too). Don't do
+  unilaterally.
+- Two user questions saved to memory (`pending_questions_2026_08_31`), still unclarified: VPS
+  asset-storage question, and a GitHub/license/Zenodo/ORCID combination question with no known
+  project scope yet.
+- **What's next isn't chosen**: Phase 9 (admin panel rework), Phase 10 (real email), Phase 12
+  (sitewide word-list censoring — fully planned already, see
   `lms_forum_censoring_analytics_plan`), Phase 13 (analytics), or the dormant Drive-cleanup
-  items above. Also: none of this session's work is committed — that's likely the actual
-  immediate next action regardless of which phase comes after.
+  items above.
+- Pre-existing, noted but explicitly out-of-scope: `home.html` (replacement for deleted
+  `index.html`) never reads the `?error=` query param that `serve_file`/
+  `download_content_by_db_id` rely on for error flashes — those redirects silently drop their
+  message today. Not fixed this session.
 
 ## Files changed
-Everything uncommitted right now spans two feature arcs:
-- **Async/R2/Drive**: `lms/routes/api.py`, `lms/routes/__init__.py`, `lms/job_manager.py`,
-  `lms/admin/__init__.py`, `lms/models/__init__.py` (PDFDocument removed), `lms/data_export.py`,
-  migration `c9d0e1f2a3b4` (drop pdf_document) — from earlier in the session, likely already
-  committed separately before the forum work started (check `git log` — this section is a
-  content pointer, not a certainty, since nothing was verified committed as of this handoff).
-- **Forum rework**: same core files above (`api.py`/`routes/__init__.py`/`job_manager.py`/
-  `admin/__init__.py`/`models/__init__.py`/`data_export.py`/`worker.py`) plus new
-  `lms/forum_service.py`, new `lms/templates/components/forum_ui.html`, new
-  `lms/templates/messages.html`, `lms/templates/forum.html` rewritten, the Announcements tab
-  in `lms/templates/course_page_enrolled.html` rewritten, `lms/templates/components/navbar.html`
-  (Messages link), deleted `index.html`/`course_forum.html`/`course_messages.html`, new
-  migrations `d0e1f2a3b4c5`/`e1f2a3b4c5d6`.
-- **Tooling**: new `.claude/commands/handoff.md`, `.claude/hooks/session_start_handoff.py`,
-  `.claude/settings.local.json` (gitignored, not part of any commit).
-- Full picture is in `git status`/`git diff --stat`, not repeated here.
+All committed in `f4adc56`. New: `lms/templates/file_unavailable.html`,
+`lms/templates/forum_attachment_viewer.html`, migration
+`20260831_1110_ef25eadc107b_message_add_forum_message_file_...`. Modified: `lms/models/__init__.py`
+(new `ForumMessage` columns), `lms/r2_client.py` (`build_forum_attachment_key`),
+`lms/forum_service.py` (`FORUM_ATTACHMENT_MAX_BYTES`, R2 cleanup in purge), `lms/routes/api.py`
+(serialize changes, `_render_file_unavailable`, `serve_forum_attachment`,
+`view_forum_attachment`, rewritten `post_forum_message`, R2 cleanup in delete/clear routes),
+`lms/templates/components/forum_ui.html` (toolbar reflow, clickable quote, pinned view,
+username-skip, file-attach UI + rendering).
 
 ## Next step
-Ask the user: commit the current work first (a name was already proposed earlier in the
-session — check the conversation, not repeated here since this file is meant to survive
-compaction, not restate it), then pick the next roadmap item from the "what's next isn't
-chosen" list above. Don't assume which one without asking.
+Nothing blocking — work is committed and verified. Ask the user which roadmap item to pick up
+next (see "what's next isn't chosen" above), or whether to tackle one of the two unclarified
+questions from `pending_questions_2026_08_31` first.

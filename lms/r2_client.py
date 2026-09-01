@@ -14,10 +14,14 @@ only exist in the production bucket, and without this fallback that content woul
 locally until re-uploaded. generate_presigned_url() and download_file() both fall back to
 it automatically when the primary bucket doesn't have the object.
 """
+import hashlib
+import hmac
 import logging
 import os
+import time
 import uuid
 from datetime import datetime
+from urllib.parse import quote
 
 import boto3
 from botocore.client import Config as BotoConfig
@@ -27,6 +31,7 @@ from werkzeug.utils import secure_filename
 logger = logging.getLogger(__name__)
 
 DEFAULT_URL_EXPIRY_SECONDS = 21600  # 6h
+WORKER_URL_EXPIRY_SECONDS = 60  # short-lived signed token for the Cloudflare Worker proxy
 
 _client_cache = {}
 
@@ -217,6 +222,52 @@ def generate_presigned_url(key: str, expires_in: int | None = None, disposition:
     if client is None and upstream is None:
         logger.error('R2 not configured; cannot generate_presigned_url')
     return None
+
+
+def _worker_base_url() -> str | None:
+    return _env('R2_WORKER_URL') or None
+
+
+def _worker_secret() -> str | None:
+    return _env('R2_WORKER_SIGNING_SECRET') or None
+
+
+def generate_worker_url(key: str, *, download: bool = False, filename: str | None = None, expires_in: int | None = None) -> str | None:
+    """Sign a short-lived URL for the Cloudflare Worker fronting R2 (see workers/file-proxy/).
+
+    Unlike generate_presigned_url (a raw AWS SigV4 bearer URL good for hours, and one that
+    reveals the R2 host to the client), this token is valid for `expires_in` seconds only —
+    the Worker validates the HMAC then streams the object itself, so the R2 host/credentials
+    never reach the browser. Returns None if the worker isn't configured, so callers should
+    fall back to generate_presigned_url in that case (see get_media_url).
+    """
+    base = _worker_base_url()
+    secret = _worker_secret()
+    if not base or not secret:
+        return None
+    exp = int(time.time()) + (expires_in or WORKER_URL_EXPIRY_SECONDS)
+    dl = '1' if download else '0'
+    fname = filename or ''
+    message = f'{key}:{exp}:{dl}:{fname}'
+    sig = hmac.new(secret.encode(), message.encode(), hashlib.sha256).hexdigest()
+    query = f'exp={exp}&sig={sig}&dl={dl}'
+    if fname:
+        query += f'&filename={quote(fname)}'
+    return f'{base.rstrip("/")}/{quote(key)}?{query}'
+
+
+def get_media_url(key: str, *, download: bool = False, filename: str | None = None, disposition: str | None = None) -> str | None:
+    """Preferred way to hand a client a URL for an R2 object's bytes: the signed Worker proxy
+    when configured, else a plain presigned URL (also the fallback for anything only present
+    in the upstream/prod bucket — see module docstring — since the Worker only binds the
+    primary bucket). `disposition` is only used on the presigned-URL fallback path; the Worker
+    derives its own Content-Disposition from `download`/`filename` instead.
+    """
+    if object_exists(key):
+        worker_url = generate_worker_url(key, download=download, filename=filename)
+        if worker_url:
+            return worker_url
+    return generate_presigned_url(key, disposition=disposition)
 
 
 def delete_object(key: str) -> bool:

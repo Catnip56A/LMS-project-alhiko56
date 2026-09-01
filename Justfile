@@ -278,3 +278,14 @@ ui-assets-pull:
     docker cp "$cid:/assets/." static/permanent/UI/
     docker rm "$cid" > /dev/null
     echo "Synced into static/permanent/UI/"
+
+# Deploy the Cloudflare Worker that fronts R2 with signed short-lived URLs (see
+# workers/file-proxy/). Needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID in .env — `just`'s
+# dotenv-load (top of this file) exports them automatically, so wrangler picks them up with no
+# extra export step.
+deploy-worker:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    : "${CLOUDFLARE_API_TOKEN:?set CLOUDFLARE_API_TOKEN in .env}"
+    : "${CLOUDFLARE_ACCOUNT_ID:?set CLOUDFLARE_ACCOUNT_ID in .env}"
+    cd workers/file-proxy && npx wrangler deploy

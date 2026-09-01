@@ -1,0 +1,9 @@
+name = "lms-file-proxy"
+main = "src/index.js"
+compatibility_date = "2026-08-31"
+
+# Bind to the same R2 bucket the app writes to (must match R2_BUCKET_NAME in .env for the
+# environment you're deploying this against — dev/staging/prod may use different buckets).
+[[r2_buckets]]
+binding = "FILES_BUCKET"
+bucket_name = "increment-lms"

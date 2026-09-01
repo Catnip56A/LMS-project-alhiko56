@@ -15,17 +15,23 @@ import tempfile
 
 logger = logging.getLogger(__name__)
 
-# Every Office MIME this app accepts on upload (see upload_validation.ALLOWED_MIME_TYPES) that
-# has no native browser renderer — legacy binary formats included, since LibreOffice converts
-# those to PDF just as well as the modern XML-based ones.
+# Excel specifically gets an interactive table view instead of a flat PDF (Phase 8) — see
+# file_viewer.html's 'spreadsheet' file_type, which parses the raw bytes client-side via
+# SheetJS rather than using the PDF preview these MIMEs would otherwise get below.
+SPREADSHEET_MIME_TYPES = {
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+}
+
+# Every other Office MIME this app accepts on upload (see upload_validation.ALLOWED_MIME_TYPES)
+# that has no native browser renderer — legacy binary formats included, since LibreOffice
+# converts those to PDF just as well as the modern XML-based ones.
 OFFICE_MIME_TYPES = {
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-}
+} | SPREADSHEET_MIME_TYPES
 
 _CONVERT_TIMEOUT_SECONDS = 120
 

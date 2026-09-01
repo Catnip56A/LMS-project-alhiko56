@@ -152,6 +152,57 @@
         margin-bottom: 20px;
         color: #dee2e6;
     }
+    .spreadsheet-viewer {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+    }
+    .spreadsheet-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 8px;
+        background: #f1f3f5;
+        border-bottom: 1px solid #ddd;
+    }
+    .spreadsheet-tab {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 4px 12px;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+    .spreadsheet-tab.active {
+        background: #337a2c;
+        color: #fff;
+        border-color: #337a2c;
+    }
+    .spreadsheet-table-container {
+        flex: 1;
+        overflow: auto;
+        padding: 10px;
+    }
+    .spreadsheet-table-container table {
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+    .spreadsheet-table-container table td,
+    .spreadsheet-table-container table th {
+        border: 1px solid #ddd;
+        padding: 4px 8px;
+        white-space: nowrap;
+    }
+    .spreadsheet-status {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #6c757d;
+    }
     .moments-panel {
         margin-top: 16px;
         border: 1px solid #ddd;
@@ -331,6 +382,22 @@
                     <h4>Preview Not Available</h4>
                     <p>This file type cannot be previewed in the browser.</p>
                     <p class="text-muted">Contact your instructor if you need access to this file.</p>
+                </div>
+            {% elif file_type == 'spreadsheet' %}
+                {# Parses the real .xlsx/.xls bytes client-side via SheetJS rather than using
+                   the flat LibreOffice-converted PDF preview every other Office format gets —
+                   a spreadsheet's actual value is in its scrollable/sortable cell grid, which a
+                   PDF snapshot flattens away. `raw=1` on the embed URL skips that PDF
+                   substitution (see _content_media_url's `raw` param) and returns the original
+                   file bytes instead. #}
+                <div class="spreadsheet-viewer" id="spreadsheet-viewer">
+                    <div class="spreadsheet-tabs" id="spreadsheet-tabs" style="display:none;"></div>
+                    <div class="spreadsheet-table-container" id="spreadsheet-table-container">
+                        <div class="spreadsheet-status" id="spreadsheet-status">
+                            <i class="fa fa-spinner fa-spin" style="font-size:40px; margin-bottom:16px;"></i>
+                            <p>Loading spreadsheet…</p>
+                        </div>
+                    </div>
                 </div>
             {% else %}
                 {# Default: PDF, documents, presentations, spreadsheets. No `sandbox` attribute
@@ -658,6 +725,225 @@
         zoom = 1.0;
         apply();
     });
+})();
+</script>
+{% endif %}
+
+{% if file_type == 'spreadsheet' %}
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function() {
+    'use strict';
+    var statusEl = document.getElementById('spreadsheet-status');
+    var tabsEl = document.getElementById('spreadsheet-tabs');
+    var tableContainer = document.getElementById('spreadsheet-table-container');
+    if (!statusEl || !tabsEl || !tableContainer) return;
+
+    var workbook = null;
+    var ooxmlStyles = null; // see loadOoxmlStyles — null if parsing failed, fill-color-only still works
+
+    // SheetJS's own sheet_to_html() renders plain, unstyled markup, and cellStyles:true on
+    // XLSX.read only exposes fill color (confirmed by inspecting its actual parsed output —
+    // font bold/italic/color and alignment are silently dropped even when the file has them;
+    // full style rendering is a SheetJS Pro feature). Bold/color/alignment are recovered here
+    // by separately unzipping the same .xlsx (it's just a zip of XML files) with JSZip and
+    // reading xl/styles.xml + the worksheet XML directly — entirely client-side, no server
+    // cost, no paid library. Cell text always goes through escapeHtml — it's user-uploaded
+    // spreadsheet content, so this can't use innerHTML with raw values (same rule as the forum
+    // XSS fix elsewhere in this app).
+    function argbToCss(argb) {
+        if (!argb || argb.length < 6) return null;
+        // ARGB (8 hex chars, alpha first) or plain RGB (6 chars) — either way the last 6
+        // chars are the color; the alpha byte isn't real per-cell opacity here.
+        return '#' + argb.slice(-6);
+    }
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // Parses xl/styles.xml (fonts + cellXfs) and, per sheet, the raw worksheet XML's per-cell
+    // style index (the `s="N"` attribute SheetJS's own `.s` object doesn't expose) — verified
+    // against a real openpyxl-generated file's actual XML, not assumed from docs.
+    async function loadOoxmlStyles(arrayBuffer) {
+        try {
+            var zip = await JSZip.loadAsync(arrayBuffer);
+            var parser = new DOMParser();
+
+            var stylesDoc = parser.parseFromString(await zip.file('xl/styles.xml').async('text'), 'application/xml');
+            var fonts = Array.prototype.map.call(stylesDoc.querySelectorAll('fonts > font'), function(f) {
+                var colorEl = f.querySelector('color');
+                var szEl = f.querySelector('sz');
+                return {
+                    bold: !!f.querySelector('b'),
+                    italic: !!f.querySelector('i'),
+                    color: colorEl && colorEl.getAttribute('rgb') ? argbToCss(colorEl.getAttribute('rgb')) : null,
+                    sz: szEl ? szEl.getAttribute('val') : null,
+                };
+            });
+            var xfs = Array.prototype.map.call(stylesDoc.querySelectorAll('cellXfs > xf'), function(xf) {
+                var alignEl = xf.querySelector('alignment');
+                return {
+                    fontId: parseInt(xf.getAttribute('fontId') || '0', 10),
+                    horizontal: alignEl ? alignEl.getAttribute('horizontal') : null,
+                };
+            });
+
+            // Sheet name -> real worksheet XML path, via workbook.xml + its rels — declaration
+            // order doesn't always match sheetN.xml numbering (e.g. after manually reordering
+            // tabs in Excel), so this resolves it properly rather than assuming sheet1.xml is
+            // the first tab.
+            var workbookDoc = parser.parseFromString(await zip.file('xl/workbook.xml').async('text'), 'application/xml');
+            var relsDoc = parser.parseFromString(await zip.file('xl/_rels/workbook.xml.rels').async('text'), 'application/xml');
+            var ridToTarget = {};
+            Array.prototype.forEach.call(relsDoc.querySelectorAll('Relationship'), function(rel) {
+                ridToTarget[rel.getAttribute('Id')] = rel.getAttribute('Target');
+            });
+
+            var sheetCellStyles = {};
+            var sheetEls = workbookDoc.querySelectorAll('sheets > sheet');
+            for (var i = 0; i < sheetEls.length; i++) {
+                var sheetEl = sheetEls[i];
+                var name = sheetEl.getAttribute('name');
+                var rid = sheetEl.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id')
+                    || sheetEl.getAttribute('r:id');
+                var target = ridToTarget[rid];
+                if (!target) continue;
+                var path = target.indexOf('/') === 0 ? target.slice(1) : 'xl/' + target;
+                var sheetFile = zip.file(path);
+                if (!sheetFile) continue;
+                var sheetDoc = parser.parseFromString(await sheetFile.async('text'), 'application/xml');
+                var map = {};
+                Array.prototype.forEach.call(sheetDoc.querySelectorAll('c[s]'), function(c) {
+                    map[c.getAttribute('r')] = parseInt(c.getAttribute('s'), 10);
+                });
+                sheetCellStyles[name] = map;
+            }
+
+            return { fonts: fonts, xfs: xfs, sheetCellStyles: sheetCellStyles };
+        } catch (err) {
+            console.warn('OOXML style parse failed, falling back to fill-color-only styling:', err);
+            return null;
+        }
+    }
+
+    function extraStyleForCell(sheetName, addr) {
+        if (!ooxmlStyles) return null;
+        var idx = (ooxmlStyles.sheetCellStyles[sheetName] || {})[addr];
+        if (idx === undefined) return null;
+        var xf = ooxmlStyles.xfs[idx];
+        if (!xf) return null;
+        var font = ooxmlStyles.fonts[xf.fontId] || {};
+        return { bold: font.bold, italic: font.italic, color: font.color, sz: font.sz, align: xf.horizontal };
+    }
+
+    function cellStyleAttr(cell, extra) {
+        var css = [];
+        if (cell && cell.s && cell.s.fgColor) {
+            var bg = argbToCss(cell.s.fgColor.rgb);
+            if (bg) css.push('background-color:' + bg);
+        }
+        if (extra) {
+            if (extra.bold) css.push('font-weight:bold');
+            if (extra.italic) css.push('font-style:italic');
+            if (extra.color) css.push('color:' + extra.color);
+            if (extra.sz) css.push('font-size:' + extra.sz + 'pt');
+            if (extra.align) css.push('text-align:' + extra.align);
+        }
+        return css.length ? ' style="' + css.join(';') + '"' : '';
+    }
+
+    function buildTable(sheet, sheetName) {
+        var ref = sheet['!ref'];
+        if (!ref) return '<p class="text-muted">Empty sheet</p>';
+        var range = XLSX.utils.decode_range(ref);
+        var merges = sheet['!merges'] || [];
+
+        // Merged cells: track which cell "owns" the merge (gets the rowspan/colspan) vs.
+        // which covered cells to skip entirely, so the grid doesn't duplicate the value.
+        var mergeOrigin = {};
+        var mergeSkip = {};
+        merges.forEach(function(m) {
+            mergeOrigin[m.s.r + ',' + m.s.c] = { rowspan: m.e.r - m.s.r + 1, colspan: m.e.c - m.s.c + 1 };
+            for (var r = m.s.r; r <= m.e.r; r++) {
+                for (var c = m.s.c; c <= m.e.c; c++) {
+                    if (r !== m.s.r || c !== m.s.c) mergeSkip[r + ',' + c] = true;
+                }
+            }
+        });
+
+        var html = '<table>';
+        for (var r = range.s.r; r <= range.e.r; r++) {
+            html += '<tr>';
+            for (var c = range.s.c; c <= range.e.c; c++) {
+                var key = r + ',' + c;
+                if (mergeSkip[key]) continue;
+                var addr = XLSX.utils.encode_cell({ r: r, c: c });
+                var cell = sheet[addr];
+                // .w is the already-formatted display text (Excel number/date format applied
+                // during parsing, e.g. "$1,234.56") — prefer it over the raw .v value.
+                var text = cell ? (cell.w !== undefined ? cell.w : (cell.v !== undefined ? cell.v : '')) : '';
+                var attrs = cellStyleAttr(cell, extraStyleForCell(sheetName, addr));
+                var span = mergeOrigin[key];
+                if (span) {
+                    if (span.rowspan > 1) attrs += ' rowspan="' + span.rowspan + '"';
+                    if (span.colspan > 1) attrs += ' colspan="' + span.colspan + '"';
+                }
+                html += '<td' + attrs + '>' + escapeHtml(text) + '</td>';
+            }
+            html += '</tr>';
+        }
+        return html + '</table>';
+    }
+
+    function showSheet(name) {
+        var sheet = workbook.Sheets[name];
+        tableContainer.innerHTML = buildTable(sheet, name);
+        Array.prototype.forEach.call(tabsEl.children, function(tab) {
+            tab.classList.toggle('active', tab.dataset.sheet === name);
+        });
+    }
+
+    function renderTabs() {
+        tabsEl.innerHTML = '';
+        if (workbook.SheetNames.length <= 1) return;
+        tabsEl.style.display = 'flex';
+        workbook.SheetNames.forEach(function(name) {
+            var tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className = 'spreadsheet-tab';
+            tab.textContent = name;
+            tab.dataset.sheet = name;
+            tab.addEventListener('click', function() { showSheet(name); });
+            tabsEl.appendChild(tab);
+        });
+    }
+
+    fetch('/api/file/c/{{ content_id }}/embed?raw=1')
+        .then(function(resp) {
+            if (!resp.ok) throw new Error('Failed to load file (' + resp.status + ')');
+            return resp.arrayBuffer();
+        })
+        .then(async function(buffer) {
+            workbook = XLSX.read(buffer, { type: 'array', cellStyles: true });
+            if (!workbook.SheetNames.length) throw new Error('No sheets found in this file');
+            ooxmlStyles = await loadOoxmlStyles(buffer);
+            renderTabs();
+            showSheet(workbook.SheetNames[0]);
+        })
+        .catch(function(err) {
+            tableContainer.innerHTML = '';
+            tableContainer.appendChild(statusEl);
+            statusEl.innerHTML =
+                '<i class="fa fa-exclamation-triangle" style="font-size:40px; margin-bottom:16px; color:#dee2e6;"></i>' +
+                '<p>Could not preview this spreadsheet.</p>' +
+                '<p class="text-muted" style="font-size:0.85rem;">' + err.message + '</p>';
+        });
 })();
 </script>
 {% endif %}

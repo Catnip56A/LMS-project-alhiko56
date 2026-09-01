@@ -1684,15 +1684,121 @@ SSRF in the Drive download (hardcoded host, `file_id` passed as a query param).
 
 ## Phase 7 — AI audio overview
 
-- [ ] Single-narrator spoken summary (summarization pipeline + TTS step)
-- [ ] Two-host conversational format (only after single-narrator works)
+**Resolved 2026-09-01 — already done, as of Phase 6, no new work needed.** The original
+wording here ("single-narrator spoken summary + TTS step... requires ElevenLabs") described
+generating brand-new spoken audio from text — a NotebookLM-style podcast feature. That's a
+literal reading that turned out not to match the actual intent: "audio overview" meant
+treating an *uploaded audio file* the same way video is already treated — transcribed and made
+searchable/citable through Ask AI — not synthesizing new narration.
 
-*(Requires the ElevenLabs API key in `setup_checklist.md` Phase 7 first.)*
+That was already built. Verified by re-reading `rag_service.py`: `extract_text_for_content()`
+routes any `content_type='video'` item through `transcribe_video_segments()`, and that
+function's mime check explicitly accepts `audio/*` alongside `video/*` — same Whisper
+transcription, same timestamped chunks, same `ContentEmbedding` rows, same Ask AI citations.
+There's even a self-healing branch (`_extract_drive_file_text`) that catches an audio file
+mis-typed as `content_type='file'` and transcribes it anyway. Confirmed live for the video
+case (a real test video has 10 embedded chunks); no real standalone audio file exists in the
+dev DB yet to click through the identical path with, but it's the same code, not a parallel
+implementation that could drift.
+
+A short-lived attempt was made to build the literal TTS-podcast reading of this phase
+(`CourseAudioOverview` model/migration, `lms/elevenlabs_client.py`,
+`lms/audio_overview_service.py`, a `generate_audio_overview` job type, 4 new routes, a new
+course-page tab) before this was caught and corrected — fully reverted (migration downgraded
+and deleted, all new files removed, all call sites/UI stripped back out), confirmed via `grep`
+returning zero remaining references and a clean app boot (165 routes, `200` on `/`) afterward.
+Also surfaced along the way, for whoever revisits real TTS narration later: ElevenLabs' free
+tier returns `402 Payment Required` ("Free users cannot use library voices via the API") for
+any of the premade/shared voices — only a voice already in the account's own "My Voices" works
+on the free API tier, which may mean this specific approach needs a paid plan regardless of
+which SDK/library wraps it.
 
 ## Phase 8 — Office file preview
 
-- [ ] Excel -> SheetJS (xlsx) + Univer
-- [ ] Word/PDF/Powerpoint -> Libreoffice conversion to PDF(if not pdf already) and iframe later
+- [x] **Word/PDF/PowerPoint → LibreOffice conversion to PDF + iframe.** Turned out already
+  done, from earlier work (`lms/office_preview.py`, wired into both `job_manager.py`'s bulk
+  upload and `routes/__init__.py`'s submission upload) — confirmed live via two real `.docx`
+  rows in the dev DB with a genuine generated `r2_preview_key` PDF each.
+- [x] **Excel → interactive table (SheetJS), done 2026-09-01.** Univer was evaluated and
+  dropped: its own docs say full-fidelity frontend-only import may need Univer's own backend
+  service, and two official doc pages gave two different method names for the same
+  operation — too unreliable to build against without hands-on access to a working example.
+  Went with SheetJS alone instead (stable, MIT-licensed, well-documented): `.xls`/`.xlsx` now
+  get a distinct `file_type='spreadsheet'` in `file_viewer.html` — tabs per sheet, each
+  rendered as a real scrollable HTML table (`XLSX.utils.sheet_to_html`) — instead of the flat
+  PDF snapshot every other Office format gets. Not a full spreadsheet app (no cell
+  editing/formulas UI), but shows real cell values, not a flattened image.
+  - New `_content_media_url(..., raw=True)` / `/api/file/c/<id>/embed?raw=1` bypasses the
+    Office-preview-PDF substitution so the viewer can fetch the actual `.xlsx` bytes
+    client-side instead of a converted PDF.
+  - **Real bug caught only by browser testing, not curl/test-client**: the viewer's `fetch()`
+    call (needed to get an ArrayBuffer for SheetJS) hit a CORS block — the Cloudflare Worker
+    file-proxy (see Phase 7-adjacent security work above) never sent
+    `Access-Control-Allow-Origin`, which `<img>/<iframe>/<video> src` embeds never need but a
+    same-page `fetch()` reading a cross-origin response does. Fixed by adding permissive CORS
+    headers to every Worker response (`workers/file-proxy/src/index.js`) — safe here since the
+    URL's own HMAC signature + ~60s expiry is the real access control, not the requesting
+    origin.
+  - Added `just deploy-worker` (reads `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` from
+    `.env` via `just`'s existing dotenv-load) so redeploying the Worker after an edit is one
+    command instead of a manual `export`+`wrangler deploy` dance — needed repeatedly during
+    this same session.
+  - **Verified live with a real Playwright browser** (not just HTTP-level checks): logged in
+    as a real admin, uploaded a real 2-sheet `.xlsx` (openpyxl-generated, real data), loaded
+    the viewer page, confirmed both sheet tabs render, confirmed the active tab's table
+    contains the real cell values (`Alice`, `92`, etc.), confirmed switching tabs correctly
+    swaps the rendered table, and confirmed via screenshot the page looks correct. Test
+    content/R2 object deleted afterward.
+
+### Phase 8 addendum — real Excel upload failure, root-caused (2026-09-01)
+
+User reported a real `.xlsx` upload failing through the actual app UI (not my test scripts).
+Root cause was **pre-existing, unrelated to the SheetJS work above** — a latent bug in the
+async `bulk_upload_content` job (built earlier, part of the R2/async-conversion work), that
+just happened to surface now: `upload_course_content` (`routes/api.py`) staged the file and
+recorded its **absolute path** in the job's `data`, which a worker in a different process
+reads back later. `just dev` (host process) resolves `UPLOAD_STAGING_DIR` to a real host path;
+Docker's `worker-dev` (the only worker actually running, connected to the same shared Redis
+queue per this app's documented dual-server setup) resolves it to `/app/data/upload-staging`
+— same bind-mounted directory underneath, but a different path *string*, so a path baked in by
+one side is meaningless to the other. Whichever side didn't stage the file got
+`FileNotFoundError` → `staged file missing`. This wasn't Excel-specific — it would hit **any**
+bulk upload through `:5000` while Docker's worker is the one consuming the queue.
+
+Fixed by storing just the filename in job data (not a full path) and having the job resolve
+it against its own local `UPLOAD_STAGING_DIR` at read time (`_execute_bulk_upload_content_job`,
+`job_manager.py`) — portable regardless of which process staged vs. consumes it. Verified live
+end-to-end with a real Playwright browser session against the actual `:5000` `just dev` server
+(reproducing the exact failure conditions): real login, real multipart upload, job queued,
+Docker's `worker-dev` picked it up and completed it successfully (`created: 1, failed: 0`).
+Cleaned up the two stale failed `BackgroundJob` rows and orphaned staged files left over from
+the original failed attempts.
+
+### Phase 8 addendum — full Excel visual formatting (2026-09-01)
+
+User asked for visual formatting (colors/bold/alignment) on top of the plain table above.
+Two paid dead ends investigated and ruled out first: (1) Univer, already ruled out in the main
+Phase 8 entry above; (2) Microsoft/Google's free online document viewers (`view.officeapps.live.com`
+et al.) would give perfect native rendering for free, but their own documentation confirms they
+**cache document content on the provider's servers for days** regardless of URL — a real privacy
+regression for private course material, directly against the point of this session's earlier
+signed-URL security work. Ruled out on that basis, not effort.
+
+Landed on a fully client-side, free, zero-server-cost approach instead: SheetJS's `cellStyles:
+true` only exposes cell **fill color** (confirmed by inspecting its actual parsed output
+directly — its own docs describe a `{fill:{fgColor}}`/`{font:{...}}` shape that turned out not
+to match reality; font bold/italic/color and alignment are silently absent even when the file
+has them, full style rendering being SheetJS Pro). Recovered the rest by separately unzipping
+the same `.xlsx` with JSZip (free, MIT, no server round-trip) and reading `xl/styles.xml` +
+each worksheet's raw per-cell style index directly — verified against a real generated file's
+actual XML before writing any parsing code, not assumed from docs. Sheet-name-to-XML-file
+resolution goes through `workbook.xml` + its `.rels` properly (not assumed sheet1.xml order),
+so a manually-reordered-tabs file still resolves correctly.
+
+**Verified live**: uploaded a real openpyxl file with a merged bold white-on-green header, a
+gray bold sub-header row, green bold text, and red italic text — every one of those rendered
+with the exact correct computed CSS (`getComputedStyle` checked in a real browser, not just
+DOM inspection). Test content/R2 objects deleted afterward.
 
 ## Phase 9 — Admin panel rework
 
@@ -1961,11 +2067,109 @@ real, already-collected per-timestamp engagement signal that no dashboard surfac
   (a spike is a signal worth surfacing on its own) and per-user block counts, to surface repeat
   offenders for admin action.
 
+## Phase 14 — Rubric-based grading
+
+Added to the roadmap 2026-08-31. Builds directly on the existing `CourseAssignment`/
+`CourseAssignmentSubmission` grading flow rather than introducing a parallel one — a rubric is
+a structured alternative to the current single freeform grade/feedback field, not a new
+grading surface.
+
+- [ ] `Rubric`/`RubricCriterion` models — teacher-authored, reusable across assignments in a
+  course (or scoped to one assignment, decide when scoped for real); each criterion has a
+  configurable set of levels/points (**"configurable options by users"** — the point/level
+  scheme itself is teacher-defined per rubric, not a fixed 4-point scale hardcoded by the app).
+- [ ] Rubric authoring UI (likely alongside the Phase 9 quiz-authoring UI work, same
+  "teacher builds structured grading criteria" shape).
+- [ ] Grading UI: replace/augment the current single grade field with a per-criterion
+  score picker when an assignment has a rubric attached; auto-sum to a total.
+- [ ] Student-facing: show the filled-out rubric breakdown alongside the grade, not just a
+  number — the whole point of a rubric is showing *why*.
+- [ ] Decide whether rubrics also apply to quiz short-answer manual review (Phase 1's
+  `quiz_review` flow) or stay assignment-only for this pass.
+
+## Phase 15 — Specializations / learning paths
+
+Added to the roadmap 2026-08-31. Bundles existing `Course` rows into an ordered track — no
+change to how an individual course works, this is a new grouping layer on top.
+
+- [ ] `Specialization`/`SpecializationCourse` models (ordered M2M between a track and its
+  member courses) — decide up front whether course order within a track is enforced
+  (must finish course N before N+1 unlocks) or purely organizational/display.
+- [ ] Enrollment model: joining a specialization enrolls the user in all of its courses (or
+  lazily enrolls as they progress, if order is enforced) — reuse the existing `Enrollment`
+  machinery rather than a parallel one.
+- [ ] Specialization landing page (progress across the whole track, not just one course) and
+  a completion certificate distinct from a single-course certificate.
+- [ ] Admin/teacher authoring UI to assemble a specialization from existing courses.
+- [ ] Discovery: surface specializations on the Home/Resources pages alongside standalone
+  public courses.
+
+## Phase 16 — Calendar
+
+Added to the roadmap 2026-08-31. Primarily a read view over deadline data that mostly already
+exists (`CourseAssignment.due_date`, quiz windows) rather than a new scheduling engine.
+
+- [ ] `CalendarEvent` model for things with no existing due-date column (course sessions,
+  manually added events) — decide if this is teacher-created only or also supports
+  personal/student-added events.
+- [ ] Calendar view aggregating: assignment due dates, quiz open/close windows, and any new
+  `CalendarEvent` rows, scoped to the user's enrolled courses.
+- [ ] Per-course calendar (teacher's view of just their course's schedule) and a personal
+  cross-course calendar (student's view across everything they're enrolled in).
+- [ ] Decide on reminder delivery — ties into Phase 10 (real email) if reminders should email;
+  in-app-only notification is a lighter first cut that doesn't block on Phase 10.
+- [ ] `.ics` export, if useful for syncing into a user's own calendar app.
+
+## Phase 17 — LTI (Learning Tools Interoperability)
+
+Added to the roadmap 2026-08-31, not yet scoped in depth. Lets external third-party tools
+(publisher content, proctoring, plagiarism checkers, etc.) plug into a course without custom
+per-tool integration code — this app would act as an **LTI Platform** (the LMS side), external
+tools as **LTI Tools**. Significant standards/security surface — expect this to need
+`/security-review` before shipping, per this app's own conventions for anything touching auth/
+OAuth.
+
+- [ ] Decide LTI version target: LTI 1.3 (current standard, OAuth2/JWT-based, requires a
+  registered key pair and a platform/tool registration flow) vs. legacy LTI 1.1 (OAuth 1.0a,
+  simpler but deprecated industry-wide) — LTI 1.3 is very likely the right call given anything
+  new should target it, but confirm before building against a dying spec.
+- [ ] Platform registration flow (tool consumer key/secret or JWT keys, deployment IDs).
+- [ ] Launch flow: course page surfaces an LTI tool as a content/tab type, POSTs a signed
+  launch request with user/course/role claims, tool redirects the student into its own UI.
+- [ ] Grade passback (LTI Advantage's Assignment and Grade Services) so an external tool's
+  score can land back on a `CourseAssignment`/grade record here, if in scope for this pass.
+- [ ] Decide how an LTI-backed activity fits into the existing folder-locking/gating and
+  analytics (Phase 13) machinery, since it's content this app doesn't fully control.
+
+## Phase 18 — Offline download (tentative — flagged "maybe" by design intent)
+
+Added to the roadmap 2026-08-31, priority genuinely uncertain — revisit before committing real
+build time. Worth flagging up front: this sits in direct tension with the existing content-
+protection posture (`file_viewer.html`'s anti-copy/watermark machinery, the whole point of
+routing every file through a permission-rechecking in-app viewer instead of a raw link — see
+the Cloudflare Worker file-proxy work). "Download for offline" is close to the opposite goal of
+"never let the raw file leave a controlled viewer." Needs an explicit decision on scope before
+any code: whole-course offline packages, or per-file download only for content already flagged
+`is_downloadable`?
+
+- [ ] Decide scope: extend the existing per-file `is_downloadable` flag (already used by
+  `download_content_by_db_id`) to a bulk "download this course for offline" action, vs. a
+  genuinely new offline-sync mechanism (service worker cache, a packaged export).
+- [ ] If bulk export: background job (Phase 3 queue) to zip a course's downloadable content,
+  served once via the same signed-URL pattern the R2 file-proxy already uses rather than a
+  raw static link.
+- [ ] Explicit call on whether protected (non-downloadable) content is ever included — default
+  should almost certainly be no, matching the existing per-file flag's intent.
+
 ---
 
 ## Backlog — noted for later (not scheduled to a specific phase yet)
 
-*(empty — everything previously here has been filed into Phase 0/1 above or into "Done" below)*
+- [ ] **Real-time collaborative editing** — added 2026-08-31, explicitly speculative ("maybe in
+  the future," not a committed phase). No concrete target surface chosen yet (course content
+  authoring? a shared document type? forum drafts?) — needs a scoping decision before it can
+  become a real phase, since the infrastructure cost (WebSocket transport, OT/CRDT conflict
+  resolution) varies enormously depending on the answer. Revisit once Phases 14-18 land.
 
 ## Done (pulled forward from backlog)
 

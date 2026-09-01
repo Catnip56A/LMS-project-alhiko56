@@ -367,7 +367,7 @@ def serve_forum_attachment(message_id):
 
     from lms import r2_client
     disposition = f'inline; filename="{message.original_filename}"' if message.original_filename else None
-    url = r2_client.generate_presigned_url(message.r2_key, disposition=disposition)
+    url = r2_client.get_media_url(message.r2_key, filename=message.original_filename, disposition=disposition)
     if not url:
         return _render_file_unavailable(_('This file could not be found in storage.'), 404)
     resp = redirect(url)
@@ -826,7 +826,7 @@ def set_user_language():
         'preferred_language': current_user.preferred_language
     })
 
-def _content_media_url(content, *, download=False):
+def _content_media_url(content, *, download=False, raw=False):
     """Resolve the URL a client should be redirected to for a CourseContent item's bytes.
 
     R2 wins when content.r2_key is set (see CourseContent.storage_backend); Drive's
@@ -840,14 +840,19 @@ def _content_media_url(content, *, download=False):
     with a generated r2_preview_key is served as that converted PDF instead of the raw
     original — browsers have no native renderer for Office formats (see
     lms/office_preview.py). Downloads always get the original file, never the converted copy.
+
+    `raw=True` skips the PDF-preview substitution even when embedding — used by the
+    spreadsheet viewer (Phase 8), which parses the real .xlsx bytes client-side (SheetJS)
+    rather than showing a flattened PDF snapshot.
     """
     from lms import r2_client
 
-    if not download and content.r2_preview_key:
-        return r2_client.generate_presigned_url(content.r2_preview_key)
+    if not download and not raw and content.r2_preview_key:
+        return r2_client.get_media_url(content.r2_preview_key)
 
     if content.r2_key:
         disposition = None
+        original_name = None
         if download:
             # The key's basename is a fixed-width 32-hex-char uuid, a dash, then the
             # original filename (which may itself contain dashes) — see
@@ -856,7 +861,7 @@ def _content_media_url(content, *, download=False):
             basename = content.r2_key.rsplit('/', 1)[-1]
             original_name = basename[33:] if len(basename) > 33 and basename[32] == '-' else (content.title or 'download')
             disposition = f'attachment; filename="{original_name}"'
-        return r2_client.generate_presigned_url(content.r2_key, disposition=disposition)
+        return r2_client.get_media_url(content.r2_key, download=download, filename=original_name, disposition=disposition)
 
     if content.drive_file_id:
         file_id = content.drive_file_id
@@ -882,17 +887,18 @@ def _r2_or_drive_media_url(*, r2_key, drive_file_id, fallback_name=None, downloa
     from lms import r2_client
 
     if not download and r2_preview_key:
-        return r2_client.generate_presigned_url(r2_preview_key)
+        return r2_client.get_media_url(r2_preview_key)
 
     if r2_key:
         disposition = None
+        original_name = None
         if download:
             # Same key shape as CourseContent's (r2_client.build_content_key) — see
             # _content_media_url's comment for why this slices rather than splits on '-'.
             basename = r2_key.rsplit('/', 1)[-1]
             original_name = basename[33:] if len(basename) > 33 and basename[32] == '-' else (fallback_name or 'download')
             disposition = f'attachment; filename="{original_name}"'
-        return r2_client.generate_presigned_url(r2_key, disposition=disposition)
+        return r2_client.get_media_url(r2_key, download=download, filename=original_name, disposition=disposition)
 
     if drive_file_id:
         if download:
@@ -903,29 +909,35 @@ def _r2_or_drive_media_url(*, r2_key, drive_file_id, fallback_name=None, downloa
 
 
 @api_bp.route('/file/s/<int:submission_id>')
-@login_required
 def serve_submission_by_db_id(submission_id):
     """Serve an assignment submission by its database ID — the R2-aware sibling of serve_file
     for CourseAssignmentSubmission, needed because an R2-only row (submitted after the R2
     migration) has no drive_file_id for serve_file's URL scheme to key off, mirroring why
-    serve_content_by_db_id exists for CourseContent."""
+    serve_content_by_db_id exists for CourseContent.
+
+    Deliberately skips @login_required — see serve_content_embed's docstring for why every
+    failure mode here uses the friendly countdown-redirect page instead."""
     from lms.models import CourseAssignmentSubmission
+    from flask_babel import _
+
+    if not current_user.is_authenticated:
+        return _render_file_unavailable(_('Please log in to view this file.'), 401)
 
     submission = CourseAssignmentSubmission.query.get(submission_id)
     if not submission:
-        return redirect(url_for('main.index', error='file_not_found'))
+        return _render_file_unavailable(_('This file is no longer available.'), 404)
 
     course = submission.assignment.course if submission.assignment else None
-    is_owner = current_user.is_authenticated and submission.user_id == current_user.id
-    is_admin = current_user.is_authenticated and current_user.is_admin
+    is_owner = submission.user_id == current_user.id
+    is_admin = current_user.is_admin
     is_manager = course.is_managed_by(current_user) if course else False
     # Pre-existing permission shape, preserved as-is (not tightened or loosened here): a
     # submission with allow_others_to_view=True (the default set by submit_assignment) is
     # viewable by any authenticated user, not just the owner/course manager or classmates —
     # the legacy serve_file route already allowed exactly this for submissions.
     is_public = submission.allow_others_to_view
-    if not (is_owner or is_admin or is_manager or (is_public and current_user.is_authenticated)):
-        return redirect(url_for('main.index', error='auth_required'))
+    if not (is_owner or is_admin or is_manager or is_public):
+        return _render_file_unavailable(_("You don't have access to view this file."), 403)
 
     url = _r2_or_drive_media_url(
         r2_key=submission.r2_key,
@@ -933,17 +945,23 @@ def serve_submission_by_db_id(submission_id):
         drive_file_id=submission.drive_file_id,
     )
     if not url:
-        return redirect(url_for('main.index', error='file_not_found'))
+        return _render_file_unavailable(_('This file could not be found in storage.'), 404)
     return redirect(url)
 
 
 @api_bp.route('/file/<file_id>')
-@login_required
 def serve_file(file_id):
-    """Serve a Google Drive file after authentication"""
+    """Serve a Google Drive file after authentication.
+
+    Deliberately skips @login_required — see serve_content_embed's docstring for why every
+    failure mode here uses the friendly countdown-redirect page instead."""
     from lms.models import CourseAssignmentSubmission, CourseContent, Course
     from flask_login import current_user
     from flask import redirect, render_template, url_for
+    from flask_babel import _
+
+    if not current_user.is_authenticated:
+        return _render_file_unavailable(_('Please log in to view this file.'), 401)
 
     # Find the file in any of the models that store files
     submission = CourseAssignmentSubmission.query.filter_by(drive_file_id=file_id).first()
@@ -952,7 +970,7 @@ def serve_file(file_id):
     file_record = submission or course_content
 
     if not file_record:
-        return redirect(url_for('main.index', error='file_not_found'))
+        return _render_file_unavailable(_('This file is no longer available.'), 404)
 
     # Resolve the course this file belongs to, if any, for course-scoped manager rights
     resolved_course = None
@@ -963,15 +981,15 @@ def serve_file(file_id):
 
     # Determine ownership and permissions
     is_owner = False
-    is_admin = current_user.is_authenticated and current_user.is_admin
+    is_admin = current_user.is_admin
     is_manager = resolved_course.is_managed_by(current_user) if resolved_course else False
     is_public = getattr(file_record, 'allow_others_to_view', True)  # Default to True if field doesn't exist
 
     # Check ownership based on file type
     if hasattr(file_record, 'user_id'):
-        is_owner = current_user.is_authenticated and file_record.user_id == current_user.id
+        is_owner = file_record.user_id == current_user.id
     elif hasattr(file_record, 'uploaded_by'):
-        is_owner = current_user.is_authenticated and file_record.uploaded_by == current_user.id
+        is_owner = file_record.uploaded_by == current_user.id
 
     # Permission logic:
     # 1. Owner, admin, and the course's manager (teacher/creator) always have access
@@ -980,18 +998,14 @@ def serve_file(file_id):
 
     if not is_public:
         if not (is_owner or is_admin or is_manager):
-            return redirect(url_for('main.index', error='auth_required'))
+            return _render_file_unavailable(_("You don't have access to view this file."), 403)
     else:
         # For public course content, check enrollment
         if course_content:
-            if current_user.is_authenticated:
-                is_enrolled = resolved_course and current_user in resolved_course.users
+            is_enrolled = resolved_course and current_user in resolved_course.users
+            if not (is_owner or is_admin or is_manager or is_enrolled):
+                return _render_file_unavailable(_("You don't have access to view this file."), 403)
 
-                if not (is_owner or is_admin or is_manager or is_enrolled):
-                    return redirect(url_for('main.index', error='auth_required'))
-            else:
-                return redirect(url_for('main.index', error='auth_required'))
-    
     # For course content files, use the embedded viewer (no download)
     if course_content:
         file_title = course_content.title
@@ -1007,6 +1021,8 @@ def serve_file(file_id):
                 file_type = 'audio'
             elif any(ext in title_lower for ext in ['.mp4', '.webm', '.ogv', '.mov', '.avi']):
                 file_type = 'video'
+            elif any(ext in title_lower for ext in ['.xls', '.xlsx']):
+                file_type = 'spreadsheet'
             elif any(ext in title_lower for ext in ['.zip', '.rar', '.7z', '.tar', '.gz']):
                 file_type = 'unsupported'
         
@@ -1037,23 +1053,30 @@ def serve_file(file_id):
 
 
 @api_bp.route('/file/c/<int:content_id>')
-@login_required
 def serve_content_by_db_id(content_id):
-    """Serve course content by its database ID, hiding the Drive file ID from clients."""
+    """Serve course content by its database ID, hiding the Drive file ID from clients.
+
+    Deliberately skips @login_required — see serve_content_embed's docstring for why every
+    failure mode here uses the friendly countdown-redirect page instead."""
     from lms.models import CourseContent, Course
     from flask import render_template, redirect, url_for
+    from flask_babel import _
+    from lms import office_preview
+
+    if not current_user.is_authenticated:
+        return _render_file_unavailable(_('Please log in to view this file.'), 401)
 
     content = CourseContent.query.get(content_id)
     if not content:
-        return redirect(url_for('main.index', error='file_not_found'))
+        return _render_file_unavailable(_('This file is no longer available.'), 404)
 
     course = Course.query.get(content.course_id)
     is_manager = course.is_managed_by(current_user) if course else False
     is_enrolled = course and current_user in course.users
     if not (is_manager or is_enrolled):
-        return redirect(url_for('main.index', error='auth_required'))
+        return _render_file_unavailable(_("You don't have access to view this file."), 403)
     if not content.is_published and not is_manager:
-        return redirect(url_for('main.index', error='auth_required'))
+        return _render_file_unavailable(_("You don't have access to view this file."), 403)
 
     # 'video' is set by content-sniffing on upload/import (see upload_validation); it must
     # render in the in-app viewer like 'file' does, otherwise it falls through to a raw Drive
@@ -1069,6 +1092,8 @@ def serve_content_by_db_id(content_id):
                 file_type = 'audio'
             elif mime.startswith('image/'):
                 file_type = 'image'
+            elif mime in office_preview.SPREADSHEET_MIME_TYPES:
+                file_type = 'spreadsheet'
             elif mime in ('application/zip', 'application/x-rar-compressed', 'application/x-rar'):
                 file_type = 'unsupported'
             else:
@@ -1085,6 +1110,8 @@ def serve_content_by_db_id(content_id):
                 file_type = 'audio'
             elif any(ext in title_lower for ext in ['.mp4', '.webm', '.ogv', '.mov', '.avi']):
                 file_type = 'video'
+            elif any(ext in title_lower for ext in ['.xls', '.xlsx']):
+                file_type = 'spreadsheet'
             elif any(ext in title_lower for ext in ['.zip', '.rar', '.7z', '.tar', '.gz']):
                 file_type = 'unsupported'
 
@@ -1110,7 +1137,7 @@ def serve_content_by_db_id(content_id):
         return redirect(content.drive_view_link)
     if content.content_data and content.content_data.startswith('http'):
         return redirect(content.content_data)
-    return redirect(url_for('main.index', error='file_not_found'))
+    return _render_file_unavailable(_('This file is no longer available.'), 404)
 
 
 @api_bp.route('/file/c/<int:content_id>/subtitles.vtt')
@@ -1142,28 +1169,39 @@ def serve_content_subtitles(content_id):
 
 
 @api_bp.route('/file/c/<int:content_id>/embed')
-@login_required
 def serve_content_embed(content_id):
     """Redirect to the file's actual bytes (an R2 presigned URL or a Drive embed URL)
-    without exposing the storage-backend file ID in page HTML."""
+    without exposing the storage-backend file ID in page HTML.
+
+    Deliberately skips @login_required: this route is hit by a browser loading an
+    <iframe>/<img>/<video> src, not a fetch() call, so the app-wide unauthorized_handler's
+    JSON response (see lms/__init__.py, applied to every /api/ path) would render as a raw
+    JSON blob inside the viewer frame instead of a page a person can act on. Every failure
+    mode here uses the same friendly countdown-redirect page as the forum attachment routes.
+    """
     from lms.models import CourseContent, Course
-    from flask import redirect, abort
+    from flask import redirect
+    from flask_babel import _
+
+    if not current_user.is_authenticated:
+        return _render_file_unavailable(_('Please log in to view this file.'), 401)
 
     content = CourseContent.query.get(content_id)
     if not content or not content.has_bytes:
-        abort(404)
+        return _render_file_unavailable(_('This file is no longer available.'), 404)
 
     course = Course.query.get(content.course_id)
     is_manager = course.is_managed_by(current_user) if course else False
     is_enrolled = course and current_user in course.users
     if not (is_manager or is_enrolled):
-        abort(403)
+        return _render_file_unavailable(_("You don't have access to view this file."), 403)
     if not content.is_published and not is_manager:
-        abort(403)
+        return _render_file_unavailable(_("You don't have access to view this file."), 403)
 
-    url = _content_media_url(content)
+    raw = request.args.get('raw') in ('1', 'true', 'True')
+    url = _content_media_url(content, raw=raw)
     if not url:
-        abort(404)
+        return _render_file_unavailable(_('This file could not be found in storage.'), 404)
     resp = redirect(url)
     # A presigned URL is only valid for a limited window — without no-store, a browser/bfcache
     # could replay one after it expires (e.g. a tab left open past R2_URL_EXPIRY_SECONDS),
@@ -1173,32 +1211,38 @@ def serve_content_embed(content_id):
 
 
 @api_bp.route('/file/c/<int:content_id>/download')
-@login_required
 def download_content_by_db_id(content_id):
-    """Download course content as a file attachment (only if is_downloadable is set)."""
+    """Download course content as a file attachment (only if is_downloadable is set).
+
+    Deliberately skips @login_required — see serve_content_embed's docstring for why every
+    failure mode here uses the friendly countdown-redirect page instead."""
     from lms.models import CourseContent, Course
+    from flask_babel import _
+
+    if not current_user.is_authenticated:
+        return _render_file_unavailable(_('Please log in to view this file.'), 401)
 
     content = CourseContent.query.get(content_id)
     if not content:
-        return redirect(url_for('main.index', error='file_not_found'))
+        return _render_file_unavailable(_('This file is no longer available.'), 404)
 
     if not content.is_downloadable:
-        return redirect(url_for('main.index', error='download_not_allowed'))
+        return _render_file_unavailable(_('This file is not available for download.'), 403)
 
     course = Course.query.get(content.course_id)
     is_manager = course.is_managed_by(current_user) if course else False
     is_enrolled = course and current_user in course.users
     if not (is_manager or is_enrolled):
-        return redirect(url_for('main.index', error='auth_required'))
+        return _render_file_unavailable(_("You don't have access to view this file."), 403)
     if not content.is_published and not is_manager:
-        return redirect(url_for('main.index', error='auth_required'))
+        return _render_file_unavailable(_("You don't have access to view this file."), 403)
 
     if content.has_bytes:
         url = _content_media_url(content, download=True)
         if url:
             return redirect(url)
 
-    return redirect(url_for('main.index', error='file_not_found'))
+    return _render_file_unavailable(_('This file could not be found in storage.'), 404)
 
 
 @api_bp.route('/course/<int:course_id>/upload-content', methods=['POST'])
@@ -1247,17 +1291,24 @@ def upload_course_content(course_id):
         except UploadValidationError as e:
             return jsonify({'error': f'{f.filename}: {e}'}), 400
 
+    # Store just the filename in job_data, not a full absolute path: this request may be
+    # handled by `just dev` (host process, UPLOAD_STAGING_DIR resolves to a host path) while
+    # the job queue is shared with Docker's worker-dev (container process, resolves to
+    # /app/data/upload-staging) — same underlying bind-mounted directory, different path
+    # strings. A baked-in absolute path from one side is meaningless on the other; the worker
+    # re-resolves the filename against its own local UPLOAD_STAGING_DIR instead (see
+    # _execute_bulk_upload_content_job).
     staged = []
     try:
         for f in files:
             filename = secure_filename(f.filename) or 'file'
-            temp_path = os.path.join(UPLOAD_STAGING_DIR, f'{uuid.uuid4().hex}_{filename}')
-            f.save(temp_path)
-            staged.append({'staged_path': temp_path, 'original_filename': f.filename})
+            staged_filename = f'{uuid.uuid4().hex}_{filename}'
+            f.save(os.path.join(UPLOAD_STAGING_DIR, staged_filename))
+            staged.append({'staged_filename': staged_filename, 'original_filename': f.filename})
     except Exception:
         for item in staged:
             try:
-                os.remove(item['staged_path'])
+                os.remove(os.path.join(UPLOAD_STAGING_DIR, item['staged_filename']))
             except OSError:
                 pass
         raise

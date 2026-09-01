@@ -401,6 +401,7 @@ def _execute_bulk_upload_content_job(job):
     from lms.models import Course, CourseContent
     from lms.upload_validation import content_type_for_mime
     from lms import office_preview, r2_client
+    from lms.routes import UPLOAD_STAGING_DIR
 
     data = job.data or {}
     course = Course.query.get(data.get('course_id'))
@@ -420,7 +421,10 @@ def _execute_bulk_upload_content_job(job):
     errors = []
 
     for i, entry in enumerate(files):
-        staged_path = entry['staged_path']
+        # Resolved against this process's own UPLOAD_STAGING_DIR, not a baked-in path from
+        # whichever process staged it — see upload_course_content's comment (routes/api.py)
+        # for why only the filename is stored in job.data.
+        staged_path = _os.path.join(UPLOAD_STAGING_DIR, entry['staged_filename'])
         original_filename = entry['original_filename']
         try:
             if not _os.path.exists(staged_path):
